@@ -1,0 +1,17 @@
+# CODEOWNERS — sole maintainer: @vishnuvardhanburri.
+# No teams, no additional reviewers, no security contact email invented.
+# GitHub automatically requests review from the listed owner on PRs.
+
+# Security-sensitive paths (explicit protection)
+/.github/                  @vishnuvardhanburri
+/contracts/                @vishnuvardhanburri
+/circuits/                 @vishnuvardhanburri
+/packages/engine/          @vishnuvardhanburri
+/packages/proof-format/    @vishnuvardhanburri
+/packages/api/             @vishnuvardhanburri
+/packages/cli/             @vishnuvardhanburri
+/docs/security/            @vishnuvardhanburri
+/SECURITY.md               @vishnuvardhanburri
+
+# Catch-all: every other path in the repository is owned by the sole maintainer
+*                          @vishnuvardhanburri

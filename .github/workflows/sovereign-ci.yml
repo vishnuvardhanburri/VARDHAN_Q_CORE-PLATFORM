@@ -1,0 +1,62 @@
+name: Sovereign Platform CI (Unified)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  quantum-core-build:
+    name: Build Rust Quantum Core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev
+      - name: Build Core
+        working-directory: ./backend
+        run: cargo build --workspace --release
+
+  zk-engine-build:
+    name: Build Zero-Knowledge Engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build ZK
+        working-directory: ./zk_engine
+        run: npm install && npm run build
+
+  intelligence-plane-build:
+    name: Build Intelligence Plane
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build UI
+        working-directory: ./intelligence_plane
+        run: npm install && npm run build
+
+  ebpf-build:
+    name: Build eBPF Linux Production Path
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install clang, llvm, libelf-dev, and missing asm headers
+        run: sudo apt-get update && sudo apt-get install -y clang llvm libelf-dev gcc-multilib linux-libc-dev libbpf-dev
+      - name: Compile eBPF kernel C code
+        run: clang -O2 -g -target bpf -I/usr/include/x86_64-linux-gnu -c backend/ebpf_engine/ebpf_kernel/src/vardhan_firewall.c -o vardhan_firewall.o
+      - name: Build Rust user-space loader
+        working-directory: ./backend/ebpf_engine/ebpf_user
+        run: cargo build

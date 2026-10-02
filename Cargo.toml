@@ -1,0 +1,34 @@
+[workspace]
+resolver = "2"
+members = [
+    "backend/core_crypto",
+    "backend/proxy_engine",
+    "backend/ledger_sync",
+    "backend/quantum_node",
+    "backend/ledger_persistence",
+    "backend/quantum_network",
+    "backend/quantum_tui",
+    "backend/pq_shield",
+    "backend/enterprise_tenant",
+    "backend/saas_metering",
+    "backend/load_tester",
+    "backend/verifier",
+    "backend/mock_upstream",
+    "backend/poc_auditor",
+    "backend/orchestration_ai",
+    "backend/audit_ledger",
+    "backend/pq_verify",
+    "backend/ha_cluster",
+    "backend/auth_service",
+    "backend/vardhan_model",
+    "backend/vardhan_state", "backend/proofmesh", "backend/authority_gate", "backend/decision_twin", "backend/proofmesh",
+    "backend/vardhan_receipt",
+    "backend/vardhan_transaction",
+    "backend/vardhan_keystore",
+    "backend/vardhan_idempotency",
+    "backend/vardhan_verifier",
+    "backend/ebpf_engine/ebpf_user", "backend/hybrid_core",
+]
+
+
+

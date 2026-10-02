@@ -1,0 +1,48 @@
+{
+  "name": "vardhan-intelligence",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "vardhan": "tsx scripts/vardhan.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx tests/acceptanceTest.ts && tsx tests/vardhanOperator.test.ts && tsx tests/deepOperator.test.ts && tsx tests/growjoProvider.test.ts && tsx tests/companyQueue.test.ts && tsx tests/findingEngine.test.ts && tsx tests/sourceGraph.test.ts && tsx tests/activity.test.ts && tsx tests/orchestration.test.ts && tsx tests/peopleOwner.test.ts && tsx tests/email.test.ts && tsx tests/ownerPipeline.test.ts && tsx tests/providerArchitecture.test.ts && tsx tests/personDiscovery.test.ts && tsx tests/liveWebFallback.test.ts"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@vardhan/qcore-sdk": "file:../sdks/typescript/vardhan-qcore",
+    "clsx": "^2.1.1",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1",
+    "framer-motion": "^12.42.2",
+    "lucide-react": "^1.27.0",
+    "motion": "^13.1.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.18.2",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.3",
+    "viem": "^2.57.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.19.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "jest": "^30.5.2",
+    "oxlint": "^1.71.0",
+    "ts-jest": "^29.4.14",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1",
+    "vitest": "^5.0.3"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@vardhan/qcore-sdk",
+  "version": "1.0.0",
+  "description": "Vardhan Q-Core Enterprise Tollbooth SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

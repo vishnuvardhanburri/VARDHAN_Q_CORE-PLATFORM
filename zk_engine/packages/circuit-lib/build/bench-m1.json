@@ -1,0 +1,21 @@
+{
+  "engine": "groth16/bn254",
+  "toolchain": "circom 2.1.9, snarkjs 0.7.6, dev ptau16",
+  "rows": [
+    {
+      "circuitId": "poseidon-preimage",
+      "proveMs": 44.7,
+      "verifyMs": 7.4,
+      "valid": true,
+      "withinBudget": true
+    },
+    {
+      "circuitId": "merkle-inclusion",
+      "proveMs": 76.4,
+      "verifyMs": 6,
+      "valid": true,
+      "withinBudget": true
+    }
+  ],
+  "at": "2026-08-08T08:53:30.640Z"
+}

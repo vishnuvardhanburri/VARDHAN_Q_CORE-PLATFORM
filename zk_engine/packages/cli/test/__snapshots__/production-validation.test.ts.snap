@@ -1,0 +1,46 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`zk bin production validation > output snapshots > --help matches the reference surface > help 1`] = `
+"zk — @zkpe developer CLI (M6)
+
+USAGE
+  zk <command> [flags]
+
+COMMANDS
+  new <circuitId> <dir>          scaffold a project (inputs template)
+  prove <circuitId> <inputs>     generate a proof envelope (local engine)
+    --out <file>                 envelope output (default proof.json)
+  verify <envelope.json>         verify envelope locally; then API unless --offline
+  register <envelope.json>       anchor a proof on-chain (requires --idempotency-key)
+  status <envelope.json>         on-chain proof status via API
+  registry                       registry info via API
+  deploy --rpc-url <url>         deploy registry contracts via foundry script
+  env [set|show|list] [env]     manage API profiles (dev/prod)
+  completions [bash|zsh|fish]    print a shell completion script
+  --help                          this help
+
+FLAGS (global)
+  --env <dev|prod>               profile name (default dev)
+  --offline                      never call the API (local-only)
+  --json                         machine-readable output (all commands)
+"
+`;
+
+exports[`zk bin production validation > output snapshots > env set success output shape is stable > env-set 1`] = `
+"{
+  "env": "prod",
+  "apiUrl": "http://127.0.0.1:8080",
+  "clientId": "client-2",
+  "secret": "<redacted>"
+}
+"
+`;
+
+exports[`zk bin production validation > output snapshots > env show redacted output is stable > env-show 1`] = `
+"{
+  "apiUrl": "http://127.0.0.1:8080",
+  "clientId": "client-1",
+  "secret": "<redacted:40 chars>"
+}
+"
+`;

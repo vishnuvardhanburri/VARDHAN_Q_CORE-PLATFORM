@@ -1,0 +1,25 @@
+/target/
+target_new/
+target_prod/
+frontend/.next/
+frontend/node_modules/
+dashboard/.next/
+dist/
+*.log
+cloudflared
+kek.bin
+kek_a.bin
+kek_b.bin
+kek_c.bin
+pq_vault.json
+pq_vault_a.json
+pq_vault_b.json
+pq_vault_c.json
+.DS_Store
+test_kek.bin
+raft_state.json
+venv/
+scripts/venv/
+data/
+"vardhan quantum frontend "
+reference/

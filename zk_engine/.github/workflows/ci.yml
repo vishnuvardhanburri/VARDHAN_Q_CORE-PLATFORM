@@ -1,0 +1,158 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Wait (don't cancel): cancelling an in-flight run discards its
+  # actions/cache post-step save, forcing all legs to regenerate the 72MB
+  # dev PTau from scratch on every push. With cancel-in-progress: false the
+  # in-flight run completes and seeds the cache; the queued run restores it.
+  cancel-in-progress: false
+
+jobs:
+  quality:
+    name: Lint, Typecheck, Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Build (workspace deps, topological)
+        run: npm run build
+      - name: Restore dev PTau from cache
+        id: ptau-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/circuit-lib/build/ptau16_dev.ptau
+          key: ptau-dev-${{ hashFiles('packages/circuit-lib/scripts/build-ptau.mjs', 'packages/circuit-lib/package.json') }}
+      - name: Generate dev PTau (deterministic, skip-if-fresh)
+        run: npm run build:ptau -w @zkpe/circuit-lib
+      - name: Save dev PTau to cache
+        if: steps.ptau-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/circuit-lib/build/ptau16_dev.ptau
+          key: ptau-dev-${{ hashFiles('packages/circuit-lib/scripts/build-ptau.mjs', 'packages/circuit-lib/package.json') }}
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm test
+
+  platforms:
+    name: Build + Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Restore dev PTau from cache
+        id: ptau-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/circuit-lib/build/ptau16_dev.ptau
+          key: ptau-dev-${{ hashFiles('packages/circuit-lib/scripts/build-ptau.mjs', 'packages/circuit-lib/package.json') }}
+      - name: Generate dev PTau (deterministic, skip-if-fresh)
+        run: npm run build:ptau -w @zkpe/circuit-lib
+      - name: Save dev PTau to cache
+        if: steps.ptau-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/circuit-lib/build/ptau16_dev.ptau
+          key: ptau-dev-${{ hashFiles('packages/circuit-lib/scripts/build-ptau.mjs', 'packages/circuit-lib/package.json') }}
+      - name: CLI smoke (fresh install)
+        shell: bash
+        run: npm run fresh-install --workspace @zkpe/cli
+      - name: Test
+        run: npm test
+
+  e2e-anvil:
+    name: "E2E (anvil: prove → verify → register → on-chain gate)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
+        with:
+          version: stable
+      - name: Install
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Restore dev PTau from cache
+        id: ptau-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/circuit-lib/build/ptau16_dev.ptau
+          key: ptau-dev-${{ hashFiles('packages/circuit-lib/scripts/build-ptau.mjs', 'packages/circuit-lib/package.json') }}
+      - name: Generate dev PTau (deterministic, skip-if-fresh)
+        run: npm run build:ptau -w @zkpe/circuit-lib
+      - name: Save dev PTau to cache
+        if: steps.ptau-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: packages/circuit-lib/build/ptau16_dev.ptau
+          key: ptau-dev-${{ hashFiles('packages/circuit-lib/scripts/build-ptau.mjs', 'packages/circuit-lib/package.json') }}
+      - name: Full journey e2e
+        env:
+          # Anvil default dev key #0 — public well-known test key, NOT a secret
+          ZK_REGISTRY_PK: "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+        run: npm run e2e --workspace @zkpe/cli
+
+  supply-chain:
+    name: Supply-chain scans (npm audit + osv-scanner)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: npm audit (production deps, critical)
+        run: npm audit --omit=dev --audit-level=critical
+      - name: Install osv-scanner (pinned v1.9.2 with SHA-256)
+        run: |
+          curl -sSL https://github.com/google/osv-scanner/releases/download/v1.9.2/osv-scanner_linux_amd64 -o /tmp/osv-scanner
+          echo "d6af4b67fa5de658598bd2d445efb99e90d1734b3146962418719c4350ecb74b  /tmp/osv-scanner" | sha256sum -c -
+          sudo install -m 0755 /tmp/osv-scanner /usr/local/bin/osv-scanner
+      - name: osv-scan workspace lockfile
+        run: osv-scanner scan --lockfile package-lock.json --recursive

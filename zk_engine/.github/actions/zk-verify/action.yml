@@ -1,0 +1,164 @@
+name: 'zk-verify'
+description: >-
+  Gatekeeper verification — validates a signed proof envelope (circuit, vkHash
+  allow-list, artifact binding, Ed25519 signature against a trusted key) and
+  enforces on-chain registry status (registered / unexpired / unrevoked).
+  All logic runs from the trusted base branch; the envelope is read from the
+  PR head without ever executing PR code.
+author: '@zkpe'
+
+inputs:
+  envelope:
+    description: 'Path to the proof envelope JSON to verify (PR head checkout)'
+    required: true
+  circuit:
+    description: 'Required circuitId (default: poseidon-preimage)'
+    required: false
+    default: 'poseidon-preimage'
+  public-key:
+    description: >-
+      Ed25519 public key (JWK JSON) trusted to sign envelopes. MUST come from
+      a repository secret — never from PR-controlled input.
+    required: false
+  public-key-file:
+    description: >-
+      LOCAL-DEV ONLY: path to a committed Ed25519 public JWK file. The CI
+      workflow must never pass this — the gate trusts only the repo-secret key
+      (public-key). Fail-fast when require-signed is set and no key is given.
+    required: false
+  require-signed:
+    description: 'Reject unsigned (v1) envelopes'
+    required: false
+    default: 'true'
+  vk-allowlist:
+    description: 'Comma/;-separated circuitId=0xVkHash allow-list entries'
+    required: false
+  artifact-dir:
+    description: >-
+      Directory containing the deployed artifact set (r1cs/wasm/zkey/vkey);
+      the gate recomputes the artifact bundle digest and compares it with the
+      envelope's artifactHash and the certified circuit-lib manifest.
+    required: false
+  rpc-url:
+    description: 'Registry RPC URL for on-chain enforcement (requires registry-address)'
+    required: false
+  registry-address:
+    description: 'ZKVerifierRegistry proxy address (requires rpc-url)'
+    required: false
+  max-age:
+    description: 'Maximum proof age in seconds accepted by requireProved (default: 0 = any age)'
+    required: false
+    default: '0'
+  api-url:
+    description: 'API base URL for online verification'
+    required: false
+  client-id:
+    description: 'API client id (requires api-url)'
+    required: false
+  client-secret:
+    description: 'API client secret (requires api-url)'
+    required: false
+
+outputs:
+  verified:
+    description: 'true when the gate passes'
+  circuit-id:
+    description: 'circuitId from the envelope'
+  vk-hash:
+    description: 'vkHash from the envelope'
+  artifact-hash:
+    description: 'artifactHash from the envelope'
+  key-id:
+    description: 'signature keyId when present'
+  report:
+    description: 'gate report JSON'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Gatekeeper probe (offline checks + on-chain enforcement)
+      id: probe
+      shell: bash
+      env:
+        GK_ENVELOPE: ${{ inputs.envelope }}
+        GK_CIRCUIT: ${{ inputs.circuit }}
+        GK_PUBLIC_KEY: ${{ inputs.public-key }}
+        GK_PUBLIC_KEY_FILE: ${{ inputs.public-key-file }}
+        GK_ALLOWLIST: ${{ inputs.vk-allowlist }}
+        GK_ARTIFACT_DIR: ${{ inputs.artifact-dir }}
+        GK_RPC_URL: ${{ inputs.rpc-url }}
+        GK_REGISTRY: ${{ inputs.registry-address }}
+        GK_MAX_AGE: ${{ inputs.max-age }}
+        GK_REQUIRE_SIGNED: ${{ inputs.require-signed }}
+        GK_REPORT: ${{ runner.temp }}/zk-gate/report.json
+      run: |
+        set -euo pipefail
+        mkdir -p "$(dirname "$GK_REPORT")"
+        args=(--envelope "$GK_ENVELOPE" --circuit "$GK_CIRCUIT")
+        if [ -n "$GK_PUBLIC_KEY" ]; then
+          args+=(--public-key "$GK_PUBLIC_KEY")
+        elif [ -n "$GK_PUBLIC_KEY_FILE" ]; then
+          args+=(--public-key-file "$GK_PUBLIC_KEY_FILE")
+        elif [ "$GK_REQUIRE_SIGNED" = "true" ]; then
+          echo "gate: no trusted verification key — public-key (repo secret) is REQUIRED for signed envelopes" >&2
+          exit 1
+        fi
+        if [ -n "$GK_ALLOWLIST" ]; then
+          args+=(--vk-allowlist "$GK_ALLOWLIST")
+        fi
+        if [ -n "$GK_ARTIFACT_DIR" ]; then
+          args+=(--artifact-dir "$GK_ARTIFACT_DIR")
+        fi
+        if [ "$GK_REQUIRE_SIGNED" = "true" ]; then
+          args+=(--require-signed)
+        fi
+        if [ -n "$GK_RPC_URL" ] && [ -n "$GK_REGISTRY" ]; then
+          args+=(--rpc-url "$GK_RPC_URL" --registry "$GK_REGISTRY" --max-age "$GK_MAX_AGE")
+        fi
+        node "${{ github.workspace }}/packages/cli/scripts/gatekeeper-probe.mjs" "${args[@]}" \
+          --json-report > "$GK_REPORT" 2> "$(dirname "$GK_REPORT")/probe.err"
+        status=$?
+        cat "$GK_REPORT"
+        if [ $status -ne 0 ]; then
+          echo "gate rejected — reasons:"
+          cat "$(dirname "$GK_REPORT")/probe.err"
+          exit 1
+        fi
+        echo "gate accepted"
+
+    - name: Online verification (API)
+      if: ${{ inputs.api-url != '' }}
+      shell: bash
+      env:
+        GK_API_URL: ${{ inputs.api-url }}
+        GK_CLIENT_ID: ${{ inputs.client-id }}
+        GK_CLIENT_SECRET: ${{ inputs.client-secret }}
+        GK_ENVELOPE: ${{ inputs.envelope }}
+      run: |
+        set -euo pipefail
+        node "${{ github.workspace }}/packages/cli/scripts/gatekeeper-api-verify.mjs" \
+          --api-url "$GK_API_URL" \
+          --client-id "$GK_CLIENT_ID" \
+          --client-secret "$GK_CLIENT_SECRET" \
+          --envelope "$GK_ENVELOPE"
+
+    - name: Publish outputs
+      shell: bash
+      env:
+        GK_REPORT: ${{ runner.temp }}/zk-gate/report.json
+      run: |
+        set -euo pipefail
+        node -e '
+          const fs = require("node:fs");
+          const out = process.env.GITHUB_OUTPUT;
+          const report = JSON.parse(fs.readFileSync(process.env.GK_REPORT, "utf8"));
+          const lines = [
+            ["verified", report.verified ? "true" : "false"],
+            ["circuit-id", report.circuitId ?? ""],
+            ["vk-hash", report.vkHash ?? ""],
+            ["artifact-hash", report.artifactHash ?? ""],
+            ["key-id", report.keyId ?? ""],
+            ["report", JSON.stringify(report)],
+          ];
+          for (const [k, v] of lines) fs.appendFileSync(out, `${k}=${v}\n`);
+        '

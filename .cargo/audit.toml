@@ -1,0 +1,6 @@
+[advisories]
+# poc_auditor is a non-production PoC and its legacy genpdf/LOPDF stack is
+# retained only for the explicitly named PDF export binary. Replacing it
+# requires a separate PDF API migration; it is not used by production Raft,
+# proxy, ledger, or SaaS services.
+ignore = ["RUSTSEC-2026-0187"]

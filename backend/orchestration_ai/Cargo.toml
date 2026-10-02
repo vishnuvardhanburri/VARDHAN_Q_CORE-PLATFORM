@@ -1,0 +1,15 @@
+[package]
+name = "orchestration_ai"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+vardhan_state = { path = "../vardhan_state" }
+tokio = { version = "1", features = ["full"] }
+quantum_network = { path = "../quantum_network" }
+saas_metering = { path = "../saas_metering" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+audit_ledger = { path = "../audit_ledger" }
+uuid = { version = "1", features = ["v4"] }
+core_crypto = { path = "../core_crypto" }

@@ -1,0 +1,12 @@
+[package]
+name = "authority_gate"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+vardhan_state = { path = "../vardhan_state" }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+tokio = { version = "1.53.1", features = ["full"] }
+tracing = "0.1.44"
+uuid = { version = "1", features = ["v4"] }

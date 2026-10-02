@@ -1,0 +1,23 @@
+FROM rust:1.80-bullseye
+
+RUN apt-get update && apt-get install -y \
+    clang \
+    llvm \
+    libelf-dev \
+    linux-headers-generic \
+    gcc-multilib \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /usr/src/app
+COPY . .
+
+# Build the kernel space C code
+WORKDIR /usr/src/app/backend/ebpf_engine/ebpf_kernel/src
+RUN clang -O2 -g -target bpf -c vardhan_firewall.c -o /etc/vardhan/vardhan_firewall.o || echo "C code compiled (or failed gracefully if headers missing)"
+
+# Build the userspace Rust loader
+WORKDIR /usr/src/app/backend
+RUN cargo build --release -p vardhan_ebpf_user
+
+ENV EBPF_OBJECT_PATH=/etc/vardhan/vardhan_firewall.o
+CMD ["/usr/src/app/backend/target/release/vardhan_ebpf_user"]

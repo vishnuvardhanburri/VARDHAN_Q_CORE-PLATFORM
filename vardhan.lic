@@ -1,0 +1,6 @@
+{
+  "tenant_id": "hsbc",
+  "valid_until": 1822506169,
+  "max_nodes": 10,
+  "signature": "9dc51dd35d15681d004f4b3ac467b7db7d59786083f2e9c7ea615bfa72c5e5f28f9de0bbf42f98d01935bfb3311cab903b6676bdfd38ad985cc1a35f5d5a7008"
+}

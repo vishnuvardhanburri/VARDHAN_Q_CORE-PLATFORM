@@ -1,0 +1,10 @@
+{
+  "proveMs": 170,
+  "verifyMs": 7,
+  "deployMs": 1824,
+  "registerMs": 1462,
+  "queryMs": 24,
+  "gatedMs": 766,
+  "claimMs": 17,
+  "at": "2026-08-08T12:45:04.527Z"
+}

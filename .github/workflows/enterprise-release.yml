@@ -1,0 +1,59 @@
+name: Vardhan Q-Core SLSA-3 Enterprise Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  id-token: write # Required for Sigstore/Cosign OIDC
+
+jobs:
+  build-and-sign:
+    name: Build & Cryptographically Sign
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          target: aarch64-unknown-linux-gnu
+
+      - name: Install Cosign (Sigstore)
+        uses: sigstore/cosign-installer@v3.4.0
+
+      - name: Build Optimized Release Binary
+        working-directory: ./backend
+        run: |
+          cargo build --release -p vardhan_receipt --target aarch64-unknown-linux-gnu
+          strip target/aarch64-unknown-linux-gnu/release/vardhan-receipt
+
+      - name: Generate BLAKE3 Integrity Hash
+        id: hash
+        run: |
+          HASH=$(b3sum ./backend/target/aarch64-unknown-linux-gnu/release/vardhan-receipt | awk '{print $1}')
+          echo "VARDHAN_BINARY_HASH=$HASH" >> $GITHUB_ENV
+          echo "Binary Hash: $HASH"
+
+      - name: Sign Binary via Sigstore
+        run: |
+          cosign sign-blob --yes ./backend/target/aarch64-unknown-linux-gnu/release/vardhan-receipt --bundle vardhan-receipt.bundle
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ./backend/target/aarch64-unknown-linux-gnu/release/vardhan-receipt
+            vardhan-receipt.bundle
+          body: |
+            ## Vardhan Q-Core Node (Enterprise Release)
+            **SLSA Level 3 Certified Build**
+            
+            - **Target:** `aarch64-unknown-linux-gnu`
+            - **BLAKE3 Hash:** `${{ env.VARDHAN_BINARY_HASH }}`
+            - **Status:** Hardware Enclave Ready (Nitro/TPM 2.0)
+            
+            *Requires a cryptographically signed `vardhan.lic` file for execution.*

@@ -1,0 +1,30 @@
+{
+  "name": "zk-proof-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zero-knowledge proof engine: circuits, registry, API, CLI, CI gatekeeper, dashboard",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "npm@10.9.4",
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "bench": "turbo run bench",
+    "check": "npm run build && npm run lint && npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "eslint": "^9.13.0",
+    "turbo": "^2.3.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.13.0",
+    "vitest": "^4.1.10"
+  }
+}

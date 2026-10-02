@@ -1,0 +1,95 @@
+name: Smart Contracts CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['contracts/**', '.github/workflows/contracts.yml']
+  pull_request:
+    paths: ['contracts/**', '.github/workflows/contracts.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build, Test, Fuzz, Invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
+        with:
+          version: stable
+
+      - name: Build
+        run: forge build --sizes
+
+      - name: Unit + integration tests
+        run: forge test --match-path "test/*.t.sol"
+
+      - name: Property fuzz tests
+        run: forge test --match-path "test/fuzz/*.t.sol" -vv
+
+      - name: Invariant tests
+        run: forge test --match-path "test/invariants/*.t.sol" -vv
+
+      - name: Gas snapshot gate
+        run: forge snapshot --check
+
+      - name: Forge fmt check
+        run: forge fmt --check
+
+  static-analysis:
+    name: Slither + Gas report
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+
+      - uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1
+        with:
+          version: stable
+
+      - name: Build
+        run: forge build
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install slither & solc-select
+        run: |
+          pip install --require-hashes -r ../.github/requirements.txt
+          solc-select install 0.8.27
+          solc-select use 0.8.27
+          echo "$HOME/.solc-select" >> "$GITHUB_PATH"
+
+      - name: Slither (scoped to our contracts, triaged exclusions)
+        run: |
+          slither . \
+            --filter-paths "VerifierPoseidonPreimage|VerifierMerkleInclusion|openzeppelin|forge-std" \
+            --exclude naming-conventions,unindexed-event,assembly,deprecated-standalone,low-level-calls,boolean-equal,missing-inheritance,arbitrary-send-eth,timestamp,incorrect-equality,reentrancy-unlimited-gas \
+            --fail-medium
+
+      - name: Gas report artifact
+        run: forge test --match-path "test/*.t.sol" --gas-report > gas-report.txt || true
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: gas-report
+          path: contracts/gas-report.txt

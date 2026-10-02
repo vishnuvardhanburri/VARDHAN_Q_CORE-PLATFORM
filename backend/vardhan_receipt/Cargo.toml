@@ -1,0 +1,31 @@
+[package]
+name = "vardhan_receipt"
+version = "0.1.0"
+edition = "2021"
+description = "Quantum-resistant AI Decision Receipt — every decision is sealed, witnessed, and globally verifiable"
+
+[[bin]]
+name = "vardhan-receipt"
+path = "src/main.rs"
+
+[dependencies]
+core_crypto   = { path = "../core_crypto" }
+blake3        = "1.5"
+serde         = { version = "1", features = ["derive"] }
+serde_json    = "1"
+chrono        = { version = "0.4", features = ["serde"] }
+uuid          = { version = "1", features = ["v4"] }
+clap          = { version = "4", features = ["derive"] }
+base64ct      = { version = "1", features = ["alloc"] }
+colored       = "2"
+mimalloc = "0.1.52"
+pqcrypto-mldsa = "0.1.2"
+pqcrypto-traits = "0.3.5"
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+rand = "0.8"
+hex = "0.4"
+vardhan_hybrid_core = { path = "../hybrid_core" }
+vardhan_transaction = { path = "../vardhan_transaction" }
+vardhan_verifier = { path = "../vardhan_verifier" }
+axum = "0.8.9"
+tokio = { version = "1.53.1", features = ["full"] }

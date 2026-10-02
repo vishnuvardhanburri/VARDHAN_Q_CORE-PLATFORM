@@ -1,0 +1,61 @@
+{
+  "manifestVersion": 1,
+  "circuitId": "merkle-inclusion",
+  "circuitVersion": "1.0.0",
+  "scheme": "groth16",
+  "curve": "bn254",
+  "inputs": [
+    {
+      "id": "root",
+      "type": "field",
+      "arity": 1
+    }
+  ],
+  "privateInputs": [
+    {
+      "id": "leaf",
+      "type": "field",
+      "arity": 1
+    },
+    {
+      "id": "siblings",
+      "type": "field",
+      "arity": 4
+    },
+    {
+      "id": "pathBits",
+      "type": "u1",
+      "arity": 4
+    }
+  ],
+  "outputs": [
+    {
+      "id": "rootPub",
+      "type": "field",
+      "arity": 1
+    },
+    {
+      "id": "isZero",
+      "type": "u1",
+      "arity": 1
+    }
+  ],
+  "artifacts": {
+    "r1cs": "0x610f19c9b5b78a6e203e1dc5d1675f52bd3d761fb470796aa4ab24075738d0ed",
+    "wasm": "0x2c4d201105b7a772338d6ba88634c9ea1ff7597d0b9daf05e284736b4532ea84",
+    "zkey": "0xd338890bfaea53e6e7818aa0a3ec501c5806fd46c4f4c29b55079524d39ed97d",
+    "vk": {
+      "vkHash": "0xbd7d0fa913ccae00433d57681d5eca41fd49e1b70a2d764772d64184cfc02335",
+      "sha256": "0xcb217d7b0d0051b6dec8f604fcb5816f634c51672ecb175aa59a9942eaaf9a1f"
+    }
+  },
+  "constraints": {
+    "estimated": 974,
+    "max": 65536
+  },
+  "compatibility": {
+    "minEngine": "1.0.0",
+    "minProofFormat": "1.0.0"
+  },
+  "manifestHash": "0x96d3a578379104dd3317bc16d4d784cf3925861fba2d7d0bdda803835c3e5d13"
+}

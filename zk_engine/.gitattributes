@@ -1,0 +1,25 @@
+# Auto-normalize line endings to LF across all operating systems
+* text=auto eol=lf
+
+# Binary cryptographic files
+*.zkey binary
+*.wasm binary
+*.r1cs binary
+*.ptau binary
+*.sig binary
+*.tgz binary
+
+# Source and configuration files
+*.json text eol=lf
+*.vkey.json text eol=lf
+*.manifest.json text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.sol text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.circom text eol=lf
