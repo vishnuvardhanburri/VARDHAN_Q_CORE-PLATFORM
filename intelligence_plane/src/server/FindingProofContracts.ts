@@ -30,6 +30,24 @@ export interface ProofContract {
 }
 
 export const FINDING_PROOF_CONTRACTS: Record<string, ProofContract> = {
+  'OBSERVABILITY_SIGNAL': {
+    identity: {
+      minimumRelationship: 'VERIFIED_EXTERNAL',
+      requireTargetAttribution: true,
+    },
+    evidence: {
+      minimumEvidenceItems: 2,
+      minimumIndependentSources: 2,
+      requireIndependentSource: true,
+      requireReproduction: true,
+      allowHistorical: false,
+      requirePhysicalSurface: true,
+    },
+    specificity: {
+      requireTechnicalPivot: false,
+      requireConcreteArtifact: true,
+    },
+  },
   'OBSERVED_LATENCY': {
     identity: {
       minimumRelationship: 'VERIFIED_OWNED',

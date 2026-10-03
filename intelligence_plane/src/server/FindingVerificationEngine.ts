@@ -37,8 +37,7 @@ export class FindingVerificationEngine {
    */
   static verify(
     candidate: SignalCandidate,
-    evidence: Evidence[],
-    companyName: string
+    evidence: Evidence[]
   ): VerificationResult {
     const contract = getContractForType(candidate.type);
     const reasons: string[] = [];
@@ -126,6 +125,28 @@ export class FindingVerificationEngine {
       }
     }
 
+    // 6. GOVERNANCE COMPLETENESS — all authority fields must be present upstream.
+    // Fail-closed: if any governance field is absent, verification is incomplete.
+    const requiredGovernanceFields: [keyof SignalCandidate, string][] = [
+      ['technical_area', 'technical_area'],
+      ['technical_mechanism', 'technical_mechanism'],
+      ['expected_behavior', 'expected_behavior'],
+      ['materiality', 'materiality'],
+      ['requires_authorized_assessment', 'requires_authorized_assessment'],
+      ['decision_candidate', 'decision_candidate'],
+      ['policy_reference', 'policy_reference'],
+      ['entry_point_id', 'entry_point_id'],
+      ['expectation_id', 'expectation_id'],
+      ['differential_id', 'differential_id'],
+      ['hypothesis_id', 'hypothesis_id'],
+    ];
+    for (const [field, label] of requiredGovernanceFields) {
+      if (candidate[field] === undefined || candidate[field] === null || candidate[field] === '') {
+        reasons.push(`GOVERNANCE_FAILURE: Required field '${label}' is absent on candidate — cannot construct authoritative VerifiedFinding.`);
+        return { isVerified: false, reasons, status: 'REJECTED', attribution };
+      }
+    }
+
     // PROMOTED TO VERIFIED FINDING
     return {
       isVerified: true,
@@ -145,18 +166,21 @@ export class FindingVerificationEngine {
         proof_contract_id: candidate.type,
         verification_reasons: ['Proof contract satisfied'],
         _verified: true,
-        // Propagate governance context
-        technical_area: candidate.technical_area,
-        technical_mechanism: candidate.technical_mechanism,
-        expected_behavior: candidate.expected_behavior,
-        materiality: candidate.materiality,
-        requires_authorized_assessment: candidate.requires_authorized_assessment,
-        decision_candidate: candidate.decision_candidate,
-        policy_reference: candidate.policy_reference,
-        entry_point_id: candidate.entry_point_id,
-        expectation_id: candidate.expectation_id,
-        differential_id: candidate.differential_id,
-        hypothesis_id: candidate.hypothesis_id
+        // Propagate governance context (validated above — all fields present)
+        technical_area: candidate.technical_area!,
+        technical_mechanism: candidate.technical_mechanism!,
+        expected_behavior: candidate.expected_behavior!,
+        materiality: candidate.materiality!,
+        requires_authorized_assessment: candidate.requires_authorized_assessment!,
+        decision_candidate: candidate.decision_candidate!,
+        policy_reference: candidate.policy_reference!,
+        entry_point_id: candidate.entry_point_id!,
+        expectation_id: candidate.expectation_id!,
+        differential_id: candidate.differential_id!,
+        hypothesis_id: candidate.hypothesis_id!,
+        contradictory_evidence_ids: candidate.contradictory_evidence_ids || [],
+        uncertainty: candidate.uncertainty || [],
+        benign_explanation: candidate.benign_explanation || ''
       }
     };
   }
@@ -190,7 +214,7 @@ export class FindingVerificationEngine {
     ];
     // Search the actual evidence text, NOT the candidate raw_match
     return evidence.some(e => {
-      const text = (e.text || '').toLowerCase();
+      const text = (e.raw_observation || e.normalized_observation || e.observed_behavior || '').toLowerCase();
       return pivotPatterns.some(p => p.test(text));
     });
   }

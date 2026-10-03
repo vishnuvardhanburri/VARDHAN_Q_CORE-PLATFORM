@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "vardhan": "tsx scripts/vardhan.ts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx tests/acceptanceTest.ts && tsx tests/vardhanOperator.test.ts && tsx tests/deepOperator.test.ts && tsx tests/growjoProvider.test.ts && tsx tests/companyQueue.test.ts && tsx tests/findingEngine.test.ts && tsx tests/sourceGraph.test.ts && tsx tests/activity.test.ts && tsx tests/orchestration.test.ts && tsx tests/peopleOwner.test.ts && tsx tests/email.test.ts && tsx tests/ownerPipeline.test.ts && tsx tests/providerArchitecture.test.ts && tsx tests/personDiscovery.test.ts && tsx tests/liveWebFallback.test.ts"
+    "test": "tsx tests/trust_boundary.test.ts && vitest run",
+    "test:e2e": "tsx scripts/e2e_validation.ts",
+    "test:negative": "tsx tests/negative_paths_validator.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

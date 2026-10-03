@@ -118,6 +118,10 @@ export interface SignalCandidate {
   differential_id?: string;
   hypothesis_id?: string;
   provenance?: string;
+  // --- Provenance integrity (populated by verification analysis) ---
+  contradictory_evidence_ids?: string[];
+  uncertainty?: string[];
+  benign_explanation?: string;
 }
 
 export interface SourceCoverage {
@@ -172,6 +176,10 @@ export interface Evidence {
   observation_type?: string;
   temporal_status?: TemporalStatus;
   relationship?: EvidenceRelationship;
+  /** Whether this evidence is a context artifact (e.g., README, changelog, docs) rather than direct observation. */
+  is_context_artifact?: boolean;
+  /** Legacy timestamp alias (prefer `retrieved_at`). */
+  timestamp?: string;
   scoring_reasons?: Record<string, string>;
   supports?: string[];
   contradicts?: string[];

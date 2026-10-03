@@ -19,7 +19,8 @@
  * material, not automatic proof.
  */
 
-import type { Evidence } from './IntelligenceCase';
+import type { Evidence, SignalCandidate } from './IntelligenceCase';
+import type { VerifiedFinding } from './DeepTypes';
 import type { EntryPoint } from './EntryPointModel';
 import type { EntryPointGraph } from './EntryPointModel';
 import type { EvidenceProvenance } from './DeepTypes';
@@ -35,8 +36,40 @@ import type {
   SignalType,
   CorrelationTheme,
 } from './findings/ProblemFinding';
+import { FindingVerificationEngine } from './FindingVerificationEngine';
 
 // ── Detection Knowledge (reference patterns) ──────────────────────────────────
+
+/**
+ * Authoritative mapping from CorrelationTheme to Q-Core governance fields.
+ *
+ * Ownership: TechnicalProblemDetector is the authority for WHICH technical area
+ * and mechanism a pattern belongs to. These are factual domain properties of the
+ * detection patterns themselves — not inferences made at the Q-Core boundary.
+ *
+ * policy_reference: The single verified finding policy this detector operates under.
+ * requires_authorized_assessment: Public observation does not require authorization.
+ * decision_candidate: All verified public-surface findings use SEAL_VERIFIED_FINDING.
+ */
+const THEME_TO_GOVERNANCE: Record<CorrelationTheme, {
+  technical_area: string;
+  technical_mechanism: string;
+  materiality: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  policy_reference: string;
+  requires_authorized_assessment: boolean;
+  decision_candidate: string;
+}> = {
+  ACCESS_CONTROL_GAP:        { technical_area: 'SECURITY',       technical_mechanism: 'BROKEN_ACCESS_CONTROL',    materiality: 'CRITICAL', policy_reference: 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1', requires_authorized_assessment: false, decision_candidate: 'SEAL_VERIFIED_FINDING' },
+  SURFACE_OVEREXPOSURE:      { technical_area: 'SECURITY',       technical_mechanism: 'OVEREXPOSED_SURFACE',      materiality: 'HIGH',     policy_reference: 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1', requires_authorized_assessment: false, decision_candidate: 'SEAL_VERIFIED_FINDING' },
+  DEPRECATION_RISK:          { technical_area: 'RELIABILITY',    technical_mechanism: 'DEPRECATED_SURFACE',       materiality: 'MEDIUM',   policy_reference: 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1', requires_authorized_assessment: false, decision_candidate: 'SEAL_VERIFIED_FINDING' },
+  INFORMATION_LEAKAGE:       { technical_area: 'SECURITY',       technical_mechanism: 'INFORMATION_DISCLOSURE',   materiality: 'HIGH',     policy_reference: 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1', requires_authorized_assessment: false, decision_candidate: 'SEAL_VERIFIED_FINDING' },
+  VERSION_INCONSISTENCY:     { technical_area: 'RELIABILITY',    technical_mechanism: 'VERSION_MISMATCH',         materiality: 'MEDIUM',   policy_reference: 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1', requires_authorized_assessment: false, decision_candidate: 'SEAL_VERIFIED_FINDING' },
+  CONFIGURATION_DRIFT:       { technical_area: 'SECURITY',       technical_mechanism: 'CONFIGURATION_EXPOSURE',   materiality: 'HIGH',     policy_reference: 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1', requires_authorized_assessment: false, decision_candidate: 'SEAL_VERIFIED_FINDING' },
+  IDENTITY_SURFACE_EXPOSURE: { technical_area: 'SECURITY',       technical_mechanism: 'IDENTITY_MISCONFIGURATION',materiality: 'HIGH',     policy_reference: 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1', requires_authorized_assessment: false, decision_candidate: 'SEAL_VERIFIED_FINDING' },
+  INFRASTRUCTURE_LEAKAGE:    { technical_area: 'SECURITY',       technical_mechanism: 'INFRASTRUCTURE_DISCLOSURE',materiality: 'HIGH',     policy_reference: 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1', requires_authorized_assessment: false, decision_candidate: 'SEAL_VERIFIED_FINDING' },
+  INCIDENT_PATTERN:          { technical_area: 'RELIABILITY',    technical_mechanism: 'INCIDENT_INDICATOR',       materiality: 'HIGH',     policy_reference: 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1', requires_authorized_assessment: false, decision_candidate: 'SEAL_VERIFIED_FINDING' },
+  MIGRATION_INCOMPLETE:      { technical_area: 'RELIABILITY',    technical_mechanism: 'INCOMPLETE_MIGRATION',     materiality: 'MEDIUM',   policy_reference: 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1', requires_authorized_assessment: false, decision_candidate: 'SEAL_VERIFIED_FINDING' },
+};
 
 /**
  * Detection patterns borrowed from the four security repositories and existing
@@ -822,6 +855,7 @@ export class TechnicalProblemDetector {
 
       hypotheses.push({
         hypothesis_id: `hyp_${corr.correlation_id}`,
+        theme: corr.theme,
         claim,
         pre_verification_confidence: corr.strength,
         evidence_ids: corr.evidence_ids,
@@ -1014,8 +1048,41 @@ export class TechnicalProblemDetector {
       verificationExplanation += ' — Single transient error response is not a vulnerability.';
     }
 
+    let qcore_verified_finding: VerifiedFinding | undefined = undefined;
+    if (isVerified) {
+      const governance = hyp.theme ? THEME_TO_GOVERNANCE[hyp.theme] : THEME_TO_GOVERNANCE['INCIDENT_PATTERN'];
+      const candidate: SignalCandidate = {
+        id: `finding_${ep.entry_point_id}_${hyp.hypothesis_id}`,
+        type: 'OBSERVABILITY_SIGNAL',
+        source_url: ep.surface_url,
+        raw_match: hyp.claim,
+        initial_strength: confidence >= 0.8 ? 'HIGH' : 'MEDIUM',
+        evidence_ids: evidenceIds,
+        qualification_gaps: [],
+        provenance: 'REAL_PUBLIC_OBSERVATION',
+        expectation_id: hyp.hypothesis_id + "_exp",
+        differential_id: hyp.hypothesis_id + "_diff",
+        hypothesis_id: hyp.hypothesis_id,
+        entry_point_id: ep.entry_point_id,
+        technical_area: governance.technical_area,
+        technical_mechanism: governance.technical_mechanism,
+        expected_behavior: hyp.claim,
+        materiality: governance.materiality,
+        requires_authorized_assessment: governance.requires_authorized_assessment,
+        decision_candidate: governance.decision_candidate,
+        policy_reference: governance.policy_reference
+      };
+      const verification = FindingVerificationEngine.verify(candidate, evidenceItems);
+      if (verification.isVerified && verification.verifiedFinding) {
+         qcore_verified_finding = verification.verifiedFinding;
+      } else {
+        // Verification failed — finding does not proceed to Q-Core sealing
+      }
+    }
+
     const finding: ProblemFinding = {
       finding_id: `finding_${ep.entry_point_id}_${hyp.hypothesis_id}`,
+      qcore_verified_finding,
       entry_point_id: ep.entry_point_id,
       surface: ep.surface_url,
       canonical_url: ep.canonical_url,

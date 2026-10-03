@@ -326,7 +326,12 @@ export class ExpectationEngine {
 
       // ── Collect all evidence text from origin-valid evidence ──
       const allEvidenceText = [...originValidEvidence.map(e => e.evidence_text || ''), ...originValidEvidence.map(e => e.raw_observation || '')].join('\n\n').toLowerCase();
-      const hasAuthEvidence = originValidEvidence.some(e => e.structured_data?.auth_requirement === 'REQUIRED');
+      const hasAuthEvidence = originValidEvidence.some(e => {
+        if (e.structured_data?.auth_requirement === 'REQUIRED') return true;
+        const combined = `${e.evidence_text || ''} ${e.raw_observation || ''}`.toLowerCase();
+        return AUTH_REQUIRED_INDICATORS.some(kw => combined.includes(kw.toLowerCase())) ||
+               (e.source_type === 'JS_BUNDLE' && jsEvidenceImpliesAuth(combined));
+      });
 
       // ── Generate expectations per entry point ──
 
@@ -372,26 +377,58 @@ export class ExpectationEngine {
             };
             expectations.push(expectation);
           } else if (authRequired && !authNotRequired) {
-            const isJsSource = authEvidence.some(e => e.source_type === 'JS_BUNDLE');
-            const expectation: ExpectedBehavior = {
-              expectation_id: makeExpectationId(ep.entry_point_id, 'AUTH_REQUIRED', counter++, 'REQUIRED'),
-              entry_point_id: ep.entry_point_id,
-              expectation_type: 'AUTH_REQUIRED',
-              statement: `Authentication is required to access this entry point. Evidence: ${authEvidence.map(e => e.id).join(', ')}`,
-              source: isJsSource ? 'PUBLIC_CLIENT_CODE' : 'EXPLICIT_DOCUMENTATION',
-              evidence_ids: authEvidence.map(e => e.id),
-              expected_authentication: 'REQUIRED',
-              expected_authorization: 'UNKNOWN',
-              confidence: 'HIGH',
-              uncertainty: [],
-              current: true,
-              historical: false,
-              expectation_provenance_valid: provenanceValid,
-              invalid_evidence_ids: invalidEvidenceIds,
-              provenance_details: provenanceDetails,
-              generated_at: now,
-            };
-            expectations.push(expectation);
+            // Separate JS-auth evidence from documentation-auth evidence
+            const jsAuthEvidence = authEvidence.filter(e =>
+              e.source_type === 'JS_BUNDLE' && jsEvidenceImpliesAuth(`${e.evidence_text || ''} ${e.raw_observation || ''}`)
+            );
+            const docAuthEvidence = authEvidence.filter(e => jsAuthEvidence.includes(e) === false);
+
+            // If we have documentation-sourced auth evidence, emit AUTH_REQUIRED from docs
+            // so multi-source correlation can find both PROTECTED_RESOURCE (JS) + AUTH_REQUIRED (docs).
+            if (docAuthEvidence.length > 0) {
+              const docExpectation: ExpectedBehavior = {
+                expectation_id: makeExpectationId(ep.entry_point_id, 'AUTH_REQUIRED', counter++, 'REQUIRED'),
+                entry_point_id: ep.entry_point_id,
+                expectation_type: 'AUTH_REQUIRED',
+                statement: `Authentication is required to access this entry point. Evidence: ${docAuthEvidence.map(e => e.id).join(', ')}`,
+                source: 'EXPLICIT_DOCUMENTATION',
+                evidence_ids: docAuthEvidence.map(e => e.id),
+                expected_authentication: 'REQUIRED',
+                expected_authorization: 'UNKNOWN',
+                confidence: 'HIGH',
+                uncertainty: [],
+                current: true,
+                historical: false,
+                expectation_provenance_valid: provenanceValid,
+                invalid_evidence_ids: invalidEvidenceIds,
+                provenance_details: provenanceDetails,
+                generated_at: now,
+              };
+              expectations.push(docExpectation);
+            }
+
+            // If we have JS-auth evidence, emit AUTH_REQUIRED from JS source
+            if (jsAuthEvidence.length > 0) {
+              const jsExpectation: ExpectedBehavior = {
+                expectation_id: makeExpectationId(ep.entry_point_id, 'AUTH_REQUIRED', counter++, 'REQUIRED'),
+                entry_point_id: ep.entry_point_id,
+                expectation_type: 'AUTH_REQUIRED',
+                statement: `Authentication is required to access this entry point. Evidence: ${jsAuthEvidence.map(e => e.id).join(', ')}`,
+                source: 'PUBLIC_CLIENT_CODE',
+                evidence_ids: jsAuthEvidence.map(e => e.id),
+                expected_authentication: 'REQUIRED',
+                expected_authorization: 'UNKNOWN',
+                confidence: 'HIGH',
+                uncertainty: [],
+                current: true,
+                historical: false,
+                expectation_provenance_valid: provenanceValid,
+                invalid_evidence_ids: invalidEvidenceIds,
+                provenance_details: provenanceDetails,
+                generated_at: now,
+              };
+              expectations.push(jsExpectation);
+            }
           }
         }
       }

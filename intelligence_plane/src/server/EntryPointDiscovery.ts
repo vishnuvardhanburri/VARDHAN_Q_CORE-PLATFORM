@@ -1193,6 +1193,33 @@ export class EntryPointDiscovery {
 
   /** Phase 12: Cross-source confirmation. */
   private annotateCrossSource(eps: EntryPoint[], evidence: Evidence[]): void {
+    // Cross-reference: if an evidence item's text mentions a URL that matches
+    // a discovered entry point's canonical_url, propagate that evidence ID to
+    // that entry point. This creates shared evidence edges (e.g., a homepage
+    // observation that documents an API endpoint → CALLS edge with SHARED_EVIDENCE).
+    const urlToEp = new Map<string, EntryPoint>();
+    for (const ep of eps) {
+      urlToEp.set(ep.canonical_url, ep);
+    }
+    const urlPattern = /https?:\/\/[a-z0-9.-]+(?:\.\w+)*(?::\d+)?(?:\/[^"\s<>]*)?/gi;
+    for (const e of evidence) {
+      const text = (e.raw_observation || '') + ' ' + (e.evidence_text || '');
+      const matches = new Set<string>();
+      let m: RegExpExecArray | null;
+      while ((m = urlPattern.exec(text)) !== null) {
+        const mentionedUrl = normalizeUrl(m[0]);
+        if (urlToEp.has(mentionedUrl)) {
+          matches.add(mentionedUrl);
+        }
+      }
+      for (const url of matches) {
+        const ep = urlToEp.get(url)!;
+        if (!ep.evidence_ids.includes(e.id)) {
+          ep.evidence_ids.push(e.id);
+        }
+      }
+    }
+
     for (const ep of eps) {
       if (ep.evidence_ids.length > 1) {
         // If multiple evidence IDs confirm the same entry point, boost confidence

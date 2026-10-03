@@ -89,6 +89,18 @@
     "src/server/EntryPointModel.ts",
     "src/server/EntryPointDiscovery.ts",
     "src/server/EntryPointGraph.ts",
-    "src/server/EntryPointChangeDetector.ts"
+    "src/server/EntryPointChangeDetector.ts",
+    "src/server/QCoreSubmissionOrchestrator.ts",
+    "src/server/QCoreIntegrationService.ts",
+    "src/server/VerificationToContractAdapter.ts",
+    "src/server/FindingVerificationEngine.ts",
+    "src/server/FindingProofContracts.ts",
+    "src/server/VerifiedFindingContract.ts",
+    "src/server/TrustBoundaryValidator.ts",
+    "src/server/TechnicalProblemDetector.ts",
+    "src/server/findings/ProblemFinding.ts",
+    "tests/test_production_orchestration.ts",
+    "tests/test_adapter_negative.ts",
+    "tests/test_adapter_determinism.ts"
   ]
 }

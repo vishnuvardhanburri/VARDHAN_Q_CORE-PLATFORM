@@ -212,17 +212,22 @@ export interface VerifiedFinding extends DeepSignal {
   _verified: true;
   
   // --- Q-Core Governance & Semantic Context ---
-  technical_area?: string;
-  technical_mechanism?: string;
-  expected_behavior?: string;
-  materiality?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  requires_authorized_assessment?: boolean;
-  decision_candidate?: string;
-  policy_reference?: string;
-  entry_point_id?: string;
-  expectation_id?: string;
-  differential_id?: string;
-  hypothesis_id?: string;
+  technical_area: string;
+  technical_mechanism: string;
+  expected_behavior: string;
+  materiality: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  requires_authorized_assessment: boolean;
+  decision_candidate: string;
+  policy_reference: string;
+  entry_point_id: string;
+  expectation_id: string;
+  differential_id: string;
+  hypothesis_id: string;
+  
+  // --- Provenance Integrity (from verification analysis) ---
+  contradictory_evidence_ids: string[];
+  uncertainty: string[];
+  benign_explanation: string;
 }
 
 // ── Email ────────────────────────────────────────────────────────────────────
@@ -767,4 +772,6 @@ export interface IntelligenceRunContext {
   run_id: string;               // Unique execution ID
   organization_id: string;      // The canonical organization identity (tenant mapping)
   target_canonical_domain: string; // The primary domain being investigated
+  /** Authorized workload identity for Q-Core API submission. Comes from the execution platform, never hardcoded. */
+  actor_workload_id: string;
 }

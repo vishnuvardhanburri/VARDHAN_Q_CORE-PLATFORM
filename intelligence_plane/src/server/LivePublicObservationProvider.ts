@@ -120,28 +120,28 @@ export class LivePublicObservationProvider implements PublicObservationProvider 
 
     const latencyTriggered = latency > 1500;
 
-    if (status >= 500 || latencyTriggered || isJson) {
-      const samples = await this.performRepeatedObservations(url, 2, options);
-      evidence.latency_samples = [latency, ...samples.map(s => s.latency)];
-      evidence.baseline_latency_ms = Math.min(...evidence.latency_samples) || latency;
-      evidence.reproductions = 1 + samples.length;
+    // Always verify reproducibility — the proof contract requires repeatable
+    // evidence for all items. Previously this was skipped for 200 HTML responses.
+    const samples = await this.performRepeatedObservations(url, 2, options);
+    evidence.latency_samples = [latency, ...samples.map(s => s.latency)];
+    evidence.baseline_latency_ms = Math.min(...evidence.latency_samples) || latency;
+    evidence.reproductions = 1 + samples.length;
 
-      if (latencyTriggered) {
-        const slowSamples = evidence.latency_samples.filter(s => s >= 1000).length;
-        evidence.repeatable = slowSamples >= Math.ceil(evidence.latency_samples.length / 2)
-          && samples.every(s => s.status === status);
-      } else {
-        evidence.repeatable = samples.every(s => s.status === status);
-      }
+    if (latencyTriggered) {
+      const slowSamples = evidence.latency_samples.filter(s => s >= 1000).length;
+      evidence.repeatable = slowSamples >= Math.ceil(evidence.latency_samples.length / 2)
+        && samples.every(s => s.status === status);
+    } else {
+      evidence.repeatable = samples.every(s => s.status === status);
+    }
 
-      if (status >= 500 && evidence.repeatable && evidence.latency_samples.length >= 3) {
-        evidence.observed_behavior = `Repeated HTTP ${status} response`;
-      }
-      if (latencyTriggered && evidence.repeatable) {
-        evidence.observed_behavior = evidence.observed_behavior
-          ? `${evidence.observed_behavior} — slow latency reproduced across ${evidence.reproductions} sample(s).`
-          : `Slow latency (${latency}ms) reproduced across ${evidence.reproductions} sample(s).`;
-      }
+    if (status >= 500 && evidence.repeatable && evidence.latency_samples.length >= 3) {
+      evidence.observed_behavior = `Repeated HTTP ${status} response`;
+    }
+    if (latencyTriggered && evidence.repeatable) {
+      evidence.observed_behavior = evidence.observed_behavior
+        ? `${evidence.observed_behavior} — slow latency reproduced across ${evidence.reproductions} sample(s).`
+        : `Slow latency (${latency}ms) reproduced across ${evidence.reproductions} sample(s).`;
     }
 
     if (isJson && text) {
@@ -388,7 +388,14 @@ export class LivePublicObservationProvider implements PublicObservationProvider 
       not_tested: notTested,
       retrieved_at: new Date().toISOString(),
       evidence_text: text,
-      raw_observation: text // Ensure we preserve the body content for extractors
+      raw_observation: text, // Ensure we preserve the body content for extractors
+      // Evidence provenance classification — set factually by the observation
+      // provider. Live HTTP observations of the target's own public surface are
+      // VERIFIED_OWNED (owned surface), CURRENT (just retrieved), and NOT
+      // context artifacts (direct behavioral observation, not documentation).
+      relationship_type: 'VERIFIED_OWNED',
+      is_context_artifact: false,
+      temporal_status: 'CURRENT',
     };
   }
 }

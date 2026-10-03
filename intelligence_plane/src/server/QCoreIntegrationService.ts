@@ -1,9 +1,10 @@
 import { TrustBoundaryValidator } from './TrustBoundaryValidator';
 import type { VerifiedFindingContract } from './VerifiedFindingContract';
 import type { Evidence } from './IntelligenceCase';
+import type { IQCoreIntegrationService } from './QCoreSubmissionOrchestrator';
 
 // We inline a simple HTTP client since @vardhan/qcore-sdk might not have the new schema
-export class QCoreIntegrationService {
+export class QCoreIntegrationService implements IQCoreIntegrationService {
   private readonly validator: TrustBoundaryValidator;
 
   constructor(private qcoreUrl: string = 'http://127.0.0.1:8080') {
@@ -13,8 +14,12 @@ export class QCoreIntegrationService {
   async submitFinding(
     contract: VerifiedFindingContract,
     evidenceStore: Evidence[],
-    actorWorkloadId: string = "svc:vardhan-intelligence:v2-prod"
+    actorWorkloadId?: string
   ): Promise<any> {
+    if (!actorWorkloadId) {
+      throw new Error('Missing actor workload identity — actorWorkloadId must be provided upstream.');
+    }
+
     const validation = this.validator.validate(contract, evidenceStore);
     if (!validation.passed) {
       const codes = validation.failures.map(f => f.code).join(', ');

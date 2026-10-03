@@ -11,7 +11,7 @@
  * A signal must require stronger evidence than a raw observation.
  */
 
-import type { EvidenceProvenance } from '../DeepTypes';
+import type { EvidenceProvenance, VerifiedFinding } from '../DeepTypes';
 import type { EntryPoint } from '../EntryPointModel';
 
 // ── Progression Stages ────────────────────────────────────────────────────────
@@ -144,6 +144,8 @@ export type CorrelationTheme =
 export interface ProblemHypothesis {
   /** Stable identifier. */
   hypothesis_id: string;
+  /** The correlation theme backing this hypothesis (used for governance). */
+  theme?: CorrelationTheme;
   /** What the hypothesis claims. */
   claim: string;
   /** Confidence before verification (0–1). */
@@ -477,4 +479,13 @@ export interface ProblemFinding {
   entry_point?: EntryPoint;
   /** Investigation plan that led to the observations for this finding. */
   investigation_plan?: InvestigationPlan;
+  /**
+   * The authoritative VerifiedFinding produced by FindingVerificationEngine.verify()
+   * at the point where verification_result.status becomes 'VERIFIED'.
+   *
+   * INVARIANT: present iff verification_result.status === 'VERIFIED'.
+   * QCoreSubmissionOrchestrator MUST consume this field directly.
+   * It MUST NOT re-verify, reconstruct, or infer governance fields from ProblemFinding.
+   */
+  qcore_verified_finding?: VerifiedFinding;
 }

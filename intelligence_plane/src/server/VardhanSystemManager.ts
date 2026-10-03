@@ -22,6 +22,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
+import type { IntelligenceRunContext } from './DeepTypes';
 import type { QueuedCompany } from './DeepTypes';
 import { CompanyQueue } from './CompanyQueue';
 import { DomainResolver, type ResolveSeed } from './DomainResolver';
@@ -91,6 +92,10 @@ export interface SystemManagerOptions {
   maxDiscoveryPages?: number;
   discoveryDelayMs?: number;
   discoveryTimeoutMs?: number;
+  /** Authoritative identity context from the intelligence execution layer.
+   * If absent, the Q-Core production orchestration boundary will be skipped
+   * (fail-closed). Identity must never be reconstructed at the boundary. */
+  runContext?: IntelligenceRunContext;
 }
 
 export interface CompanyResearchReport {
@@ -125,6 +130,7 @@ export class VardhanSystemManager {
   private readonly maxDiscoveryPages: number;
   private readonly discoveryDelayMs: number;
   private readonly discoveryTimeoutMs: number;
+  private readonly runContext?: IntelligenceRunContext;
 
   constructor(options: SystemManagerOptions = {}) {
     this.fetcher = options.fetcher;
@@ -141,6 +147,7 @@ export class VardhanSystemManager {
     this.maxDiscoveryPages = options.maxDiscoveryPages ?? 15;
     this.discoveryDelayMs = options.discoveryDelayMs ?? 50;
     this.discoveryTimeoutMs = options.discoveryTimeoutMs ?? 8000;
+    this.runContext = options.runContext;
   }
 
   /**
@@ -335,25 +342,21 @@ export class VardhanSystemManager {
 
       // ─── Q-CORE PRODUCTION ORCHESTRATION ────────────────────────────────────
       // Submit fully verified findings BEFORE any commercial/outreach scoring!
-      if (prospect?.technical_findings && prospect.technical_findings.length > 0) {
+      // Identity context must be authoritative — never reconstructed at the boundary.
+      // If no runContext was provided upstream, skip Q-Core (fail-closed).
+      if (!this.runContext) {
+        this.onProgress('qcore', 'Q-Core SEAL SKIPPED — no authoritative IntelligenceRunContext provided upstream.');
+        auditTrail.push('Q-Core: skipped — no authoritative run context');
+      } else if (prospect?.technical_findings && prospect.technical_findings.length > 0) {
         try {
-          const runContext = {
-            engine_identity: "VARDHAN_INTELLIGENCE_CORE",
-            engine_version: "4.2.0",
-            run_id: `run_${Date.now()}`,
-            organization_id: `org_${myCase.company}`,
-            target_canonical_domain: myCase.company_surface?.origin || myCase.company
-          };
-          
           const orchestrator = new QCoreSubmissionOrchestrator();
           const results = await orchestrator.submitFindings(
             prospect.technical_findings,
-            myCase.evidence,
-            runContext,
-            myCase.company,
+            prospect.evidence,
+            this.runContext,
             this.onProgress.bind(this)
           );
-          
+
           const successful = results.filter(r => r.receipt).length;
           if (successful > 0) {
             auditTrail.push(`Q-Core SEAL SUCCESS: ${successful} finding(s)`);
