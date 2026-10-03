@@ -72,23 +72,31 @@ export interface AffectedTargetCandidate {
   liveEvent: LiveTechnicalEvent;
   temporalRelation: TemporalRelation;
   exposureEvidence: string[];
-  verificationTarget: string; // Endpoint/surface to verify against
+  verificationTarget: string;
   verificationStatus: 'PENDING' | 'VERIFIED' | 'REFUTED' | 'INCONCLUSIVE';
   provenance: Provenance;
+  expectation_id?: string;
+  differential_id?: string;
+  hypothesis_id?: string;
 }
 
 export interface VerificationReport {
   provider_event: string;
   target: string;
+  target_id?: string;
+  target_canonical_domain?: string;
   dependency: string;
   target_surface: string;
   signature: BehavioralMarker[];
   target_observation: any;
+  control_observation?: any;
   temporal_match: TemporalMatch;
   regional_match: RegionalMatch;
   component_match: ComponentMatch;
   differential_result: string;
   final_status: 'VERIFIED' | 'REFUTED' | 'INCONCLUSIVE';
   reason: string;
+  hypothesis_id?: string;
+  expectation_id?: string;
 }
 // End of file

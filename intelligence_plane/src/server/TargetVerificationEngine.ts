@@ -60,9 +60,10 @@ export class TargetVerificationEngine {
       const controlUrl = this.getControlEndpoint(candidate.liveEvent.provider);
       let controlMatches = false;
       let differentialResult = 'NO_CONTROL_PROBED';
+      let controlEvidence: any = null;
       if (controlUrl) {
         const controlResult = await this.observationProvider.observePublicSurface(controlUrl);
-        const controlEvidence = controlResult?.evidence?.[0];
+        controlEvidence = controlResult?.evidence?.[0];
         if (controlEvidence) {
           controlMatches = this.matchSignature(candidate.liveEvent.signature || [], controlEvidence);
           differentialResult = controlMatches ? 'CONTROL_ALSO_AFFECTED' : 'CONTROL_HEALTHY';
@@ -123,16 +124,22 @@ export class TargetVerificationEngine {
         report: {
           provider_event: candidate.liveEvent.id,
           target: target.company,
+          target_id: (target as any).id || target.company,
+          target_canonical_domain: target.company_surface?.origin || target.company,
           dependency: candidate.dependency,
           target_surface: verificationTarget,
           signature: candidate.liveEvent.signature || [],
           target_observation: targetEvidence,
+          control_observation: controlEvidence,
           temporal_match: temporalMatch,
           regional_match: regionalMatch,
           component_match: componentMatch,
           differential_result: differentialResult,
           final_status: finalStatus,
-          reason: reason
+          reason: reason,
+          expectation_id: candidate.expectation_id,
+          hypothesis_id: candidate.hypothesis_id,
+          differential_id: candidate.differential_id
         }
       };
     } catch (e: any) {
@@ -193,6 +200,8 @@ export class TargetVerificationEngine {
     return {
       provider_event: candidate.liveEvent.id,
       target: target.company,
+          target_id: (target as any).id || target.company,
+          target_canonical_domain: target.company_surface?.origin || target.company,
       dependency: candidate.dependency,
       target_surface: 'NONE',
       signature: candidate.liveEvent.signature || [],
@@ -202,7 +211,10 @@ export class TargetVerificationEngine {
       component_match: 'UNKNOWN',
       differential_result: 'N/A',
       final_status: 'INCONCLUSIVE',
-      reason: reason
+      reason: reason,
+          expectation_id: candidate.expectation_id,
+          hypothesis_id: candidate.hypothesis_id,
+          differential_id: candidate.differential_id
     };
   }
 }
