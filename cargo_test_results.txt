@@ -1,0 +1,2128 @@
+warning: unused import: `std::mem`
+  --> backend/core_crypto/src/anti_tamper.rs:20:9
+   |
+20 |     use std::mem;
+   |         ^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: use of deprecated function `aws_config::load_from_env`: Use the `aws_config::load_defaults` function. If you don't care about future default behavior changes, you can continue to use this function by enabling the `behavior-version-latest` feature. Doing so will make this deprecation notice go away.
+   --> backend/core_crypto/src/vault.rs:998:62
+    |
+998 | ...   let config = rt.block_on(async { aws_config::load_from_env().awai...
+    |                                                    ^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated associated function `aes_gcm::aead::hybrid_array::Array::<T, U>::from_slice`: use `TryFrom` instead
+   --> backend/core_crypto/src/vault.rs:118:28
+    |
+118 |         let nonce = Nonce::from_slice(&nonce_bytes);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::hybrid_array::Array::<T, U>::from_slice`: use `TryFrom` instead
+   --> backend/core_crypto/src/vault.rs:135:28
+    |
+135 |         let nonce = Nonce::from_slice(&ciphertext[..12]);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::hybrid_array::Array::<T, U>::from_slice`: use `TryFrom` instead
+   --> backend/core_crypto/src/vault.rs:246:28
+    |
+246 |         let nonce = Nonce::from_slice(&nonce_bytes);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::hybrid_array::Array::<T, U>::from_slice`: use `TryFrom` instead
+   --> backend/core_crypto/src/vault.rs:281:28
+    |
+281 |         let nonce = Nonce::from_slice(&ciphertext[..12]);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::hybrid_array::Array::<T, U>::from_slice`: use `TryFrom` instead
+   --> backend/core_crypto/src/vault.rs:563:28
+    |
+563 |         let nonce = Nonce::from_slice(&nonce_bytes);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::hybrid_array::Array::<T, U>::from_slice`: use `TryFrom` instead
+   --> backend/core_crypto/src/vault.rs:579:28
+    |
+579 |         let nonce = Nonce::from_slice(&wrapped_dek[..12]);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::hybrid_array::Array::<T, U>::from_slice`: use `TryFrom` instead
+   --> backend/core_crypto/src/vault.rs:600:28
+    |
+600 |         let nonce = Nonce::from_slice(&nonce_bytes);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::hybrid_array::Array::<T, U>::from_slice`: use `TryFrom` instead
+   --> backend/core_crypto/src/vault.rs:614:28
+    |
+614 |         let nonce = Nonce::from_slice(&ciphertext[..12]);
+    |                            ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::hybrid_array::Array::<T, U>::from_slice`: use `TryFrom` instead
+   --> backend/core_crypto/src/vault.rs:667:24
+    |
+667 |     let nonce = Nonce::from_slice(&nonce_bytes);
+    |                        ^^^^^^^^^^
+
+warning: use of deprecated associated function `aes_gcm::aead::hybrid_array::Array::<T, U>::from_slice`: use `TryFrom` instead
+   --> backend/core_crypto/src/vault.rs:716:24
+    |
+716 |     let nonce = Nonce::from_slice(&envelope.wrapped_payload[..12]);
+    |                        ^^^^^^^^^^
+
+warning: field `tail` is never read
+  --> backend/core_crypto/src/secure_memory.rs:31:5
+   |
+29 | pub struct LockFreeState {
+   |            ------------- field in this struct
+30 |     head: AtomicUsize,
+31 |     tail: AtomicUsize,
+   |     ^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `core_crypto` (lib) generated 13 warnings (run `cargo fix --lib -p core_crypto` to apply 1 suggestion)
+warning: unused import: `BufMut`
+ --> backend/proxy_engine/src/transport.rs:6:18
+  |
+6 | use bytes::{Buf, BufMut, BytesMut};
+  |                  ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `zeroize::Zeroize`
+  --> backend/proxy_engine/src/transport.rs:10:5
+   |
+10 | use zeroize::Zeroize;
+   |     ^^^^^^^^^^^^^^^^
+
+warning: unused imports: `Aes256Gcm`, `Key`, and `Nonce`
+  --> backend/proxy_engine/src/lib.rs:54:5
+   |
+54 |     Aes256Gcm, Key, Nonce,
+   |     ^^^^^^^^^  ^^^  ^^^^^
+
+warning: unused import: `hkdf::Hkdf`
+  --> backend/proxy_engine/src/lib.rs:58:5
+   |
+58 | use hkdf::Hkdf;
+   |     ^^^^^^^^^^
+
+warning: unused import: `sha2::Sha256`
+  --> backend/proxy_engine/src/lib.rs:59:5
+   |
+59 | use sha2::Sha256;
+   |     ^^^^^^^^^^^^
+
+warning: unused import: `zeroize::Zeroizing`
+  --> backend/proxy_engine/src/lib.rs:68:5
+   |
+68 | use zeroize::Zeroizing;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Aead`
+  --> backend/proxy_engine/src/lib.rs:53:12
+   |
+53 |     aead::{Aead, KeyInit},
+   |            ^^^^
+
+warning: unused import: `KeyInit`
+  --> backend/proxy_engine/src/lib.rs:53:18
+   |
+53 |     aead::{Aead, KeyInit},
+   |                  ^^^^^^^
+
+warning: unused import: `rand::RngCore`
+ --> backend/proxy_engine/src/stateless.rs:6:5
+  |
+6 | use rand::RngCore;
+  |     ^^^^^^^^^^^^^
+
+warning: unused variable: `peer_addr`
+   --> backend/proxy_engine/src/lib.rs:376:9
+    |
+376 |     let peer_addr = stream.peer_addr()?;
+    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_peer_addr`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `peer_addr`
+   --> backend/proxy_engine/src/lib.rs:433:9
+    |
+433 |     let peer_addr = stream.peer_addr()?;
+    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_peer_addr`
+
+warning: unused variable: `session`
+   --> backend/proxy_engine/src/lib.rs:599:35
+    |
+599 | ...                   Ok(Ok(session)) => {
+    |                             ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_session`
+
+warning: constant `HELLO_FRAME_LEN` is never used
+  --> backend/proxy_engine/src/lib.rs:99:7
+   |
+99 | const HELLO_FRAME_LEN: usize =
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `proxy_engine` (lib) generated 13 warnings (run `cargo fix --lib -p proxy_engine` to apply 9 suggestions)
+warning: unused import: `SinkExt`
+  --> backend/ledger_sync/src/lib.rs:36:20
+   |
+36 | use futures_util::{SinkExt, StreamExt};
+   |                    ^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `StreamExt`
+  --> backend/ledger_sync/src/lib.rs:36:29
+   |
+36 | use futures_util::{SinkExt, StreamExt};
+   |                             ^^^^^^^^^
+
+warning: `ledger_sync` (lib) generated 2 warnings (run `cargo fix --lib -p ledger_sync` to apply 1 suggestion)
+warning: unused import: `rand::Rng`
+ --> backend/ha_cluster/src/peer_manager.rs:8:5
+  |
+8 | use rand::Rng;
+  |     ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `AtomicU64` and `Ordering`
+  --> backend/ha_cluster/src/peer_manager.rs:12:25
+   |
+12 | use std::sync::atomic::{AtomicU64, Ordering};
+   |                         ^^^^^^^^^  ^^^^^^^^
+
+warning: unused import: `ClusterNode`
+ --> backend/ha_cluster/src/raft.rs:1:13
+  |
+1 | use crate::{ClusterNode, NodeId};
+  |             ^^^^^^^^^^^
+
+warning: unused import: `futures::future::join_all`
+ --> backend/ha_cluster/src/raft.rs:6:5
+  |
+6 | use futures::future::join_all;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `sleep`
+  --> backend/ha_cluster/src/raft.rs:18:19
+   |
+18 | use tokio::time::{sleep, Duration, Instant};
+   |                   ^^^^^
+
+warning: unused imports: `AppendEntriesReply` and `RequestVoteReply`
+ --> backend/ha_cluster/src/raft_listener.rs:2:24
+  |
+2 |     AppendEntriesArgs, AppendEntriesReply, RaftNode, RaftRpcEnvelope, Raf...
+  |                        ^^^^^^^^^^^^^^^^^^
+3 |     RequestVoteReply,
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::net::TcpListener`
+  --> backend/ha_cluster/src/raft_listener.rs:11:5
+   |
+11 | use tokio::net::TcpListener;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::net::TcpStream`
+  --> backend/ha_cluster/src/raft_listener.rs:12:5
+   |
+12 | use tokio::net::TcpStream;
+   |     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+   --> backend/ha_cluster/src/raft.rs:984:21
+    |
+984 |                 let mut term_guard = self.current_term.write().await;
+    |                     ----^^^^^^^^^^
+    |                     |
+    |                     help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+    --> backend/ha_cluster/src/raft.rs:1365:21
+     |
+1365 |                 let mut applied = self.applied_requests.write().await;
+     |                     ----^^^^^^^
+     |                     |
+     |                     help: remove this `mut`
+
+warning: unused import: `Write`
+  --> backend/ha_cluster/src/raft.rs:13:21
+   |
+13 | use std::io::{Read, Write};
+   |                     ^^^^^
+
+warning: unused variable: `e`
+  --> backend/ha_cluster/src/drain.rs:84:20
+   |
+84 |         if let Err(e) = self.membership.mark_draining(&self.self_node_id...
+   |                    ^ help: if this is intentional, prefix it with an underscore: `_e`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `id`
+   --> backend/ha_cluster/src/heartbeat.rs:206:29
+    |
+206 |                         for id in reaped {
+    |                             ^^ help: if this is intentional, prefix it with an underscore: `_id`
+
+warning: unused variable: `peer`
+   --> backend/ha_cluster/src/heartbeat.rs:137:36
+    |
+137 | ...                   Ok((n, peer)) => {
+    |                              ^^^^ help: if this is intentional, prefix it with an underscore: `_peer`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/heartbeat.rs:145:33
+    |
+145 | ...                   Err(e) => warn!(err = %e, "Heartbeat recv error"),
+    |                           ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `self_addr`
+   --> backend/ha_cluster/src/heartbeat.rs:162:13
+    |
+162 |         let self_addr = config.self_addr;
+    |             ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_self_addr`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/peer_manager.rs:142:24
+    |
+142 |             if let Err(e) = run_peer_worker(addr, identity, to_id.clone...
+    |                        ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/peer_manager.rs:243:20
+    |
+243 |             Ok(Err(e)) => {
+    |                    ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/peer_manager.rs:269:20
+    |
+269 |             Ok(Err(e)) => {
+    |                    ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/peer_manager.rs:330:32
+    |
+330 | ...                if let Err(e) = transport.write_frame(&env_bytes).aw...
+    |                               ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/peer_manager.rs:343:37
+    |
+343 | ...                   Err(e) => {
+    |                           ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/peer_manager.rs:363:29
+    |
+363 |                         Err(e) => {
+    |                             ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `log_len_after`
+   --> backend/ha_cluster/src/raft.rs:799:13
+    |
+799 |         let log_len_after = log.len();
+    |             ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_log_len_after`
+
+warning: unused variable: `peer`
+   --> backend/ha_cluster/src/raft.rs:921:25
+    |
+921 |         while let Some((peer, result)) = rpc_futures.next().await {
+    |                         ^^^^ help: if this is intentional, prefix it with an underscore: `_peer`
+
+warning: unused variable: `e`
+    --> backend/ha_cluster/src/raft.rs:1241:33
+     |
+1241 | ...                   Err(e) => {
+     |                           ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `event_json`
+    --> backend/ha_cluster/src/raft.rs:1411:17
+     |
+1411 |             let event_json = match serde_json::from_slice::<serde_json...
+     |                 ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_event_json`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/raft_listener.rs:117:25
+    |
+117 |                     Err(e) => {
+    |                         ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `peer_fingerprint_hex`
+   --> backend/ha_cluster/src/raft_listener.rs:128:21
+    |
+128 |                 let peer_fingerprint_hex = hex::encode(peer_dsa_fingerp...
+    |                     ^^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_peer_fingerprint_hex`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/raft_listener.rs:205:37
+    |
+205 | ...                   Err(e) => {
+    |                           ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/raft_listener.rs:281:45
+    |
+281 | ...                   Err(e) => {
+    |                           ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/raft_listener.rs:289:45
+    |
+289 | ...                   Err(e) => {
+    |                           ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/raft_listener.rs:302:45
+    |
+302 | ...                   Err(e) => {
+    |                           ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/raft_listener.rs:310:45
+    |
+310 | ...                   Err(e) => {
+    |                           ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/raft_listener.rs:329:37
+    |
+329 | ...                   Err(e) => {
+    |                           ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/raft_listener.rs:336:40
+    |
+336 | ...                if let Err(e) = transport.write_frame(&reply_bytes)....
+    |                               ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `e`
+   --> backend/ha_cluster/src/raft_listener.rs:345:29
+    |
+345 |                         Err(e) => {
+    |                             ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `peer_addr`
+  --> backend/ha_cluster/src/raft_listener.rs:94:30
+   |
+94 |             let (mut stream, peer_addr) = listener.accept().await?;
+   |                              ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_peer_addr`
+
+warning: method `get_prev_hash` is never used
+    --> backend/ha_cluster/src/raft.rs:1688:14
+     |
+1297 | impl LedgerApplier {
+     | ------------------ method in this implementation
+...
+1688 |     async fn get_prev_hash(&self, _log: &[LogEntry], _index: u64) -> [...
+     |              ^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `listen_addr` is never read
+  --> backend/ha_cluster/src/raft_listener.rs:29:5
+   |
+27 | pub struct RaftNetworkListener {
+   |            ------------------- field in this struct
+28 |     test_bypass_registry: bool,
+29 |     listen_addr: std::net::SocketAddr,
+   |     ^^^^^^^^^^^
+
+warning: `ha_cluster` (lib) generated 39 warnings (run `cargo fix --lib -p ha_cluster` to apply 36 suggestions)
+warning: unused import: `std::sync::Arc`
+ --> backend/saas_metering/src/lib.rs:4:5
+  |
+4 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `saas_metering` (lib) generated 1 warning (run `cargo fix --lib -p saas_metering` to apply 1 suggestion)
+warning: unused variable: `hash_bytes`
+   --> backend/auth_service/src/api_key.rs:160:13
+    |
+160 |         let hash_bytes = key_hash.as_bytes();
+    |             ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_hash_bytes`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `auth_service` (lib) generated 1 warning (run `cargo fix --lib -p auth_service` to apply 1 suggestion)
+warning: unused variable: `payload`
+   --> backend/quantum_network/src/lib.rs:123:17
+    |
+123 |                 payload,
+    |                 ^^^^^^^ help: try ignoring the field: `payload: _`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `timestamp_ms`
+   --> backend/quantum_network/src/lib.rs:124:17
+    |
+124 |                 timestamp_ms,
+    |                 ^^^^^^^^^^^^ help: try ignoring the field: `timestamp_ms: _`
+
+warning: field `identity` is never read
+  --> backend/quantum_network/src/lib.rs:48:5
+   |
+47 | pub struct GossipEngine {
+   |            ------------ field in this struct
+48 |     identity: Arc<QuantumNodeIdentity>,
+   |     ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `quantum_network` (lib) generated 3 warnings (run `cargo fix --lib -p quantum_network` to apply 2 suggestions)
+warning: unused import: `error`
+ --> backend/authority_gate/src/lib.rs:2:15
+  |
+2 | use tracing::{error, info};
+  |               ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `authority_gate` (lib) generated 1 warning (run `cargo fix --lib -p authority_gate` to apply 1 suggestion)
+warning: unused import: `CommitIndex`
+ --> backend/proofmesh/src/claim_registry.rs:8:5
+  |
+8 |     CommitIndex, ConfigurationHash, ContentHash, DeltaId, EntityId, State...
+  |     ^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `StateTransitionStatus`
+  --> backend/proofmesh/src/claim_registry.rs:11:59
+   |
+11 | ... StateTransitionRecord, StateTransitionStatus,
+   |                            ^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `vardhan_state::store::StateStore`
+  --> backend/proofmesh/src/claim_registry.rs:14:5
+   |
+14 | use vardhan_state::store::StateStore;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `now_utc`
+  --> backend/proofmesh/src/claim_registry.rs:15:27
+   |
+15 | use vardhan_state::time::{now_utc, TimeContext};
+   |                           ^^^^^^^
+
+warning: unused import: `vardhan_state::id::EvidenceId`
+ --> backend/proofmesh/src/fault.rs:4:5
+  |
+4 | use vardhan_state::id::EvidenceId;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::io::Write`
+ --> backend/proofmesh/src/executor.rs:3:5
+  |
+3 | use std::io::Write;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `tempfile::NamedTempFile`
+ --> backend/proofmesh/src/executor.rs:5:5
+  |
+5 | use tempfile::NamedTempFile;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `tokio::process::Command`
+ --> backend/proofmesh/src/executor.rs:6:5
+  |
+6 | use tokio::process::Command;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `max_memory_bytes`
+  --> backend/proofmesh/src/executor.rs:30:9
+   |
+30 |         max_memory_bytes: u64,
+   |         ^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_max_memory_bytes`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `proofmesh` (lib) generated 9 warnings (run `cargo fix --lib -p proofmesh` to apply 9 suggestions)
+warning: unused variable: `leader_json`
+   --> backend/pq_shield/src/lib.rs:464:29
+    |
+464 |                         let leader_json = match &leader_hint {
+    |                             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_leader_json`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `LedgerVerification` is never constructed
+   --> backend/pq_shield/src/admin.rs:450:8
+    |
+450 | struct LedgerVerification {
+    |        ^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `pq_shield` (lib) generated 2 warnings (run `cargo fix --lib -p pq_shield` to apply 1 suggestion)
+warning: unused variable: `mldsa87_public_key_bytes`
+   --> backend/vardhan_verifier/src/lib.rs:165:9
+    |
+165 |         mldsa87_public_key_bytes: Option<&[u8]>,
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_mldsa87_public_key_bytes`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `vardhan_verifier` (lib) generated 1 warning (run `cargo fix --lib -p vardhan_verifier` to apply 1 suggestion)
+warning: unused import: `core_crypto::QuantumNodeIdentity`
+ --> backend/ledger_persistence/src/lib.rs:4:5
+  |
+4 | use core_crypto::QuantumNodeIdentity;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ledger_persistence` (lib) generated 1 warning (run `cargo fix --lib -p ledger_persistence` to apply 1 suggestion)
+warning: associated function `execute_zero_downtime_drain` is never used
+  --> backend/orchestration_ai/src/lib.rs:69:14
+   |
+22 | impl OrchestrationIntelligence {
+   | ------------------------------ associated function in this implementation
+...
+69 |     async fn execute_zero_downtime_drain(node_id: &str) {
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `Path`
+ --> backend/quantum_node/src/main.rs:9:17
+  |
+9 | use std::path::{Path, PathBuf};
+  |                 ^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `warn`
+  --> backend/quantum_node/src/main.rs:14:28
+   |
+14 | use tracing::{error, info, warn};
+   |                            ^^^^
+
+warning: unused import: `extract::State`
+ --> backend/vardhan_receipt/src/gateway.rs:1:12
+  |
+1 | use axum::{extract::State, http::StatusCode, response::IntoResponse, rout...
+  |            ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::sync::Arc`
+ --> backend/vardhan_receipt/src/gateway.rs:4:5
+  |
+4 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `VardhanSealedReceipt`
+ --> backend/vardhan_receipt/src/gateway.rs:6:58
+  |
+6 | ... QCoreValidationRequest, VardhanSealedReceipt};
+  |                             ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `VerifierConfig`
+   --> backend/vardhan_receipt/src/main.rs:317:72
+    |
+317 | ...rifier, VerifiableReceipt, VerifierConfig};
+    |                               ^^^^^^^^^^^^^^
+
+warning: unused import: `rand::rngs::OsRng`
+   --> backend/vardhan_receipt/src/main.rs:378:9
+    |
+378 |     use rand::rngs::OsRng;
+    |         ^^^^^^^^^^^^^^^^^
+
+warning: duplicated attribute
+   --> backend/vardhan_receipt/src/main.rs:880:5
+    |
+880 |     #[test]
+    |     ^^^^^^^
+    |
+    = note: `#[warn(duplicate_macro_attributes)]` on by default
+
+warning: variable does not need to be mutable
+   --> backend/vardhan_receipt/src/main.rs:495:9
+    |
+495 |     let mut receipt = VardhanSealedReceipt::build(
+    |         ----^^^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `evidence_id`, `data_hash`, and `category` are never read
+  --> backend/vardhan_receipt/src/main.rs:52:5
+   |
+51 | pub struct EvidencePackage {
+   |            --------------- fields in this struct
+52 |     evidence_id: String,
+   |     ^^^^^^^^^^^
+53 |     data_hash: String,
+   |     ^^^^^^^^^
+54 |     category: String,
+   |     ^^^^^^^^
+   |
+   = note: `EvidencePackage` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: fields `action_type` and `policy_reference` are never read
+  --> backend/vardhan_receipt/src/main.rs:59:5
+   |
+58 | pub struct DecisionCandidate {
+   |            ----------------- fields in this struct
+59 |     action_type: String,
+   |     ^^^^^^^^^^^
+60 |     policy_reference: String,
+   |     ^^^^^^^^^^^^^^^^
+   |
+   = note: `DecisionCandidate` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: fields `source_identity`, `timestamp`, and `version` are never read
+  --> backend/vardhan_receipt/src/main.rs:65:5
+   |
+64 | pub struct Provenance {
+   |            ---------- fields in this struct
+65 |     source_identity: String,
+   |     ^^^^^^^^^^^^^^^
+66 |     timestamp: String,
+   |     ^^^^^^^^^
+67 |     version: String,
+   |     ^^^^^^^
+   |
+   = note: `Provenance` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+
+warning: unused import: `anyhow::Context`
+ --> backend/ebpf_engine/ebpf_user/src/main.rs:1:5
+  |
+1 | use anyhow::Context;
+  |     ^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `tokio::signal`
+ --> backend/ebpf_engine/ebpf_user/src/main.rs:3:5
+  |
+3 | use tokio::signal;
+  |     ^^^^^^^^^^^^^
+
+warning: `orchestration_ai` (lib) generated 1 warning
+warning: `quantum_node` (bin "quantum_node" test) generated 2 warnings (run `cargo fix --bin "quantum_node" -p quantum_node --tests` to apply 2 suggestions)
+warning: `vardhan_receipt` (bin "vardhan-receipt" test) generated 10 warnings (run `cargo fix --bin "vardhan-receipt" -p vardhan_receipt --tests` to apply 6 suggestions)
+warning: `vardhan_ebpf_user` (bin "vardhan_ebpf_user" test) generated 2 warnings (run `cargo fix --bin "vardhan_ebpf_user" -p vardhan_ebpf_user --tests` to apply 2 suggestions)
+warning: unused imports: `Line` and `Rect`
+  --> backend/quantum_tui/src/main.rs:8:45
+   |
+ 8 |     layout::{Constraint, Direction, Layout, Rect},
+   |                                             ^^^^
+ 9 |     style::{Color, Modifier, Style},
+10 |     text::{Line, Span},
+   |            ^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `sync::Arc`
+  --> backend/quantum_tui/src/main.rs:14:29
+   |
+14 | use std::{error::Error, io, sync::Arc, time::Duration};
+   |                             ^^^^^^^^^
+
+warning: use of deprecated method `ratatui::Frame::<'_>::size`: use `area()` instead
+   --> backend/quantum_tui/src/main.rs:157:18
+    |
+157 |         .split(f.size());
+    |                  ^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: `quantum_tui` (bin "quantum_tui" test) generated 3 warnings (run `cargo fix --bin "quantum_tui" -p quantum_tui --tests` to apply 2 suggestions)
+warning: `core_crypto` (lib test) generated 13 warnings (13 duplicates)
+warning: unused import: `LedgerApplier`
+ --> backend/pq_shield/src/main.rs:9:42
+  |
+9 |     CheckpointWriter, ClusterMembership, LedgerApplier, NodeId, RaftNetwo...
+  |                                          ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `SocketAddr`
+  --> backend/pq_shield/src/main.rs:13:16
+   |
+13 | use std::net::{SocketAddr, ToSocketAddrs};
+   |                ^^^^^^^^^^
+
+warning: unused import: `tracing::warn`
+  --> backend/pq_shield/src/main.rs:16:5
+   |
+16 | use tracing::warn;
+   |     ^^^^^^^^^^^^^
+
+warning: unused imports: `CanonicalObjectRef` and `VerificationClaimId`
+ --> backend/proofmesh/tests/canonical_bytes_test.rs:1:27
+  |
+1 | use proofmesh::identity::{CanonicalObjectRef, VerificationClaimId};
+  |                           ^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `serde_json::json`
+ --> backend/proofmesh/tests/canonical_bytes_test.rs:3:5
+  |
+3 | use serde_json::json;
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `vardhan_state::transition::TransitionType`
+ --> backend/proofmesh/tests/canonical_bytes_test.rs:6:5
+  |
+6 | use vardhan_state::transition::TransitionType;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> backend/proofmesh/tests/adversarial_determinism.rs:7:5
+  |
+7 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> backend/proofmesh/tests/adversarial_determinism.rs:76:9
+   |
+76 |     let mut ev1 = EvidenceRecord {
+   |         ----^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `pq_shield` (bin "pq_shield" test) generated 3 warnings (run `cargo fix --bin "pq_shield" -p pq_shield --tests` to apply 3 suggestions)
+warning: `proofmesh` (test "canonical_bytes_test") generated 3 warnings (run `cargo fix --test "canonical_bytes_test" -p proofmesh` to apply 3 suggestions)
+warning: `proofmesh` (test "adversarial_determinism") generated 2 warnings (run `cargo fix --test "adversarial_determinism" -p proofmesh` to apply 2 suggestions)
+warning: unused import: `uuid::Uuid`
+  --> backend/orchestration_ai/src/assurance/test_matrix.rs:11:9
+   |
+11 |     use uuid::Uuid;
+   |         ^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `ConfigurationHash`, `EvidenceId`, `StateHash`, and `TenantId`
+  --> backend/orchestration_ai/src/assurance/test_matrix.rs:13:29
+   |
+13 | ...te::id::{ConfigurationHash, EvidenceId, StateHash, TenantId};
+   |             ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^
+
+warning: struct `MockProver` is never constructed
+  --> backend/orchestration_ai/src/assurance/test_matrix.rs:24:12
+   |
+24 |     struct MockProver {
+   |            ^^^^^^^^^^
+
+warning: struct `MockMetrics` is never constructed
+  --> backend/orchestration_ai/src/assurance/test_matrix.rs:33:12
+   |
+33 |     struct MockMetrics {
+   |            ^^^^^^^^^^^
+
+warning: struct `MockVerifier` is never constructed
+  --> backend/orchestration_ai/src/assurance/test_matrix.rs:46:12
+   |
+46 |     struct MockVerifier {
+   |            ^^^^^^^^^^^^
+
+warning: struct `MockIdGen` is never constructed
+  --> backend/orchestration_ai/src/assurance/test_matrix.rs:55:12
+   |
+55 |     struct MockIdGen;
+   |            ^^^^^^^^^
+
+warning: `pq_shield` (lib test) generated 2 warnings (2 duplicates)
+warning: `orchestration_ai` (lib test) generated 7 warnings (1 duplicate) (run `cargo fix --lib -p orchestration_ai --tests` to apply 2 suggestions)
+warning: `vardhan_verifier` (lib test) generated 1 warning (1 duplicate)
+warning: `auth_service` (lib test) generated 1 warning (1 duplicate)
+warning: unused import: `MockRpcClient`
+  --> backend/ha_cluster/tests/raft_p8_soak.rs:19:34
+   |
+19 | use ha_cluster::raft::{LogEntry, MockRpcClient, RaftRpcClient};
+   |                                  ^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `RaftConfig`
+  --> backend/ha_cluster/tests/raft_p8_soak.rs:21:47
+   |
+21 |     ClusterMembership, LedgerApplier, NodeId, RaftConfig, RaftNetworkLis...
+   |                                               ^^^^^^^^^^
+
+warning: field `ledger` is never read
+  --> backend/ha_cluster/tests/raft_p8_soak.rs:35:5
+   |
+32 | struct TestNode {
+   |        -------- field in this struct
+...
+35 |     ledger: Arc<MerkleLedger>,
+   |     ^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> backend/ha_cluster/tests/raft_l3_failure.rs:306:9
+    |
+306 |     let mut nodes = vec![
+    |         ----^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `idx2`
+   --> backend/ha_cluster/tests/raft_l3_failure.rs:669:9
+    |
+669 |     let idx2 = submit_and_replicate(&leader, &nodes, "client-1", "req-2...
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_idx2`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `stable_wait`
+    --> backend/ha_cluster/tests/raft_l3_failure.rs:1034:9
+     |
+1034 |     let stable_wait = tokio::time::timeout(Duration::from_secs(5), asy...
+     |         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_stable_wait`
+
+warning: unused variable: `leader_idx`
+    --> backend/ha_cluster/tests/raft_l3_failure.rs:1111:9
+     |
+1111 |     let leader_idx = nodes.iter().position(|n| n.id == leader.id).unwr...
+     |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_leader_idx`
+
+warning: unused variable: `leader_idx`
+    --> backend/ha_cluster/tests/raft_l3_failure.rs:1230:9
+     |
+1230 |     let leader_idx = nodes.iter().position(|n| n.id == leader.id).unwr...
+     |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_leader_idx`
+
+warning: unused variable: `identity`
+    --> backend/ha_cluster/tests/raft_l3_failure.rs:1554:9
+     |
+1554 |     let identity = Arc::new(QuantumNodeIdentity::generate_node_identit...
+     |         ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_identity`
+
+warning: unused variable: `idx`
+    --> backend/ha_cluster/tests/raft_l3_failure.rs:2018:9
+     |
+2018 |     let idx = submit_and_replicate(&leader, &nodes, "c1", &format!("r{...
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_idx`
+
+warning: unused variable: `idx`
+    --> backend/ha_cluster/tests/raft_l3_failure.rs:2261:9
+     |
+2261 |     let idx = submit_and_replicate(&leader, &nodes, "c1", &format!("r{...
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_idx`
+
+warning: unused variable: `leader_idx`
+    --> backend/ha_cluster/tests/raft_l3_failure.rs:2263:9
+     |
+2263 |     let leader_idx = nodes.iter().position(|n| n.id == leader_id).unwr...
+     |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_leader_idx`
+
+warning: unused `Result` that must be used
+    --> backend/ha_cluster/tests/raft_l3_failure.rs:2143:17
+     |
+2143 |                 std::fs::write("/tmp/flake_err.log", e.to_string());
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+     = note: `#[warn(unused_must_use)]` (part of `#[warn(unused)]`) on by default
+help: use `let _ = ...` to ignore the resulting value
+     |
+2143 |                 let _ = std::fs::write("/tmp/flake_err.log", e.to_string());
+     |                 +++++++
+
+warning: unused `Result` that must be used
+    --> backend/ha_cluster/tests/raft_l3_failure.rs:2241:17
+     |
+2241 |                 std::fs::write("/tmp/flake_rpc.log", e.to_string());
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: this `Result` may be an `Err` variant, which should be handled
+help: use `let _ = ...` to ignore the resulting value
+     |
+2241 |                 let _ = std::fs::write("/tmp/flake_rpc.log", e.to_string());
+     |                 +++++++
+
+warning: unused import: `LogEntry`
+ --> backend/ha_cluster/tests/raft_p9_tamper.rs:2:44
+  |
+2 |     AppendEntriesArgs, AppendEntriesReply, LogEntry, RaftRpcClient, Reque...
+  |                                            ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::path::PathBuf`
+ --> backend/ha_cluster/tests/raft_p8_regression_p8004.rs:9:5
+  |
+9 | use std::path::PathBuf;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `ha_cluster::NodeId`
+  --> backend/ha_cluster/tests/raft_p8_regression_p8004.rs:13:5
+   |
+13 | use ha_cluster::NodeId;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `fp_b`
+   --> backend/ha_cluster/tests/raft_p8_regression_p8004.rs:121:9
+    |
+121 |     let fp_b = hex::encode(QuantumNodeIdentity::hash_ledger_block(
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_fp_b`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `bound_addr`
+  --> backend/ha_cluster/tests/raft_l3_validation.rs:41:34
+   |
+41 |     let (listener, tcp_listener, bound_addr) =
+   |                                  ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_bound_addr`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `run_id`
+  --> backend/ha_cluster/tests/raft_l3_validation.rs:54:9
+   |
+54 |     let run_id = id.clone();
+   |         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_run_id`
+
+warning: unused variable: `name`
+   --> backend/ha_cluster/tests/raft_l3_validation.rs:180:10
+    |
+180 |     for (name, handle) in [
+    |          ^^^^ help: if this is intentional, prefix it with an underscore: `_name`
+
+warning: fields `id`, `identity`, and `listener_handle` are never read
+  --> backend/ha_cluster/tests/raft_l3_validation.rs:10:5
+   |
+ 9 | struct TestNode {
+   |        -------- fields in this struct
+10 |     id: NodeId,
+   |     ^^
+11 |     identity: Arc<QuantumNodeIdentity>,
+   |     ^^^^^^^^
+12 |     node: Arc<RaftNode>,
+13 |     listener_handle: tokio::task::JoinHandle<()>,
+   |     ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `AsyncReadExt`
+  --> backend/ha_cluster/tests/raft_p8_resource_exhaustion.rs:22:17
+   |
+22 | use tokio::io::{AsyncReadExt, AsyncWriteExt};
+   |                 ^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `rx`
+   --> backend/ha_cluster/tests/raft_p8_resource_exhaustion.rs:139:14
+    |
+139 |     let (tx, rx) = tokio::sync::oneshot::channel::<AeadTransport>();
+    |              ^^ help: if this is intentional, prefix it with an underscore: `_rx`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `received_clone`
+   --> backend/ha_cluster/tests/raft_p8_resource_exhaustion.rs:212:9
+    |
+212 |     let received_clone = received.clone();
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_received_clone`
+
+warning: variable does not need to be mutable
+   --> backend/ha_cluster/tests/raft_l3_2_checkpoints.rs:214:9
+    |
+214 |     let mut nodes = vec![
+    |         ----^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `leader_idx`
+   --> backend/ha_cluster/tests/raft_l3_2_checkpoints.rs:402:9
+    |
+402 |     let leader_idx = find_leader_idx(&nodes, &leader);
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_leader_idx`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `cp`
+   --> backend/ha_cluster/tests/raft_l3_2_checkpoints.rs:423:9
+    |
+423 |     let cp = leader_applier
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_cp`
+
+warning: unused variable: `cp`
+   --> backend/ha_cluster/tests/raft_l3_2_checkpoints.rs:498:9
+    |
+498 |     let cp = leader_node
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_cp`
+
+warning: unused variable: `cp`
+   --> backend/ha_cluster/tests/raft_l3_2_checkpoints.rs:711:9
+    |
+711 |     let cp = leader_node
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_cp`
+
+warning: unused variable: `cp`
+    --> backend/ha_cluster/tests/raft_l3_2_checkpoints.rs:1581:9
+     |
+1581 |     let cp = leader_node
+     |         ^^ help: if this is intentional, prefix it with an underscore: `_cp`
+
+warning: field `raft_addr` is never read
+  --> backend/ha_cluster/tests/raft_l3_2_checkpoints.rs:52:5
+   |
+42 | struct TestNodeCP {
+   |        ---------- field in this struct
+...
+52 |     raft_addr: std::net::SocketAddr,
+   |     ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `run_responder`
+  --> backend/ha_cluster/tests/raft_p9_tcp_byzantine.rs:15:35
+   |
+15 | use proxy_engine::{run_initiator, run_responder, AeadTransport};
+   |                                   ^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::collections::HashMap`
+  --> backend/ha_cluster/tests/raft_p9_tcp_byzantine.rs:16:5
+   |
+16 | use std::collections::HashMap;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::path::PathBuf`
+  --> backend/ha_cluster/tests/raft_p9_tcp_byzantine.rs:18:5
+   |
+18 | use std::path::PathBuf;
+   |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `valid_id`
+   --> backend/ha_cluster/tests/raft_p9_tcp_byzantine.rs:243:32
+    |
+243 | ...(node, valid_identity, valid_id, port, _) = setup_test_listener().aw...
+    |                           ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_valid_id`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `ha_cluster` (test "raft_p8_soak") generated 3 warnings (run `cargo fix --test "raft_p8_soak" -p ha_cluster` to apply 2 suggestions)
+warning: `ha_cluster` (test "raft_l3_failure") generated 11 warnings (run `cargo fix --test "raft_l3_failure" -p ha_cluster` to apply 9 suggestions)
+warning: `ha_cluster` (test "raft_p9_tamper") generated 1 warning (run `cargo fix --test "raft_p9_tamper" -p ha_cluster` to apply 1 suggestion)
+warning: `ha_cluster` (test "raft_p8_regression_p8004") generated 3 warnings (run `cargo fix --test "raft_p8_regression_p8004" -p ha_cluster` to apply 3 suggestions)
+warning: `ha_cluster` (test "raft_l3_validation") generated 4 warnings (run `cargo fix --test "raft_l3_validation" -p ha_cluster` to apply 3 suggestions)
+warning: `ha_cluster` (test "raft_p8_resource_exhaustion") generated 3 warnings (run `cargo fix --test "raft_p8_resource_exhaustion" -p ha_cluster` to apply 3 suggestions)
+warning: `ha_cluster` (test "raft_l3_2_checkpoints") generated 7 warnings (run `cargo fix --test "raft_l3_2_checkpoints" -p ha_cluster` to apply 6 suggestions)
+warning: `ha_cluster` (test "raft_p9_tcp_byzantine") generated 4 warnings (run `cargo fix --test "raft_p9_tcp_byzantine" -p ha_cluster` to apply 4 suggestions)
+warning: `quantum_network` (lib test) generated 3 warnings (3 duplicates)
+warning: unused import: `AsyncReadExt`
+  --> backend/ha_cluster/tests/raft_p8_transport.rs:25:17
+   |
+25 | use tokio::io::{AsyncReadExt, AsyncWriteExt};
+   |                 ^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `RaftConfig`, `RequestVoteArgs`, and `RequestVoteReply`
+  --> backend/ha_cluster/tests/raft_l3_replication.rs:11:24
+   |
+11 |         RaftRpcClient, RequestVoteArgs, RequestVoteReply,
+   |                        ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+12 |     },
+13 |     ClusterMembership, NodeId, RaftConfig, RaftNetworkListener, RaftNode...
+   |                                ^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `idx2`
+   --> backend/ha_cluster/tests/raft_l3_replication.rs:596:9
+    |
+596 |     let idx2 = leader.submit_entry(entry2).await.unwrap();
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_idx2`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `membership`
+   --> backend/ha_cluster/tests/raft_l3_replication.rs:732:9
+    |
+732 |     let membership = Arc::new(ClusterMembership::new());
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_membership`
+
+warning: unused variable: `identity_a`
+   --> backend/ha_cluster/tests/raft_l3_replication.rs:744:9
+    |
+744 |     let identity_a = Arc::new(QuantumNodeIdentity::generate_node_identi...
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_identity_a`
+
+warning: unused variable: `pm`
+   --> backend/ha_cluster/tests/raft_l3_replication.rs:913:9
+    |
+913 |     let pm = Arc::new(RaftPeerManager::new(
+    |         ^^ help: if this is intentional, prefix it with an underscore: `_pm`
+
+warning: unused variable: `membership`
+   --> backend/ha_cluster/tests/raft_l3_replication.rs:967:9
+    |
+967 |     let membership = Arc::new(ClusterMembership::new());
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_membership`
+
+warning: unused variable: `membership`
+    --> backend/ha_cluster/tests/raft_l3_replication.rs:1084:9
+     |
+1084 |     let membership = Arc::new(ClusterMembership::new());
+     |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_membership`
+
+warning: fields `identity` and `applier` are never read
+  --> backend/ha_cluster/tests/raft_l3_replication.rs:28:5
+   |
+26 | struct TestNode {
+   |        -------- fields in this struct
+27 |     id: NodeId,
+28 |     identity: Arc<QuantumNodeIdentity>,
+   |     ^^^^^^^^
+...
+31 |     applier: Arc<LedgerApplier>,
+   |     ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `SegmentManifest`
+  --> backend/ha_cluster/tests/raft_p8_segment_retention.rs:11:81
+   |
+11 | ...r, RetentionAuthorization, SegmentManifest,
+   |                               ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> backend/ha_cluster/tests/raft_p8_segment_retention.rs:173:9
+    |
+173 |     let mut content = std::fs::read_to_string(&seg_path).unwrap();
+    |         ----^^^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `first_last_seq`
+   --> backend/ha_cluster/tests/raft_p8_segment_retention.rs:579:9
+    |
+579 |     let first_last_seq = manifest.segments[0].last_seq;
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_first_last_seq`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `MockProtector` is never constructed
+  --> backend/ha_cluster/tests/raft_p8_segment_retention.rs:18:8
+   |
+18 | struct MockProtector;
+   |        ^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `election_result`
+   --> backend/ha_cluster/tests/raft_p8_partition.rs:350:9
+    |
+350 |     let election_result = nodes[0].start_election(&peers_a).await;
+    |         ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_election_result`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `last_term`
+   --> backend/ha_cluster/tests/raft_p8_partition.rs:398:9
+    |
+398 |     let last_term = if log.is_empty() {
+    |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_last_term`
+
+warning: method `unblock_peer` is never used
+  --> backend/ha_cluster/tests/raft_p8_partition.rs:59:14
+   |
+47 | impl PartitionedRpcClient {
+   | ------------------------- method in this implementation
+...
+59 |     async fn unblock_peer(&self, peer: &ha_cluster::NodeId) {
+   |              ^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `EncryptedEnvelope`
+  --> backend/ha_cluster/tests/raft_p8_regression_p8003.rs:13:26
+   |
+13 | use core_crypto::vault::{EncryptedEnvelope, KeyProtector, VaultError};
+   |                          ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `identity` is never read
+  --> backend/ha_cluster/tests/raft_p8_regression_p8003.rs:45:24
+   |
+45 |     let mut identity = QuantumNodeIdentity::generate_node_identity().unwrap();
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this value is reassigned later and never used
+46 |     identity = QuantumNodeIdentity::load_or_generate(&vault_path, &MockProtector)
+   |     -------- `identity` is overwritten here before the previous value is read
+   |
+   = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:329:9
+    |
+329 |     let mut nodes = vec![
+    |         ----^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `raft_port_a`
+   --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:620:9
+    |
+620 |     let raft_port_a: u16 = (base + 1) as u16;
+    |         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_raft_port_a`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `raft_port_b`
+   --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:621:9
+    |
+621 |     let raft_port_b: u16 = (base + 2) as u16;
+    |         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_raft_port_b`
+
+warning: unused variable: `raft_port_c`
+   --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:622:9
+    |
+622 |     let raft_port_c: u16 = (base + 3) as u16;
+    |         ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_raft_port_c`
+
+warning: unused variable: `admin_port`
+   --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:623:9
+    |
+623 |     let admin_port = (base + 4) as u16;
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_admin_port`
+
+warning: unused variable: `membership`
+   --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:629:10
+    |
+629 |     let (membership, mut nodes) = spawn_cluster(run_id).await;
+    |          ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_membership`
+
+warning: unused variable: `n`
+   --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:843:20
+    |
+843 |         .find(|(i, n)| *i != leader_idx && *i != slow_idx)
+    |                    ^ help: if this is intentional, prefix it with an underscore: `_n`
+
+warning: unused variable: `n`
+   --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:836:20
+    |
+836 |         .find(|(i, n)| *i != leader_idx)
+    |                    ^ help: if this is intentional, prefix it with an underscore: `_n`
+
+warning: unused variable: `n`
+    --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:1054:20
+     |
+1054 |         .find(|(i, n)| *i != leader_idx)
+     |                    ^ help: if this is intentional, prefix it with an underscore: `_n`
+
+warning: unused variable: `leader_idx`
+    --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:1473:9
+     |
+1473 |     let leader_idx = nodes.iter().position(|n| n.id == leader_id).unwr...
+     |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_leader_idx`
+
+warning: unused variable: `idx`
+    --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:1584:9
+     |
+1584 |     let idx = leader
+     |         ^^^ help: if this is intentional, prefix it with an underscore: `_idx`
+
+warning: methods `delay`, `clear_delay`, and `unblock_all` are never used
+   --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:92:14
+    |
+ 75 | impl NetworkController {
+    | ---------------------- methods in this implementation
+...
+ 92 |     async fn delay(&self, peer: &NodeId, dur: Duration) {
+    |              ^^^^^
+...
+ 96 |     async fn clear_delay(&self, peer: &NodeId) {
+    |              ^^^^^^^^^^^
+...
+100 |     async fn unblock_all(&self) {
+    |              ^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `ledger` is never read
+   --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:168:5
+    |
+164 | struct TestNode {
+    |        -------- field in this struct
+...
+168 |     ledger: Arc<MerkleLedger>,
+    |     ^^^^^^
+
+warning: function `port_for_run_id` is never used
+   --> backend/ha_cluster/tests/raft_l3_1_hardening.rs:278:4
+    |
+278 | fn port_for_run_id(run_id: usize, offset: u8) -> u16 {
+    |    ^^^^^^^^^^^^^^^
+
+warning: unused import: `TcpStream`
+ --> backend/ha_cluster/tests/transport_tests.rs:5:31
+  |
+5 | use tokio::net::{TcpListener, TcpStream};
+  |                               ^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `timeout`
+ --> backend/ha_cluster/tests/transport_tests.rs:6:19
+  |
+6 | use tokio::time::{timeout, Duration};
+  |                   ^^^^^^^
+
+warning: unused variable: `session`
+  --> backend/ha_cluster/tests/transport_tests.rs:13:21
+   |
+13 |                 let session = run_responder(&mut stream, &identity).awai...
+   |                     ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_session`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `identity_b`
+  --> backend/ha_cluster/tests/transport_tests.rs:51:9
+   |
+51 |     let identity_b = Arc::new(QuantumNodeIdentity::generate_node_identit...
+   |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_identity_b`
+
+warning: unused import: `std::path::PathBuf`
+  --> backend/ha_cluster/tests/raft_p8_crash_corruption.rs:16:5
+   |
+16 | use std::path::PathBuf;
+   |     ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `node`
+   --> backend/ha_cluster/tests/raft_p8_crash_corruption.rs:119:9
+    |
+119 |     let node = RaftNode::with_config(
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_node`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> backend/ha_cluster/tests/raft_p8_crash_corruption.rs:252:9
+    |
+252 |     let mut lines: Vec<String> = std::fs::read_to_string(&ledger_path)
+    |         ----^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `node`
+   --> backend/ha_cluster/tests/raft_p8_crash_corruption.rs:423:9
+    |
+423 |     let node = RaftNode::with_config(
+    |         ^^^^ help: if this is intentional, prefix it with an underscore: `_node`
+
+warning: `ledger_persistence` (lib test) generated 1 warning (1 duplicate)
+warning: `ha_cluster` (test "raft_p8_transport") generated 1 warning
+warning: `ha_cluster` (test "raft_l3_replication") generated 8 warnings (run `cargo fix --test "raft_l3_replication" -p ha_cluster` to apply 7 suggestions)
+warning: `ha_cluster` (test "raft_p8_segment_retention") generated 4 warnings (run `cargo fix --test "raft_p8_segment_retention" -p ha_cluster` to apply 3 suggestions)
+warning: `ha_cluster` (test "raft_p8_partition") generated 3 warnings (run `cargo fix --test "raft_p8_partition" -p ha_cluster` to apply 2 suggestions)
+warning: `ha_cluster` (test "raft_p8_regression_p8003") generated 2 warnings (run `cargo fix --test "raft_p8_regression_p8003" -p ha_cluster` to apply 1 suggestion)
+warning: `ha_cluster` (test "raft_l3_1_hardening") generated 14 warnings (run `cargo fix --test "raft_l3_1_hardening" -p ha_cluster` to apply 11 suggestions)
+warning: `ha_cluster` (test "transport_tests") generated 4 warnings (run `cargo fix --test "transport_tests" -p ha_cluster` to apply 4 suggestions)
+warning: `ha_cluster` (test "raft_p8_crash_corruption") generated 4 warnings (run `cargo fix --test "raft_p8_crash_corruption" -p ha_cluster` to apply 4 suggestions)
+warning: unused imports: `AppendEntriesArgs` and `AppendEntriesReply`
+  --> backend/ha_cluster/tests/raft_durability_invariant.rs:11:5
+   |
+11 |     AppendEntriesArgs, AppendEntriesReply, LogEntry, RaftConfig, RaftNod...
+   |     ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `raft_addr` is never read
+  --> backend/ha_cluster/tests/raft_durability_invariant.rs:22:5
+   |
+15 | struct TestNode {
+   |        -------- field in this struct
+...
+22 |     raft_addr: SocketAddr,
+   |     ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> backend/ha_cluster/tests/raft_p8_key_compromise.rs:87:9
+   |
+87 |     let mut lines: Vec<String> = std::fs::read_to_string(&ledger_path)
+   |         ----^^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `event_json`
+   --> backend/ha_cluster/tests/raft_p8_key_compromise.rs:100:9
+    |
+100 |     let event_json = serde_json::to_string(&entry1.event).unwrap();
+    |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_event_json`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> backend/ha_cluster/tests/raft_p8_key_compromise.rs:168:9
+    |
+168 |     let mut lines: Vec<String> = std::fs::read_to_string(&ledger_path)
+    |         ----^^^^^
+    |         |
+    |         help: remove this `mut`
+
+warning: unused import: `raft_listener::RaftNetworkListener`
+  --> backend/ha_cluster/tests/pqc_consensus_integration.rs:29:5
+   |
+29 |     raft_listener::RaftNetworkListener,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `ProxyError`
+  --> backend/ha_cluster/tests/pqc_consensus_integration.rs:33:50
+   |
+33 | use proxy_engine::{run_initiator, run_responder, ProxyError};
+   |                                                  ^^^^^^^^^^
+
+warning: unused import: `AsyncWriteExt`
+  --> backend/ha_cluster/tests/pqc_consensus_integration.rs:34:31
+   |
+34 | use tokio::io::{AsyncReadExt, AsyncWriteExt};
+   |                               ^^^^^^^^^^^^^
+
+warning: unused import: `AsyncReadExt`
+  --> backend/ha_cluster/tests/pqc_consensus_integration.rs:34:17
+   |
+34 | use tokio::io::{AsyncReadExt, AsyncWriteExt};
+   |                 ^^^^^^^^^^^^
+
+warning: constant `TEST_SALT` is never used
+  --> backend/ha_cluster/tests/pqc_consensus_integration.rs:39:7
+   |
+39 | const TEST_SALT: [u8; 4] = [0xCD; 4];
+   |       ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `ClusterNode`
+ --> backend/ha_cluster/src/raft.rs:1:13
+  |
+1 | use crate::{ClusterNode, NodeId};
+  |             ^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `LogEntry`
+ --> backend/ha_cluster/src/raft_test_utils.rs:2:44
+  |
+2 |     AppendEntriesArgs, AppendEntriesReply, LogEntry, RaftNode, RequestVot...
+  |                                            ^^^^^^^^
+
+warning: unused import: `serde_json::json`
+ --> backend/proofmesh/src/lib.rs:6:9
+  |
+6 |     use serde_json::json;
+  |         ^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `CommitIndex`
+ --> backend/proofmesh/src/claim_registry.rs:8:5
+  |
+8 |     CommitIndex, ConfigurationHash, ContentHash, DeltaId, EntityId, State...
+  |     ^^^^^^^^^^^
+
+warning: `ha_cluster` (test "raft_durability_invariant") generated 2 warnings (run `cargo fix --test "raft_durability_invariant" -p ha_cluster` to apply 1 suggestion)
+warning: `ha_cluster` (test "raft_p8_key_compromise") generated 3 warnings (run `cargo fix --test "raft_p8_key_compromise" -p ha_cluster` to apply 3 suggestions)
+warning: `ha_cluster` (test "pqc_consensus_integration") generated 5 warnings (run `cargo fix --test "pqc_consensus_integration" -p ha_cluster` to apply 2 suggestions)
+warning: `authority_gate` (lib test) generated 1 warning (1 duplicate)
+warning: `ha_cluster` (lib test) generated 38 warnings (36 duplicates) (run `cargo fix --lib -p ha_cluster --tests` to apply 2 suggestions)
+warning: `proofmesh` (lib test) generated 10 warnings (8 duplicates) (run `cargo fix --lib -p proofmesh --tests` to apply 2 suggestions)
+warning: unused imports: `AsyncReadExt` and `AsyncWriteExt`
+ --> backend/load_tester/src/main.rs:9:17
+  |
+9 | use tokio::io::{AsyncReadExt, AsyncWriteExt};
+  |                 ^^^^^^^^^^^^  ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `Key` and `Nonce`
+ --> backend/verifier/src/main.rs:2:16
+  |
+2 |     Aes256Gcm, Key, Nonce,
+  |                ^^^  ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::net::SocketAddr`
+ --> backend/verifier/src/main.rs:8:5
+  |
+8 | use std::net::SocketAddr;
+  |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::time::Duration`
+  --> backend/verifier/src/main.rs:10:5
+   |
+10 | use std::time::Duration;
+   |     ^^^^^^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+  --> backend/verifier/src/main.rs:68:10
+   |
+68 |     let (mut stream1, session1) = connect_and_handshake().await?;
+   |          ----^^^^^^^
+   |          |
+   |          help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> backend/verifier/src/main.rs:75:10
+   |
+75 |     let (mut stream2, session2) = connect_and_handshake().await?;
+   |          ----^^^^^^^
+   |          |
+   |          help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> backend/verifier/src/main.rs:115:10
+    |
+115 |     let (mut stream3, session3) = connect_and_handshake().await?;
+    |          ----^^^^^^^
+    |          |
+    |          help: remove this `mut`
+
+warning: unused variable: `is_tx`
+  --> backend/verifier/src/main.rs:27:5
+   |
+27 |     is_tx: bool,
+   |     ^^^^^ help: if this is intentional, prefix it with an underscore: `_is_tx`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `ctx`
+   --> backend/verifier/src/main.rs:254:17
+    |
+254 |     let (mut s, ctx) = connect_and_handshake().await?;
+    |                 ^^^ help: if this is intentional, prefix it with an underscore: `_ctx`
+
+warning: `load_tester` (bin "load_tester" test) generated 1 warning (run `cargo fix --bin "load_tester" -p load_tester --tests` to apply 1 suggestion)
+warning: `ledger_sync` (lib test) generated 2 warnings (2 duplicates)
+warning: `verifier` (bin "verifier" test) generated 8 warnings (run `cargo fix --bin "verifier" -p verifier --tests` to apply 8 suggestions)
+warning: unused imports: `Aead`, `Aes256Gcm`, `Key`, and `Nonce`
+  --> backend/proxy_engine/src/lib.rs:53:12
+   |
+53 |     aead::{Aead, KeyInit},
+   |            ^^^^
+54 |     Aes256Gcm, Key, Nonce,
+   |     ^^^^^^^^^  ^^^  ^^^^^
+
+warning: variable does not need to be mutable
+    --> backend/audit_ledger/src/lib.rs:1724:13
+     |
+1724 |         let mut bad = lines[1].to_string();
+     |             ----^^^
+     |             |
+     |             help: remove this `mut`
+     |
+     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `proxy_engine` (lib test) generated 11 warnings (10 duplicates) (run `cargo fix --lib -p proxy_engine --tests` to apply 1 suggestion)
+warning: `audit_ledger` (lib test) generated 1 warning (run `cargo fix --lib -p audit_ledger --tests` to apply 1 suggestion)
+warning: `saas_metering` (lib test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.43s
+     Running unittests src/lib.rs (target/debug/deps/audit_ledger-bed0c2191d65a2a1)
+
+running 4 tests
+test tests::test_torn_write_recovery ... ok
+test tests::test_missing_and_duplicate_seq_refused ... ok
+test tests::test_tampered_ledger_refused ... ok
+test tests::test_write_and_chain_integrity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running unittests src/lib.rs (target/debug/deps/auth_service-62aefa6b2816442d)
+
+running 35 tests
+test authorization::tests::test_least_privilege_permissions ... ok
+test authorization::tests::test_session_revocation_privilege ... ok
+test authorization::tests::test_role_parsing ... ok
+test rate_limit::tests::test_blocked_after_max_failures ... ok
+test rate_limit::tests::test_different_ips_independent ... ok
+test rate_limit::tests::test_failure_count_tracked ... ok
+test rate_limit::tests::test_not_blocked_before_max ... ok
+test rate_limit::tests::test_not_blocked_initially ... ok
+test rate_limit::tests::test_reset_clears_block ... ok
+test session::tests::test_active_count ... ok
+test session::tests::test_create_and_validate ... ok
+test session::tests::test_flush_except_preserves_caller ... ok
+test session::tests::test_invalid_token_rejected ... ok
+test session::tests::test_list_and_revoke_by_id ... ok
+test session::tests::test_logout_invalidates_session ... ok
+test session::tests::test_token_has_64_hex_chars ... ok
+test session::tests::test_two_tokens_are_unique ... ok
+test api_key::tests::test_invalid_name_rejected ... ok
+test settings::tests::test_settings_persistence_and_immutability ... ok
+test api_key::tests::test_api_key_lifecycle ... ok
+test store::tests::test_remove_user ... ok
+test store::tests::test_list_usernames ... ok
+test store::tests::test_store_and_retrieve ... ok
+test store::tests::test_unknown_user_returns_none ... ok
+test store::tests::test_user_count ... ok
+test profile::tests::test_profile_lifecycle ... ok
+test store::tests::test_verify_unknown_user_returns_false ... ok
+test credentials::tests::test_wrong_password_rejected ... ok
+test credentials::tests::test_hash_and_verify_roundtrip ... ok
+test credentials::tests::test_empty_password_rejected ... ok
+test store::tests::test_verify_correct_password ... ok
+test store::tests::test_verify_wrong_password ... ok
+test credentials::tests::test_sentinel_always_fails ... ok
+test credentials::tests::test_different_salts_produce_different_hashes ... ok
+test profile::tests::test_change_password_validation ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.68s
+
+     Running tests/integration_auth.rs (target/debug/deps/integration_auth-72e7e8835a413317)
+
+running 6 tests
+test test_login_success_and_session_info ... ok
+test test_logout_revokes_session ... ok
+test test_login_wrong_password_rejected ... ok
+test test_audit_events_persisted_to_ledger ... ok
+test test_login_unknown_user_rejected ... ok
+test test_rate_limiter_triggers_429_after_10_failures ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.67s
+
+     Running unittests src/lib.rs (target/debug/deps/authority_gate-7781085fe5163ff2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/core_crypto-abcb7b3bad3dc02b)
+
+running 8 tests
+test vault::tests::test_kms_access_denied_fails_fast ... ok
+test vault::tests::test_kms_outage_fails_fast ... ok
+test vault::tests::test_kms_envelope_protection_lifecycle ... ok
+test vault::tests::test_hsm_key_protector ... ok
+test vault::tests::test_kms_key_rotation ... ok
+test vault::tests::test_v1_envelope_backward_compatibility ... ok
+test clone_test::test_clone ... ok
+test tests::test_quantum_identity_handshake ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running unittests src/bin/vendor_admin.rs (target/debug/deps/vendor_admin-e420fdf5f564ea4c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/decision_twin-9ece81b7bc5c7afb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/enterprise_tenant-9ea7487780690467)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/ha_cluster-afa06509baf1f0b2)
+
+running 23 tests
+test drain::tests::test_active_session_counter ... ok
+test drain::tests::test_drain_completes_when_no_sessions ... ok
+test election::tests::test_compute_leader_in_region ... ok
+test election::tests::test_no_leader_when_no_healthy_nodes ... ok
+test election::tests::test_leader_is_lexicographically_smallest ... ok
+test election::tests::test_is_leader_returns_correct_bool ... ok
+test heartbeat::tests::test_heartbeat_frame_roundtrip ... ok
+test raft_listener::tests::envelope_sender_must_match_handshake_binding ... ok
+test raft_listener::tests::forged_sender_does_not_match_authenticated_peer ... ok
+test raft_listener::tests::valid_sender_matches_authenticated_peer ... ok
+test raft_listener::tests::stale_authenticated_peer_is_rejected ... ok
+test tests::test_healthy_peers_filters_dead ... ok
+test tests::test_apply_heartbeat_updates_peer ... ok
+test tests::test_heartbeat_propagates_region ... ok
+test tests::test_mark_draining_and_healthy ... ok
+test tests::test_reap_dead_nodes ... ok
+test tests::test_region_tagging_and_filtering ... ok
+test tests::test_peer_snapshot_includes_region ... ok
+test tests::test_register_and_heartbeat ... ok
+test peer_manager::tests::sec010_request_id_initialization_and_concurrency_safety ... ok
+test heartbeat::tests::test_heartbeat_udp_loopback ... ok
+test drain::tests::test_drain_waits_for_session_to_finish ... ok
+test drain::tests::test_drain_timeout_fires ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.00s
+
+     Running tests/pqc_consensus_integration.rs (target/debug/deps/pqc_consensus_integration-37ccf253d189cf23)
+
+running 60 tests
+test pqc_2_10_connection_interruption_reconnection ... ok
+test pqc_1_6_protocol_downgrade_rejected ... ok
+test pqc_2_3_commit_propagation ... ok
+test pqc_1_5_transcript_modification_rejected ... ok
+test pqc_1_1_ml_kem_key_establishment ... ok
+test pqc_2_5_leader_replacement ... ok
+test pqc_2_7_delayed_packets_rejected ... ok
+test pqc_2_8_duplicate_packets_rejected ... ok
+test pqc_2_9_reordered_packets_rejected ... ok
+test pqc_3_10_modified_request_id_rejected ... ok
+test pqc_1_2_ml_dsa_identity_verification ... ok
+test pqc_3_11_modified_log_entry_rejected ... ok
+test pqc_3_1_ciphertext_modification_rejected ... ok
+test pqc_1_8_node_restart_preserves_identity ... ok
+test pqc_3_2_invalid_auth_tag_rejected ... ok
+test pqc_3_3_replay_rejected ... ok
+test pqc_3_4_wrong_sequence_number_rejected ... ok
+test pqc_3_5_wrong_direction_rejected ... ok
+test pqc_3_6_wrong_session_id_rejected ... ok
+test pqc_2_6_network_partition_rejoin ... ok
+test pqc_3_8_downgraded_crypto_suite_rejected ... ok
+test pqc_3_9_modified_raft_term_rejected ... ok
+test pqc_1_4_unknown_identity_rejected ... ok
+test pqc_1_7_expired_identity_rejected ... ok
+test pqc_4_2_old_leader_steps_down ... ok
+test pqc_4_4_stale_term_rejected ... ok
+test pqc_5_2_leader_crash_identity_rotation ... ok
+test pqc_5_1_leader_crash_handshake_failure ... ok
+test pqc_5_4_partition_replayed_append_entries ... ok
+test pqc_4_3_committed_entries_survive ... ok
+test pqc_5_6_network_recovery_old_session ... ok
+test pqc_3_7_wrong_peer_identity_rejected ... ok
+test pqc_5_3_partition_stale_certificate ... ok
+test pqc_5_7_new_leader_old_leader_reconnect ... ok
+test pqc_6_3_rotation_during_election ... ok
+test pqc_6_4_rotation_during_partition ... ok
+test pqc_4_1_partition_elects_new_leader ... ok
+test pqc_4_5_restarted_node_recovers_state ... ok
+test pqc_2_1_request_vote_over_pq_transport ... ok
+test pqc_1_3_wrong_peer_identity_rejected ... ok
+test pqc_7_10_evidence_corresponds_to_committed_state ... ok
+test pqc_7_1_unauthenticated_rpc_no_state_change ... ok
+test pqc_7_2_stale_term_no_state_change ... ok
+test pqc_7_3_non_leader_cannot_commit ... ok
+test pqc_5_5_restart_rotated_signing_key ... ok
+test pqc_2_2_append_entries_over_pq_transport ... ok
+test pqc_7_6_replay_no_second_transition ... ok
+test pqc_7_4_committed_state_survives_restart ... ok
+test pqc_6_6_old_key_rejection ... ok
+test pqc_7_8_partition_no_split_history ... ok
+test pqc_6_1_valid_rotation ... ok
+test pqc_7_5_identity_cannot_silently_change ... ok
+test pqc_6_5_restart_after_rotation ... ok
+test pqc_6_7_new_key_acceptance ... ok
+test pqc_6_8_conflicting_rotation_rejection ... ok
+test pqc_6_2_simultaneous_rotation ... ok
+test pqc_7_9_fail_closed_on_crypto_failure ... ok
+test pqc_7_7_rotation_preserves_evidence ... ok
+test pqc_2_4_leader_election ... ok
+test pqc_8_1_end_to_end_with_boundary_attacks ... ok
+
+test result: ok. 60 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.30s
+
+     Running tests/raft_durability_invariant.rs (target/debug/deps/raft_durability_invariant-4efe4e18e1668b9a)
+
+running 2 tests
+[2m2026-10-03T18:02:21.651710Z[0m [32m INFO[0m [2mraft_durability_invariant[0m[2m:[0m Starting 100x durability invariant verification
+[2m2026-10-03T18:02:22.798033Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/c.json [3melapsed_us[0m[2m=[0m9214
+[2m2026-10-03T18:02:22.798369Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62936)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:22.814371Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62936)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:22.814474Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62938)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:22.823942Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62938)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:22.824038Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62942)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:22.824058Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62943)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:22.831116Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62942)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:22.840650Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62942)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:22.861428Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62942)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:22.868407Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62943)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:22.877844Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62943)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:22.891716Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62943)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:22.895951Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/a.json [3melapsed_us[0m[2m=[0m7210
+[2m2026-10-03T18:02:22.896217Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62939)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:22.900063Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62936)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:22.905569Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62939)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:22.905599Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62941)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:22.914847Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62941)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:22.914891Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62944)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:22.914908Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62945)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:22.922051Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62944)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:22.931323Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62944)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:22.931772Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62936)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:22.935919Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62936)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:22.943012Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62938)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:22.943127Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62944)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:22.950186Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62945)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:22.959471Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62945)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:22.966128Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62938)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:22.970228Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62938)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:22.981489Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62942)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:22.992742Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62943)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:23.004969Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/b.json [3melapsed_us[0m[2m=[0m34592
+[2m2026-10-03T18:02:23.005339Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62936)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:23.012376Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62945)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:23.019486Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62939)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:23.021111Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62936)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:23.021127Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/a.json [3melapsed_us[0m[2m=[0m39430
+[2m2026-10-03T18:02:23.021251Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62940)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:23.030589Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62940)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:23.030624Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62946)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:23.030637Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62947)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:23.037634Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62946)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:23.042724Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62939)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:23.046841Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62939)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:23.054041Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62941)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:23.059659Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62946)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:23.077689Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62946)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:23.078999Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62941)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:23.083933Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62941)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:23.086245Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62947)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:23.096509Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62944)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:23.107668Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62947)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:23.108470Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62945)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:23.119530Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/b.json [3melapsed_us[0m[2m=[0m22731
+[2m2026-10-03T18:02:23.122587Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/c.json [3melapsed_us[0m[2m=[0m13891
+[2m2026-10-03T18:02:23.128279Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62947)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:23.135572Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62936)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:23.163043Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62936)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:23.167190Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62936)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:23.174298Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62940)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:23.194926Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62940)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:23.199024Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62940)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:23.210511Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62946)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:23.221763Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62947)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:23.303531Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/a.json [3melapsed_us[0m[2m=[0m15405
+[2m2026-10-03T18:02:23.303700Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/b.json [3melapsed_us[0m[2m=[0m14614
+[2m2026-10-03T18:02:23.307567Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/c.json [3melapsed_us[0m[2m=[0m18145
+[2m2026-10-03T18:02:23.316459Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/a.json [3melapsed_us[0m[2m=[0m8561
+[2m2026-10-03T18:02:23.324534Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/a.json [3melapsed_us[0m[2m=[0m8038
+[2m2026-10-03T18:02:23.412784Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/c.json [3melapsed_us[0m[2m=[0m8579
+[2m2026-10-03T18:02:23.501939Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/a.json [3melapsed_us[0m[2m=[0m9360
+[2m2026-10-03T18:02:23.502438Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/b.json [3melapsed_us[0m[2m=[0m8979
+[2m2026-10-03T18:02:23.511944Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/c.json [3melapsed_us[0m[2m=[0m8310
+[2m2026-10-03T18:02:23.521014Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/c.json [3melapsed_us[0m[2m=[0m8878
+[2m2026-10-03T18:02:23.551997Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/a.json [3melapsed_us[0m[2m=[0m8714
+[2m2026-10-03T18:02:23.599889Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/b.json [3melapsed_us[0m[2m=[0m7477
+[2m2026-10-03T18:02:23.600337Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/c.json [3melapsed_us[0m[2m=[0m6956
+[2m2026-10-03T18:02:23.608916Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m2 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/a.json [3melapsed_us[0m[2m=[0m7539
+[2m2026-10-03T18:02:23.616102Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Loaded MAC-protected persistent Raft state from disk [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/b.json [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2
+[2m2026-10-03T18:02:23.618218Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m2 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_9999_57657233-3803-4656-a6c4-f4e683a6e207/a.json [3melapsed_us[0m[2m=[0m9209
+[2m2026-10-03T18:02:23.689475Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62948)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:23.742289Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62948)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:23.742522Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62949)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:23.751536Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62949)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:23.764222Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62949)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:23.767860Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/c.json [3melapsed_us[0m[2m=[0m7169
+[2m2026-10-03T18:02:23.777126Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62949)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:23.784447Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62948)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:23.800842Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/a.json [3melapsed_us[0m[2m=[0m11171
+[2m2026-10-03T18:02:23.803202Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62948)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:23.804904Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/b.json [3melapsed_us[0m[2m=[0m14941
+[2m2026-10-03T18:02:23.808873Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62948)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:23.810895Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m2 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/c.json [3melapsed_us[0m[2m=[0m5752
+[2m2026-10-03T18:02:23.811132Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Loaded MAC-protected persistent Raft state from disk [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/a.json [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2
+[2m2026-10-03T18:02:23.818878Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m2 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_0_3dcbd4f1-3a0c-4408-85a1-43c8292d1f30/c.json [3melapsed_us[0m[2m=[0m7949
+[2m2026-10-03T18:02:23.822090Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62949)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:23.832403Z[0m [32m INFO[0m [2mraft_durability_invariant[0m[2m:[0m Immediate crash after ACK test PASSED
+test test_follower_crash_immediate_after_ack ... ok
+[2m2026-10-03T18:02:23.889759Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62950)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:23.907602Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62950)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:23.907660Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62951)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:23.914881Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62951)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:23.924166Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62951)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:23.937847Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62951)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:23.944902Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62950)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:23.963440Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62950)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:23.967466Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62950)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:23.978540Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62951)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:25.234113Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/b.json [3melapsed_us[0m[2m=[0m9239
+[2m2026-10-03T18:02:25.234443Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62952)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:25.253357Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62952)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:25.253396Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62954)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:25.286937Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62954)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:25.287035Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62959)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:25.287051Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62960)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:25.294130Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62959)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:25.314371Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62959)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:25.328624Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62959)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:25.335701Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62960)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:25.347363Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62960)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:25.370472Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62960)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:25.377526Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62952)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:25.396232Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62952)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:25.400357Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62952)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:25.407346Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62954)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:25.425853Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62954)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:25.429929Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62954)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:25.440993Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62959)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:25.452028Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62960)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:25.461405Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/c.json [3melapsed_us[0m[2m=[0m31313
+[2m2026-10-03T18:02:25.461577Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/a.json [3melapsed_us[0m[2m=[0m20388
+[2m2026-10-03T18:02:25.461703Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62952)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:25.492029Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62952)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:25.492054Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62953)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:25.501416Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62953)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:25.501453Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62961)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:25.508454Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62961)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:25.519822Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62961)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:25.535779Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62961)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:25.535797Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62962)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:25.542963Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62962)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:25.554346Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62962)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:25.568228Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62962)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:25.575058Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62952)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:25.606254Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62952)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:25.610320Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62952)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:25.617720Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62953)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:25.638492Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62953)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:25.642537Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62953)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:25.653580Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62961)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:25.664919Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62962)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:25.879484Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/b.json [3melapsed_us[0m[2m=[0m9876
+[2m2026-10-03T18:02:25.940460Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/c.json [3melapsed_us[0m[2m=[0m11014
+[2m2026-10-03T18:02:25.941238Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/a.json [3melapsed_us[0m[2m=[0m12833
+[2m2026-10-03T18:02:25.951462Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/b.json [3melapsed_us[0m[2m=[0m8405
+[2m2026-10-03T18:02:25.961507Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/b.json [3melapsed_us[0m[2m=[0m9859
+[2m2026-10-03T18:02:26.204297Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/b.json [3melapsed_us[0m[2m=[0m10102
+[2m2026-10-03T18:02:26.241209Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/c.json [3melapsed_us[0m[2m=[0m11490
+[2m2026-10-03T18:02:26.241904Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/a.json [3melapsed_us[0m[2m=[0m13110
+[2m2026-10-03T18:02:26.253221Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m2 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/b.json [3melapsed_us[0m[2m=[0m9909
+[2m2026-10-03T18:02:26.254528Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Loaded MAC-protected persistent Raft state from disk [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/a.json [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2
+[2m2026-10-03T18:02:26.264271Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m2 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_1_a0ae421e-2970-4920-bcc5-74aae2a86647/b.json [3melapsed_us[0m[2m=[0m10825
+[2m2026-10-03T18:02:26.325313Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62963)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:26.370897Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62963)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:26.371184Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62964)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:26.380566Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62964)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:26.401267Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62964)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:26.419832Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62964)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:26.427048Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62963)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:26.445563Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62963)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:26.449597Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62963)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:26.460705Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62964)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:27.819591Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/a.json [3melapsed_us[0m[2m=[0m11202
+[2m2026-10-03T18:02:27.820473Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62966)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:27.852110Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62966)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:27.852227Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62967)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:27.870384Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62967)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:27.870424Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62968)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:27.870456Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62969)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:27.879472Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62968)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:27.903981Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62968)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:27.915764Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62968)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:27.922534Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62969)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:27.939996Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62969)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:27.978831Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62969)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:27.985659Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62966)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:28.016643Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62966)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:28.020754Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62966)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:28.027698Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62967)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:28.050334Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62967)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:28.054454Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62967)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:28.065510Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62968)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:28.076574Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62969)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:28.088954Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/c.json [3melapsed_us[0m[2m=[0m34354
+[2m2026-10-03T18:02:28.089486Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62965)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:28.102522Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62965)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:28.102551Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/b.json [3melapsed_us[0m[2m=[0m36857
+[2m2026-10-03T18:02:28.102667Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62966)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:28.113984Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62966)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:28.114034Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62970)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:28.114050Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62971)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:28.120941Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62970)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:28.132065Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62970)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:28.147860Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62970)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:28.154688Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62971)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:28.174225Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62971)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:28.190036Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62971)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:28.197135Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62965)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:28.217639Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62965)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:28.221707Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62965)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:28.228707Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62966)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:28.265989Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62966)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:28.270097Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62966)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:28.281540Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62970)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:28.292657Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62971)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:28.486619Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/a.json [3melapsed_us[0m[2m=[0m12104
+[2m2026-10-03T18:02:28.522576Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/b.json [3melapsed_us[0m[2m=[0m10968
+[2m2026-10-03T18:02:28.526649Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/c.json [3melapsed_us[0m[2m=[0m14107
+[2m2026-10-03T18:02:28.537670Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/a.json [3melapsed_us[0m[2m=[0m9628
+[2m2026-10-03T18:02:28.547663Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m1 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/a.json [3melapsed_us[0m[2m=[0m9788
+[2m2026-10-03T18:02:28.789903Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/a.json [3melapsed_us[0m[2m=[0m10184
+[2m2026-10-03T18:02:28.824781Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/c.json [3melapsed_us[0m[2m=[0m11816
+[2m2026-10-03T18:02:28.825376Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/b.json [3melapsed_us[0m[2m=[0m13414
+[2m2026-10-03T18:02:28.835820Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m2 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/a.json [3melapsed_us[0m[2m=[0m9144
+[2m2026-10-03T18:02:28.837171Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Loaded MAC-protected persistent Raft state from disk [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/b.json [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m1 [3mlog_len[0m[2m=[0m2
+[2m2026-10-03T18:02:28.846876Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m2 [3mlog_len[0m[2m=[0m2 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m1 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_2_1b193a98-08a8-48c1-a056-1a74fc0c8ad4/a.json [3melapsed_us[0m[2m=[0m10896
+[2m2026-10-03T18:02:28.909255Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62972)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:28.950114Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62972)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:28.950223Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62973)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:28.960005Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62973)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:28.978719Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62973)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:29.008277Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62973)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:29.015401Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62972)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:29.040203Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62972)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:29.044297Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62972)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:29.055319Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62973)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:30.310755Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-c [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_3_974b863a-6244-4747-98ff-e9204de456fc/c.json [3melapsed_us[0m[2m=[0m8456
+[2m2026-10-03T18:02:30.311125Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62974)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:30.324701Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62974)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:30.324731Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62975)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: beginning post-quantum handshake
+[2m2026-10-03T18:02:30.346058Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62975)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO sent
+[2m2026-10-03T18:02:30.346116Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62977)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:30.346135Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62978)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: beginning post-quantum handshake
+[2m2026-10-03T18:02:30.353558Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62977)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:30.369290Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62977)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:30.385192Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62977)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:30.392022Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62978)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO verified (negotiated v2, 1568 B encap key)
+[2m2026-10-03T18:02:30.413732Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62978)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: HELLO_ACK sent
+[2m2026-10-03T18:02:30.456729Z[0m [34mDEBUG[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62978)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: KEM_CT_B sent
+[2m2026-10-03T18:02:30.463522Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62974)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:30.494488Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62974)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:30.498663Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62974)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:30.505640Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62975)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: HELLO_ACK verified (negotiated v2)
+[2m2026-10-03T18:02:30.555404Z[0m [34mDEBUG[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62975)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: KEM_CT_A sent
+[2m2026-10-03T18:02:30.559492Z[0m [32m INFO[0m [1mrun_initiator[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62975)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Initiator: handshake complete — session context derived
+[2m2026-10-03T18:02:30.570500Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62977)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:30.581628Z[0m [32m INFO[0m [1mrun_responder[0m[1m{[0m[3mpeer[0m[2m=[0mSome(127.0.0.1:62978)[1m}[0m[2m:[0m [2mproxy_engine[0m[2m:[0m Responder: handshake complete — session context derived
+[2m2026-10-03T18:02:30.593936Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-a [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_3_974b863a-6244-4747-98ff-e9204de456fc/a.json [3melapsed_us[0m[2m=[0m23215
+[2m2026-10-03T18:02:30.597910Z[0m [32m INFO[0m [2mha_cluster::raft[0m[2m:[0m Durable Raft state synchronization complete (write+flush+sync+rename+dir_sync) [3mnode_id[0m[2m=[0mnode-b [3mterm[0m[2m=[0m1 [3mcommit_index[0m[2m=[0m0 [3mlog_len[0m[2m=[0m0 [3mlast_log_index[0m[2m=[0m0 [3mlast_log_term[0m[2m=[0m0 [3mpath[0m[2m=[0m/var/folders/nj/qvt7sl495qxdnpfqqlkdk0mm0000gn/T/raft_dur_3_974b863a-6244-4747-98ff-e9204de456fc/b.json [3melapsed_us[0m[2m=[0m16086
