@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::sync::OnceLock;
+use std::fs;
 use vardhan_keystore::VardhanKeystore;
 
 static KEYSTORE: OnceLock<VardhanKeystore> = OnceLock::new();
@@ -9,14 +10,30 @@ pub fn init_keystore() {
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("/tmp/vardhan_keystore_default"));
 
-    let keystore = if keystore_dir.exists() && keystore_dir.join("keystore_meta.json").exists() {
+    // Check if the directory exists and has any contents
+    let is_populated = if keystore_dir.exists() {
+        match fs::read_dir(&keystore_dir) {
+            Ok(mut entries) => entries.next().is_some(),
+            Err(_) => false,
+        }
+    } else {
+        false
+    };
+
+    let keystore = if is_populated {
         println!("🔐 Loading existing Q-Core signing keystore from {:?}", keystore_dir);
-        VardhanKeystore::load_from_dir(&keystore_dir).expect("Failed to load existing keystore. Keystore may be corrupted.")
+        match VardhanKeystore::load_from_dir(&keystore_dir) {
+            Ok(ks) => ks,
+            Err(e) => {
+                // FAIL CLOSED: No silent fallback/ephemeral key generation if keystore is corrupted or partial.
+                panic!("FATAL: Failed to load existing keystore at {:?}. Error: {}. Keystore may be corrupted or partially written. Refusing to fallback to ephemeral keys.", keystore_dir, e);
+            }
+        }
     } else {
         // First run initialization semantics
         println!("⚠️ No existing keystore found at {:?}. Generating a new persistent Q-Core signing identity.", keystore_dir);
         let ks = VardhanKeystore::generate();
-        ks.save_to_dir(&keystore_dir).expect("Failed to persist new keystore");
+        ks.save_to_dir(&keystore_dir).expect("FATAL: Failed to persist new keystore");
         ks
     };
 
