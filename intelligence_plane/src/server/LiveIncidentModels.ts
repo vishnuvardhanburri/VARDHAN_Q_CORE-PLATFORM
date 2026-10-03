@@ -78,12 +78,23 @@ export interface AffectedTargetCandidate {
   expectation_id?: string;
   differential_id?: string;
   hypothesis_id?: string;
+  technical_area?: string;
+  technical_mechanism?: string;
+  expected_behavior?: string;
+  materiality?: string;
+  requires_authorized_assessment?: boolean;
+  decision_candidate?: string;
+  policy_reference?: string;
+  verification_contract_id?: string;
+  entry_point_id?: string;
 }
 
 export interface VerificationReport {
   provider_event: string;
   target: string;
   target_id?: string;
+  organization_id?: string;
+  finding_id?: string;
   target_canonical_domain?: string;
   dependency: string;
   target_surface: string;
@@ -98,5 +109,15 @@ export interface VerificationReport {
   reason: string;
   hypothesis_id?: string;
   expectation_id?: string;
+  differential_id?: string;
+  technical_area?: string;
+  technical_mechanism?: string;
+  expected_behavior?: string;
+  materiality?: string;
+  requires_authorized_assessment?: boolean;
+  decision_candidate?: string;
+  policy_reference?: string;
+  verification_contract_id?: string;
+  entry_point_id?: string;
 }
 // End of file

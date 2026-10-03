@@ -162,7 +162,7 @@ export function computeEvidenceContentHash(e: Evidence): string {
   const canonical = [
     e.id,
     e.public_url,
-    e.temporal_status ?? 'UNKNOWN',
+    e.temporal_status,
     e.evidence_origin,
   ].join('|');
   return createHash('sha256').update(canonical).digest('hex');

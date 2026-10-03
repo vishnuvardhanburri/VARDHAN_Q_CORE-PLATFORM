@@ -125,6 +125,8 @@ export class TargetVerificationEngine {
           provider_event: candidate.liveEvent.id,
           target: target.company,
           target_id: (target as any).id || target.company,
+          organization_id: (target as any).organization_id,
+          finding_id: candidate.id,
           target_canonical_domain: target.company_surface?.origin || target.company,
           dependency: candidate.dependency,
           target_surface: verificationTarget,
@@ -139,7 +141,16 @@ export class TargetVerificationEngine {
           reason: reason,
           expectation_id: candidate.expectation_id,
           hypothesis_id: candidate.hypothesis_id,
-          differential_id: candidate.differential_id
+          differential_id: candidate.differential_id,
+          technical_area: candidate.technical_area,
+          technical_mechanism: candidate.technical_mechanism,
+          expected_behavior: candidate.expected_behavior,
+          materiality: candidate.materiality,
+          requires_authorized_assessment: candidate.requires_authorized_assessment,
+          decision_candidate: candidate.decision_candidate,
+          policy_reference: candidate.policy_reference,
+          verification_contract_id: candidate.verification_contract_id,
+          entry_point_id: candidate.entry_point_id
         }
       };
     } catch (e: any) {
@@ -201,6 +212,8 @@ export class TargetVerificationEngine {
       provider_event: candidate.liveEvent.id,
       target: target.company,
           target_id: (target as any).id || target.company,
+          organization_id: (target as any).organization_id,
+          finding_id: candidate.id,
           target_canonical_domain: target.company_surface?.origin || target.company,
       dependency: candidate.dependency,
       target_surface: 'NONE',

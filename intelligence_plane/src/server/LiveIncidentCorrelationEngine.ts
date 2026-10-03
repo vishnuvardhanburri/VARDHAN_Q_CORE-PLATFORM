@@ -41,6 +41,22 @@ export class LiveIncidentCorrelationEngine {
       // 3. Identify Verification Target
       const verificationTarget = this.identifyVerificationTarget(event, target);
 
+      // Derive Q-Core semantic fields
+      let technical_area = "RELIABILITY";
+      let technical_mechanism = "BEHAVIORAL_MATCH";
+      let materiality = "LOW";
+      if (event.eventType === 'SERVICE_OUTAGE') {
+         materiality = "HIGH";
+         technical_mechanism = "UNAVAILABLE";
+      } else if (event.eventType === 'PERFORMANCE_DEGRADATION') {
+         materiality = "MEDIUM";
+         technical_mechanism = "LATENCY_SPIKE";
+      } else if (event.eventType === 'SECURITY_INCIDENT') {
+         technical_area = "SECURITY";
+         technical_mechanism = "EXPOSURE";
+         materiality = "HIGH";
+      }
+
       // 4. Construct the Candidate
       candidates.push({
         id: `atc_${event.id}_${target.company.toLowerCase().replace(/\s+/g, '_')}`,
@@ -52,6 +68,14 @@ export class LiveIncidentCorrelationEngine {
         exposureEvidence: exposure.exposureEvidence,
         verificationTarget: verificationTarget,
         verificationStatus: 'PENDING',
+        technical_area,
+        technical_mechanism,
+        materiality,
+        requires_authorized_assessment: false,
+        decision_candidate: "SEAL_VERIFIED_FINDING",
+        policy_reference: "VARDHAN_CORE_INTELLIGENCE_POLICY_V1",
+        expected_behavior: `Target surface should not exhibit ${event.symptom}`,
+
         provenance: {
           source_url: event.sourceUrl,
           canonical_url: event.sourceUrl,

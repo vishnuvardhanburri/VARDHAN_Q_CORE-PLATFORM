@@ -1,0 +1,1201 @@
+
+ RUN  v5.0.3 /Users/vishnuvardhanburri/Vardhan Q Core /intelligence_plane
+
+stdout | tests/expectationEngine.test.ts > Migrated Suite > Migrated Test
+  ✓ 1. Authenticated dashboard with JS evidence → AUTH_REQUIRED and PROTECTED_RESOURCE
+  ✓ 2. Public playground with public-access docs → AUTH_NOT_REQUIRED
+  ✓ 3. Public marketing page named "admin" with no auth evidence → no AUTH_REQUIRED expectation
+  ✓ 4. Documented protected operation → AUTH_REQUIRED from documentation
+  ✓ 5. Documented public operation → AUTH_NOT_REQUIRED
+  ✓ 6. Hostname with no evidence → no expectations generated
+  ✓ 7. Technology fingerprint evidence only → no expectation from fingerprint
+  ✓ 8. Security header evidence → SECURITY_CONTROL expectation
+  ✓ 9. Observed 401 response → STATUS_BEHAVIOR expectation
+  ✓ 10. Latency evidence → PERFORMANCE_BASELINE expectation
+  ✗ 11. JS auth evidence + docs auth evidence → MULTI_SOURCE_CORRELATION boundary: Should have MULTI_SOURCE_CORRELATION BOUNDARY_BEHAVIOR expectation
+  ✓ 12. Historical evidence → HISTORICAL_EXPECTATION
+  ✓ 13. URL path /admin alone with no evidence → no auth expectation
+  ✓ 14. Documented operation + observed 401 → AUTH_REQUIRED + STATUS_BEHAVIOR
+  ✓ 15. 200 public content with no auth indicators → PUBLIC_CONTENT
+  ✓ 16. Single error response (404) → only STATUS_BEHAVIOR, no auth expectation
+  ✓ P1. Same URL 404 → valid STATUS_BEHAVIOR expectation
+  ✓ P2. Different URL 404 → cannot create expectation for target
+  ✓ P3. Alias URL 404 → cannot create expectation for target
+  ✓ P4. CDN 403 → cannot create expectation for organization root
+  ✓ P5. Historical 403 → HISTORICAL_EXPECTATION (not STATUS_BEHAVIOR)
+  ✓ P6. Context artifact → no verification-oriented expectation
+  ✓ P7. Public HTML 200 text/html → MATCH in differential
+  ✓ P8. HTML 200 with missing content_type → INSUFFICIENT_EVIDENCE
+  ✓ P9. Duplicate evidence → deduplicate
+  ✓ P10. Evidence from related entry point → context only, not direct proof
+  ✓ API-1. API expected JSON → JSON response = MATCH
+  ✓ API-2. API expected JSON → HTML response = POSSIBLE_MISMATCH
+  ✓ API-3. API without content-type expectation → no content-type mismatch
+  ✓ API-4. Web page expected HTML → HTML = MATCH
+  ✓ API-5. Web page expected HTML → JSON = research candidate only
+  ✓ API-6. Wrong-resource content-type evidence → reject
+  ✓ API-7. Historical content-type expectation → historical only
+  ✓ API-8. API_REST entry point → API_PUBLIC_RESPONSE (not PUBLIC_CONTENT)
+
+=== ExpectationEngine Test Results ===
+Passed: 33/34
+Failed: 1/34
+
+stdout | tests/trust_boundary.test.ts
+
+Case 1 — Wrong organization (empty organization_id)
+  [PASS] Contract rejected
+  [PASS] MISSING_ORGANIZATION_ID raised
+
+Case 2 — Wrong resource (empty canonical_url)
+  [PASS] Contract rejected
+  [PASS] MISSING_RESOURCE_URL raised
+
+Case 3 — Missing evidence (evidence_refs: [])
+  [PASS] Contract rejected
+  [PASS] NO_EVIDENCE raised
+
+Case 4 — Unrelated evidence (evidence_id not in store)
+  [PASS] Contract rejected
+  [PASS] UNRESOLVABLE_EVIDENCE raised
+
+Case 5 — Modified evidence after hashing (tampered content_hash)
+  [PASS] Contract rejected
+  [PASS] EVIDENCE_HASH_MISMATCH raised
+
+Case 6 — Historical evidence (temporal_status: HISTORICAL)
+  [PASS] Contract rejected
+  [PASS] HISTORICAL_EVIDENCE raised
+
+Case 7 — Contradictory evidence present (documented gap)
+  [DOCUMENTED GAP] Contradictory evidence present but not auto-rejected by TrustBoundaryValidator.
+  Resolution: OpportunityDecisionEngine must block hypothesis advancement when contradictory_evidence_ids is non-empty.
+
+Case 8 — Invalid differential state (MATCH)
+  [PASS] Contract rejected
+  [PASS] INVALID_DIFFERENTIAL_STATE raised
+
+Case 9 — Missing authorization context
+  [PASS] Contract rejected
+  [PASS] MISSING_AUTHORIZATION_CONTEXT raised
+
+Case 10 — Invalid schema version
+  [PASS] Contract rejected
+  [PASS] SCHEMA_VERSION_MISMATCH raised
+
+Case 11 — Empty finding_id
+  [PASS] Contract rejected
+  [PASS] MISSING_FINDING_ID raised
+
+Case 12 — Incomplete provenance chain (missing expectation_id)
+  [PASS] Contract rejected
+  [PASS] INCOMPLETE_PROVENANCE_CHAIN raised
+
+Case 13 — Materiality NONE
+  [PASS] Contract rejected
+  [PASS] INSUFFICIENT_MATERIALITY raised
+
+Case 14 — Context artifact in evidence_refs
+  [PASS] Contract rejected
+  [PASS] CONTEXT_ARTIFACT raised
+
+Case 15 — Valid contract (all fields correct) — MUST PASS
+  [PASS] Contract accepted — passed all 14 checks
+  [PASS] Zero validation failures
+
+═══════════════════════════════════════════════
+TRUST BOUNDARY TEST RESULTS: 29 passed, 0 failed
+═══════════════════════════════════════════════
+
+ ❯ tests/expectationEngine.test.ts (1 test | 1 failed) 11ms
+   ❯ Migrated Suite (1)
+     × Migrated Test 11ms
+ ❯ tests/trust_boundary.test.ts (0 test)
+stdout | tests/sourceGraph.test.ts > Migrated Suite > Migrated Test
+
+--- DomainResolver — resolution paths (never guesses) ---
+
+stdout | tests/entryPointAccuracy.test.ts > Migrated Suite > Migrated Test
+==================================================
+VARDHAN — ENTRY POINT INTELLIGENCE — CORRECTNESS TESTS
+==================================================
+
+  TEST: legacy cannot be verification eligible
+  ✓ should discover legacy entry points
+  ✓ LEGACY entry point https://acme.com/v1 should not be verification eligible
+  ✓ LEGACY entry point should have ineligibility reasons
+  ✓ LEGACY entry point should have LEGACY_SURFACE or CONTEXT_ARTIFACT reason
+  ✓ DOCUMENTED_ONLY entry point https://acme.com/v1 should not be verification eligible
+
+  TEST: authorization-required cannot be public verification eligible
+  ✓ should discover AUTH_REQUIRED entry points
+  ✓ AUTH_REQUIRED entry point https://api.acme.com/admin should not be public verification eligible
+  ✓ AUTH_REQUIRED entry point should have authorization or authentication ineligibility reason
+
+  TEST: JS bundle cannot be treated as executable surface
+  ✓ should discover JS bundle entry points
+  ✓ JS bundle should be marked as context artifact
+  ✓ JS bundle should not be verification eligible
+  ✓ JS bundle should have CLIENT_JS_BUNDLE ineligibility reason — expected "CLIENT_JS_BUNDLE" in array
+  ✓ JS bundle should not be classified as executable surface type
+
+  TEST: third-party CDN cannot become owned surface
+  ✓ should discover cloud/CDN reference entry points
+  ✓ Cloud/CDN reference should be a context artifact
+  ✓ Cloud reference should not be verification eligible
+  ✓ Cloud reference should not have HIGH attribution confidence
+  ✓ cloud reference should not be on organization hostname
+
+  TEST: repo/SDK reference remains contextual
+  ✓ should discover repo/SDK entry points
+  ✓ Repo/SDK reference should be a context artifact
+  ✓ Repo/SDK reference should not be verification eligible
+  ✓ Repo/SDK reference should be a context artifact
+  ✓ Repo/SDK reference should not be verification eligible
+
+  TEST: same canonical URL with multiple semantic roles
+  ✓ should have exactly one entry point for canonical URL (deduplicated)
+  ✓ merged entry point should have multiple semantic roles
+  ✓ semantic_roles should contain DOMAIN_CANONICAL — expected "DOMAIN_CANONICAL" in array
+  ✓ semantic_roles should contain WEBSITE_HOMEPAGE — expected "WEBSITE_HOMEPAGE" in array
+  ✓ primary surface_type should be WEBSITE_HOMEPAGE (priority) after merge
+
+  TEST: edge without evidence rejected
+  ✓ graph built without crash
+  ✓ no edges should be created solely from inference without evidence
+
+  TEST: evidence-backed edge accepted
+  ✓ metrics.evidence_backed_edges should match actual count
+
+  TEST: duplicate relation collapse
+  ✓ no duplicate edges should exist in canonical edges
+
+  TEST: reciprocal relation handling
+  ✓ all edges should have edge_id, evidence_ids, confidence, basis, created_from
+  ✓ raw_edges should be >= canonical_edges
+  ✓ duplicate_edges should be >= 0
+  ✓ reciprocal_pairs should be >= 0
+  ✓ evidence_backed_edges + edges_without_evidence should equal raw_edges
+  ✓ no edges should have zero evidence and INFERRED basis
+
+  TEST: aggregate reconciliation
+  ✓ physical_public_surfaces + context_artifacts should not exceed total_discovered
+  ✓ verification_eligible + ineligible should equal total entry points — expected 6, got 6
+  ✓ should have some context artifacts
+  ✓ context_artifacts in telemetry should match actual count — expected 3, got 3
+  ✓ context artifact CLIENT_JS_BUNDLE should not be verification eligible
+  ✓ context artifact CLOUD_PUBLIC_REFERENCE should not be verification eligible
+  ✓ context artifact REPO_GITHUB should not be verification eligible
+  ✓ organization_count should be 1 — expected 1, got 1
+  ✓ unique canonical URLs should be <= total entry points
+  ✓ physical_public_surfaces should match non-context publicly-observable count — expected 2, got 2
+  ✓ physical + context + non-physical-non-context should equal total_discovered — expected 6, got 6
+  ✓ context artifact CLIENT_JS_BUNDLE should not be verification eligible
+  ✓ context artifact CLOUD_PUBLIC_REFERENCE should not be verification eligible
+  ✓ context artifact REPO_GITHUB should not be verification eligible
+
+==================================================
+Tests Run:    53
+Tests Passed: 52
+Tests Failed: 1
+==================================================
+
+stderr | tests/entryPointAccuracy.test.ts > Migrated Suite > Migrated Test
+  ✗ FAIL: should have evidence-backed edges
+
+❌ ENTRY POINT CORRECTNESS TESTS FAILED
+
+ ❯ tests/entryPointAccuracy.test.ts (1 test | 1 failed) 14ms
+   ❯ Migrated Suite (1)
+     × Migrated Test 14ms
+ ✓ src/server/integration/boundary.test.ts (5 tests) 38ms
+stdout | tests/sourceGraph.test.ts > Migrated Suite > Migrated Test
+
+--- PublicLinkDiscovery — same-origin + 404-skip ---
+
+stdout | tests/sourceGraph.test.ts > Migrated Suite > Migrated Test
+
+--- PublicSourceGraph — model: classify / same-origin / aggregation ---
+
+stdout | tests/sourceGraph.test.ts > Migrated Suite > Migrated Test
+
+--- PublicSourceGraph — JSON-LD sameAs extraction (regex, bounded) ---
+
+stdout | tests/sourceGraph.test.ts > Migrated Suite > Migrated Test
+
+--- PublicSourceGraph — sitemap <loc> extraction (regex, bounded) ---
+
+stdout | tests/sourceGraph.test.ts > Migrated Suite > Migrated Test
+
+--- PublicSourceGraph — classify taxonomy parity ---
+
+stdout | tests/sourceGraph.test.ts > Migrated Suite > Migrated Test
+
+==================================================
+sourceGraph tests: 94 passed, 0 failed.
+ALL TESTS PASSED.
+
+ ✓ tests/sourceGraph.test.ts (1 test) 100ms
+stdout | src/server/__tests__/ResearchBudget.test.ts > VARDHAN ResearchBudget Regression Suite > 6. Old IntelligenceCase without budget_state initializes safely
+
+[FORENSIC_IDENTITY] Class: AutonomousLoopManager | Method: executeLoop
+
+[LOOP_ENTER] Target: TestCo
+
+[PREDICTIVE_FINALIZATION] Synthesizing Strategic Intelligence...
+[TRAJECTORY_ANALYZED] Status: STABLE | Window: Standard engagement window.
+[HumanTelemetry] Analyzing engineering team dynamics for TestCo...
+
+stdout | src/server/__tests__/ResearchBudget.test.ts > VARDHAN ResearchBudget Regression Suite > 6. Old IntelligenceCase without budget_state initializes safely
+[SynapseEngine] Correlating technical and human telemetry...
+
+stdout | src/server/__tests__/ResearchBudget.test.ts > VARDHAN ResearchBudget Regression Suite > 6. Old IntelligenceCase without budget_state initializes safely
+[ARCH_MAPPED] Nodes: 2 | Edges: 1 | Final: AMBIGUOUS_ATTRIBUTION
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+==================================================
+VARDHAN — TECHNICAL PROBLEM DETECTION TESTS
+==================================================
+
+  TEST: real observation without problem
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+  ✓ should have observations
+  ✓ benign observation should not produce signals
+  ✓ benign observation should not produce findings
+
+stdout | src/server/__tests__/ResearchBudget.test.ts > VARDHAN ResearchBudget Regression Suite > 11. Duplicate repository observation does not consume another observation
+[VOI] Evaluating next action for TestCo
+[VOI] Origin: undefined
+[VOI] GH Org: test-org
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+
+  TEST: signal without verification
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+  ✓ signal detection ran
+  ✓ no findings produced from single-source signal — acceptable
+
+ ❯ src/server/__tests__/ResearchBudget.test.ts (7 tests | 5 failed) 9ms
+   ❯ VARDHAN ResearchBudget Regression Suite (7)
+     × 1-5. Budget state persists across AutonomousLoopManager recreation 3ms
+     ✓ 6. Old IntelligenceCase without budget_state initializes safely 2ms
+     × 7. Case A and Case B budgets remain isolated 0ms
+     × 8-9. GitHub cap blocks only GitHub actions and does not stop global loop 0ms
+     × 10. Rate-limited GitHub action does not increment githubObservations 1ms
+     ✓ 11. Duplicate repository observation does not consume another observation 1ms
+     × 12. Temporal comparison does not consume a new observation 0ms
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+
+  TEST: verified finding
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+  ✓ should have observations
+  ✓ should have signals from multi-source evidence
+  ✓ should have at least one verified finding
+  ✓ verified finding should have confidence >= 0.6
+  ✓ verified finding should have is_verified=true
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+
+  TEST: insufficient evidence
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+  ✓ single non-repeatable 403 should not produce verified findings
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+
+  TEST: historical-only evidence
+  ✓ should discover legacy surfaces
+  ✓ legacy surface should not be verification eligible
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+  ✓ legacy surfaces should not produce findings (not verification-eligible)
+  ✓ detector should process eligible surfaces
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+
+  TEST: unsupported inference
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+  ✓ documentation-only inference should not produce verified findings
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+
+  TEST: duplicate observations
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+  ✓ no duplicate finding IDs
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+
+  TEST: multiple entry points contributing to one hypothesis
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+  ✓ should have observations from either entry point
+
+stdout | tests/entryPointIntelligence.test.ts > Migrated Suite > Migrated Test
+==================================================
+VARDHAN — ENTRY POINT INTELLIGENCE REGRESSION TESTS
+==================================================
+
+  TEST: canonical domain discovery
+
+  TEST: subdomain discovery from evidence
+
+  TEST: web surface URL classification
+
+  TEST: API surface classification
+
+  TEST: identity surface discovery
+
+  TEST: client-side surface discovery
+
+  TEST: security surface discovery
+
+  TEST: attribution evidence links
+
+  TEST: no hostname guesses from HTML content
+
+  TEST: URL normalization
+
+  TEST: graph builder relationship edges
+
+  TEST: change detection across runs
+
+  TEST: telemetry computation
+
+  TEST: no tracking URL variants as separate endpoints
+
+  TEST: cloud reference not treated as org-owned
+
+  TEST: no fragment-as-endpoint
+
+  TEST: verification eligibility
+
+  TEST: adaptive pivot surfaces
+
+  TEST: no adaptive surfaces when disabled
+
+  TEST: only evidence-backed entry points
+
+==================================================
+Tests Run:    74
+Tests Passed: 74
+Tests Failed: 0
+==================================================
+
+✅ ALL ENTRY POINT INTELLIGENCE TESTS PASSED
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+
+  TEST: latency-only not promoted to finding
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+  ✓ latency-only observations should not produce WORTH_INVESTIGATING findings
+
+stdout | tests/technicalProblemDetection.test.ts > Migrated Suite > Migrated Test
+
+==================================================
+Tests Run:    19
+Tests Passed: 19
+Tests Failed: 0
+==================================================
+
+✅ ALL TECHNICAL PROBLEM DETECTION TESTS PASSED
+
+ ✓ tests/entryPointIntelligence.test.ts (1 test) 12ms
+ ✓ tests/technicalProblemDetection.test.ts (1 test) 14ms
+stdout | tests/liveWebFallback.test.ts > Migrated Suite > Migrated Test
+==================================================
+VARDHAN LIVE WEB FALLBACK + FRESHNESS TESTS
+==================================================
+
+
+── 1. Dataset complete → sufficient, no live-web research needed ──
+
+stdout | tests/liveWebFallback.test.ts > Migrated Suite > Migrated Test
+
+── 2. Dataset incomplete (missing people/contact) → triggers live-web ──
+
+stdout | tests/liveWebFallback.test.ts > Migrated Suite > Migrated Test
+
+── 3. Dataset stale (old retrieved_at) → triggers live-web research ──
+
+stdout | tests/liveWebFallback.test.ts > Migrated Suite > Migrated Test
+
+── 4. Live-web fallback → evidence + sources merged ──
+
+stdout | tests/signalQuality.test.ts > Migrated Suite > Migrated Test
+Running signal quality tests...
+
+  ✓ TEST 1: HTTP 200 → no signal
+  ✓ TEST 2: Generic CDN → no signal
+  ✓ TEST 3: Generic framework → no signal
+  ✓ TEST 4: Meaningful architecture observation → signal
+  ✓ TEST 5: Meaningful scaling observation → signal
+  ✓ TEST 6: One observation → bounded signals (≤1)
+  ✓ TEST 7: Duplicate signals collapse
+  ✓ TEST 8: High evidence score + generic observation → no signal
+  ✓ TEST 9: Valid cross-source correlation
+  ✓ TEST 10: Unsupported (single-source) correlation rejected
+  ✓ TEST 11: Opportunity requires meaningful pressure
+  ✓ TEST 12: RESEARCH_MORE vs OPPORTUNITY semantics consistent
+  ✓ TEST 13: "service experienced downtime" → PUBLIC_INCIDENT
+  ✓ TEST 14: "no downtime" → NOT_INCIDENT (rejected)
+  ✓ TEST 15: "zero downtime deployment" → NOT_INCIDENT (rejected)
+  ✓ TEST 16: "prevent outages" → NOT_INCIDENT (rejected)
+  ✓ TEST 17: "incident caused downtime" → PUBLIC_INCIDENT
+  ✓ TEST 18: "incident was resolved" → no incident, technical context still signals
+
+=== ALL SIGNAL QUALITY TESTS PASSED ===
+
+ ✓ tests/signalQuality.test.ts (1 test) 8ms
+ ✓ tests/liveWebFallback.test.ts (1 test) 27ms
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+
+=== Commercial Opportunity Test Suite ===
+
+
+stdout | tests/activity.test.ts > Migrated Suite > Migrated Test
+
+--- 1. GitHubDiscovery: github.com/<org> links ONLY, never guessed org names ---
+
+stdout | tests/activity.test.ts > Migrated Suite > Migrated Test
+
+--- 2. GitHubDiscovery: rate-limit guard (403/0 -> STOP, no crash) ---
+
+stdout | tests/vardhanOperator.test.ts > Migrated Suite > Migrated Test
+==================================================
+VARDHAN INTERACTIVE OPERATOR — TEST SUITE
+==================================================
+
+
+--- public-link discovery (bounded, same-origin, professional pages) ---
+
+ ✓ tests/vardhanOperator.test.ts (1 test) 26ms
+stdout | tests/activity.test.ts > Migrated Suite > Migrated Test
+
+--- 3. DeepSignalExtractor: provenance split + provenance on signals ---
+
+--- 4. ActivityTimeline: synthesis + provenance tracking + sort ---
+
+--- 5. Regression: generic cloud prose / plain blog line are NOT findings (Part B) ---
+
+==================================================
+Activity tests: 50 passed, 0 failed.
+ALL TESTS PASSED.
+
+ ✓ tests/activity.test.ts (1 test) 47ms
+stdout | tests/researchController.test.ts > Migrated Suite > Migrated Test
+Running §22 research controller + finding tests...
+
+  ✓ BudgetController (§1, §6)
+
+stdout | tests/researchController.test.ts
+  ✓ TriageEngine (§2)
+  [TRIAGE] Starting research for NoTech (no-tech.com)
+  [TRIAGE] Running fast triage...
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] homepage https://no-tech.com → HTTP 200
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] sitemap https://no-tech.com/sitemap.xml → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] robots https://no-tech.com/robots.txt → HTTP 200
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/sitemap.xml https://no-tech.com/sitemap.xml → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/api https://no-tech.com/api → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/docs https://no-tech.com/docs → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/status https://no-tech.com/status → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/security https://no-tech.com/security → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/careers https://no-tech.com/careers → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/blog https://no-tech.com/blog → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] requests used: 10, signals: 0
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] STOP — low value, not worth deeper research.
+
+stdout | tests/researchController.test.ts
+  ✓ Adaptive Escalation (§3)
+  ✓ HypothesisEngine (§4)
+  ✓ ResearchActionSelector (§5)
+  ✓ NoiseFilter (§7)
+  ✓ Repeated Observation Escalation (§8)
+  ✓ SignalCorrelationEngine (§9)
+  ✓ Finding Evaluation (§10)
+  ✓ Evidence Provenance (§11)
+  ✓ Freshness & Change Detection (§12)
+  ✓ Research Resume (§13)
+  [TRIAGE] Starting research for FailCo (fail-all.com)
+  [TRIAGE] Running fast triage...
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] homepage https://fail-all.com → HTTP 500
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] sitemap https://fail-all.com/sitemap.xml → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] robots https://fail-all.com/robots.txt → HTTP 500
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/sitemap.xml https://fail-all.com/sitemap.xml → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/api https://fail-all.com/api → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/docs https://fail-all.com/docs → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/status https://fail-all.com/status → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/security https://fail-all.com/security → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/careers https://fail-all.com/careers → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/blog https://fail-all.com/blog → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] requests used: 10, signals: 0
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] STOP — low value, not worth deeper research.
+
+stdout | tests/researchController.test.ts
+  ✓ Acquisition Fallback (§14)
+
+stdout | tests/researchController.test.ts
+  ✓ Model Evidence Binding (§15)
+  ✓ FindingQA (§16)
+  ✓ FindingGraph (§17)
+  [TRIAGE] Starting research for NoOwner (no-owner-test.com)
+  [TRIAGE] Running fast triage...
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] homepage https://no-owner-test.com → HTTP 200
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] sitemap https://no-owner-test.com/sitemap.xml → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] robots https://no-owner-test.com/robots.txt → HTTP 200
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/sitemap.xml https://no-owner-test.com/sitemap.xml → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/api https://no-owner-test.com/api → HTTP 200
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/docs https://no-owner-test.com/docs → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/status https://no-owner-test.com/status → HTTP 200
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/security https://no-owner-test.com/security → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/careers https://no-owner-test.com/careers → HTTP 404
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] path:/blog https://no-owner-test.com/blog → HTTP 200
+
+stdout | tests/researchController.test.ts
+  [TRIAGE] [triage] requests used: 10, signals: 6
+
+stdout | tests/researchController.test.ts
+  [TARGETED] Starting targeted deep research...
+  [deep:company] no-owner-test.com — deep intelligence run starting.
+  [deep:surface] discovering public company surface for no-owner-test.com
+
+stdout | tests/researchController.test.ts
+  [deep:surface] [pages] homepage  /  (HTTP 200)
+
+ ✓ tests/researchController.test.ts (1 test) 29ms
+stdout | tests/growjoProvider.test.ts > Migrated Suite > Migrated Test
+
+--- growjo CSV — flexible column aliases ---
+
+--- growjo CSV — alternate aliases (domain/url/title/phone) ---
+
+--- growjo CSV — dedupe by canonical domain ---
+
+--- growjo CSV — no silent promotion of estimates ---
+
+--- growjo CSV — unmapped columns warn, never invent ---
+
+--- growjo CSV — empty file handled ---
+
+--- growjo CSV — company + url aliases (canonical name dedupe) ---
+
+--- growjo — extractContacts person + channel normalization ---
+
+--- growjo — extractContacts empty when no person data ---
+
+--- growjo — extractContacts with person + name only (no email/phone/linkedin) ---
+
+--- growjo — contact channel types are a closed union ---
+
+==================================================
+GrowjoProvider tests: 75 passed, 0 failed.
+ALL TESTS PASSED.
+
+ ✓ tests/growjoProvider.test.ts (1 test) 8ms
+stdout | tests/regression_pseudo_signals.test.ts > Migrated Suite > Migrated Test
+Running Regression: Pseudo-Signal Invariant Tests...
+
+Testing: Raw Evidence -> No Opportunity
+  - Qualified signals count: 0
+  - Correlation count: 0
+  - Final Decision: RESEARCH_MORE
+  ✓ PASSED: Raw Evidence -> RESEARCH_MORE
+
+Testing: Pseudo-Signal ID Rejection
+  - Correlation count: 0
+  ✓ PASSED: Pseudo-Signal IDs Rejected
+
+Testing: Positive Path (Qualified Signal -> Opportunity)
+  - Qualified signals count: 2
+  - Correlation count: 2
+  - Final Decision: ENGINEERING_OPPORTUNITY
+  ✓ PASSED: Qualified Path -> Opportunity
+
+=== ALL REGRESSION TESTS PASSED ===
+
+ ✓ tests/regression_pseudo_signals.test.ts (1 test) 6ms
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+=== Adaptive Investigation Engine Tests ===
+
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ no adaptive activity → NO_PIVOT_REQUIRED
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ one pivot → NEW_EVIDENCE_FOUND
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ multiple pivots — engine configured for maxPivots=3
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ boundary classification: WAF_PROTECTED, OPEN_SURFACE, RATE_LIMITED, NETWORK_LEVEL_DROP
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ alternate surface discovery — initial surface classified as APP_LAYER_BLOCK (pivot triggered)
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ rejected surface → NO_USEFUL_RESULT
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ pivot → VERIFIED
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ pivot → RESEARCH_MORE (NEW_EVIDENCE_FOUND, attribution MEDIUM)
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ pivot → INCONCLUSIVE
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ repeated execution — deterministic output
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ serialization/deserialization — round-trip preserves all fields
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ backward compatibility — optional field, old artifacts parse
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+  ✓ RATE_LIMITED distinct from EMPTY
+
+stdout | tests/adaptiveInvestigation.test.ts > Migrated Suite > Migrated Test
+
+=== DATA-INTEGRITY AUDIT TESTS ===
+
+  ✓ aggregate reconciliation: sum(records) == aggregate for evidence and targets
+  ✓ multiple target IDs per pivot — all preserved (not just last)
+  ✓ duplicate target IDs — detected and flagged by verifyAggregate
+  ✓ duplicate evidence IDs — detected and flagged by verifyAggregate
+  ✓ baseline overlap — 0 overlap, 4 genuinely new evidence IDs
+  treatment_target_count: 10
+  unique_treatment_target_count: 10
+  baseline_target_count: 5
+  overlap_count: 0
+  unique_new_target_count: 10
+  ✓ cross-run ID comparison — independently provable
+  treatment_target_count: 15
+  unique_treatment_target_count: 15
+  aggregate new_verification_targets: 15
+  SUM(records[].new_target_ids.length): 15
+  Reconciled: YES
+  ✓ aggregate reconciliation — invariant proven
+  ✓ artifact round-trip serialization — preserves all fields including new_target_ids
+  ✓ backward compatibility — old records without new_evidence_details parse cleanly
+  ✓ audit invariant — NO_PIVOT_REQUIRED result passes verification
+
+=== ALL ADAPTIVE INVESTIGATION TESTS PASSED ===
+
+ ✓ tests/adaptiveInvestigation.test.ts (1 test) 11ms
+stdout | tests/investigationPlanner.test.ts > Migrated Suite > Migrated Test
+  ✓ 1. Dashboard shell already observed + API requires auth → STOP
+  ✓ 2. Public playground with no observation → OBSERVE_PUBLIC_RESPONSE
+  ✓ 3. Public marketing page named "admin" → OBSERVE_PUBLIC_RESPONSE
+  ✓ 4. Documented operation evidence exists → FOLLOW_DOCUMENTED_OPERATION
+  ✓ 5. Security header missing, already observed → RECHECK
+  ✓ 6. Latency observation without comparator → COMPARE_BEHAVIOR
+  ✓ 7. Historical expectation → STOP (no current verification needed)
+  ✓ 8. Tech fingerprint only → STOP (no behavioral evidence to inspect)
+  ✓ 9. Single error response already observed → STOP
+  ✓ 10. Possible mismatch with two sources → COMPARE_BEHAVIOR for corroboration
+  ✓ 11. Already observed surface → RECHECK not OBSERVE_PUBLIC_RESPONSE
+  ✓ 12. Non-attributed/unverifiable entry point → STOP
+  ✓ 13. Cloud reference surface → STOP (context only)
+  ✓ 14. Authorized-only entry point → STOP
+  ✓ 15. Entry point with only UNKNOWN expectation → STOP
+  ✓ 16. JS bundle evidence not yet inspected, surface observed → INSPECT_PUBLIC_JS
+
+=== InvestigationPlanner Test Results ===
+Passed: 16/16
+Failed: 0/16
+
+✅ ALL INVESTIGATION PLANNER TESTS PASSED
+
+ ✓ tests/investigationPlanner.test.ts (1 test) 5ms
+stdout | tests/companyQueue.test.ts > Migrated Suite > Migrated Test
+
+--- CompanyQueue persistence + enqueue ---
+
+--- CompanyQueue dedupe by canonical domain ---
+
+--- CompanyQueue crash-safe resume (reopen file) ---
+
+--- CompanyQueue claimNext + markResearched ---
+
+--- CompanyQueue pipeline/resume ---
+
+--- CompanyQueue approve -> APPROVED -> SENT ---
+
+--- CompanyQueue crash-safe persistence after state change ---
+
+--- CompanyQueue full chain: QUEUED -> RESOLVING -> RESEARCHING -> OUTREACH_READY ---
+
+--- CompanyQueue CONTACT_READY -> APPROVED -> SENT ---
+
+--- CompanyQueue pending() excludes terminal states ---
+
+--- CompanyQueue resume across close/reopen with mixed states ---
+
+==================================================
+CompanyQueue tests: 57 passed, 0 failed.
+ALL TESTS PASSED.
+
+ ✓ tests/companyQueue.test.ts (1 test) 7ms
+stdout | tests/peopleOwner.test.ts > Migrated Suite > Migrated Test
+
+--- DeepOwnerResolver — HIGH candidate resolves to a DeepOwner ---
+
+--- DeepOwnerResolver — LOW candidate rejected (null) ---
+
+--- DeepOwnerResolver — MEDIUM candidate rejected (null) ---
+
+--- DeepOwnerResolver — mix [LOW, HIGH] resolves HIGH, not LOW ---
+
+--- DeepOwnerResolver — mix [MEDIUM, LOW] (no HIGH) yields null ---
+
+--- DeepOwnerResolver — empty candidates yields null ---
+
+--- OwnerSelector — evidence string exact format: `<name> is listed as <role> on <url> — "<excerpt>"` ---
+
+--- DeepOwnerResolver.buildEvidenceString — exact format: `<name> is listed as <role> on <url> — "<excerpt>"` ---
+
+--- DeepOwnerResolver.buildEvidenceString — empty evidence still yields the exact shape ---
+
+--- DeepOwnerResolver — owner_evidence uses verbatim candidate evidence when present ---
+
+--- DeepOwnerResolver — falls back to buildEvidenceString when candidate evidence is empty ---
+
+--- ContactabilityFinder — Growjo channels normalized (email/PHONE/LINKEDIN) ---
+
+--- ContactabilityFinder — no email guessing (LinkedIn-only page produces no PROFESSIONAL_EMAIL) ---
+
+--- ContactabilityFinder — role accounts classified as COMPANY_BUSINESS_EMAIL (not dropped) ---
+
+--- ContactabilityFinder — public HTML: mailto + tel + profile + contact page captured ---
+
+--- ContactabilityFinder — hasUsableChannel recognizes PROFESSIONAL_EMAIL / PROFILE / PHONE / LINKEDIN ---
+
+--- ContactabilityFinder — Growjo + public sources merged, no duplicate emails ---
+
+--- ContactabilityFinder — backward-compatible 3-arg call (no Growjo data) ---
+
+--- PeopleExtractor — real person on team_people page → HIGH + explicit evidence ---
+
+--- PeopleExtractor — real-person vs contamination regression: real people extracted, UI labels / template text rejected ---
+
+--- PeopleExtractor — about page yields HIGH for real person ---
+
+--- PeopleExtractor — non-people page (engineering) yields no HIGH candidates ---
+
+==================================================
+peopleOwner tests: 97 passed, 0 failed.
+ALL TESTS PASSED.
+
+ ✓ tests/peopleOwner.test.ts (1 test) 12ms
+stdout | tests/providerArchitecture.test.ts > Migrated Suite > Migrated Test
+
+--- CSV provider — parses generic CSV with flexible aliases ---
+
+--- CSV provider — BOM stripped, no BOM in header ---
+
+--- CSV provider — deduplication by canonical domain ---
+
+--- CSV provider — never guesses email from name+domain ---
+
+--- CSV provider — empty file handled ---
+
+--- CSV provider — supports comma delimiter in DEFAULT_CSV_SCHEMA ---
+
+--- PublicDataset provider — parses CityData semicolon CSV ---
+
+--- PublicDataset provider — CityData has no person contact fields ---
+
+--- GrowjoProvider adapter — wraps GrowjoProvider, preserves people ---
+
+--- GrowjoProvider adapter — no person name → no people (no invention) ---
+
+--- ProviderRegistry — waterfall returns first match ---
+
+--- ProviderRegistry — provider failure does not kill pipeline ---
+
+--- ProviderRegistry — hasContactProvider reflects capabilities ---
+
+--- SourceRegistry — default sources include GitHub + LinkedIn ---
+
+--- SourceRegistry — block a source ---
+
+--- EntityResolver — resolves domain directly ---
+
+--- EntityResolver — dedupes by canonical domain ---
+
+--- EntityResolver — does not merge by name similarity alone ---
+
+--- OwnerPipeline — accepts providerCompanies (non-Growjo), no Growjo required ---
+
+--- OwnerPipeline — no provider data + no public people → null owner ---
+
+--- OwnerPipeline — provider with no title → candidate rejected (no invention) ---
+
+--- OwnerPipeline — Growjo + providerCompanies both processed ---
+
+--- Provider-agnostic: system works without Growjo (CSV seed only) ---
+
+--- Contact engine: never guesses email from name+domain ---
+
+==================================================
+Provider architecture tests: 86 passed, 0 failed.
+ALL TESTS PASSED.
+
+stdout | tests/providerArchitecture.test.ts > Migrated Suite > Migrated Test
+[FAIL] at least one provider found the company
+[FAIL] good provider still found the company despite bad provider
+
+stdout | tests/differentialFinding.test.ts > Migrated Suite > Migrated Test
+  ✓ 1. Auth-required + unauthenticated 200 shell (no protected data) + runtime API requires JWT → MATCH
+  ✓ 2. AUTH_NOT_REQUIRED + 200 public playground UI → MATCH
+  ✓ 3. PUBLIC_CONTENT + 200 marketing content with "admin" in name → MATCH
+  ✓ 4. AUTH_REQUIRED + 200 with protected user data → MISMATCH (HIGH)
+  ✓ 5. SECURITY_CONTROL expected + header missing → POSSIBLE_MISMATCH (LOW)
+  ✓ 6. PERFORMANCE_BASELINE + latency observation without comparator → POSSIBLE_MISMATCH
+  ✓ 7. Latency with strong comparator → verification candidate
+  ✓ 8. HISTORICAL_EXPECTATION → always HISTORICAL_ONLY
+  ✓ 9. TECH fingerprint only → no behavioral observation → INSUFFICIENT_EVIDENCE
+  ✓ 10. Single 404 without corroboration → STATUS_BEHAVIOR comparison
+  ✓ 11. Two independent sources confirming mismatch → stronger differential
+  ✓ 12. Duplicate observations are deduplicated
+  ✓ 13. Unattributed hostname → no behavioral evidence → INSUFFICIENT_EVIDENCE
+  ✓ 14. Cloud reference expectation → INSUFFICIENT_EVIDENCE
+  ✓ 15. AUTH_REQUIRED expectation with no unauthenticated observation → INSUFFICIENT_EVIDENCE
+  ✓ 16. UNKNOWN expectation type → INSUFFICIENT_EVIDENCE
+
+=== DifferentialFindingEngine Test Results ===
+Passed: 16/16
+Failed: 0/16
+
+✅ ALL DIFFERENTIAL FINDING ENGINE TESTS PASSED
+
+ ✓ tests/providerArchitecture.test.ts (1 test) 10ms
+ ✓ tests/differentialFinding.test.ts (1 test) 9ms
+Testing: CASE 1 - THE GHOST
+Testing: CASE 2 - THE GENERALIST
+Testing: CASE 3 - TITLE WITHOUT OWNERSHIP
+Testing: CASE 4 - TECHNICAL EXPERT WITHOUT CURRENT EMPLOYMENT
+Testing: CASE 5 - SAME NAME
+Testing: CASE 6 - WRONG COMPANY
+Testing: CASE 7 - EXTERNAL OSS CONTRIBUTOR
+Testing: CASE 8 - CONFLICTING SOURCES
+Testing: CASE 9 - VERIFIED OWNER WITHOUT CONTACT
+Testing: CASE 10 - GUESSED EMAIL
+stdout | tests/owner_intelligence.test.ts > Migrated Suite > Migrated Test
+Running COMPREHENSIVE Adversarial Owner Intelligence Tests...
+
+  ✓ PASSED
+  ✓ PASSED
+  ✓ PASSED
+  ✓ PASSED
+  ✓ PASSED
+  ✓ PASSED
+  ✓ PASSED
+  ✓ PASSED
+  ✓ PASSED
+  ✓ PASSED
+
+ ✓ tests/owner_intelligence.test.ts (1 test) 5ms
+stdout | tests/findingEngine.test.ts > Migrated Suite > Migrated Test
+
+--- R1: sensitive metadata exposure ---
+
+--- R2: repeated 5xx -> availability issue ---
+
+--- R3: documented incident (PUBLIC_INCIDENT signal w/ incident language + evidence) ---
+
+--- R4: documented engineering failure (article w/ failure language) ---
+
+--- R5: documented scaling constraint ---
+
+--- R6: observed latency (>=3 slow reproducible samples -> OBSERVED_LATENCY) ---
+
+--- R6 regression: <3 slow samples -> no latency finding (threshold is >=3) ---
+
+--- R7: public exposure (repeatable unauth + exposure language -> POSSIBLE_PUBLIC_EXPOSURE) ---
+
+--- R8: access issue (repeatable 401/403 + denial language) ---
+
+--- Part B: generic engineering content NEVER becomes a finding ---
+
+--- evidence_ids required: signal-only findings dropped ---
+
+--- Adversarial corroboration: conflicting observations on same URL -> CONFLICTING_EVIDENCE (weakened) -> RESEARCH_MORE ---
+
+--- Severity ranking picks highest defensible, breaks ties by evidence count ---
+
+==================================================
+FindingEngine tests: 29 passed, 0 failed.
+ALL TESTS PASSED.
+
+ ✓ tests/findingEngine.test.ts (1 test) 4ms
+stdout | tests/surfaceDiscovery.test.ts
+  PASS: subdomain discovery — HTML links, canonical, assets
+
+ ✓ tests/surfaceDiscovery.test.ts (1 test) 3ms
+stdout | tests/ownerPipeline.test.ts > Migrated Suite > Migrated Test
+
+==================================================
+OwnerPipeline tests: 23 passed, 0 failed.
+ALL TESTS PASSED.
+==================================================
+
+ ✓ tests/ownerPipeline.test.ts (1 test) 3ms
+stdout | tests/contactAndLatency.test.ts > Migrated Suite > Migrated Test
+
+--- TEST 1: Company page contains sales@company → COMPANY_BUSINESS_EMAIL ---
+
+--- TEST 2: Company page contains oauth@company → COMPANY_BUSINESS_EMAIL ---
+
+--- TEST 3: Person page lists person@company → OWNER_VERIFIED_EMAIL ---
+
+--- TEST 4: Guessed first.last@company → UNVERIFIED_POSSIBLE_EMAIL ---
+
+--- TEST 5: Stable repeated latency pattern → may qualify ---
+
+--- TEST 6: One slow request + subsequent normal → RESEARCH_MORE ---
+
+--- TEST 7: Insufficient repeatability → not ENGINEERING_OPPORTUNITY ---
+
+==================================================
+Contact & Latency tests: 20 passed, 0 failed.
+ALL TESTS PASSED.
+
+ ✓ tests/contactAndLatency.test.ts (1 test) 3ms
+ ✓ tests/golden_corpus/verification.test.ts (4 tests) 3ms
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ S1: OBSERVED_SENSITIVE_FIELD_EXPOSURE → OUTREACH_READY + diagnostic
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ S2: POSSIBLE_SENSITIVE_METADATA_EXPOSURE → OUTREACH_READY + diagnostic
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ S3: DOCUMENTED_SECURITY_POSTURE → RESEARCH_MORE
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ S4: No defensible finding → RESEARCH_MORE
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ S5: Public API behavior → OUTREACH_READY + diagnostic
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ S6: Infrastructure scaling → OUTREACH_READY + diagnostic
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ S7: Database/storage finding → OUTREACH_READY + diagnostic
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ S8: Deployment/platform behavior → OUTREACH_READY + diagnostic
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ S9: Reliability/performance finding → OUTREACH_READY + diagnostic
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ S10: Generic engineering article → RESEARCH_MORE
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ E1: buildOpportunity() generates 5-8 diagnostic questions
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+  ✓ E2: scoreCommercialRelevance() classifies by finding type
+
+stdout | tests/commercial_opportunity.test.ts > Migrated Suite > Migrated Test
+
+==================================================
+Commercial Opportunity Tests: 34 passed, 0 failed.
+ALL TESTS PASSED.
+
+ ✓ tests/commercial_opportunity.test.ts (1 test) 12435ms
+   ✓ Migrated Suite (1)
+     ✓ Migrated Test 12434ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/trust_boundary.test.ts [ tests/trust_boundary.test.ts ]
+Error: No test suite found in file /Users/vishnuvardhanburri/Vardhan Q Core /intelligence_plane/tests/trust_boundary.test.ts
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/entryPointAccuracy.test.ts > Migrated Suite > Migrated Test
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ main tests/entryPointAccuracy.test.ts:696:25
+    694|   if (testsFailed > 0) {
+    695|     console.error('\n❌ ENTRY POINT CORRECTNESS TESTS FAILED');
+    696|     expect(testsFailed).toBe(0);
+       |                         ^
+    697|   } else {
+    698|     console.log('\n✅ ALL ENTRY POINT CORRECTNESS TESTS PASSED');
+ ❯ tests/entryPointAccuracy.test.ts:703:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  tests/expectationEngine.test.ts > Migrated Suite > Migrated Test
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ tests/expectationEngine.test.ts:1095:18
+    1093| console.log(`Failed: ${failed}/${passed + failed}`);
+    1094| if (failed > 0) {
+    1095|   expect(failed).toBe(0);
+       |                  ^
+    1096| }
+    1097| console.log('\n✅ ALL EXPECTATION ENGINE TESTS PASSED');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/server/__tests__/ResearchBudget.test.ts > VARDHAN ResearchBudget Regression Suite > 1-5. Budget state persists across AutonomousLoopManager recreation
+TypeError: budget.consumeGitHubObservation is not a function
+ ❯ src/server/__tests__/ResearchBudget.test.ts:63:12
+     61|     budget.recordRequest(myCase, 1);
+     62|     budget.recordQuery(myCase, 1);
+     63|     budget.consumeGitHubObservation(myCase);
+       |            ^
+     64|     budget.stopEarly(myCase, 'test stop');
+     65|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/server/__tests__/ResearchBudget.test.ts > VARDHAN ResearchBudget Regression Suite > 7. Case A and Case B budgets remain isolated
+TypeError: budget.consumeGitHubObservation is not a function
+ ❯ src/server/__tests__/ResearchBudget.test.ts:91:12
+     89|     const caseB = createCase('CaseB');
+     90|
+     91|     budget.consumeGitHubObservation(caseA);
+       |            ^
+     92|
+     93|     expect(caseA.budget_state.githubObservations).toBe(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  src/server/__tests__/ResearchBudget.test.ts > VARDHAN ResearchBudget Regression Suite > 8-9. GitHub cap blocks only GitHub actions and does not stop global loop
+TypeError: budget.consumeGitHubObservation is not a function
+ ❯ src/server/__tests__/ResearchBudget.test.ts:101:12
+     99|     myCase.research_state = { currentStage: 2 };
+    100|
+    101|     budget.consumeGitHubObservation(myCase);
+       |            ^
+    102|     budget.consumeGitHubObservation(myCase);
+    103|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  src/server/__tests__/ResearchBudget.test.ts > VARDHAN ResearchBudget Regression Suite > 10. Rate-limited GitHub action does not increment githubObservations
+TypeError: manager.handleObserveRepo is not a function
+ ❯ src/server/__tests__/ResearchBudget.test.ts:125:43
+    123|     myCase.github_memory = { org_login: 'test-org', repositories: { 'r…
+    124|
+    125|     const result = await (manager as any).handleObserveRepo(myCase, 'r…
+       |                                           ^
+    126|
+    127|     expect(result.status).toBe('DEFERRED');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  src/server/__tests__/ResearchBudget.test.ts > VARDHAN ResearchBudget Regression Suite > 12. Temporal comparison does not consume a new observation
+TypeError: manager.handleCompareTemporal is not a function
+ ❯ src/server/__tests__/ResearchBudget.test.ts:159:43
+    157|     (manager as any).ghProvider = new MockGitHubProvider();
+    158|
+    159|     const result = await (manager as any).handleCompareTemporal(myCase…
+       |                                           ^
+    160|
+    161|     expect(result.status).toBe('COMPLETED');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  4 failed | 24 passed (28)
+      Tests  7 failed | 33 passed (40)
+   Start at  23:30:50
+   Duration  12.88s (tests 84%, transform 12%, import 4%)
+
