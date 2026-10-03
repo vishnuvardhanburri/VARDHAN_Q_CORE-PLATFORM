@@ -6,6 +6,8 @@ use vardhan_keystore::VardhanKeystore;
 static KEYSTORE: OnceLock<VardhanKeystore> = OnceLock::new();
 
 pub fn init_keystore() {
+    if KEYSTORE.get().is_some() { return; }
+
     let keystore_dir = std::env::var("VARDHAN_KEYSTORE_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("/tmp/vardhan_keystore_default"));
@@ -37,7 +39,7 @@ pub fn init_keystore() {
         ks
     };
 
-    KEYSTORE.set(keystore).unwrap_or_else(|_| panic!("Keystore already initialized"));
+    let _ = KEYSTORE.set(keystore);
 }
 
 pub fn get_keystore() -> &'static VardhanKeystore {

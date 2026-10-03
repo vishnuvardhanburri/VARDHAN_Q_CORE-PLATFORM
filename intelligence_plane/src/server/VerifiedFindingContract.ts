@@ -141,6 +141,9 @@ export interface VerifiedFindingContract {
 
   // Authorization
   authorization_context: AuthorizationContext;
+  decision_candidate: string;
+  policy_reference: string;
+
 
   // Temporal bounds
   created_at: string;
