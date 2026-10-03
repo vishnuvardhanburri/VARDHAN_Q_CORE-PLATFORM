@@ -4,16 +4,19 @@
 //! AeadTransport → TCP → RaftNetworkListener → RaftNode).  No in-memory
 //! mocks for the primary E2E paths.
 
-use std::sync::Arc;
 use core_crypto::QuantumNodeIdentity;
 use ha_cluster::{
-    ClusterMembership, NodeId, RaftNode, RaftNetworkListener, RaftPeerManager, RaftRole, RaftConfig,
-    raft::{AppendEntriesArgs, AppendEntriesReply, LedgerApplier, LogEntry, MockRpcClient, RaftRpcClient,
-          RequestVoteArgs, RequestVoteReply},
+    raft::{
+        AppendEntriesArgs, AppendEntriesReply, LedgerApplier, LogEntry, MockRpcClient,
+        RaftRpcClient, RequestVoteArgs, RequestVoteReply,
+    },
+    ClusterMembership, NodeId, RaftConfig, RaftNetworkListener, RaftNode, RaftPeerManager,
+    RaftRole,
 };
 use ledger_sync::MerkleLedger;
+use std::sync::Arc;
 use tokio::time::{timeout, Duration};
-use tracing::{info, error, warn};
+use tracing::{error, info, warn};
 
 const ELECTION_WAIT: Duration = Duration::from_secs(5);
 const REPLICATION_WAIT: Duration = Duration::from_secs(3);
@@ -47,7 +50,12 @@ async fn spawn_node(
     ));
 
     let uid = uuid::Uuid::new_v4();
-    let persistence_path = std::env::temp_dir().join(format!("raft_l3_rep_{}_{}_{}.json", id.as_str(), uid, std::process::id()));
+    let persistence_path = std::env::temp_dir().join(format!(
+        "raft_l3_rep_{}_{}_{}.json",
+        id.as_str(),
+        uid,
+        std::process::id()
+    ));
     let _ = std::fs::remove_file(&persistence_path);
 
     let raft_node = Arc::new(RaftNode::new(
@@ -57,11 +65,22 @@ async fn spawn_node(
     ));
 
     let ledger = Arc::new(MerkleLedger::new());
-    let applier = Arc::new(LedgerApplier::new(raft_node.clone(), ledger.clone(), identity.clone()));
+    let applier = Arc::new(LedgerApplier::new(
+        raft_node.clone(),
+        ledger.clone(),
+        identity.clone(),
+    ));
 
-    let (listener, tcp_listener, bound_addr) = RaftNetworkListener::new_test_insecure(addr, identity.clone(), raft_node.clone()).await.unwrap();
-    membership.set_raft_port(id.clone(), bound_addr.port()).await;
-    membership.register_self(id.clone(), bound_addr, bound_addr.port()).await;
+    let (listener, tcp_listener, bound_addr) =
+        RaftNetworkListener::new_test_insecure(addr, identity.clone(), raft_node.clone())
+            .await
+            .unwrap();
+    membership
+        .set_raft_port(id.clone(), bound_addr.port())
+        .await;
+    membership
+        .register_self(id.clone(), bound_addr, bound_addr.port())
+        .await;
     let listener_id = id.clone();
     let listener_handle = tokio::spawn(async move {
         if let Err(e) = listener.run(tcp_listener).await {
@@ -179,9 +198,15 @@ async fn test_replication_basic() {
     let addr_b: std::net::SocketAddr = "127.0.0.1:18102".parse().unwrap();
     let addr_c: std::net::SocketAddr = "127.0.0.1:18103".parse().unwrap();
 
-    membership.register_self(NodeId::new("node-a"), addr_a, 18101).await;
-    membership.register_self(NodeId::new("node-b"), addr_b, 18102).await;
-    membership.register_self(NodeId::new("node-c"), addr_c, 18103).await;
+    membership
+        .register_self(NodeId::new("node-a"), addr_a, 18101)
+        .await;
+    membership
+        .register_self(NodeId::new("node-b"), addr_b, 18102)
+        .await;
+    membership
+        .register_self(NodeId::new("node-c"), addr_c, 18103)
+        .await;
 
     let peers: Vec<NodeId> = vec![
         NodeId::new("node-a"),
@@ -192,9 +217,27 @@ async fn test_replication_basic() {
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     let mut nodes = vec![
-        spawn_node(NodeId::new("node-a"), addr_a, membership.clone(), peers.clone()).await,
-        spawn_node(NodeId::new("node-b"), addr_b, membership.clone(), peers.clone()).await,
-        spawn_node(NodeId::new("node-c"), addr_c, membership.clone(), peers.clone()).await,
+        spawn_node(
+            NodeId::new("node-a"),
+            addr_a,
+            membership.clone(),
+            peers.clone(),
+        )
+        .await,
+        spawn_node(
+            NodeId::new("node-b"),
+            addr_b,
+            membership.clone(),
+            peers.clone(),
+        )
+        .await,
+        spawn_node(
+            NodeId::new("node-c"),
+            addr_c,
+            membership.clone(),
+            peers.clone(),
+        )
+        .await,
     ];
 
     // Step 1: Elect exactly one leader
@@ -210,7 +253,9 @@ async fn test_replication_basic() {
         request_id: "req-001".to_string(),
         data: b"hello-raft".to_vec(),
     };
-    let entry_index = leader.submit_entry(entry).await
+    let entry_index = leader
+        .submit_entry(entry)
+        .await
         .expect("Failed to submit entry to leader");
     info!("Submitted entry at index {}", entry_index);
 
@@ -224,7 +269,9 @@ async fn test_replication_basic() {
                     all_ok = false;
                 }
             }
-            if all_ok { break true; }
+            if all_ok {
+                break true;
+            }
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
     })
@@ -250,12 +297,18 @@ async fn test_replication_basic() {
         assert_eq!(log_b[idx].term, term);
         assert_eq!(log_c[idx].term, term);
     }
-    info!("Replication verified: all 3 logs contain matching entry at index {}", entry_index);
+    info!(
+        "Replication verified: all 3 logs contain matching entry at index {}",
+        entry_index
+    );
 
     // Step 6: Verify commitIndex advancement on all nodes
     for n in &nodes {
-        assert!(wait_for_commit(&n.node, entry_index, REPLICATION_WAIT).await,
-            "Node {} commit_index did not advance", n.id);
+        assert!(
+            wait_for_commit(&n.node, entry_index, REPLICATION_WAIT).await,
+            "Node {} commit_index did not advance",
+            n.id
+        );
     }
     let ci = [
         *nodes[0].node.commit_index.read().await,
@@ -291,28 +344,51 @@ async fn test_replication_basic() {
     assert_eq!(block_b.unwrap().payload_hash, expected_hash);
     assert_eq!(block_c.unwrap().payload_hash, expected_hash);
 
-    assert_eq!(nodes[0].ledger.len().await, 1, "Leader ledger has >1 entries");
-    assert_eq!(nodes[1].ledger.len().await, 1, "Follower B ledger has >1 entries");
-    assert_eq!(nodes[2].ledger.len().await, 1, "Follower C ledger has >1 entries");
+    assert_eq!(
+        nodes[0].ledger.len().await,
+        1,
+        "Leader ledger has >1 entries"
+    );
+    assert_eq!(
+        nodes[1].ledger.len().await,
+        1,
+        "Follower B ledger has >1 entries"
+    );
+    assert_eq!(
+        nodes[2].ledger.len().await,
+        1,
+        "Follower C ledger has >1 entries"
+    );
 
     // Step 8: Verify leader remains leader during successful replication
-    assert_eq!(*leader.role.read().await, RaftRole::Leader,
-        "Leader stepped down during successful replication");
+    assert_eq!(
+        *leader.role.read().await,
+        RaftRole::Leader,
+        "Leader stepped down during successful replication"
+    );
     info!("Leader remained leader throughout replication");
 
     // Step 9: Idempotency — submit SAME request_id
     let dup_entry = LogEntry {
-        term, index: 0,
+        term,
+        index: 0,
         client_id: "client-test".to_string(),
         request_id: "req-001".to_string(),
         data: b"hello-raft".to_vec(),
     };
     let dup_result = leader.submit_entry(dup_entry).await;
-    assert!(dup_result.is_ok(), "Leader should accept duplicate entry (log-level dedup)");
+    assert!(
+        dup_result.is_ok(),
+        "Leader should accept duplicate entry (log-level dedup)"
+    );
 
     tokio::time::sleep(Duration::from_millis(500)).await;
     // LedgerApplier deduplicates by (client_id, request_id) — should still be 1 block
-    assert_eq!(nodes[0].ledger.len().await, 1, "Duplicate entry was applied to leader ledger");
+    assert_eq!(
+        nodes[0].ledger.len().await,
+        1,
+        "Duplicate entry was applied to leader ledger"
+    );
     info!("Idempotency verified: duplicate request_id not applied twice");
 
     abort_all(&mut nodes).await;
@@ -330,9 +406,15 @@ async fn test_follower_unavailable_then_catchup() {
     let addr_b: std::net::SocketAddr = "127.0.0.1:18112".parse().unwrap();
     let addr_c: std::net::SocketAddr = "127.0.0.1:18113".parse().unwrap();
 
-    membership.register_self(NodeId::new("node-a"), addr_a, 18111).await;
-    membership.register_self(NodeId::new("node-b"), addr_b, 18112).await;
-    membership.register_self(NodeId::new("node-c"), addr_c, 18113).await;
+    membership
+        .register_self(NodeId::new("node-a"), addr_a, 18111)
+        .await;
+    membership
+        .register_self(NodeId::new("node-b"), addr_b, 18112)
+        .await;
+    membership
+        .register_self(NodeId::new("node-c"), addr_c, 18113)
+        .await;
 
     let peers: Vec<NodeId> = vec![
         NodeId::new("node-a"),
@@ -343,9 +425,27 @@ async fn test_follower_unavailable_then_catchup() {
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     let mut nodes = vec![
-        spawn_node(NodeId::new("node-a"), addr_a, membership.clone(), peers.clone()).await,
-        spawn_node(NodeId::new("node-b"), addr_b, membership.clone(), peers.clone()).await,
-        spawn_node(NodeId::new("node-c"), addr_c, membership.clone(), peers.clone()).await,
+        spawn_node(
+            NodeId::new("node-a"),
+            addr_a,
+            membership.clone(),
+            peers.clone(),
+        )
+        .await,
+        spawn_node(
+            NodeId::new("node-b"),
+            addr_b,
+            membership.clone(),
+            peers.clone(),
+        )
+        .await,
+        spawn_node(
+            NodeId::new("node-c"),
+            addr_c,
+            membership.clone(),
+            peers.clone(),
+        )
+        .await,
     ];
 
     let leader = wait_for_leader(&nodes).await;
@@ -354,7 +454,8 @@ async fn test_follower_unavailable_then_catchup() {
     // Submit entry 1
     let term = *leader.current_term.read().await;
     let entry1 = LogEntry {
-        term, index: 0,
+        term,
+        index: 0,
         client_id: "client-f1".to_string(),
         request_id: "r1".to_string(),
         data: b"entry-1".to_vec(),
@@ -363,8 +464,11 @@ async fn test_follower_unavailable_then_catchup() {
 
     // Wait for all 3 to replicate
     for n in &nodes {
-        assert!(wait_for_log_len(&n.node, idx1 as usize, REPLICATION_WAIT).await,
-            "Node {} did not replicate entry 1", n.id);
+        assert!(
+            wait_for_log_len(&n.node, idx1 as usize, REPLICATION_WAIT).await,
+            "Node {} did not replicate entry 1",
+            n.id
+        );
     }
 
     // Find a follower (not leader) and abort its run task
@@ -374,7 +478,8 @@ async fn test_follower_unavailable_then_catchup() {
 
     // Submit entry 2 — leader should still commit (2/3 quorum)
     let entry2 = LogEntry {
-        term, index: 0,
+        term,
+        index: 0,
         client_id: "client-f1".to_string(),
         request_id: "r2".to_string(),
         data: b"entry-2".to_vec(),
@@ -382,8 +487,10 @@ async fn test_follower_unavailable_then_catchup() {
     let idx2 = leader.submit_entry(entry2).await.unwrap();
 
     // Wait for commit on leader
-    assert!(wait_for_commit(&leader, idx2, REPLICATION_WAIT).await,
-        "Leader did not commit entry 2 while follower was down");
+    assert!(
+        wait_for_commit(&leader, idx2, REPLICATION_WAIT).await,
+        "Leader did not commit entry 2 while follower was down"
+    );
     info!("Leader continued operating with one follower down");
 
     abort_all(&mut nodes).await;
@@ -399,9 +506,15 @@ async fn test_conflicting_follower_log() {
     let addr_b: std::net::SocketAddr = "127.0.0.1:18122".parse().unwrap();
     let addr_c: std::net::SocketAddr = "127.0.0.1:18123".parse().unwrap();
 
-    membership.register_self(NodeId::new("node-a"), addr_a, 18121).await;
-    membership.register_self(NodeId::new("node-b"), addr_b, 18122).await;
-    membership.register_self(NodeId::new("node-c"), addr_c, 18123).await;
+    membership
+        .register_self(NodeId::new("node-a"), addr_a, 18121)
+        .await;
+    membership
+        .register_self(NodeId::new("node-b"), addr_b, 18122)
+        .await;
+    membership
+        .register_self(NodeId::new("node-c"), addr_c, 18123)
+        .await;
 
     let peers: Vec<NodeId> = vec![
         NodeId::new("node-a"),
@@ -412,9 +525,27 @@ async fn test_conflicting_follower_log() {
     tokio::time::sleep(Duration::from_millis(100)).await;
 
     let mut nodes = vec![
-        spawn_node(NodeId::new("node-a"), addr_a, membership.clone(), peers.clone()).await,
-        spawn_node(NodeId::new("node-b"), addr_b, membership.clone(), peers.clone()).await,
-        spawn_node(NodeId::new("node-c"), addr_c, membership.clone(), peers.clone()).await,
+        spawn_node(
+            NodeId::new("node-a"),
+            addr_a,
+            membership.clone(),
+            peers.clone(),
+        )
+        .await,
+        spawn_node(
+            NodeId::new("node-b"),
+            addr_b,
+            membership.clone(),
+            peers.clone(),
+        )
+        .await,
+        spawn_node(
+            NodeId::new("node-c"),
+            addr_c,
+            membership.clone(),
+            peers.clone(),
+        )
+        .await,
     ];
 
     let leader = wait_for_leader(&nodes).await;
@@ -422,7 +553,8 @@ async fn test_conflicting_follower_log() {
 
     let term = *leader.current_term.read().await;
     let entry = LogEntry {
-        term, index: 0,
+        term,
+        index: 0,
         client_id: "client-f2".to_string(),
         request_id: "r1".to_string(),
         data: b"real-entry".to_vec(),
@@ -431,8 +563,11 @@ async fn test_conflicting_follower_log() {
 
     // Wait for normal replication
     for n in &nodes {
-        assert!(wait_for_log_len(&n.node, idx as usize, REPLICATION_WAIT).await,
-            "Node {} did not replicate entry 1", n.id);
+        assert!(
+            wait_for_log_len(&n.node, idx as usize, REPLICATION_WAIT).await,
+            "Node {} did not replicate entry 1",
+            n.id
+        );
     }
 
     // Corrupt one follower's log
@@ -452,7 +587,8 @@ async fn test_conflicting_follower_log() {
 
     // Submit another entry — leader will detect conflict and repair
     let entry2 = LogEntry {
-        term, index: 0,
+        term,
+        index: 0,
         client_id: "client-f2".to_string(),
         request_id: "r2".to_string(),
         data: b"entry-2".to_vec(),
@@ -468,7 +604,9 @@ async fn test_conflicting_follower_log() {
                 && f_log[0].data == b"real-entry"
                 && f_log[0].term == term;
             drop(f_log);
-            if repaired { return true; }
+            if repaired {
+                return true;
+            }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
     })
@@ -486,12 +624,16 @@ async fn test_stale_append_entries_rejected() {
     let identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
     let membership = Arc::new(ClusterMembership::new());
     let pm = Arc::new(RaftPeerManager::new(
-        identity.clone(), membership.clone(), NodeId::new("node-a"),
+        identity.clone(),
+        membership.clone(),
+        NodeId::new("node-a"),
     ));
     let path = std::path::PathBuf::from("/tmp/raft_stale_test.json");
     let _ = std::fs::remove_file(&path);
     let node = Arc::new(RaftNode::new(
-        NodeId::new("node-a"), path, pm as Arc<dyn RaftRpcClient>,
+        NodeId::new("node-a"),
+        path,
+        pm as Arc<dyn RaftRpcClient>,
     ));
 
     // Set current term to 5
@@ -504,7 +646,8 @@ async fn test_stale_append_entries_rejected() {
         prev_log_index: 0,
         prev_log_term: 0,
         entries: vec![LogEntry {
-            term: 3, index: 1,
+            term: 3,
+            index: 1,
             client_id: "stale".to_string(),
             request_id: "stale-1".to_string(),
             data: b"stale".to_vec(),
@@ -517,10 +660,17 @@ async fn test_stale_append_entries_rejected() {
 
     // Verify no log entry was added
     let log = node.log.read().await;
-    assert!(log.is_empty(), "Log should be empty after rejected stale AE");
+    assert!(
+        log.is_empty(),
+        "Log should be empty after rejected stale AE"
+    );
     drop(log);
 
-    assert_eq!(*node.current_term.read().await, 5, "Term should not be lowered");
+    assert_eq!(
+        *node.current_term.read().await,
+        5,
+        "Term should not be lowered"
+    );
     assert_eq!(*node.role.read().await, RaftRole::Follower);
 }
 
@@ -530,12 +680,16 @@ async fn test_higher_term_append_entries_steps_down() {
     let identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
     let membership = Arc::new(ClusterMembership::new());
     let pm = Arc::new(RaftPeerManager::new(
-        identity.clone(), membership.clone(), NodeId::new("node-a"),
+        identity.clone(),
+        membership.clone(),
+        NodeId::new("node-a"),
     ));
     let path = std::path::PathBuf::from("/tmp/raft_stepdown_test.json");
     let _ = std::fs::remove_file(&path);
     let node = Arc::new(RaftNode::new(
-        NodeId::new("node-a"), path, pm as Arc<dyn RaftRpcClient>,
+        NodeId::new("node-a"),
+        path,
+        pm as Arc<dyn RaftRpcClient>,
     ));
 
     // Force node to Leader at term 1
@@ -556,17 +710,24 @@ async fn test_higher_term_append_entries_steps_down() {
     };
     let reply = node.handle_append_entries(higher_term_args).await;
     assert!(reply.success, "Higher-term AE should be accepted");
-    assert_eq!(*node.current_term.read().await, 5, "Term should be updated to 5");
-    assert_eq!(*node.role.read().await, RaftRole::Follower,
-        "Leader must step down to Follower on higher term");
+    assert_eq!(
+        *node.current_term.read().await,
+        5,
+        "Term should be updated to 5"
+    );
+    assert_eq!(
+        *node.role.read().await,
+        RaftRole::Follower,
+        "Leader must step down to Follower on higher term"
+    );
 }
 
 /// Delayed/stale AppendEntries response — leader must not corrupt state.
 /// Uses MockRpcClient for controlled timing.
 #[tokio::test]
 async fn test_append_entries_response_handling() {
-    use tokio::sync::RwLock as TokioRwLock;
     use std::collections::HashMap as StdHashMap;
+    use tokio::sync::RwLock as TokioRwLock;
 
     let membership = Arc::new(ClusterMembership::new());
     let id_a = NodeId::new("node-a");
@@ -599,7 +760,10 @@ async fn test_append_entries_response_handling() {
     let peers_a = vec![id_b.clone()];
     let election_result = node_a.start_election(&peers_a).await;
     assert!(election_result.is_ok(), "Election should succeed");
-    assert!(election_result.unwrap(), "Node A should win (self-vote + B)");
+    assert!(
+        election_result.unwrap(),
+        "Node A should win (self-vote + B)"
+    );
 
     // start_election returns Ok(true) but doesn't set role — the run() loop
     // handles the transition. We replicate that here since we call directly.
@@ -614,7 +778,8 @@ async fn test_append_entries_response_handling() {
     // Submit an entry
     let term = *node_a.current_term.read().await;
     let entry = LogEntry {
-        term, index: 0,
+        term,
+        index: 0,
         client_id: "client-ae".to_string(),
         request_id: "req-ae-1".to_string(),
         data: b"ae-test".to_vec(),
@@ -628,7 +793,8 @@ async fn test_append_entries_response_handling() {
         prev_log_index: 0,
         prev_log_term: 0,
         entries: vec![LogEntry {
-            term, index: idx,
+            term,
+            index: idx,
             client_id: "client-ae".to_string(),
             request_id: "req-ae-1".to_string(),
             data: b"ae-test".to_vec(),
@@ -663,8 +829,15 @@ async fn test_append_entries_response_handling() {
     assert!(!stale_reply.success, "Stale-term AE should be rejected");
 
     let b_log = node_b.log.read().await;
-    assert_eq!(b_log.len(), 1, "Follower B log should be unchanged after stale AE");
-    assert_eq!(b_log[0].data, b"ae-test", "Follower B entry should be unchanged");
+    assert_eq!(
+        b_log.len(),
+        1,
+        "Follower B log should be unchanged after stale AE"
+    );
+    assert_eq!(
+        b_log[0].data, b"ae-test",
+        "Follower B entry should be unchanged"
+    );
     drop(b_log);
 }
 
@@ -677,12 +850,16 @@ async fn test_ae_reply_carries_updated_term() {
     let identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
     let membership = Arc::new(ClusterMembership::new());
     let pm = Arc::new(RaftPeerManager::new(
-        identity.clone(), membership.clone(), NodeId::new("node-a"),
+        identity.clone(),
+        membership.clone(),
+        NodeId::new("node-a"),
     ));
     let path = std::path::PathBuf::from("/tmp/raft_reply_term.json");
     let _ = std::fs::remove_file(&path);
     let node = Arc::new(RaftNode::new(
-        NodeId::new("node-a"), path, pm as Arc<dyn RaftRpcClient>,
+        NodeId::new("node-a"),
+        path,
+        pm as Arc<dyn RaftRpcClient>,
     ));
 
     // Set current term to 1
@@ -690,19 +867,32 @@ async fn test_ae_reply_carries_updated_term() {
     assert_eq!(*node.current_term.read().await, 1);
 
     // Send AppendEntries with term 5 (higher)
-    let reply = node.handle_append_entries(AppendEntriesArgs {
-        term: 5,
-        leader_id: NodeId::new("node-b"),
-        prev_log_index: 0,
-        prev_log_term: 0,
-        entries: vec![],
-        leader_commit: 0,
-    }).await;
+    let reply = node
+        .handle_append_entries(AppendEntriesArgs {
+            term: 5,
+            leader_id: NodeId::new("node-b"),
+            prev_log_index: 0,
+            prev_log_term: 0,
+            entries: vec![],
+            leader_commit: 0,
+        })
+        .await;
 
     // The reply MUST carry the updated term (5), not the old term (1)
-    assert_eq!(reply.term, 5, "AE reply must carry the node's UPDATED current term");
-    assert_eq!(*node.current_term.read().await, 5, "Node term must be updated");
-    assert_eq!(*node.role.read().await, RaftRole::Follower, "Must step down");
+    assert_eq!(
+        reply.term, 5,
+        "AE reply must carry the node's UPDATED current term"
+    );
+    assert_eq!(
+        *node.current_term.read().await,
+        5,
+        "Node term must be updated"
+    );
+    assert_eq!(
+        *node.role.read().await,
+        RaftRole::Follower,
+        "Must step down"
+    );
 }
 
 /// 2. Election timer persistence: the election timeout is generated once
@@ -714,21 +904,24 @@ async fn test_election_timer_persistence() {
         election_timeout_max_ms: 300,
         heartbeat_interval_ms: 50, // < 150, satisfies invariant
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     config.validate().expect("config should be valid");
 
     let identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
     let membership = Arc::new(ClusterMembership::new());
     let pm = Arc::new(RaftPeerManager::new(
-        identity.clone(), membership.clone(), NodeId::new("node-a"),
+        identity.clone(),
+        membership.clone(),
+        NodeId::new("node-a"),
     ));
     let path = std::path::PathBuf::from("/tmp/raft_election_timer.json");
     let _ = std::fs::remove_file(&path);
     let cluster_map: Arc<tokio::sync::RwLock<std::collections::HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(tokio::sync::RwLock::new(std::collections::HashMap::new()));
     let node = RaftNode::with_config(
-        NodeId::new("node-a"), path,
+        NodeId::new("node-a"),
+        path,
         Arc::new(MockRpcClient::new(cluster_map)) as Arc<dyn RaftRpcClient>,
         config,
     );
@@ -737,14 +930,18 @@ async fn test_election_timer_persistence() {
     let timeout = *node.election_timeout.read().await;
     assert!(
         timeout >= Duration::from_millis(150) && timeout <= Duration::from_millis(300),
-        "election_timeout should be in [150, 300] ms, got {:?}", timeout
+        "election_timeout should be in [150, 300] ms, got {:?}",
+        timeout
     );
 
     let timeout_before = timeout;
 
     // Check that reading the timeout twice doesn't change it (persistence)
     let timeout_after = *node.election_timeout.read().await;
-    assert_eq!(timeout_before, timeout_after, "Election timeout must persist, not regenerate per tick");
+    assert_eq!(
+        timeout_before, timeout_after,
+        "Election timeout must persist, not regenerate per tick"
+    );
 
     // Reset should produce a NEW random timeout
     node.reset_election_timer().await;
@@ -752,7 +949,8 @@ async fn test_election_timer_persistence() {
     // It MAY be the same by chance, but statistically very unlikely with 150ms range
     // We just verify it's still in valid range
     assert!(
-        timeout_after_reset >= Duration::from_millis(150) && timeout_after_reset <= Duration::from_millis(300),
+        timeout_after_reset >= Duration::from_millis(150)
+            && timeout_after_reset <= Duration::from_millis(300),
         "Reset timeout should be in [150, 300] ms"
     );
 }
@@ -761,9 +959,9 @@ async fn test_election_timer_persistence() {
 ///    latency, slow peers don't block fast peers' vote counting.
 #[tokio::test]
 async fn test_concurrent_request_vote_dispatch() {
-    use tokio::sync::RwLock as TokioRwLock;
     use std::collections::HashMap as StdHashMap;
     use std::time::Instant as StdInstant;
+    use tokio::sync::RwLock as TokioRwLock;
 
     let config = ha_cluster::RaftConfig::default();
     let membership = Arc::new(ClusterMembership::new());
@@ -784,7 +982,8 @@ async fn test_concurrent_request_vote_dispatch() {
         Arc::new(TokioRwLock::new(StdHashMap::new()));
 
     let node_a = RaftNode::with_config(
-        id_a.clone(), path_a,
+        id_a.clone(),
+        path_a,
         Arc::new(MockRpcClient::new(cluster_map.clone())) as Arc<dyn RaftRpcClient>,
         config.clone(),
     );
@@ -792,14 +991,16 @@ async fn test_concurrent_request_vote_dispatch() {
 
     // Create node B and C with their own MockRpcClients
     let node_b = RaftNode::with_config(
-        id_b.clone(), path_b,
+        id_b.clone(),
+        path_b,
         Arc::new(MockRpcClient::new(cluster_map.clone())) as Arc<dyn RaftRpcClient>,
         config.clone(),
     );
     let node_b = Arc::new(node_b);
 
     let node_c = RaftNode::with_config(
-        id_c.clone(), path_c,
+        id_c.clone(),
+        path_c,
         Arc::new(MockRpcClient::new(cluster_map.clone())) as Arc<dyn RaftRpcClient>,
         config.clone(),
     );
@@ -823,7 +1024,10 @@ async fn test_concurrent_request_vote_dispatch() {
 
     // With concurrent dispatch, total time should be ~max(peer_delays) not sum
     // MockRpcClient has ~0ms delay, so this should be fast
-    assert!(elapsed < Duration::from_secs(2), "Election should complete quickly (concurrent dispatch)");
+    assert!(
+        elapsed < Duration::from_secs(2),
+        "Election should complete quickly (concurrent dispatch)"
+    );
     assert_eq!(*node_a.current_term.read().await, 1, "Term should be 1");
 }
 
@@ -836,9 +1040,12 @@ async fn test_config_timing_invariant() {
         election_timeout_max_ms: 300,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
-    assert!(valid.validate().is_ok(), "Valid config should pass validation");
+    assert!(
+        valid.validate().is_ok(),
+        "Valid config should pass validation"
+    );
 
     // Invalid config: heartbeat (200ms) >= election timeout (150ms)
     let invalid = ha_cluster::RaftConfig {
@@ -846,9 +1053,12 @@ async fn test_config_timing_invariant() {
         election_timeout_max_ms: 300,
         heartbeat_interval_ms: 200,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
-    assert!(invalid.validate().is_err(), "Invalid config should fail validation");
+    assert!(
+        invalid.validate().is_err(),
+        "Invalid config should fail validation"
+    );
 
     // Invalid config: min > max
     let invalid2 = ha_cluster::RaftConfig {
@@ -856,17 +1066,20 @@ async fn test_config_timing_invariant() {
         election_timeout_max_ms: 150,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
-    assert!(invalid2.validate().is_err(), "min > max should fail validation");
+    assert!(
+        invalid2.validate().is_err(),
+        "min > max should fail validation"
+    );
 }
 
 /// 5. Stale-term race: higher-term AppendEntries reply must cause step-down
 ///    WITHOUT mutating match_index/next_index from stale replies.
 #[tokio::test]
 async fn test_stale_term_reply_no_state_mutation() {
-    use tokio::sync::RwLock as TokioRwLock;
     use std::collections::HashMap as StdHashMap;
+    use tokio::sync::RwLock as TokioRwLock;
 
     let membership = Arc::new(ClusterMembership::new());
     let id_a = NodeId::new("node-a");
@@ -884,19 +1097,22 @@ async fn test_stale_term_reply_no_state_mutation() {
         Arc::new(TokioRwLock::new(StdHashMap::new()));
 
     let node_a = RaftNode::new(
-        id_a.clone(), path_a,
+        id_a.clone(),
+        path_a,
         Arc::new(MockRpcClient::new(cluster_map.clone())) as Arc<dyn RaftRpcClient>,
     );
     let node_a = Arc::new(node_a);
 
     let node_b = RaftNode::new(
-        id_b.clone(), path_b,
+        id_b.clone(),
+        path_b,
         Arc::new(MockRpcClient::new(cluster_map.clone())) as Arc<dyn RaftRpcClient>,
     );
     let node_b = Arc::new(node_b);
 
     let node_c = RaftNode::new(
-        id_c.clone(), path_c,
+        id_c.clone(),
+        path_c,
         Arc::new(MockRpcClient::new(cluster_map.clone())) as Arc<dyn RaftRpcClient>,
     );
     let node_c = Arc::new(node_c);
@@ -921,7 +1137,8 @@ async fn test_stale_term_reply_no_state_mutation() {
     // Submit an entry
     let term = *node_a.current_term.read().await;
     let entry = LogEntry {
-        term, index: 0,
+        term,
+        index: 0,
         client_id: "race-test".to_string(),
         request_id: "r1".to_string(),
         data: b"test-data".to_vec(),
@@ -935,7 +1152,8 @@ async fn test_stale_term_reply_no_state_mutation() {
         prev_log_index: 0,
         prev_log_term: 0,
         entries: vec![LogEntry {
-            term, index: idx,
+            term,
+            index: idx,
             client_id: "race-test".to_string(),
             request_id: "r1".to_string(),
             data: b"test-data".to_vec(),
@@ -960,7 +1178,11 @@ async fn test_stale_term_reply_no_state_mutation() {
     let reply_b_higher = node_b.handle_append_entries(higher_term_args).await;
     assert_eq!(reply_b_higher.term, 5, "Node B should report higher term");
     assert!(reply_b_higher.success);
-    assert_eq!(*node_b.current_term.read().await, 5, "Node B term should be 5");
+    assert_eq!(
+        *node_b.current_term.read().await,
+        5,
+        "Node B term should be 5"
+    );
 
     // Now simulate node B (at term 5) sending an AE reply back to node A (still at term 1)
     // In the leader's run loop, this reply would be processed:
@@ -984,10 +1206,15 @@ async fn test_stale_term_reply_no_state_mutation() {
         *role = RaftRole::Follower;
         // match_index should NOT be updated from this stale reply
         let match_after = *node_a.match_index.read().await.get(&id_b).unwrap_or(&0);
-        assert_eq!(match_after, match_before,
-            "Stale-term reply must not mutate match_index");
+        assert_eq!(
+            match_after, match_before,
+            "Stale-term reply must not mutate match_index"
+        );
     }
 
-    assert_eq!(*node_a.role.read().await, RaftRole::Follower,
-        "Leader must step down on higher-term reply");
+    assert_eq!(
+        *node_a.role.read().await,
+        RaftRole::Follower,
+        "Leader must step down on higher-term reply"
+    );
 }

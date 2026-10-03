@@ -1727,7 +1727,10 @@ impl StateTransitionRecord {
         proposer.validate_tenant(tenant_id)?;
 
         let tc = TimeContext::new(Utc::now());
-        let transition_type_str = serde_json::to_string(&transition_type).unwrap().trim_matches('"').to_string();
+        let transition_type_str = serde_json::to_string(&transition_type)
+            .unwrap()
+            .trim_matches('"')
+            .to_string();
         let scope_hash = Self::compute_scope_hash(
             tenant_id,
             &delta_id,

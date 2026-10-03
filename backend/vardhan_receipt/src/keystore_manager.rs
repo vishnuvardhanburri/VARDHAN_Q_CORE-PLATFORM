@@ -1,12 +1,14 @@
+use std::fs;
 use std::path::PathBuf;
 use std::sync::OnceLock;
-use std::fs;
 use vardhan_keystore::VardhanKeystore;
 
 static KEYSTORE: OnceLock<VardhanKeystore> = OnceLock::new();
 
 pub fn init_keystore() {
-    if KEYSTORE.get().is_some() { return; }
+    if KEYSTORE.get().is_some() {
+        return;
+    }
 
     let keystore_dir = std::env::var("VARDHAN_KEYSTORE_DIR")
         .map(PathBuf::from)
@@ -23,7 +25,10 @@ pub fn init_keystore() {
     };
 
     let keystore = if is_populated {
-        println!("🔐 Loading existing Q-Core signing keystore from {:?}", keystore_dir);
+        println!(
+            "🔐 Loading existing Q-Core signing keystore from {:?}",
+            keystore_dir
+        );
         match VardhanKeystore::load_from_dir(&keystore_dir) {
             Ok(ks) => ks,
             Err(e) => {
@@ -35,7 +40,8 @@ pub fn init_keystore() {
         // First run initialization semantics
         println!("⚠️ No existing keystore found at {:?}. Generating a new persistent Q-Core signing identity.", keystore_dir);
         let ks = VardhanKeystore::generate();
-        ks.save_to_dir(&keystore_dir).expect("FATAL: Failed to persist new keystore");
+        ks.save_to_dir(&keystore_dir)
+            .expect("FATAL: Failed to persist new keystore");
         ks
     };
 
@@ -43,5 +49,7 @@ pub fn init_keystore() {
 }
 
 pub fn get_keystore() -> &'static VardhanKeystore {
-    KEYSTORE.get().expect("Keystore not initialized. Call init_keystore() at startup.")
+    KEYSTORE
+        .get()
+        .expect("Keystore not initialized. Call init_keystore() at startup.")
 }

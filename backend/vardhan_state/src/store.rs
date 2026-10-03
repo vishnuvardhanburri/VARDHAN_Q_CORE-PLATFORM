@@ -583,7 +583,9 @@ impl EvidenceStore for MemoryEvidenceStore {
     ) -> Result<CommitIndex, StoreError> {
         let guard = self.inner.read().unwrap();
         let tree_root = match category {
-            EvidenceCategory::Decision | EvidenceCategory::Assurance | EvidenceCategory::Verification => &guard.decision_tree_root,
+            EvidenceCategory::Decision
+            | EvidenceCategory::Assurance
+            | EvidenceCategory::Verification => &guard.decision_tree_root,
             EvidenceCategory::Outcome => &guard.outcome_tree_root,
         };
 
@@ -696,7 +698,9 @@ mod tests {
             DeltaId::new_v4(),
             StateHash::from_content(b"prev"),
             StateHash::from_content(b"result"),
-            crate::transition::TransitionType::Known(crate::transition::KnownTransitionType::VerificationClaimCreate),
+            crate::transition::TransitionType::Known(
+                crate::transition::KnownTransitionType::VerificationClaimCreate,
+            ),
             proposer,
             ConfigurationHash::from_content(b"config"),
         )
@@ -746,7 +750,9 @@ mod tests {
             DeltaId::new_v4(),
             StateHash::from_content(b"prev"),
             StateHash::from_content(b"result"),
-            crate::transition::TransitionType::Known(crate::transition::KnownTransitionType::VerificationClaimCreate),
+            crate::transition::TransitionType::Known(
+                crate::transition::KnownTransitionType::VerificationClaimCreate,
+            ),
             proposer,
             ConfigurationHash::from_content(b"config"),
         );

@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use crate::assurance::assembler::*;
-    use vardhan_state::authorization::{PolicyEvaluation, ProvenanceTrail};
     use crate::assurance::contracts::*;
     use crate::assurance::g0::*;
     use crate::assurance::g1::*;
@@ -9,8 +8,9 @@ mod tests {
     use crate::assurance::g4::*;
     use crate::assurance::gates::*;
     use crate::assurance::types::*;
-    use vardhan_state::id::{TenantId, StateHash, ConfigurationHash, EvidenceId};
     use uuid::Uuid;
+    use vardhan_state::authorization::{PolicyEvaluation, ProvenanceTrail};
+    use vardhan_state::id::{ConfigurationHash, EvidenceId, StateHash, TenantId};
 
     struct MockCrypto {
         valid: bool,

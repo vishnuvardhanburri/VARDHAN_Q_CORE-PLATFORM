@@ -35,7 +35,6 @@ pub struct RaftNetworkListener {
 }
 
 impl RaftNetworkListener {
-
     #[cfg(debug_assertions)]
     pub async fn new_test_insecure(
         listen_addr: std::net::SocketAddr,
@@ -97,8 +96,6 @@ impl RaftNetworkListener {
             let raft_node = Arc::clone(&self.raft_node);
             let peer_registry = Arc::clone(&self.peer_registry);
             let test_bypass_registry = self.test_bypass_registry;
-            
-            
 
             let permit = match Arc::clone(&conn_limit).try_acquire_owned() {
                 Ok(p) => p,

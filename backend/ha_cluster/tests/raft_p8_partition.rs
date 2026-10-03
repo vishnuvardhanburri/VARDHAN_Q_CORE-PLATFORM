@@ -17,15 +17,15 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ha_cluster::{
-    RaftConfig, RaftNode, RaftRole,
     raft::{
-        AppendEntriesArgs, AppendEntriesReply, LogEntry, MockRpcClient,
-        RequestVoteArgs, RequestVoteReply, RaftRpcClient,
+        AppendEntriesArgs, AppendEntriesReply, LogEntry, MockRpcClient, RaftRpcClient,
+        RequestVoteArgs, RequestVoteReply,
     },
+    RaftConfig, RaftNode, RaftRole,
 };
-use tokio::sync::RwLock;
-use std::pin::Pin;
 use std::future::Future;
+use std::pin::Pin;
+use tokio::sync::RwLock;
 
 fn test_config() -> RaftConfig {
     RaftConfig {
@@ -33,7 +33,7 @@ fn test_config() -> RaftConfig {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     }
 }
 
@@ -103,7 +103,11 @@ type ClusterMap = Arc<RwLock<HashMap<ha_cluster::NodeId, Arc<RaftNode>>>>;
 
 /// Create a 3-node cluster with partitionable RPC clients.
 async fn make_partitionable_cluster() -> (Vec<Arc<RaftNode>>, Vec<Arc<PartitionedRpcClient>>) {
-    for f in &["/tmp/p8_part_a.json", "/tmp/p8_part_b.json", "/tmp/p8_part_c.json"] {
+    for f in &[
+        "/tmp/p8_part_a.json",
+        "/tmp/p8_part_b.json",
+        "/tmp/p8_part_c.json",
+    ] {
         std::fs::remove_file(f).ok();
     }
 
@@ -118,10 +122,15 @@ async fn make_partitionable_cluster() -> (Vec<Arc<RaftNode>>, Vec<Arc<Partitione
     let mut clients = Vec::new();
 
     for id in ids.iter() {
-        let rpc: Arc<PartitionedRpcClient> = Arc::new(PartitionedRpcClient::new(MockRpcClient::new(cluster_map.clone())));
+        let rpc: Arc<PartitionedRpcClient> = Arc::new(PartitionedRpcClient::new(
+            MockRpcClient::new(cluster_map.clone()),
+        ));
         let node = Arc::new(RaftNode::with_config(
             id.clone(),
-            PathBuf::from(format!("/tmp/p8_part_{}.json", id.0.chars().last().unwrap())),
+            PathBuf::from(format!(
+                "/tmp/p8_part_{}.json",
+                id.0.chars().last().unwrap()
+            )),
             rpc.clone() as Arc<dyn RaftRpcClient>,
             config.clone(),
         ));
@@ -213,11 +222,17 @@ async fn p8_4a_minority_cannot_elect() {
         .map(|(_, n)| *n)
         .collect();
 
-    assert!(leaders.len() <= 1,
-        "Split-brain detected! Leaders: {:?}", leaders);
+    assert!(
+        leaders.len() <= 1,
+        "Split-brain detected! Leaders: {:?}",
+        leaders
+    );
 
     if leaders.len() <= 1 {
-        println!("P8.4a PASSED: No split-brain — at most 1 leader exists (leaders: {:?})", leaders);
+        println!(
+            "P8.4a PASSED: No split-brain — at most 1 leader exists (leaders: {:?})",
+            leaders
+        );
     }
 }
 
@@ -238,7 +253,7 @@ async fn p8_4b_minority_writes_dont_commit() {
     clients[2].block_peer(&id_a).await; // C can't reach A
     clients[2].block_peer(&id_b).await; // C can't reach B
     clients[1].block_peer(&id_c).await; // B can't reach C
-    // A and B can talk; C is isolated
+                                        // A and B can talk; C is isolated
 
     // Start election on node A
     let peers_a = vec![id_b.clone(), id_c.clone()];
@@ -272,8 +287,10 @@ async fn p8_4b_minority_writes_dont_commit() {
 
         // C tries to submit (but C is not leader — should fail)
         let submit_result = nodes[2].submit_entry(entry.clone()).await;
-        assert!(submit_result.is_err(),
-            "Isolated node C should NOT be able to submit entries (not leader)");
+        assert!(
+            submit_result.is_err(),
+            "Isolated node C should NOT be able to submit entries (not leader)"
+        );
 
         // C also tries to act as leader directly
         let forge_ae = AppendEntriesArgs {
@@ -295,8 +312,10 @@ async fn p8_4b_minority_writes_dont_commit() {
             // but C doesn't have quorum (C alone = 1 vote, needs 2)
             let log_b = nodes[1].log.read().await;
             if !log_b.is_empty() {
-                assert_eq!(&log_b[0].client_id, "client-c",
-                    "C's forged entry was accepted by B");
+                assert_eq!(
+                    &log_b[0].client_id, "client-c",
+                    "C's forged entry was accepted by B"
+                );
                 // But commit_index should NOT advance to 1 because C can't form quorum
                 // B's leader (A) should overwrite this when it sends real heartbeats
             }
@@ -350,7 +369,11 @@ async fn p8_4c_partition_recovery() {
             }
             idx += 1;
         }
-        if !found { 0 } else { idx }
+        if !found {
+            0
+        } else {
+            idx
+        }
     };
 
     let leader = &nodes[leader_idx];
@@ -372,7 +395,11 @@ async fn p8_4c_partition_recovery() {
 
     let log = leader.log.read().await;
     let last_idx = log.len() as u64;
-    let last_term = if log.is_empty() { 0 } else { log.last().unwrap().term };
+    let last_term = if log.is_empty() {
+        0
+    } else {
+        log.last().unwrap().term
+    };
     drop(log);
 
     let ae = AppendEntriesArgs {
@@ -388,9 +415,13 @@ async fn p8_4c_partition_recovery() {
     let _ = nodes[follower2_idx].handle_append_entries(ae.clone()).await;
 
     // Step: Partition follower2 out
-    clients[follower2_idx].block_peer(&nodes[follower1_idx].id).await;
+    clients[follower2_idx]
+        .block_peer(&nodes[follower1_idx].id)
+        .await;
     clients[follower2_idx].block_peer(&leader_id).await;
-    clients[follower1_idx].block_peer(&nodes[follower2_idx].id).await;
+    clients[follower1_idx]
+        .block_peer(&nodes[follower2_idx].id)
+        .await;
 
     // Leader commits another entry (follower2 doesn't get it)
     let entry2 = LogEntry {
@@ -416,7 +447,9 @@ async fn p8_4c_partition_recovery() {
     let _ = nodes[follower1_idx].handle_append_entries(ae2).await;
 
     // Heal partition
-    clients[follower2_idx].block_peer(&nodes[follower1_idx].id).await;
+    clients[follower2_idx]
+        .block_peer(&nodes[follower1_idx].id)
+        .await;
     // unblock all
     for c in &clients {
         let _ = c.blocked.write().await;
@@ -430,27 +463,39 @@ async fn p8_4c_partition_recovery() {
     let ae_catchup = AppendEntriesArgs {
         term: 1,
         leader_id: leader_id.clone(),
-        prev_log_index: 1,       // Follower has entry at index 1 (1-based)
-        prev_log_term: 1,        // Term of entry at index 1
+        prev_log_index: 1,           // Follower has entry at index 1 (1-based)
+        prev_log_term: 1,            // Term of entry at index 1
         entries: log3[1..].to_vec(), // Only new entries (index 2, 3 in 1-based)
         leader_commit: log3.len() as u64,
     };
     drop(log3);
     let reply = nodes[follower2_idx].handle_append_entries(ae_catchup).await;
-    assert!(reply.success, "Follower2 should accept catch-up AppendEntries");
+    assert!(
+        reply.success,
+        "Follower2 should accept catch-up AppendEntries"
+    );
 
     // Verify all nodes have the same log
     let log_leader = leader.log.read().await;
     let log_f2 = nodes[follower2_idx].log.read().await;
 
-    assert_eq!(log_leader.len(), log_f2.len(),
-        "All nodes must have same log length after recovery (I3)");
+    assert_eq!(
+        log_leader.len(),
+        log_f2.len(),
+        "All nodes must have same log length after recovery (I3)"
+    );
 
     for (i, (le, lf)) in log_leader.iter().zip(log_f2.iter()).enumerate() {
-        assert_eq!(le.client_id, lf.client_id,
-            "Entry {} must match after recovery (I3)", i);
-        assert_eq!(le.data, lf.data,
-            "Entry {} data must match after recovery (I3)", i);
+        assert_eq!(
+            le.client_id, lf.client_id,
+            "Entry {} must match after recovery (I3)",
+            i
+        );
+        assert_eq!(
+            le.data, lf.data,
+            "Entry {} data must match after recovery (I3)",
+            i
+        );
     }
 
     println!("P8.4c PASSED: Partition recovery — all nodes converged to identical logs");

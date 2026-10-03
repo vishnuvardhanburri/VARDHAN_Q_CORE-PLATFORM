@@ -34,13 +34,14 @@ async fn setup_victim_attacker() -> (AeadTransport, tokio::net::TcpStream) {
     let (tx, rx) = tokio::sync::oneshot::channel::<AeadTransport>();
     tokio::spawn(async move {
         let (stream, _) = listener.accept().await.unwrap();
-        let transport = AeadTransport::new(
-            stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false
-        );
+        let transport =
+            AeadTransport::new(stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false);
         let _ = tx.send(transport);
     });
 
-    let attacker = tokio::net::TcpStream::connect(format!("{}", addr)).await.unwrap();
+    let attacker = tokio::net::TcpStream::connect(format!("{}", addr))
+        .await
+        .unwrap();
     let responder = rx.await.unwrap();
     (responder, attacker)
 }
@@ -59,10 +60,7 @@ async fn p8_8a_oversized_frame_rejection() {
     // Send only a few bytes — the size header alone should trigger rejection
     attacker.write_all(b"xxx").await.unwrap();
 
-    let result = tokio::time::timeout(
-        Duration::from_millis(500),
-        responder.read_frame(),
-    ).await;
+    let result = tokio::time::timeout(Duration::from_millis(500), responder.read_frame()).await;
 
     match result {
         Ok(Err(ProxyError::FrameTooLarge(_))) => {
@@ -95,34 +93,38 @@ async fn p8_8b_max_valid_frame_size() {
         let (tx, rx) = tokio::sync::oneshot::channel::<AeadTransport>();
         tokio::spawn(async move {
             let (stream, _) = listener.accept().await.unwrap();
-            let transport = AeadTransport::new(
-                stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false
-            );
+            let transport =
+                AeadTransport::new(stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false);
             let _ = tx.send(transport);
         });
-        let client = tokio::net::TcpStream::connect(format!("{}", addr)).await.unwrap();
+        let client = tokio::net::TcpStream::connect(format!("{}", addr))
+            .await
+            .unwrap();
         let responder = rx.await.unwrap();
-        let initiator = AeadTransport::new(client, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, true);
+        let initiator =
+            AeadTransport::new(client, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, true);
         (responder, initiator)
     };
 
     // Send a frame exactly at MAX_FRAME_SIZE
     let payload = vec![0u8; MAX_FRAME_SIZE];
-    initiator.write_frame(&payload).await
+    initiator
+        .write_frame(&payload)
+        .await
         .expect("Frame at MAX_FRAME_SIZE should be accepted");
 
-    let result = tokio::time::timeout(
-        Duration::from_millis(500),
-        responder.read_frame(),
-    ).await;
+    let result = tokio::time::timeout(Duration::from_millis(500), responder.read_frame()).await;
 
     let data = result
         .expect("Should not timeout reading MAX_FRAME_SIZE frame")
         .expect("Should not get IO error")
         .expect("Should have data");
 
-    assert_eq!(data.len(), MAX_FRAME_SIZE,
-        "Received frame should be MAX_FRAME_SIZE bytes");
+    assert_eq!(
+        data.len(),
+        MAX_FRAME_SIZE,
+        "Received frame should be MAX_FRAME_SIZE bytes"
+    );
     println!("P8.8b PASSED: Frame at exactly MAX_FRAME_SIZE (256KB) accepted");
 }
 
@@ -137,30 +139,40 @@ async fn p8_8c_oversized_write_rejected() {
     let (tx, rx) = tokio::sync::oneshot::channel::<AeadTransport>();
     tokio::spawn(async move {
         let (stream, _) = listener.accept().await.unwrap();
-        let transport = AeadTransport::new(
-            stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false
-        );
+        let transport =
+            AeadTransport::new(stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false);
         let _ = tx.send(transport);
     });
-    let client = tokio::net::TcpStream::connect(format!("{}", addr)).await.unwrap();
-    let mut initiator = AeadTransport::new(client, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, true);
+    let client = tokio::net::TcpStream::connect(format!("{}", addr))
+        .await
+        .unwrap();
+    let mut initiator =
+        AeadTransport::new(client, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, true);
 
     // Try to send a frame 1 byte over the limit
     let payload = vec![0u8; MAX_FRAME_SIZE + 1];
     let result = initiator.write_frame(&payload).await;
 
-    assert!(result.is_err(),
-        "Frame over MAX_FRAME_SIZE must be rejected by write_frame");
+    assert!(
+        result.is_err(),
+        "Frame over MAX_FRAME_SIZE must be rejected by write_frame"
+    );
     match result.unwrap_err() {
         ProxyError::FrameTooLarge(size) => {
-            assert_eq!(size, MAX_FRAME_SIZE + 1,
-                "Error should report the actual oversized size");
+            assert_eq!(
+                size,
+                MAX_FRAME_SIZE + 1,
+                "Error should report the actual oversized size"
+            );
         }
         e => panic!("Expected FrameTooLarge, got {:?}", e),
     }
 
-    println!("P8.8c PASSED: write_frame rejects payload {} bytes > MAX_FRAME_SIZE ({} bytes)",
-        MAX_FRAME_SIZE + 1, MAX_FRAME_SIZE);
+    println!(
+        "P8.8c PASSED: write_frame rejects payload {} bytes > MAX_FRAME_SIZE ({} bytes)",
+        MAX_FRAME_SIZE + 1,
+        MAX_FRAME_SIZE
+    );
 }
 
 /// P8.8d: Memory pressure — many concurrent small frames don't cause unbounded
@@ -177,14 +189,16 @@ async fn p8_8d_concurrent_frames_no_buffer_leak() {
         let (tx, rx) = tokio::sync::oneshot::channel::<AeadTransport>();
         tokio::spawn(async move {
             let (stream, _) = listener.accept().await.unwrap();
-            let transport = AeadTransport::new(
-                stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false
-            );
+            let transport =
+                AeadTransport::new(stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false);
             let _ = tx.send(transport);
         });
-        let client = tokio::net::TcpStream::connect(format!("{}", addr)).await.unwrap();
+        let client = tokio::net::TcpStream::connect(format!("{}", addr))
+            .await
+            .unwrap();
         let responder = rx.await.unwrap();
-        let initiator = AeadTransport::new(client, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, true);
+        let initiator =
+            AeadTransport::new(client, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, true);
         (responder, initiator)
     };
 
@@ -209,10 +223,7 @@ async fn p8_8d_concurrent_frames_no_buffer_leak() {
     tasks.push(tokio::spawn(async move {
         let mut count = 0u64;
         for _ in 0..msg_count {
-            match tokio::time::timeout(
-                Duration::from_secs(2),
-                responder.read_frame()
-            ).await {
+            match tokio::time::timeout(Duration::from_secs(2), responder.read_frame()).await {
                 Ok(Ok(Some(_))) => count += 1,
                 _ => break,
             }
@@ -228,7 +239,10 @@ async fn p8_8d_concurrent_frames_no_buffer_leak() {
     assert_eq!(*written, msg_count, "All frames should be written");
     assert_eq!(read as u64, msg_count, "All frames should be read");
 
-    println!("P8.8d PASSED: {} concurrent frames processed without buffer leak", msg_count);
+    println!(
+        "P8.8d PASSED: {} concurrent frames processed without buffer leak",
+        msg_count
+    );
 }
 
 /// P8.8e: Nonce exhaustion boundary — nonce is u64, so 2^64 frames are
@@ -248,15 +262,22 @@ fn p8_8e_nonce_exhaustion_limit() {
     // reason about it: 2^63 frames * 2^18 bytes/frame ≈ 2^81 bytes ≈ 2.4 * 10^6 EB
     let max_ebo = (max_frames as f64) * (MAX_FRAME_SIZE as f64);
     let exabytes = max_ebo / (1024f64 * 1024f64 * 1024f64 * 1024f64 * 1024f64 * 1024f64);
-    assert!(exabytes > 1_000_000f64,
-        "Nonce space should allow >1M exabytes (got {:.1} EB)", exabytes);
+    assert!(
+        exabytes > 1_000_000f64,
+        "Nonce space should allow >1M exabytes (got {:.1} EB)",
+        exabytes
+    );
 
     // The NonceExhaustion error is only reachable after 2^64 - 1 frames
-    assert!(max_frames > 18_446_744_073_709_551_615u64 / 2,
-        "Nonce space must be > 2^63 to be practically inexhaustible");
+    assert!(
+        max_frames > 18_446_744_073_709_551_615u64 / 2,
+        "Nonce space must be > 2^63 to be practically inexhaustible"
+    );
 
-    println!("P8.8e PASSED: Nonce space = {} frames ({} exabytes of data) — practically inexhaustible",
-        max_frames, exabytes as u64);
+    println!(
+        "P8.8e PASSED: Nonce space = {} frames ({} exabytes of data) — practically inexhaustible",
+        max_frames, exabytes as u64
+    );
 }
 
 /// P8.8f: Ledger disk growth — append-only ledger grows linearly, no limit.
@@ -271,16 +292,17 @@ fn p8_8f_ledger_unbounded_growth() {
     let ledger_path = dir.join("p8_8f_ledger_growth.jsonl");
     let _ = std::fs::remove_file(&ledger_path);
 
-    let writer = LedgerWriter::open(&ledger_path, &identity)
-        .unwrap_or_else(|e| panic!("{}", e));
+    let writer = LedgerWriter::open(&ledger_path, &identity).unwrap_or_else(|e| panic!("{}", e));
 
     // Write 1000 entries and check file size grows
     let mut sizes = Vec::new();
     for i in 0..100u64 {
-        writer.append(
-            serde_json::json!({"type": "write", "data": format!("entry-{}", i)}),
-            &identity
-        ).unwrap();
+        writer
+            .append(
+                serde_json::json!({"type": "write", "data": format!("entry-{}", i)}),
+                &identity,
+            )
+            .unwrap();
 
         if i % 25 == 24 {
             let size = std::fs::metadata(&ledger_path).unwrap().len();
@@ -291,15 +313,21 @@ fn p8_8f_ledger_unbounded_growth() {
 
     // Verify linear growth (each entry is ~9.5KB due to ML-DSA-87 4627-byte signature)
     assert!(sizes.len() >= 3, "Should have at least 3 size measurements");
-    assert!(sizes[1] > sizes[0], "File size should grow after more entries");
+    assert!(
+        sizes[1] > sizes[0],
+        "File size should grow after more entries"
+    );
     assert!(sizes[2] > sizes[1], "File size should continue growing");
 
     // Each entry adds roughly the same amount
     let growth_per_entry = (sizes[2] as f64 - sizes[0] as f64) / 50.0;
     let entry_size = sizes[0] as f64 / 25.0;
-    assert!(growth_per_entry > entry_size * 0.5,
+    assert!(
+        growth_per_entry > entry_size * 0.5,
         "Growth per entry should be ~entry_size (got {:.0} vs {:.0})",
-        growth_per_entry, entry_size);
+        growth_per_entry,
+        entry_size
+    );
 
     // Key finding: no size cap exists — ledger grows unboundedly
     let file_size = std::fs::metadata(&ledger_path).unwrap().len();
@@ -326,20 +354,22 @@ async fn p8_8g_gcm_tag_boundary() {
     attacker.write_all(b"x").await.unwrap();
     attacker.shutdown().await.unwrap();
 
-    let result = tokio::time::timeout(
-        Duration::from_millis(500),
-        responder.read_frame(),
-    ).await;
+    let result = tokio::time::timeout(Duration::from_millis(500), responder.read_frame()).await;
 
     match result {
         Err(_) => {
-            println!("P8.8g PASSED: Frame at boundary (MAX_FRAME_SIZE + 16) — timed out (acceptable)");
+            println!(
+                "P8.8g PASSED: Frame at boundary (MAX_FRAME_SIZE + 16) — timed out (acceptable)"
+            );
         }
         Ok(Err(ProxyError::FrameTooLarge(_))) => {
             println!("P8.8g PASSED: Frame at boundary (MAX_FRAME_SIZE + 16) — rejected with FrameTooLarge");
         }
         Ok(Err(e)) => {
-            println!("P8.8g PASSED: Frame at boundary — error: {:?} (acceptable)", e);
+            println!(
+                "P8.8g PASSED: Frame at boundary — error: {:?} (acceptable)",
+                e
+            );
         }
         Ok(Ok(None)) => {
             println!("P8.8g PASSED: Frame at boundary — connection closed (acceptable)");

@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::identity::FaultScenarioId;
+use serde::{Deserialize, Serialize};
 use vardhan_state::authorization::ProvenanceTrail;
 use vardhan_state::id::EvidenceId;
 

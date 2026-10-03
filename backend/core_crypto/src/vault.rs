@@ -969,7 +969,6 @@ mod aws_kms_tests {
     }
 }
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // CloudKmsKeyProtector
 // ─────────────────────────────────────────────────────────────────────────────
@@ -990,15 +989,23 @@ impl CloudKmsKeyProtector {
 
         let inner: Box<dyn KeyProtector> = match provider.as_deref() {
             Some("aws") => {
-                let key_arn = std::env::var("KMS_KEY_ARN").expect("KMS_KEY_ARN must be set for AWS KMS");
-                let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+                let key_arn =
+                    std::env::var("KMS_KEY_ARN").expect("KMS_KEY_ARN must be set for AWS KMS");
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
                 let config = rt.block_on(async { aws_config::load_from_env().await });
                 let client = aws_sdk_kms::Client::new(&config);
-                Box::new(AwsRealProtector { key_arn, client, rt })
+                Box::new(AwsRealProtector {
+                    key_arn,
+                    client,
+                    rt,
+                })
             }
-            _ => {
-                Box::new(LocalDevKeyProtector::new(std::path::PathBuf::from(".local_dev_kek.bin")))
-            }
+            _ => Box::new(LocalDevKeyProtector::new(std::path::PathBuf::from(
+                ".local_dev_kek.bin",
+            ))),
         };
 
         Self { inner }
@@ -1032,21 +1039,43 @@ struct AwsRealProtector {
     rt: tokio::runtime::Runtime,
 }
 impl KeyProtector for AwsRealProtector {
-    fn provider_name(&self) -> &'static str { "aws-kms" }
+    fn provider_name(&self) -> &'static str {
+        "aws-kms"
+    }
     fn wrap(&self, plaintext: &[u8]) -> Result<Vec<u8>, VaultError> {
         let pt = aws_sdk_kms::primitives::Blob::new(plaintext.to_vec());
-        let res = self.rt.block_on(async {
-            self.client.encrypt().key_id(&self.key_arn).plaintext(pt).send().await
-        }).map_err(|e| VaultError::Kms(e.to_string()))?;
-        let blob = res.ciphertext_blob().ok_or_else(|| VaultError::Kms("No blob".into()))?;
+        let res = self
+            .rt
+            .block_on(async {
+                self.client
+                    .encrypt()
+                    .key_id(&self.key_arn)
+                    .plaintext(pt)
+                    .send()
+                    .await
+            })
+            .map_err(|e| VaultError::Kms(e.to_string()))?;
+        let blob = res
+            .ciphertext_blob()
+            .ok_or_else(|| VaultError::Kms("No blob".into()))?;
         Ok(blob.clone().into_inner())
     }
     fn unwrap(&self, ciphertext: &[u8]) -> Result<Vec<u8>, VaultError> {
         let ct = aws_sdk_kms::primitives::Blob::new(ciphertext.to_vec());
-        let res = self.rt.block_on(async {
-            self.client.decrypt().key_id(&self.key_arn).ciphertext_blob(ct).send().await
-        }).map_err(|e| VaultError::Kms(e.to_string()))?;
-        let blob = res.plaintext().ok_or_else(|| VaultError::Kms("No blob".into()))?;
+        let res = self
+            .rt
+            .block_on(async {
+                self.client
+                    .decrypt()
+                    .key_id(&self.key_arn)
+                    .ciphertext_blob(ct)
+                    .send()
+                    .await
+            })
+            .map_err(|e| VaultError::Kms(e.to_string()))?;
+        let blob = res
+            .plaintext()
+            .ok_or_else(|| VaultError::Kms("No blob".into()))?;
         Ok(blob.clone().into_inner())
     }
 }

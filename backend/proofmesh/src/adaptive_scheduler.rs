@@ -1,7 +1,7 @@
+use crate::execution_plan::ExecutionPool;
+use crate::identity::VerificationClaimId;
 use serde::{Deserialize, Serialize};
 use vardhan_state::id::{ContentHash, StateHash};
-use crate::identity::VerificationClaimId;
-use crate::execution_plan::ExecutionPool;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ScheduleReason {

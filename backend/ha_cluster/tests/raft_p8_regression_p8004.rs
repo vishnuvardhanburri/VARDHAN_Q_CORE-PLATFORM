@@ -8,7 +8,7 @@
 
 use std::path::PathBuf;
 
-use audit_ledger::{Checkpoint, CommittedCheckpoint, CheckpointWriter};
+use audit_ledger::{Checkpoint, CheckpointWriter, CommittedCheckpoint};
 use core_crypto::QuantumNodeIdentity;
 use ha_cluster::NodeId;
 
@@ -67,14 +67,16 @@ fn p8_11a_fingerprint_change_invalidates_signature() {
     {
         let canonical = cp.checkpoint.canonical_hash().unwrap();
         let sig_bytes = hex::decode(&cp.checkpoint.signature).unwrap();
-        assert!(QuantumNodeIdentity::verify_signature(&pub_key_a, &canonical, &sig_bytes),
-            "Original signature must be valid before tampering");
+        assert!(
+            QuantumNodeIdentity::verify_signature(&pub_key_a, &canonical, &sig_bytes),
+            "Original signature must be valid before tampering"
+        );
     }
 
     // Tamper with the fingerprint
     let mut tampered = cp.clone();
     let fp_b = hex::encode(QuantumNodeIdentity::hash_ledger_block(
-        &identity_b.dsa_public_key_bytes()
+        &identity_b.dsa_public_key_bytes(),
     ));
     tampered.checkpoint.signer_pub_fingerprint = fp_b;
 
@@ -85,10 +87,14 @@ fn p8_11a_fingerprint_change_invalidates_signature() {
 
     let sig_valid = QuantumNodeIdentity::verify_signature(&pub_key_a, &canonical, &sig_bytes);
 
-    assert!(!sig_valid,
-        "P8-004 FIX: Changing signer_pub_fingerprint MUST invalidate the signature");
+    assert!(
+        !sig_valid,
+        "P8-004 FIX: Changing signer_pub_fingerprint MUST invalidate the signature"
+    );
 
-    println!("P8.11a PASSED: signer_pub_fingerprint is now cryptographically bound to the signature");
+    println!(
+        "P8.11a PASSED: signer_pub_fingerprint is now cryptographically bound to the signature"
+    );
 }
 
 /// P8.11b: CheckpointWriter rejects a checkpoint with tampered fingerprint.
@@ -105,8 +111,7 @@ fn p8_11b_checkpoint_chain_breaks_on_fingerprint_tamper() {
     let _ = std::fs::remove_file(&cp_path);
 
     // Write a valid checkpoint
-    let writer = CheckpointWriter::open(&cp_path)
-        .unwrap_or_else(|e| panic!("{}", e));
+    let writer = CheckpointWriter::open(&cp_path).unwrap_or_else(|e| panic!("{}", e));
 
     let cp1 = create_valid_checkpoint(&identity, 0, &"0".repeat(64));
     writer.append(&cp1).unwrap_or_else(|e| panic!("{}", e));
@@ -114,7 +119,7 @@ fn p8_11b_checkpoint_chain_breaks_on_fingerprint_tamper() {
     // Now tamper: create a 2nd checkpoint with a wrong fingerprint,
     // re-signed with identity (so signature is valid for the tampered content)
     let fp_b = hex::encode(QuantumNodeIdentity::hash_ledger_block(
-        &identity.dsa_public_key_bytes()
+        &identity.dsa_public_key_bytes(),
     ));
 
     let cp1_hash = cp1.checkpoint.checkpoint_hash().unwrap();
@@ -129,7 +134,7 @@ fn p8_11b_checkpoint_chain_breaks_on_fingerprint_tamper() {
     // Use a different fingerprint (simulating a forged identity)
     let fake_identity = QuantumNodeIdentity::generate_node_identity().unwrap();
     tampered_cp2.checkpoint.signer_pub_fingerprint = hex::encode(
-        QuantumNodeIdentity::hash_ledger_block(&fake_identity.dsa_public_key_bytes())
+        QuantumNodeIdentity::hash_ledger_block(&fake_identity.dsa_public_key_bytes()),
     );
 
     // After fix: the signature was over the ORIGINAL canonical bytes (with correct fp).
@@ -140,13 +145,17 @@ fn p8_11b_checkpoint_chain_breaks_on_fingerprint_tamper() {
     let sig_bytes = hex::decode(&tampered_cp2.checkpoint.signature).unwrap();
     let sig_valid = QuantumNodeIdentity::verify_signature(&pub_key, &canonical, &sig_bytes);
 
-    assert!(!sig_valid,
-        "P8-004 fix: tampered fingerprint must invalidate signature verification");
+    assert!(
+        !sig_valid,
+        "P8-004 fix: tampered fingerprint must invalidate signature verification"
+    );
 
     // The checkpoint hash also changes → chain linkage breaks
     let tampered_hash = tampered_cp2.checkpoint.checkpoint_hash().unwrap();
-    assert_ne!(tampered_hash, cp2_hash,
-        "Tampered fingerprint must change the checkpoint hash (breaks chain linkage)");
+    assert_ne!(
+        tampered_hash, cp2_hash,
+        "Tampered fingerprint must change the checkpoint hash (breaks chain linkage)"
+    );
 
     println!("P8.11b PASSED: Checkpoint chain breaks on fingerprint tamper (P8-004 fixed)");
 
@@ -168,13 +177,17 @@ fn p8_11c_valid_checkpoint_still_verifies() {
     let sig_bytes = hex::decode(&cp.checkpoint.signature).unwrap();
     let sig_valid = QuantumNodeIdentity::verify_signature(&pub_key, &canonical, &sig_bytes);
 
-    assert!(sig_valid,
-        "Valid checkpoint with correct fingerprint must still pass verification");
+    assert!(
+        sig_valid,
+        "Valid checkpoint with correct fingerprint must still pass verification"
+    );
 
     // Verify the fingerprint matches
     let expected_fp = hex::encode(QuantumNodeIdentity::hash_ledger_block(&pub_key));
-    assert_eq!(cp.checkpoint.signer_pub_fingerprint, expected_fp,
-        "Fingerprint should match the signing key");
+    assert_eq!(
+        cp.checkpoint.signer_pub_fingerprint, expected_fp,
+        "Fingerprint should match the signing key"
+    );
 
     println!("P8.11c PASSED: Valid checkpoints with correct fingerprint still verify");
 }
@@ -187,7 +200,7 @@ fn p8_11c_valid_checkpoint_still_verifies() {
 fn p8_11d_canonical_bytes_include_fingerprint() {
     let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
     let fp = hex::encode(QuantumNodeIdentity::hash_ledger_block(
-        &identity.dsa_public_key_bytes()
+        &identity.dsa_public_key_bytes(),
     ));
 
     let cp = create_valid_checkpoint(&identity, 0, &"0".repeat(64));
@@ -196,12 +209,13 @@ fn p8_11d_canonical_bytes_include_fingerprint() {
     let bytes2 = cp.checkpoint.canonical_bytes().unwrap();
 
     // Determinism
-    assert_eq!(bytes1, bytes2,
-        "canonical_bytes must be deterministic");
+    assert_eq!(bytes1, bytes2, "canonical_bytes must be deterministic");
 
     // The fingerprint string must appear in the canonical bytes
-    assert!(bytes1.windows(fp.len()).any(|w| w == fp.as_bytes()),
-        "signer_pub_fingerprint must be present in canonical_bytes");
+    assert!(
+        bytes1.windows(fp.len()).any(|w| w == fp.as_bytes()),
+        "signer_pub_fingerprint must be present in canonical_bytes"
+    );
 
     println!("P8.11d PASSED: canonical_bytes is deterministic and includes signer_pub_fingerprint");
 }

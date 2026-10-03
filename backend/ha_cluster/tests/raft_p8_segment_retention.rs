@@ -8,18 +8,19 @@
 use std::path::PathBuf;
 
 use audit_ledger::{
-    merkle_root_across_segments, scan_segmented_ledger, DEFAULT_SEGMENT_MAX_BYTES,
-    RetentionAuthorization, SegmentedLedgerWriter,
-    SegmentManifest,
+    merkle_root_across_segments, scan_segmented_ledger, RetentionAuthorization, SegmentManifest,
+    SegmentedLedgerWriter, DEFAULT_SEGMENT_MAX_BYTES,
 };
-use core_crypto::QuantumNodeIdentity;
 use core_crypto::vault::{KeyProtector, VaultError};
+use core_crypto::QuantumNodeIdentity;
 
 /// Mock protector for testing.
 struct MockProtector;
 
 impl KeyProtector for MockProtector {
-    fn provider_name(&self) -> &'static str { "mock" }
+    fn provider_name(&self) -> &'static str {
+        "mock"
+    }
     fn wrap(&self, plaintext: &[u8]) -> Result<Vec<u8>, VaultError> {
         let mut out = vec![0u8];
         out.extend_from_slice(plaintext);
@@ -39,7 +40,12 @@ fn tmp_dir(name: &str) -> PathBuf {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    p.push(format!("p8_12_{}_{}_{}", name, nanos % 1000000000, std::process::id()));
+    p.push(format!(
+        "p8_12_{}_{}_{}",
+        name,
+        nanos % 1000000000,
+        std::process::id()
+    ));
     std::fs::create_dir_all(&p).unwrap();
     p
 }
@@ -65,12 +71,18 @@ fn p8_12a_segment_rotation_at_max_entries() {
 
     // Use very small limit: 3 entries per segment
     let writer = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster",
-        3, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        3,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     for i in 0..10u64 {
-        writer.append(serde_json::json!({"i": i}), &identity).unwrap();
+        writer
+            .append(serde_json::json!({"i": i}), &identity)
+            .unwrap();
     }
 
     let manifest = writer.manifest();
@@ -78,19 +90,28 @@ fn p8_12a_segment_rotation_at_max_entries() {
     // After 3 entries in segment 0, it rotates → segment 1
     // After 3 entries in segment 1, it rotates → segment 2
     // After 3 entries in segment 2, it rotates → segment 3 (active, 1 entry)
-    assert!(manifest.segments.len() >= 3,
-        "Expected at least 3 segments, got {}", manifest.segments.len());
+    assert!(
+        manifest.segments.len() >= 3,
+        "Expected at least 3 segments, got {}",
+        manifest.segments.len()
+    );
 
     // Total entries across all non-deleted segments should be 10
     assert_eq!(manifest.total_entries(), 10);
 
     // Verify all segment files exist
     for seg in &manifest.segments {
-        assert!(dir.join(&seg.file_name).exists(),
-            "Segment file {} must exist", seg.file_name);
+        assert!(
+            dir.join(&seg.file_name).exists(),
+            "Segment file {} must exist",
+            seg.file_name
+        );
     }
 
-    println!("P8.12a PASSED: {} segments for 10 entries at 3 per segment", manifest.segments.len());
+    println!(
+        "P8.12a PASSED: {} segments for 10 entries at 3 per segment",
+        manifest.segments.len()
+    );
 }
 
 /// P8.12b: Chain linkage verified across multiple segments.
@@ -100,11 +121,18 @@ fn p8_12b_multi_segment_chain_linkage() {
     let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
 
     let writer = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 3, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        3,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     for i in 0..7u64 {
-        writer.append(serde_json::json!({"i": i}), &identity).unwrap();
+        writer
+            .append(serde_json::json!({"i": i}), &identity)
+            .unwrap();
     }
 
     // Verify cross-segment chain
@@ -124,11 +152,18 @@ fn p8_12c_tampering_detected_across_segments() {
     let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
 
     let writer = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 3, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        3,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     for i in 0..7u64 {
-        writer.append(serde_json::json!({"i": i}), &identity).unwrap();
+        writer
+            .append(serde_json::json!({"i": i}), &identity)
+            .unwrap();
     }
 
     // Tamper with the first segment
@@ -157,24 +192,40 @@ fn p8_12d_restart_recovery_resumes_correctly() {
 
     {
         let writer = SegmentedLedgerWriter::with_limits(
-            &dir, &identity, "test-cluster", 5, DEFAULT_SEGMENT_MAX_BYTES
-        ).unwrap();
+            &dir,
+            &identity,
+            "test-cluster",
+            5,
+            DEFAULT_SEGMENT_MAX_BYTES,
+        )
+        .unwrap();
         for i in 0..8u64 {
-            writer.append(serde_json::json!({"i": i}), &identity).unwrap();
+            writer
+                .append(serde_json::json!({"i": i}), &identity)
+                .unwrap();
         }
     }
 
     // Simulate crash/restart: create a new writer from the same dir
     let writer2 = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 5, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        5,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     let (total, _, _) = writer2.chain_tip();
-    assert_eq!(total, 8,
-        "After restart, should resume at seq=8 (8 entries already written)");
+    assert_eq!(
+        total, 8,
+        "After restart, should resume at seq=8 (8 entries already written)"
+    );
 
     // Continue appending — seq should continue from 8
-    let entry = writer2.append(serde_json::json!({"i": 8}), &identity).unwrap();
+    let entry = writer2
+        .append(serde_json::json!({"i": 8}), &identity)
+        .unwrap();
     assert_eq!(entry.seq, 8, "New entry should start at seq=8");
 
     println!("P8.12d PASSED: Restart recovery resumes at seq=8");
@@ -187,18 +238,27 @@ fn p8_12e_cross_segment_merkle_root() {
     let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
 
     let writer = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 4, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        4,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     for i in 0..10u64 {
-        writer.append(serde_json::json!({"i": i}), &identity).unwrap();
+        writer
+            .append(serde_json::json!({"i": i}), &identity)
+            .unwrap();
     }
 
     // Compute merkle root across all segments
     let root = merkle_root_across_segments(&dir).unwrap();
     // Should be a non-zero 32-byte hash
-    assert!(root.iter().any(|&b| b != 0),
-        "Merkle root across segments must be non-trivial");
+    assert!(
+        root.iter().any(|&b| b != 0),
+        "Merkle root across segments must be non-trivial"
+    );
 
     // Corrupt a segment → root should change
     let manifest = writer.manifest();
@@ -212,8 +272,10 @@ fn p8_12e_cross_segment_merkle_root() {
 
     // Root should differ after tampering
     let root_tampered = merkle_root_across_segments(&dir).unwrap();
-    assert_ne!(root, root_tampered,
-        "Merkle root must change when any segment is tampered");
+    assert_ne!(
+        root, root_tampered,
+        "Merkle root must change when any segment is tampered"
+    );
 
     println!("P8.12e PASSED: Cross-segment Merkle root computed and tamper-evident");
 }
@@ -244,7 +306,11 @@ fn p8_12f_disk_full_handling() {
 
     // This should handle disk-full gracefully
     let result = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 3, DEFAULT_SEGMENT_MAX_BYTES
+        &dir,
+        &identity,
+        "test-cluster",
+        3,
+        DEFAULT_SEGMENT_MAX_BYTES,
     );
 
     // On some systems, the file is openable in append mode even if read-only
@@ -253,8 +319,11 @@ fn p8_12f_disk_full_handling() {
     if let Err(e) = result {
         let err_str = e.to_string();
         // Must be an IO error, not silent corruption
-        assert!(err_str.contains("IO") || err_str.contains("Permission") || err_str.contains("open"),
-            "Disk-full must produce a clear error, got: {}", err_str);
+        assert!(
+            err_str.contains("IO") || err_str.contains("Permission") || err_str.contains("open"),
+            "Disk-full must produce a clear error, got: {}",
+            err_str
+        );
         println!("P8.12f PASSED: Disk-full produces clear error (not silent corruption)");
     } else {
         // If it succeeded (some systems allow append to read-only files),
@@ -266,8 +335,13 @@ fn p8_12f_disk_full_handling() {
                 Ok(_) => continue,
                 Err(e) => {
                     let err_str = e.to_string();
-                    assert!(err_str.contains("IO") || err_str.contains("Disk") || err_str.contains("Serialization"),
-                        "Append on full disk must produce clear error, got: {}", err_str);
+                    assert!(
+                        err_str.contains("IO")
+                            || err_str.contains("Disk")
+                            || err_str.contains("Serialization"),
+                        "Append on full disk must produce clear error, got: {}",
+                        err_str
+                    );
                     println!("P8.12f PASSED: Disk-full during append produces clear error");
                     return;
                 }
@@ -293,11 +367,18 @@ fn p8_12g_authorized_retention_deletion() {
     let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
 
     let writer = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 3, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        3,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     for i in 0..10u64 {
-        writer.append(serde_json::json!({"i": i}), &identity).unwrap();
+        writer
+            .append(serde_json::json!({"i": i}), &identity)
+            .unwrap();
     }
 
     let manifest = writer.manifest();
@@ -313,19 +394,26 @@ fn p8_12g_authorized_retention_deletion() {
     writer.authorize_deletion(first_idx, &auth()).unwrap();
 
     let manifest_after = writer.manifest();
-    let deleted_seg = manifest_after.segments.iter()
+    let deleted_seg = manifest_after
+        .segments
+        .iter()
         .find(|s| s.segment_index == first_idx)
         .expect("Segment must still be in manifest");
     assert!(deleted_seg.deleted, "Segment must be marked deleted");
 
     // Total entries should now exclude the deleted segment
-    assert_eq!(manifest_after.total_entries(), 10 - (last_seq - 0),
-        "Total entries minus deleted segment's entries");
+    assert_eq!(
+        manifest_after.total_entries(),
+        10 - (last_seq - 0),
+        "Total entries minus deleted segment's entries"
+    );
 
     // The file should be removed
     let deleted_file = dir.join(&manifest.segments[0].file_name);
-    assert!(!deleted_file.exists(),
-        "Deleted segment file must be removed from disk");
+    assert!(
+        !deleted_file.exists(),
+        "Deleted segment file must be removed from disk"
+    );
 
     println!("P8.12g PASSED: Authorized retention deletion removes segment file");
 }
@@ -337,11 +425,18 @@ fn p8_12h_unauthorized_deletion_refused() {
     let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
 
     let writer = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 3, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        3,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     for i in 0..10u64 {
-        writer.append(serde_json::json!({"i": i }), &identity).unwrap();
+        writer
+            .append(serde_json::json!({"i": i }), &identity)
+            .unwrap();
     }
 
     let manifest = writer.manifest();
@@ -359,13 +454,14 @@ fn p8_12h_unauthorized_deletion_refused() {
     };
 
     let result = writer.authorize_deletion(first_idx, &expired_auth);
-    assert!(result.is_err(),
-        "Expired authorization must be refused");
+    assert!(result.is_err(), "Expired authorization must be refused");
 
     // Verify the segment file still exists
     let file = dir.join(&manifest.segments[0].file_name);
-    assert!(file.exists(),
-        "Segment file must still exist after unauthorized deletion attempt");
+    assert!(
+        file.exists(),
+        "Segment file must still exist after unauthorized deletion attempt"
+    );
 
     println!("P8.12h PASSED: Unauthorized deletion refused, evidence preserved");
 }
@@ -377,21 +473,29 @@ fn p8_12i_unarchived_segment_not_deletable() {
     let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
 
     let writer = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 3, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        3,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     for i in 0..5u64 {
-        writer.append(serde_json::json!({"i": i }), &identity).unwrap();
+        writer
+            .append(serde_json::json!({"i": i }), &identity)
+            .unwrap();
     }
 
     let manifest = writer.manifest();
     let first_idx = manifest.segments[0].segment_index;
 
     let result = writer.authorize_deletion(first_idx, &auth());
-    assert!(result.is_err(),
-        "Unarchived segment must not be deletable");
-    assert!(result.unwrap_err().to_string().contains("archived"),
-        "Error must mention archiving requirement");
+    assert!(result.is_err(), "Unarchived segment must not be deletable");
+    assert!(
+        result.unwrap_err().to_string().contains("archived"),
+        "Error must mention archiving requirement"
+    );
 
     println!("P8.12i PASSED: Unarchived segment cannot be deleted");
 }
@@ -403,24 +507,38 @@ fn p8_12j_crash_during_rotation_recovery() {
     let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
 
     let writer = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 3, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        3,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     // Write enough to trigger multiple rotations
     for i in 0..7u64 {
-        writer.append(serde_json::json!({"i": i}), &identity).unwrap();
+        writer
+            .append(serde_json::json!({"i": i}), &identity)
+            .unwrap();
     }
 
     // Simulate crash: the manifest is written atomically (temp + rename),
     // so it's always consistent. After "crash", re-open:
     let writer2 = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 3, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        3,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     // Should recover total_entries correctly
     let (total, _, _) = writer2.chain_tip();
-    assert_eq!(total, 7,
-        "After crash recovery, total_entries must be correct (7)");
+    assert_eq!(
+        total, 7,
+        "After crash recovery, total_entries must be correct (7)"
+    );
 
     // Verify chain integrity
     writer2.verify_all_segments(&dir).unwrap();
@@ -435,17 +553,26 @@ fn p8_12k_segment_boundary_with_checkpoint() {
     let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
 
     let writer = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 4, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        4,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     for i in 0..8u64 {
-        writer.append(serde_json::json!({"i": i }), &identity).unwrap();
+        writer
+            .append(serde_json::json!({"i": i }), &identity)
+            .unwrap();
     }
 
     // A checkpoint at seq=8 covers all entries in segment 0 (0-3) and segment 1 (4-7)
     let manifest = writer.manifest();
-    assert!(manifest.segments.len() >= 2,
-        "Expected at least 2 segments for 8 entries at 4 per segment");
+    assert!(
+        manifest.segments.len() >= 2,
+        "Expected at least 2 segments for 8 entries at 4 per segment"
+    );
 
     // Archive segment 0 with checkpoint covering seq=8
     let first_idx = manifest.segments[0].segment_index;
@@ -453,8 +580,10 @@ fn p8_12k_segment_boundary_with_checkpoint() {
     writer.archive_segment(first_idx, 8).unwrap();
 
     let manifest_after = writer.manifest();
-    assert!(manifest_after.segments[0].archived,
-        "Segment 0 must be archived after checkpoint covers its range");
+    assert!(
+        manifest_after.segments[0].archived,
+        "Segment 0 must be archived after checkpoint covers its range"
+    );
 
     println!("P8.12k PASSED: Segment boundary aligns with checkpoint covering");
 }
@@ -466,11 +595,18 @@ fn p8_12l_no_silent_evidence_loss() {
     let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
 
     let writer = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 3, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        3,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     for i in 0..9u64 {
-        writer.append(serde_json::json!({"i": i }), &identity).unwrap();
+        writer
+            .append(serde_json::json!({"i": i }), &identity)
+            .unwrap();
     }
 
     let manifest = writer.manifest();
@@ -482,7 +618,9 @@ fn p8_12l_no_silent_evidence_loss() {
     for seg in &manifest.segments {
         if seg.last_seq <= 5 && !seg.deleted {
             writer.archive_segment(seg.segment_index, 5).unwrap();
-            writer.authorize_deletion(seg.segment_index, &auth()).unwrap();
+            writer
+                .authorize_deletion(seg.segment_index, &auth())
+                .unwrap();
         }
     }
 
@@ -490,14 +628,19 @@ fn p8_12l_no_silent_evidence_loss() {
     let total_after = manifest_after.total_entries();
 
     // Entries 5-8 should still be present (5 entries in remaining segments)
-    assert!(total_after >= 5,
-        "Must not silently lose checkpointed evidence: {} entries remain (expected >=5)", total_after);
+    assert!(
+        total_after >= 5,
+        "Must not silently lose checkpointed evidence: {} entries remain (expected >=5)",
+        total_after
+    );
 
     // Verify remaining segments still have chain integrity
     writer.verify_all_segments(&dir).unwrap();
 
-    println!("P8.12l PASSED: No silent evidence loss after retention deletion ({}/{} entries preserved)",
-        total_after, total_before);
+    println!(
+        "P8.12l PASSED: No silent evidence loss after retention deletion ({}/{} entries preserved)",
+        total_after, total_before
+    );
 }
 
 /// P8.12m: pq_verify-style verification across multiple segments.
@@ -507,22 +650,36 @@ fn p8_12m_pq_verify_across_segments() {
     let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
 
     let writer = SegmentedLedgerWriter::with_limits(
-        &dir, &identity, "test-cluster", 4, DEFAULT_SEGMENT_MAX_BYTES
-    ).unwrap();
+        &dir,
+        &identity,
+        "test-cluster",
+        4,
+        DEFAULT_SEGMENT_MAX_BYTES,
+    )
+    .unwrap();
 
     for i in 0..12u64 {
-        writer.append(serde_json::json!({"i": i }), &identity).unwrap();
+        writer
+            .append(serde_json::json!({"i": i }), &identity)
+            .unwrap();
     }
 
     // pq_verify-style: scan all segments, verify chain, reconstruct merkle root
     let total_entries = scan_segmented_ledger(&dir).unwrap();
-    assert_eq!(total_entries, 12,
-        "Multi-segment scan must recover all 12 entries");
+    assert_eq!(
+        total_entries, 12,
+        "Multi-segment scan must recover all 12 entries"
+    );
 
     let merkle = merkle_root_across_segments(&dir).unwrap();
-    assert!(merkle.iter().any(|&b| b != 0),
-        "Merkle root must be non-trivial");
+    assert!(
+        merkle.iter().any(|&b| b != 0),
+        "Merkle root must be non-trivial"
+    );
 
-    println!("P8.12m PASSED: pq_verify-style verification across {} segments with {} entries",
-        writer.manifest().segments.len(), total_entries);
+    println!(
+        "P8.12m PASSED: pq_verify-style verification across {} segments with {} entries",
+        writer.manifest().segments.len(),
+        total_entries
+    );
 }

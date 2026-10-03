@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 /// Q-Core Policy → Authority → Decision Runtime
 ///
 /// This module implements the real Policy Registry and Authority Evaluator
@@ -8,9 +9,7 @@
 /// validation passed. Explicit policy evaluation must produce ALLOW.
 ///
 /// FAIL-CLOSED: Any ambiguity in tenant, actor, policy, or operation → DENY.
-
 use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 
 // ─── Policy Registry ─────────────────────────────────────────────────────────
 
@@ -113,10 +112,23 @@ impl AuthDecision {
     /// Returns the reason string for both ALLOW and DENY.
     pub fn reason(&self) -> &str {
         match self {
-            AuthDecision::Allow { policy_id, policy_version, actor_workload_id, tenant_id, action, .. } => {
+            AuthDecision::Allow {
+                policy_id,
+                policy_version,
+                actor_workload_id,
+                tenant_id,
+                action,
+                ..
+            } => {
                 // Note: This allocates. Callers that need a non-allocating check use is_allow().
                 // We use a thread-local static to avoid leaking here.
-                let _ = (policy_id, policy_version, actor_workload_id, tenant_id, action);
+                let _ = (
+                    policy_id,
+                    policy_version,
+                    actor_workload_id,
+                    tenant_id,
+                    action,
+                );
                 "ALLOW"
             }
             AuthDecision::Deny { reason, .. } => reason.as_str(),
@@ -339,8 +351,19 @@ mod tests {
     #[test]
     fn t1_valid_request_produces_allow() {
         let decision = evaluator().evaluate(&valid_ctx());
-        assert!(decision.is_allow(), "Expected ALLOW but got: {:?}", decision);
-        if let AuthDecision::Allow { policy_id, policy_version, tenant_id, action, .. } = &decision {
+        assert!(
+            decision.is_allow(),
+            "Expected ALLOW but got: {:?}",
+            decision
+        );
+        if let AuthDecision::Allow {
+            policy_id,
+            policy_version,
+            tenant_id,
+            action,
+            ..
+        } = &decision
+        {
             assert_eq!(policy_id, "VARDHAN_CORE_INTELLIGENCE_POLICY_V1");
             assert_eq!(policy_version, "1.0");
             assert_eq!(tenant_id, "org-vardhan-intelligence");
@@ -422,7 +445,10 @@ mod tests {
         ctx.declared_policy_version = "2.0".to_string(); // only "1.0" is valid
         let decision = evaluator().evaluate(&ctx);
         assert!(!decision.is_allow());
-        assert_eq!(decision.rejection_code(), Some("DENY_POLICY_VERSION_MISMATCH"));
+        assert_eq!(
+            decision.rejection_code(),
+            Some("DENY_POLICY_VERSION_MISMATCH")
+        );
     }
 
     /// T7b: "latest" policy version fallback → DENY (no silent upgrade)
@@ -432,7 +458,10 @@ mod tests {
         ctx.declared_policy_version = "latest".to_string();
         let decision = evaluator().evaluate(&ctx);
         assert!(!decision.is_allow());
-        assert_eq!(decision.rejection_code(), Some("DENY_POLICY_VERSION_MISMATCH"));
+        assert_eq!(
+            decision.rejection_code(),
+            Some("DENY_POLICY_VERSION_MISMATCH")
+        );
     }
 
     /// T8: Missing actor_workload_id → DENY
@@ -465,14 +494,17 @@ mod tests {
         assert_eq!(decision.rejection_code(), Some("DENY_ACTION_NOT_GOVERNED"));
     }
 
-    /// T11: SEAL_VERIFIED_FINDING with "SEAL_VERIFIED_FINDING" action but 
+    /// T11: SEAL_VERIFIED_FINDING with "SEAL_VERIFIED_FINDING" action but
     /// policy has wrong version → cannot bypass gate after validation
     #[test]
     fn t11_bypass_attempt_via_wrong_version_is_denied() {
         let mut ctx = valid_ctx();
         ctx.declared_policy_version = "0.0".to_string();
         let decision = evaluator().evaluate(&ctx);
-        assert!(!decision.is_allow(), "Policy version bypass must not produce ALLOW");
+        assert!(
+            !decision.is_allow(),
+            "Policy version bypass must not produce ALLOW"
+        );
     }
 
     /// T14: No hidden default allow — empty context is fully denied
@@ -486,6 +518,9 @@ mod tests {
             action_type: String::new(),
         };
         let decision = evaluator().evaluate(&ctx);
-        assert!(!decision.is_allow(), "Empty context must never produce ALLOW");
+        assert!(
+            !decision.is_allow(),
+            "Empty context must never produce ALLOW"
+        );
     }
 }

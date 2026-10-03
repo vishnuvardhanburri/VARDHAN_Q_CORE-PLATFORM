@@ -17,13 +17,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use audit_ledger::{
-    Checkpoint, CommittedCheckpoint, LedgerEntry, LedgerWriter,
-    merkle_root_from_ledger_file,
+    merkle_root_from_ledger_file, Checkpoint, CommittedCheckpoint, LedgerEntry, LedgerWriter,
 };
 use core_crypto::QuantumNodeIdentity;
-use ha_cluster::{RaftConfig, RaftNode, NodeId};
 use ha_cluster::raft::{AppendEntriesArgs, RaftRpcClient};
 use ha_cluster::raft::{AppendEntriesReply, RequestVoteArgs, RequestVoteReply};
+use ha_cluster::{NodeId, RaftConfig, RaftNode};
 
 fn test_config() -> RaftConfig {
     RaftConfig {
@@ -31,7 +30,7 @@ fn test_config() -> RaftConfig {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     }
 }
 
@@ -79,7 +78,8 @@ impl RaftRpcClient for MockRpcClientNoop {
         &self,
         _to: NodeId,
         _args: RequestVoteArgs,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<RequestVoteReply, String>> + Send>> {
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<RequestVoteReply, String>> + Send>>
+    {
         Box::pin(async move { Err("mock: not connected".to_string()) })
     }
 
@@ -87,7 +87,9 @@ impl RaftRpcClient for MockRpcClientNoop {
         &self,
         _to: NodeId,
         _args: AppendEntriesArgs,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<AppendEntriesReply, String>> + Send>> {
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<AppendEntriesReply, String>> + Send>,
+    > {
         Box::pin(async move { Err("mock: not connected".to_string()) })
     }
 }
@@ -134,8 +136,7 @@ fn p8_5b_torn_ledger_write() {
 
     // Write 3 valid entries
     let _ = std::fs::remove_file(&ledger_path);
-    let writer = LedgerWriter::open(&ledger_path, &identity)
-        .unwrap_or_else(|e| panic!("{}", e));
+    let writer = LedgerWriter::open(&ledger_path, &identity).unwrap_or_else(|e| panic!("{}", e));
     for i in 0..3u64 {
         let event = serde_json::json!({"type": "write", "data": i});
         writer.append(event, &identity).unwrap();
@@ -152,17 +153,20 @@ fn p8_5b_torn_ledger_write() {
 
     // Reopen — scan_existing_ledger should detect the torn write and truncate
     // to the last valid line
-    let writer2 = LedgerWriter::open(&ledger_path, &identity)
-        .unwrap_or_else(|e| panic!("{}", e));
+    let writer2 = LedgerWriter::open(&ledger_path, &identity).unwrap_or_else(|e| panic!("{}", e));
     let (next_seq, _) = writer2.chain_tip().unwrap();
 
-    assert_eq!(next_seq, 3,
-        "After torn write, ledger should resume at seq=3 (3 valid entries + truncated 4th)");
+    assert_eq!(
+        next_seq, 3,
+        "After torn write, ledger should resume at seq=3 (3 valid entries + truncated 4th)"
+    );
 
     // Verify chain integrity — merkle root should still be computable
     let merkle = merkle_root_from_ledger_file(&ledger_path).unwrap();
-    assert!(merkle.iter().any(|&b| b != 0),
-        "Merkle root should be non-zero for valid entries");
+    assert!(
+        merkle.iter().any(|&b| b != 0),
+        "Merkle root should be non-zero for valid entries"
+    );
 
     println!("P8.5b PASSED: Torn ledger write → truncated to last valid entry, chain intact");
 }
@@ -179,8 +183,7 @@ fn p8_5c_torn_checkpoint_write() {
 
     // Write 2 valid checkpoints using CheckpointWriter
     let _ = std::fs::remove_file(&cp_path);
-    let writer = audit_ledger::CheckpointWriter::open(&cp_path)
-        .unwrap_or_else(|e| panic!("{}", e));
+    let writer = audit_ledger::CheckpointWriter::open(&cp_path).unwrap_or_else(|e| panic!("{}", e));
 
     let cp1 = create_valid_checkpoint(&identity, 0, &"0".repeat(64));
     writer.append(&cp1).unwrap_or_else(|e| panic!("{}", e));
@@ -207,10 +210,14 @@ fn p8_5c_torn_checkpoint_write() {
     };
     assert!(
         err.contains("JSON parse error") || err.contains("Expected") || err.contains("line"),
-        "Error should indicate JSON/parse failure, got: {}", err
+        "Error should indicate JSON/parse failure, got: {}",
+        err
     );
 
-    println!("P8.5c PASSED: Torn checkpoint write → detected on reopen (error: {})", err);
+    println!(
+        "P8.5c PASSED: Torn checkpoint write → detected on reopen (error: {})",
+        err
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -232,10 +239,13 @@ fn p8_6a_corrupted_ledger_entry() {
 
     // Write 2 valid entries
     let _ = std::fs::remove_file(&ledger_path);
-    let writer = LedgerWriter::open(&ledger_path, &identity)
-        .unwrap_or_else(|e| panic!("{}", e));
-    writer.append(serde_json::json!({"type": "write", "data": 1}), &identity).unwrap();
-    writer.append(serde_json::json!({"type": "write", "data": 2}), &identity).unwrap();
+    let writer = LedgerWriter::open(&ledger_path, &identity).unwrap_or_else(|e| panic!("{}", e));
+    writer
+        .append(serde_json::json!({"type": "write", "data": 1}), &identity)
+        .unwrap();
+    writer
+        .append(serde_json::json!({"type": "write", "data": 2}), &identity)
+        .unwrap();
     drop(writer);
 
     // Corrupt the first entry's event data (modify the JSON in-place)
@@ -265,7 +275,8 @@ fn p8_6a_corrupted_ledger_entry() {
     };
     assert!(
         err.contains("chain broken") || err.contains("prev_hash"),
-        "Error should indicate chain break, got: {}", err
+        "Error should indicate chain break, got: {}",
+        err
     );
 
     println!("P8.6a PASSED: Corrupted ledger entry → chain break detected on reopen");
@@ -300,11 +311,7 @@ fn p8_6b_corrupted_checkpoint_merkle_root() {
     let canonical = cp_reloaded.checkpoint.canonical_hash().unwrap();
     let sig_bytes = hex::decode(&cp_reloaded.checkpoint.signature).unwrap();
 
-    let sig_valid = QuantumNodeIdentity::verify_signature(
-        &pub_key_bytes,
-        &canonical,
-        &sig_bytes,
-    );
+    let sig_valid = QuantumNodeIdentity::verify_signature(&pub_key_bytes, &canonical, &sig_bytes);
 
     assert!(!sig_valid,
         "Corrupted merkle_root MUST fail signature verification — signature is over canonical hash which includes merkle_root");
@@ -328,7 +335,9 @@ fn p8_6c_corrupted_checkpoint_signature() {
     let mut cp_struct: CommittedCheckpoint = serde_json::from_str(&cp_json).unwrap();
     // Flip bytes in the signature
     let mut sig_bytes = hex::decode(&cp_struct.checkpoint.signature).unwrap();
-    if !sig_bytes.is_empty() { sig_bytes[0] ^= 0xFF; }
+    if !sig_bytes.is_empty() {
+        sig_bytes[0] ^= 0xFF;
+    }
     cp_struct.checkpoint.signature = hex::encode(sig_bytes);
 
     let corrupted_json = serde_json::to_string(&cp_struct).unwrap();
@@ -339,14 +348,10 @@ fn p8_6c_corrupted_checkpoint_signature() {
     let canonical = cp_reloaded.checkpoint.canonical_hash().unwrap();
     let sig_bytes_corrupt = hex::decode(&cp_reloaded.checkpoint.signature).unwrap();
 
-    let sig_valid = QuantumNodeIdentity::verify_signature(
-        &pub_key_bytes,
-        &canonical,
-        &sig_bytes_corrupt,
-    );
+    let sig_valid =
+        QuantumNodeIdentity::verify_signature(&pub_key_bytes, &canonical, &sig_bytes_corrupt);
 
-    assert!(!sig_valid,
-        "Corrupted signature MUST fail verification");
+    assert!(!sig_valid, "Corrupted signature MUST fail verification");
 
     println!("P8.6c PASSED: Corrupted signature → verification fails");
 }
@@ -376,8 +381,7 @@ fn p8_6d_corrupted_checkpoint_chain() {
 
     // Now corrupt cp2's previous_checkpoint_hash (break the chain)
     let mut cp2_struct: CommittedCheckpoint = serde_json::from_str(&cp2_json).unwrap();
-    cp2_struct.checkpoint.previous_checkpoint_hash =
-        "DEADBEEF".repeat(8); // Wrong — doesn't match cp1's hash
+    cp2_struct.checkpoint.previous_checkpoint_hash = "DEADBEEF".repeat(8); // Wrong — doesn't match cp1's hash
 
     // Re-sign cp2 with the wrong prev_hash
     let canonical = cp2_struct.checkpoint.canonical_hash().unwrap();
@@ -396,7 +400,8 @@ fn p8_6d_corrupted_checkpoint_chain() {
     };
     assert!(
         err.contains("chain broken") || err.contains("prev_checkpoint_hash"),
-        "Error should indicate chain break, got: {}", err
+        "Error should indicate chain break, got: {}",
+        err
     );
 
     println!("P8.6d PASSED: Corrupted checkpoint chain → detected by CheckpointWriter::open");
@@ -435,13 +440,14 @@ fn p8_6f_corrupted_ledger_mid_chain() {
     let ledger_path = dir.join("p8_6f_corrupt_mid_chain.jsonl");
 
     let _ = std::fs::remove_file(&ledger_path);
-    let writer = LedgerWriter::open(&ledger_path, &identity)
-        .unwrap_or_else(|e| panic!("{}", e));
+    let writer = LedgerWriter::open(&ledger_path, &identity).unwrap_or_else(|e| panic!("{}", e));
     for i in 0..5u64 {
-        writer.append(
-            serde_json::json!({"seq": i, "data": format!("entry-{}", i)}),
-            &identity,
-        ).unwrap();
+        writer
+            .append(
+                serde_json::json!({"seq": i, "data": format!("entry-{}", i)}),
+                &identity,
+            )
+            .unwrap();
     }
     drop(writer);
 
@@ -467,7 +473,8 @@ fn p8_6f_corrupted_ledger_mid_chain() {
     };
     assert!(
         err.contains("chain broken") || err.contains("prev_hash"),
-        "Error should indicate chain break, got: {}", err
+        "Error should indicate chain break, got: {}",
+        err
     );
 
     println!("P8.6f PASSED: Mid-chain corrupted entry → hash chain break detected");
@@ -494,13 +501,12 @@ async fn p8_6g_pq_verify_detects_corruption() {
 
     // Write valid ledger
     {
-        let writer = LedgerWriter::open(&ledger_path, &identity)
-            .unwrap_or_else(|e| panic!("{}", e));
+        let writer =
+            LedgerWriter::open(&ledger_path, &identity).unwrap_or_else(|e| panic!("{}", e));
         for i in 0..3u64 {
-            writer.append(
-                serde_json::json!({"type": "write", "i": i}),
-                &identity,
-            ).unwrap();
+            writer
+                .append(serde_json::json!({"type": "write", "i": i}), &identity)
+                .unwrap();
         }
     }
 
@@ -549,14 +555,19 @@ async fn p8_6g_pq_verify_detects_corruption() {
         .output();
 
     if let Ok(output) = output {
-        assert!(!output.status.success(),
+        assert!(
+            !output.status.success(),
             "pq_verify MUST fail on corrupted evidence (exit code {})",
-            output.status.code().unwrap_or(-1));
+            output.status.code().unwrap_or(-1)
+        );
         let stderr = String::from_utf8_lossy(&output.stderr);
         let stdout = String::from_utf8_lossy(&output.stdout);
         let combined = format!("{}{}", stdout, stderr);
-        assert!(combined.contains("FAIL"),
-            "Output should contain FAIL for corrupted evidence: {}", combined);
+        assert!(
+            combined.contains("FAIL"),
+            "Output should contain FAIL for corrupted evidence: {}",
+            combined
+        );
         println!("P8.6g PASSED: pq_verify detected corrupted ledger — FAIL verdict");
     } else {
         println!("P8.6g: pq_verify binary not available — library-level tests (P8.6a–P8.6f) provide coverage");
@@ -564,7 +575,6 @@ async fn p8_6g_pq_verify_detects_corruption() {
 
     let _ = std::fs::remove_dir_all(&evidence_dir);
 }
-
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[should_panic(expected = "FATAL: Raft state file must be MAC-protected")]
@@ -575,7 +585,12 @@ async fn sec_003_a_plaintext_refused() {
 
     let mut config = test_config();
     config.state_machine_mac_key = Some([0x42; 32]);
-    RaftNode::with_config(NodeId::new("test"), persist_path, Arc::new(MockRpcClientNoop), config);
+    RaftNode::with_config(
+        NodeId::new("test"),
+        persist_path,
+        Arc::new(MockRpcClientNoop),
+        config,
+    );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -584,11 +599,11 @@ async fn sec_003_b_tampered_payload() {
     use ha_cluster::raft::SecureEnvelope;
     let dir = std::env::temp_dir();
     let persist_path = dir.join(format!("sec_003_b_{}.json", rand::random::<u64>()));
-    
+
     let key = [0x42; 32];
     let payload = r#"{"current_term": 5, "voted_for": "node-a", "log": [], "commit_index": 0, "cluster_id": "test", "config_epoch": 1}"#;
     let expected_mac = blake3::keyed_hash(&key, payload.as_bytes());
-    
+
     let tampered_payload = r#"{"current_term": 99, "voted_for": "node-a", "log": [], "commit_index": 0, "cluster_id": "test", "config_epoch": 1}"#;
 
     let env = SecureEnvelope {
@@ -599,7 +614,12 @@ async fn sec_003_b_tampered_payload() {
 
     let mut config = test_config();
     config.state_machine_mac_key = Some([0x42; 32]);
-    RaftNode::with_config(NodeId::new("test"), persist_path, Arc::new(MockRpcClientNoop), config);
+    RaftNode::with_config(
+        NodeId::new("test"),
+        persist_path,
+        Arc::new(MockRpcClientNoop),
+        config,
+    );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -608,7 +628,7 @@ async fn sec_003_c_tampered_mac() {
     use ha_cluster::raft::SecureEnvelope;
     let dir = std::env::temp_dir();
     let persist_path = dir.join(format!("sec_003_c_{}.json", rand::random::<u64>()));
-    
+
     let payload = r#"{"current_term": 5, "voted_for": "node-a", "log": [], "commit_index": 0, "cluster_id": "test", "config_epoch": 1}"#;
     let env = SecureEnvelope {
         payload_json: payload.to_string(),
@@ -618,5 +638,10 @@ async fn sec_003_c_tampered_mac() {
 
     let mut config = test_config();
     config.state_machine_mac_key = Some([0x42; 32]);
-    RaftNode::with_config(NodeId::new("test"), persist_path, Arc::new(MockRpcClientNoop), config);
+    RaftNode::with_config(
+        NodeId::new("test"),
+        persist_path,
+        Arc::new(MockRpcClientNoop),
+        config,
+    );
 }

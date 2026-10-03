@@ -1,1 +1,1 @@
-pub use vardhan_state::scope::{CanonicalTenantId, VerificationScope, DecodeError};
+pub use vardhan_state::scope::{CanonicalTenantId, DecodeError, VerificationScope};

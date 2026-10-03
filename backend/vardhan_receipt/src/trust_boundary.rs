@@ -8,7 +8,7 @@ impl TrustBoundaryValidator {
         if contract.schema_version != "1.0" {
             return Err("Invalid schema_version, expected 1.0".to_string());
         }
-        
+
         // 2. tenant identity
         if contract.organization.organization_id.is_empty() {
             return Err("organization_id must not be empty".to_string());
@@ -25,7 +25,9 @@ impl TrustBoundaryValidator {
         }
 
         // 5. resource identity
-        if contract.affected_resource.canonical_url.is_empty() || contract.affected_resource.entry_point_id.is_empty() {
+        if contract.affected_resource.canonical_url.is_empty()
+            || contract.affected_resource.entry_point_id.is_empty()
+        {
             return Err("resource identity fields must not be empty".to_string());
         }
 
@@ -42,7 +44,10 @@ impl TrustBoundaryValidator {
         // 8. evidence integrity
         for ev in &contract.evidence_refs {
             if ev.content_hash.is_empty() || ev.content_hash.len() != 64 {
-                return Err(format!("Invalid evidence content_hash for {}", ev.evidence_id));
+                return Err(format!(
+                    "Invalid evidence content_hash for {}",
+                    ev.evidence_id
+                ));
             }
         }
 
@@ -56,10 +61,16 @@ impl TrustBoundaryValidator {
         // 10. evidence temporal validity
         for ev in &contract.evidence_refs {
             if ev.temporal_status != "CURRENT" && ev.temporal_status != "HISTORICAL" {
-                return Err(format!("Invalid temporal_status for {}: {}", ev.evidence_id, ev.temporal_status));
+                return Err(format!(
+                    "Invalid temporal_status for {}: {}",
+                    ev.evidence_id, ev.temporal_status
+                ));
             }
             if ev.temporal_status == "HISTORICAL" {
-                return Err(format!("Historical evidence presented as current is REJECTED: {}", ev.evidence_id));
+                return Err(format!(
+                    "Historical evidence presented as current is REJECTED: {}",
+                    ev.evidence_id
+                ));
             }
         }
 
@@ -79,17 +90,28 @@ impl TrustBoundaryValidator {
         }
 
         // 14. verification linkage
-        if contract.provenance_chain.hypothesis_id.is_empty() || contract.provenance_chain.verification_contract_id.is_empty() {
+        if contract.provenance_chain.hypothesis_id.is_empty()
+            || contract
+                .provenance_chain
+                .verification_contract_id
+                .is_empty()
+        {
             return Err("verification linkage missing in provenance_chain".to_string());
         }
 
         // 15. verification status
         if contract.differential_state != "CONFIRMED_MISMATCH" {
-            return Err("differential_state must be CONFIRMED_MISMATCH to be a verified finding".to_string());
+            return Err(
+                "differential_state must be CONFIRMED_MISMATCH to be a verified finding"
+                    .to_string(),
+            );
         }
 
         // 16. materiality consistency
-        if contract.materiality != "HIGH" && contract.materiality != "MEDIUM" && contract.materiality != "LOW" {
+        if contract.materiality != "HIGH"
+            && contract.materiality != "MEDIUM"
+            && contract.materiality != "LOW"
+        {
             return Err("materiality must be HIGH, MEDIUM, or LOW".to_string());
         }
 
@@ -101,17 +123,27 @@ impl TrustBoundaryValidator {
         // 18. decision candidate
         let allowed_actions = ["SEAL_VERIFIED_FINDING"];
         if !allowed_actions.contains(&contract.decision_candidate.as_str()) {
-            return Err(format!("action_type '{}' is not in the allowed policy whitelist", contract.decision_candidate));
+            return Err(format!(
+                "action_type '{}' is not in the allowed policy whitelist",
+                contract.decision_candidate
+            ));
         }
 
         // 19. policy reference
         let allowed_policies = ["VARDHAN_CORE_INTELLIGENCE_POLICY_V1"];
         if !allowed_policies.contains(&contract.policy_reference.as_str()) {
-            return Err(format!("policy_reference '{}' is not registered in the Q-Core policy registry", contract.policy_reference));
+            return Err(format!(
+                "policy_reference '{}' is not registered in the Q-Core policy registry",
+                contract.policy_reference
+            ));
         }
 
         // 20. authority context
-        if contract.authorization_context.requires_authorized_assessment && contract.authorization_context.authorized_by.is_none() {
+        if contract
+            .authorization_context
+            .requires_authorized_assessment
+            && contract.authorization_context.authorized_by.is_none()
+        {
             return Err("authorization_context requires authorized_by if requires_authorized_assessment is true".to_string());
         }
 

@@ -321,15 +321,33 @@ impl VardhanTransaction {
         let allowed = matches!(
             (&self.state, &new_state),
             (TransactionState::Requested, TransactionState::Validating)
-            | (TransactionState::Validating, TransactionState::AuthorityEvaluation)
-            | (TransactionState::Validating, TransactionState::ValidationFailed)
-            | (TransactionState::AuthorityEvaluation, TransactionState::Authorized)
-            | (TransactionState::AuthorityEvaluation, TransactionState::Rejected)
-            | (TransactionState::Authorized, TransactionState::Executing)
-            | (TransactionState::Executing, TransactionState::Executed)
-            | (TransactionState::Executing, TransactionState::Failed)
-            | (TransactionState::Executed, TransactionState::OutcomeRecorded)
-            | (TransactionState::OutcomeRecorded, TransactionState::Receipted)
+                | (
+                    TransactionState::Validating,
+                    TransactionState::AuthorityEvaluation
+                )
+                | (
+                    TransactionState::Validating,
+                    TransactionState::ValidationFailed
+                )
+                | (
+                    TransactionState::AuthorityEvaluation,
+                    TransactionState::Authorized
+                )
+                | (
+                    TransactionState::AuthorityEvaluation,
+                    TransactionState::Rejected
+                )
+                | (TransactionState::Authorized, TransactionState::Executing)
+                | (TransactionState::Executing, TransactionState::Executed)
+                | (TransactionState::Executing, TransactionState::Failed)
+                | (
+                    TransactionState::Executed,
+                    TransactionState::OutcomeRecorded
+                )
+                | (
+                    TransactionState::OutcomeRecorded,
+                    TransactionState::Receipted
+                )
         );
 
         if !allowed {
@@ -383,10 +401,7 @@ impl VardhanTransaction {
     }
 
     /// Reject with an explicit reason (validation failure path).
-    pub fn reject(
-        &mut self,
-        reason: RejectionReason,
-    ) -> Result<(), TransactionError> {
+    pub fn reject(&mut self, reason: RejectionReason) -> Result<(), TransactionError> {
         self.rejection_reason = Some(reason);
         // Determine which terminal state to go to based on current state
         let terminal = match &self.state {
@@ -482,14 +497,16 @@ mod tests {
     fn test_valid_happy_path_lifecycle() {
         let mut tx = make_tx();
         tx.transition(TransactionState::Validating).unwrap();
-        tx.transition(TransactionState::AuthorityEvaluation).unwrap();
+        tx.transition(TransactionState::AuthorityEvaluation)
+            .unwrap();
 
         tx.apply_authority_result(AuthorityResult {
             authorized: true,
             authority_reference: "gate:VardhanGate".into(),
             evaluated_at_ms: now_ms(),
             reason: "Policy POL-NET-01 v1.0 passed".into(),
-        }).unwrap();
+        })
+        .unwrap();
 
         assert_eq!(tx.state, TransactionState::Authorized);
         tx.transition(TransactionState::Executing).unwrap();
@@ -499,7 +516,8 @@ mod tests {
             summary: "IP quarantined at kernel level via eBPF".into(),
             effect_observed: true,
             recorded_at_ms: now_ms(),
-        }).unwrap();
+        })
+        .unwrap();
 
         let receipt_id = format!("VQR-{}", Uuid::new_v4());
         tx.seal(&receipt_id).unwrap();
@@ -513,18 +531,23 @@ mod tests {
     fn test_rejected_by_authority() {
         let mut tx = make_tx();
         tx.transition(TransactionState::Validating).unwrap();
-        tx.transition(TransactionState::AuthorityEvaluation).unwrap();
+        tx.transition(TransactionState::AuthorityEvaluation)
+            .unwrap();
 
         tx.apply_authority_result(AuthorityResult {
             authorized: false,
             authority_reference: "gate:VardhanGate".into(),
             evaluated_at_ms: now_ms(),
             reason: "Policy POL-NET-01 explicitly denies QUARANTINE_IP for this tenant".into(),
-        }).unwrap();
+        })
+        .unwrap();
 
         assert_eq!(tx.state, TransactionState::Rejected);
         assert!(tx.state.is_terminal());
-        assert!(matches!(tx.rejection_reason, Some(RejectionReason::AuthorityDenied)));
+        assert!(matches!(
+            tx.rejection_reason,
+            Some(RejectionReason::AuthorityDenied)
+        ));
     }
 
     #[test]
@@ -535,7 +558,10 @@ mod tests {
 
         assert_eq!(tx.state, TransactionState::ValidationFailed);
         assert!(tx.state.is_terminal());
-        assert!(matches!(tx.rejection_reason, Some(RejectionReason::TenantMismatch)));
+        assert!(matches!(
+            tx.rejection_reason,
+            Some(RejectionReason::TenantMismatch)
+        ));
     }
 
     #[test]
@@ -548,7 +574,10 @@ mod tests {
         let err = tx.transition(TransactionState::AuthorityEvaluation);
         assert!(err.is_err());
         let msg = err.unwrap_err().to_string();
-        assert!(msg.contains("terminal"), "Error should mention terminal state");
+        assert!(
+            msg.contains("terminal"),
+            "Error should mention terminal state"
+        );
     }
 
     #[test]
@@ -573,20 +602,23 @@ mod tests {
     fn test_execution_failure_path() {
         let mut tx = make_tx();
         tx.transition(TransactionState::Validating).unwrap();
-        tx.transition(TransactionState::AuthorityEvaluation).unwrap();
+        tx.transition(TransactionState::AuthorityEvaluation)
+            .unwrap();
         tx.apply_authority_result(AuthorityResult {
             authorized: true,
             authority_reference: "gate:VardhanGate".into(),
             evaluated_at_ms: now_ms(),
             reason: "Approved".into(),
-        }).unwrap();
+        })
+        .unwrap();
         tx.transition(TransactionState::Executing).unwrap();
         tx.apply_outcome(TransactionOutcome {
             result_code: "EXEC_ERR_TIMEOUT".into(),
             summary: "eBPF program attach timed out".into(),
             effect_observed: false,
             recorded_at_ms: now_ms(),
-        }).unwrap();
+        })
+        .unwrap();
 
         assert_eq!(tx.state, TransactionState::Failed);
         assert!(tx.state.is_terminal());

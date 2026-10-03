@@ -1,8 +1,8 @@
-use zeroize::{Zeroize, ZeroizeOnDrop};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// PEAK HUMAN ARCHITECTURE: CRYPTOGRAPHIC PARANOIA
-/// This memory wrapper guarantees that raw key material is shredded from RAM 
+/// This memory wrapper guarantees that raw key material is shredded from RAM
 /// the microsecond it drops out of scope. We do not trust the OS memory manager.
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct SecureKeyMaterial {
@@ -11,7 +11,9 @@ pub struct SecureKeyMaterial {
 
 impl SecureKeyMaterial {
     pub fn new(mut bytes: Vec<u8>) -> Self {
-        let material = Self { key_bytes: bytes.clone() };
+        let material = Self {
+            key_bytes: bytes.clone(),
+        };
         // Shred the original array from the stack immediately
         bytes.zeroize();
         material

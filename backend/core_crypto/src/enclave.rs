@@ -30,12 +30,14 @@ pub fn execute_secure_payload(payload: &[u8]) -> Result<Vec<u8>, &'static str> {
             eprintln!("[ENCLAVE] 🛡️ Physical AWS Nitro Enclave detected at /dev/nitro_enclaves. Routing payload to isolated Ring-3 VM...");
             // TODO: Implement aws-nitro-enclaves-nsm-api bindings here
             Ok(payload.to_vec())
-        },
+        }
         EnclaveType::Tpm20 => {
-            eprintln!("[ENCLAVE] 🛡️ Physical TPM 2.0 detected. Binding ML-DSA-87 keys to PCR state...");
+            eprintln!(
+                "[ENCLAVE] 🛡️ Physical TPM 2.0 detected. Binding ML-DSA-87 keys to PCR state..."
+            );
             // TODO: Implement tss-esapi bindings here
             Ok(payload.to_vec())
-        },
+        }
         EnclaveType::SoftwareSimulated => {
             eprintln!("[ENCLAVE] ⚠️ No physical hardware enclave detected. Booting Software Chaos Twin...");
             // Falls back to existing architecture

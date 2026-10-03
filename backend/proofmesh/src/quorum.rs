@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-use std::collections::{HashSet, BTreeSet};
-use vardhan_state::id::{CommitIndex, ContentHash, EvidenceId, ExecutionId};
 use crate::identity::{EvidenceQuorumSnapshotId, VerificationClaimId};
+use serde::{Deserialize, Serialize};
+use std::collections::{BTreeSet, HashSet};
 use vardhan_state::authorization::ProvenanceTrail;
 use vardhan_state::evidence::EvidenceRecord;
+use vardhan_state::id::{CommitIndex, ContentHash, EvidenceId, ExecutionId};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum QuorumStatus {
@@ -66,7 +66,7 @@ impl QuorumAccumulator {
         let mut sources = HashSet::new();
         let mut fault_domains = HashSet::new();
         let mut environments = HashSet::new();
-        
+
         for ev in &self.collected_evidence {
             sources.insert(ev.source.clone());
             fault_domains.insert(ev.entity_id);
@@ -75,8 +75,8 @@ impl QuorumAccumulator {
             }
         }
 
-        // If quorum requires > 1, we mandate at least 2 fault domains 
-        // to prove independence. 
+        // If quorum requires > 1, we mandate at least 2 fault domains
+        // to prove independence.
         if self.required_quorum > 1 && fault_domains.len() <= 1 {
             return QuorumStatus::CommonModeCompromised;
         }
@@ -85,17 +85,18 @@ impl QuorumAccumulator {
     }
 
     pub fn freeze(
-        &self, 
-        commit_index: CommitIndex, 
-        policy_hash: ContentHash, 
-        config_hash: ContentHash
+        &self,
+        commit_index: CommitIndex,
+        policy_hash: ContentHash,
+        config_hash: ContentHash,
     ) -> EvidenceQuorumSnapshot {
         // Ensure arrival-order independence by sorting evidence cryptographically
         let mut sorted_evidence: Vec<_> = self.collected_evidence.iter().collect();
         sorted_evidence.sort_by_key(|e| e.evidence_id);
-        
-        let participating_ids: Vec<EvidenceId> = sorted_evidence.iter().map(|e| e.evidence_id).collect();
-        
+
+        let participating_ids: Vec<EvidenceId> =
+            sorted_evidence.iter().map(|e| e.evidence_id).collect();
+
         // Compute independence dimensions
         let mut sources = BTreeSet::new();
         let mut fault_domains = BTreeSet::new();
@@ -105,12 +106,16 @@ impl QuorumAccumulator {
         for ev in &sorted_evidence {
             sources.insert(ev.source.clone());
             fault_domains.insert(ev.entity_id);
-            
+
             let ts = ev.timestamp.event_time.timestamp_millis() as u64;
-            if ts < min_ts { min_ts = ts; }
-            if ts > max_ts { max_ts = ts; }
+            if ts < min_ts {
+                min_ts = ts;
+            }
+            if ts > max_ts {
+                max_ts = ts;
+            }
         }
-        
+
         let temporal_separation_ms = if max_ts >= min_ts && min_ts != u64::MAX {
             max_ts - min_ts
         } else {

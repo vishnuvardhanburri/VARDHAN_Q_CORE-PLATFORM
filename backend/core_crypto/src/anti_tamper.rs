@@ -21,9 +21,12 @@ pub fn is_debugger_attached() -> bool {
     // sysctl CTL_KERN / KERN_PROC / KERN_PROC_PID
     extern "C" {
         fn sysctl(
-            name: *const i32, namelen: u32,
-            oldp: *mut libc::c_void, oldlenp: *mut libc::size_t,
-            newp: *const libc::c_void, newlen: libc::size_t,
+            name: *const i32,
+            namelen: u32,
+            oldp: *mut libc::c_void,
+            oldlenp: *mut libc::size_t,
+            newp: *const libc::c_void,
+            newlen: libc::size_t,
         ) -> i32;
     }
     const CTL_KERN: i32 = 1;
@@ -39,12 +42,17 @@ pub fn is_debugger_attached() -> bool {
 
     let ret = unsafe {
         sysctl(
-            mib.as_ptr(), 4,
-            info.as_mut_ptr() as *mut libc::c_void, &mut size,
-            std::ptr::null(), 0,
+            mib.as_ptr(),
+            4,
+            info.as_mut_ptr() as *mut libc::c_void,
+            &mut size,
+            std::ptr::null(),
+            0,
         )
     };
-    if ret != 0 { return false; }
+    if ret != 0 {
+        return false;
+    }
 
     // p_flag is at offset 32 in kinfo_proc on macOS (kp_proc.p_flag)
     const P_TRACED: u32 = 0x00000800;
@@ -58,7 +66,13 @@ pub fn is_debugger_attached() -> bool {
     if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
         for line in status.lines() {
             if line.starts_with("TracerPid:") {
-                let val = line.split(':').nth(1).unwrap_or("0").trim().parse::<u32>().unwrap_or(0);
+                let val = line
+                    .split(':')
+                    .nth(1)
+                    .unwrap_or("0")
+                    .trim()
+                    .parse::<u32>()
+                    .unwrap_or(0);
                 return val != 0;
             }
         }
@@ -67,7 +81,9 @@ pub fn is_debugger_attached() -> bool {
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-pub fn is_debugger_attached() -> bool { false }
+pub fn is_debugger_attached() -> bool {
+    false
+}
 
 // ── Timing Anti-Step ─────────────────────────────────────────────────────────
 
@@ -82,7 +98,9 @@ pub fn detect_single_step() -> bool {
     }
     let elapsed = start.elapsed().as_micros();
     // Prevent the loop from being optimized away
-    if x == 0 { eprintln!(""); }
+    if x == 0 {
+        eprintln!("");
+    }
     elapsed > 5_000 // > 5 ms means a debugger is stepping
 }
 
@@ -104,13 +122,17 @@ pub fn compute_self_hash() -> Option<[u8; 32]> {
 pub fn assert_integrity() {
     // 1. Debugger check
     if is_debugger_attached() {
-        eprintln!("[VARDHAN GUARDIAN] CRITICAL: Debugger attachment detected. Binary execution halted.");
+        eprintln!(
+            "[VARDHAN GUARDIAN] CRITICAL: Debugger attachment detected. Binary execution halted."
+        );
         std::process::exit(137);
     }
 
     // 2. Anti-step timing check
     if detect_single_step() {
-        eprintln!("[VARDHAN GUARDIAN] CRITICAL: Execution stepping detected. Binary execution halted.");
+        eprintln!(
+            "[VARDHAN GUARDIAN] CRITICAL: Execution stepping detected. Binary execution halted."
+        );
         std::process::exit(137);
     }
 
@@ -126,11 +148,15 @@ pub fn assert_integrity() {
                      Expected: {}\n\
                      Actual:   {}\n\
                      FORGERY OR TAMPERING DETECTED. Execution permanently halted.",
-                    expected_hex.trim(), actual_hex
+                    expected_hex.trim(),
+                    actual_hex
                 );
                 std::process::exit(137);
             }
-            eprintln!("[VARDHAN GUARDIAN] Binary integrity: VERIFIED ({}...)", &actual_hex[..16]);
+            eprintln!(
+                "[VARDHAN GUARDIAN] Binary integrity: VERIFIED ({}...)",
+                &actual_hex[..16]
+            );
         }
     }
 }

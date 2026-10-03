@@ -17,8 +17,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ha_cluster::{
-    RaftConfig, RaftNode,
     raft::{AppendEntriesArgs, LogEntry, MockRpcClient, RaftRpcEnvelope, RaftRpcType},
+    RaftConfig, RaftNode,
 };
 use proxy_engine::transport::AeadTransport;
 use proxy_engine::ProxyError;
@@ -40,13 +40,14 @@ async fn setup_transport_pair() -> (AeadTransport, AeadTransport) {
 
     tokio::spawn(async move {
         let (stream, _) = listener.accept().await.unwrap();
-        let transport = AeadTransport::new(
-            stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false
-        );
+        let transport =
+            AeadTransport::new(stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false);
         let _ = tx.send(transport);
     });
 
-    let client = tokio::net::TcpStream::connect(format!("{}", addr)).await.unwrap();
+    let client = tokio::net::TcpStream::connect(format!("{}", addr))
+        .await
+        .unwrap();
     let responder = rx.await.unwrap();
     let initiator = AeadTransport::new(client, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, true);
     (initiator, responder)
@@ -62,13 +63,14 @@ async fn setup_victim_attacker() -> (AeadTransport, tokio::net::TcpStream) {
 
     tokio::spawn(async move {
         let (stream, _) = listener.accept().await.unwrap();
-        let transport = AeadTransport::new(
-            stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false
-        );
+        let transport =
+            AeadTransport::new(stream, TEST_KEY, TEST_KEY, TEST_SESSION, TEST_SALT, false);
         let _ = tx.send(transport);
     });
 
-    let attacker = tokio::net::TcpStream::connect(format!("{}", addr)).await.unwrap();
+    let attacker = tokio::net::TcpStream::connect(format!("{}", addr))
+        .await
+        .unwrap();
     let responder = rx.await.unwrap();
     (responder, attacker)
 }
@@ -86,10 +88,7 @@ async fn p8_2a_oversized_length_header() {
     attacker.write_all(b"xxx").await.unwrap();
     attacker.shutdown().await.unwrap();
 
-    let result = tokio::time::timeout(
-        Duration::from_millis(500),
-        responder.read_frame(),
-    ).await;
+    let result = tokio::time::timeout(Duration::from_millis(500), responder.read_frame()).await;
 
     match result {
         Ok(Err(ProxyError::FrameTooLarge(_))) => {
@@ -117,10 +116,7 @@ async fn p8_2b_truncated_ciphertext() {
     attacker.write_all(b"truncated!!").await.unwrap();
     attacker.shutdown().await.unwrap();
 
-    let result = tokio::time::timeout(
-        Duration::from_millis(500),
-        responder.read_frame(),
-    ).await;
+    let result = tokio::time::timeout(Duration::from_millis(500), responder.read_frame()).await;
 
     match result {
         Err(_) => {
@@ -150,17 +146,17 @@ async fn p8_2c_corrupted_ciphertext() {
     attacker.write_all(garbage).await.unwrap();
     attacker.shutdown().await.unwrap();
 
-    let result = tokio::time::timeout(
-        Duration::from_millis(500),
-        responder.read_frame(),
-    ).await;
+    let result = tokio::time::timeout(Duration::from_millis(500), responder.read_frame()).await;
 
     match result {
         Ok(Err(ProxyError::CryptoError)) => {
             println!("P8.2c PASSED: Corrupted ciphertext — CryptoError (decryption rejected)");
         }
         Ok(Err(e)) => {
-            println!("P8.2c: Got error {:?} — acceptable (decryption rejected)", e);
+            println!(
+                "P8.2c: Got error {:?} — acceptable (decryption rejected)",
+                e
+            );
         }
         Ok(Ok(None)) => {
             println!("P8.2c PASSED: Corrupted ciphertext — connection closed (acceptable)");
@@ -179,23 +175,29 @@ async fn p8_2c_corrupted_ciphertext() {
 async fn p8_2d_zero_length_frame() {
     let (mut responder, mut initiator) = setup_transport_pair().await;
 
-    initiator.write_frame(b"").await.expect("Zero-length frame should send");
+    initiator
+        .write_frame(b"")
+        .await
+        .expect("Zero-length frame should send");
 
-    let result = tokio::time::timeout(
-        Duration::from_millis(500),
-        responder.read_frame(),
-    ).await;
+    let result = tokio::time::timeout(Duration::from_millis(500), responder.read_frame()).await;
 
     match result {
         Ok(Ok(Some(data))) => {
-            assert!(data.is_empty(), "Zero-length frame should produce empty payload");
+            assert!(
+                data.is_empty(),
+                "Zero-length frame should produce empty payload"
+            );
             println!("P8.2d PASSED: Zero-length frame — decrypted to empty payload");
         }
         Ok(Ok(None)) => {
             println!("P8.2d PASSED: Zero-length frame — peer closed (acceptable)");
         }
         Ok(Err(e)) => {
-            println!("P8.2d: Zero-length frame returned error: {:?} (acceptable)", e);
+            println!(
+                "P8.2d: Zero-length frame returned error: {:?} (acceptable)",
+                e
+            );
         }
         Err(_) => {
             println!("P8.2d PASSED: Zero-length frame — timed out (acceptable)");
@@ -208,14 +210,16 @@ async fn p8_2d_zero_length_frame() {
 async fn p8_2e_valid_frames_work() {
     let (mut responder, mut initiator) = setup_transport_pair().await;
 
-    initiator.write_frame(b"hello-p8").await.expect("Valid frame should send");
+    initiator
+        .write_frame(b"hello-p8")
+        .await
+        .expect("Valid frame should send");
 
-    let result = tokio::time::timeout(
-        Duration::from_millis(500),
-        responder.read_frame(),
-    ).await;
+    let result = tokio::time::timeout(Duration::from_millis(500), responder.read_frame()).await;
 
-    let data = result.expect("Should not timeout").expect("Should not error")
+    let data = result
+        .expect("Should not timeout")
+        .expect("Should not error")
         .expect("Should have data");
     assert_eq!(data, b"hello-p8");
     println!("P8.2e PASSED: Valid frames still work correctly");
@@ -229,7 +233,10 @@ async fn p8_2e_valid_frames_work() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn p8_3a_raft_level_replay() {
     let _ = tracing_subscriber::fmt::try_init();
-    for f in &["/tmp/p8_transport_replay_a.json", "/tmp/p8_transport_replay_b.json"] {
+    for f in &[
+        "/tmp/p8_transport_replay_a.json",
+        "/tmp/p8_transport_replay_b.json",
+    ] {
         std::fs::remove_file(f).ok();
     }
 
@@ -238,7 +245,7 @@ async fn p8_3a_raft_level_replay() {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     let id_a = ha_cluster::NodeId::new("node-a");
     let id_b = ha_cluster::NodeId::new("node-b");
@@ -288,12 +295,18 @@ async fn p8_3a_raft_level_replay() {
 
     // Second delivery (replay) — should be idempotent
     let reply2 = node_b.handle_append_entries(ae).await;
-    assert!(reply2.success, "Replayed AppendEntries should be accepted (idempotent)");
+    assert!(
+        reply2.success,
+        "Replayed AppendEntries should be accepted (idempotent)"
+    );
 
     // Verify only 1 entry in log (idempotency)
     let log = node_b.log.read().await;
-    assert_eq!(log.len(), 1,
-        "Log should have exactly 1 entry after replay — idempotency must prevent duplicates");
+    assert_eq!(
+        log.len(),
+        1,
+        "Log should have exactly 1 entry after replay — idempotency must prevent duplicates"
+    );
 
     println!("P8.3a PASSED: Raft-level replay — idempotency prevents duplicate entry");
 }
@@ -312,8 +325,10 @@ async fn p8_3b_protocol_version_downgrade() {
         request_id: "42".to_string(),
         payload: Vec::new(),
     };
-    assert_ne!(evil.version, 1,
-        "Version 0 must be rejected by listener (version != 1)");
+    assert_ne!(
+        evil.version, 1,
+        "Version 0 must be rejected by listener (version != 1)"
+    );
 
     // Version 2 (future)
     let future = RaftRpcEnvelope {
@@ -324,8 +339,10 @@ async fn p8_3b_protocol_version_downgrade() {
         request_id: "43".to_string(),
         payload: Vec::new(),
     };
-    assert_ne!(future.version, 1,
-        "Version 2 must be rejected by listener (version != 1)");
+    assert_ne!(
+        future.version, 1,
+        "Version 2 must be rejected by listener (version != 1)"
+    );
 
     // Version 1 (valid)
     let valid = RaftRpcEnvelope {
@@ -336,8 +353,7 @@ async fn p8_3b_protocol_version_downgrade() {
         request_id: "1".to_string(),
         payload: b"{}".to_vec(),
     };
-    assert_eq!(valid.version, 1,
-        "Version 1 is the current valid version");
+    assert_eq!(valid.version, 1, "Version 1 is the current valid version");
 
     println!("P8.3b PASSED: Protocol version — only version 1 is accepted");
 }
@@ -354,14 +370,16 @@ async fn p8_3c_nonce_sequencing() {
     initiator.write_frame(b"frame-0").await.expect("Frame 0");
     initiator.write_frame(b"frame-1").await.expect("Frame 1");
 
-    let f0 = tokio::time::timeout(
-        Duration::from_millis(500),
-        responder.read_frame(),
-    ).await.unwrap().unwrap().unwrap();
-    let f1 = tokio::time::timeout(
-        Duration::from_millis(500),
-        responder.read_frame(),
-    ).await.unwrap().unwrap().unwrap();
+    let f0 = tokio::time::timeout(Duration::from_millis(500), responder.read_frame())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    let f1 = tokio::time::timeout(Duration::from_millis(500), responder.read_frame())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
 
     assert_eq!(f0, b"frame-0", "First frame decrypts with nonce seq=0");
     assert_eq!(f1, b"frame-1", "Second frame decrypts with nonce seq=1");

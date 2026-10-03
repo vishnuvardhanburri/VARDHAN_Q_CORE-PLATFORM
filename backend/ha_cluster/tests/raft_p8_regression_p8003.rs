@@ -9,9 +9,9 @@
 //!
 //! Run: cargo test -p ha_cluster --test raft_p8_regression_p8003 -- --test-threads=1
 
-use core_crypto::{KeyTransitionRecord, KeyTransitionPayload, QuantumNodeIdentity};
-use core_crypto::vault::{EncryptedEnvelope, KeyProtector, VaultError};
 use core_crypto::serde_cbor;
+use core_crypto::vault::{EncryptedEnvelope, KeyProtector, VaultError};
+use core_crypto::{KeyTransitionPayload, KeyTransitionRecord, QuantumNodeIdentity};
 
 /// Mock protector for testing — wraps/unwraps using a simple XOR-like scheme.
 struct MockProtector;
@@ -58,14 +58,20 @@ fn p8_10a_key_rotation_produces_verifiable_transition() {
 
     // 1. New fingerprint differs from old
     let new_fp = identity.signer_pub_fingerprint();
-    assert_ne!(old_fp, new_fp,
-        "New signing key fingerprint must differ from old fingerprint");
+    assert_ne!(
+        old_fp, new_fp,
+        "New signing key fingerprint must differ from old fingerprint"
+    );
 
     // 2. Transition record has matching fingerprints
-    assert_eq!(transition.old_pubkey_fingerprint, old_fp,
-        "Transition record must reference old fingerprint");
-    assert_eq!(transition.new_pubkey_fingerprint, new_fp,
-        "Transition record must reference new fingerprint");
+    assert_eq!(
+        transition.old_pubkey_fingerprint, old_fp,
+        "Transition record must reference old fingerprint"
+    );
+    assert_eq!(
+        transition.new_pubkey_fingerprint, new_fp,
+        "Transition record must reference new fingerprint"
+    );
 
     // 3. The old key signed the transition (proof of continuity)
     //    Verify: old_pub.sig verifies over the transition payload
@@ -81,8 +87,10 @@ fn p8_10a_key_rotation_produces_verifiable_transition() {
         &payload_bytes,
         &transition.transition_sig_bytes,
     );
-    assert!(sig_valid,
-        "Old signing key must have signed the key-transition record (proof of continuity)");
+    assert!(
+        sig_valid,
+        "Old signing key must have signed the key-transition record (proof of continuity)"
+    );
 
     println!("P8.10a PASSED: Key rotation produces verifiable transition (proof of continuity)");
     let _ = std::fs::remove_file(&vault_path);
@@ -110,10 +118,16 @@ fn p8_10b_rotated_key_persisted_to_vault() {
     let reloaded = QuantumNodeIdentity::load_or_generate(&vault_path, &MockProtector)
         .unwrap_or_else(|e| panic!("{}", e));
 
-    assert_eq!(reloaded.signer_pub_fingerprint(), transition.new_pubkey_fingerprint,
-        "Reloaded identity must have the new (rotated) signing key fingerprint");
-    assert_ne!(reloaded.signer_pub_fingerprint(), transition.old_pubkey_fingerprint,
-        "Reloaded identity must NOT have the old signing key fingerprint");
+    assert_eq!(
+        reloaded.signer_pub_fingerprint(),
+        transition.new_pubkey_fingerprint,
+        "Reloaded identity must have the new (rotated) signing key fingerprint"
+    );
+    assert_ne!(
+        reloaded.signer_pub_fingerprint(),
+        transition.old_pubkey_fingerprint,
+        "Reloaded identity must NOT have the old signing key fingerprint"
+    );
 
     println!("P8.10b PASSED: Rotated key persisted to vault and reloadable");
     let _ = std::fs::remove_file(&vault_path);
@@ -135,8 +149,10 @@ fn p8_10c_kem_identity_preserved() {
         .unwrap_or_else(|e| panic!("{}", e));
 
     let new_kem_pub = identity.encap_key_bytes();
-    assert_eq!(old_kem_pub, new_kem_pub,
-        "ML-KEM-1024 encapsulation key must be preserved across signing key rotation");
+    assert_eq!(
+        old_kem_pub, new_kem_pub,
+        "ML-KEM-1024 encapsulation key must be preserved across signing key rotation"
+    );
 
     println!("P8.10c PASSED: KEM identity preserved across signing key rotation");
     let _ = std::fs::remove_file(&vault_path);
@@ -165,21 +181,23 @@ fn p8_10d_old_key_cannot_sign_after_rotation() {
     // The old (pre-rotation) signature must NOT verify against the new key
     // because the private key was replaced
     let new_pk_bytes = identity.dsa_public_key_bytes();
-    assert_ne!(old_pk_bytes, new_pk_bytes,
-        "Public key must change after rotation");
+    assert_ne!(
+        old_pk_bytes, new_pk_bytes,
+        "Public key must change after rotation"
+    );
 
     let new_sig = identity.sign_payload(b"test message").unwrap();
-    assert_ne!(old_sig, new_sig,
-        "New signature must differ from old signature (old private key is gone)");
+    assert_ne!(
+        old_sig, new_sig,
+        "New signature must differ from old signature (old private key is gone)"
+    );
 
     // Old signature must NOT verify against new public key
-    let sig_valid = QuantumNodeIdentity::verify_signature(
-        &new_pk_bytes,
-        b"test message",
-        &old_sig,
+    let sig_valid = QuantumNodeIdentity::verify_signature(&new_pk_bytes, b"test message", &old_sig);
+    assert!(
+        !sig_valid,
+        "Old signature must NOT verify against the new (rotated) public key"
     );
-    assert!(!sig_valid,
-        "Old signature must NOT verify against the new (rotated) public key");
 
     println!("P8.10d PASSED: Old signing key cannot sign after rotation");
     let _ = std::fs::remove_file(&vault_path);

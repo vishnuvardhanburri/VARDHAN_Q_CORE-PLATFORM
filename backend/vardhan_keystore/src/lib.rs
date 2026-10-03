@@ -1,14 +1,19 @@
-use pqcrypto_mldsa::mldsa87::{keypair as mldsa_keypair, detached_sign as mldsa_sign, verify_detached_signature as mldsa_verify, SecretKey, PublicKey as MlDsaPublicKey};
-use pqcrypto_traits::sign::{PublicKey as PQPublicKey, DetachedSignature as PQDetachedSignature, SecretKey as PQSecretKey};
-use ed25519_dalek::{SigningKey, Signer};
+use ed25519_dalek::{Signer, SigningKey};
+use pqcrypto_mldsa::mldsa87::{
+    PublicKey as MlDsaPublicKey, SecretKey, detached_sign as mldsa_sign, keypair as mldsa_keypair,
+    verify_detached_signature as mldsa_verify,
+};
+use pqcrypto_traits::sign::{
+    DetachedSignature as PQDetachedSignature, PublicKey as PQPublicKey, SecretKey as PQSecretKey,
+};
 use rand::rngs::OsRng;
-use serde::{Serialize, Deserialize};
-use uuid::Uuid;
-use std::path::Path;
+use serde::{Deserialize, Serialize};
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
+use std::path::Path;
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum KeyStatus {
@@ -58,9 +63,9 @@ impl VardhanKeystore {
         let mut csprng = OsRng;
         let ed25519_key = SigningKey::generate(&mut csprng);
         let ed25519_pub = ed25519_key.verifying_key();
-        
+
         let (mldsa87_pub, mldsa87_sec) = mldsa_keypair();
-        
+
         let now_ms = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -101,7 +106,7 @@ impl VardhanKeystore {
         let write_secure = |filename: &str, data: &[u8]| -> io::Result<()> {
             let path = dir.join(filename);
             let tmp_path = dir.join(format!("{}.tmp", filename));
-            
+
             let mut options = OpenOptions::new();
             options.write(true).create(true).truncate(true);
             #[cfg(unix)]
@@ -121,7 +126,7 @@ impl VardhanKeystore {
         };
         let meta_json = serde_json::to_string_pretty(&meta)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        
+
         write_secure("keystore_meta.json", meta_json.as_bytes())?;
         write_secure("ed25519.key", &self.ed25519_key.to_bytes())?;
         write_secure("mldsa87.sec", self.mldsa87_secret.as_bytes())?;
@@ -136,15 +141,20 @@ impl VardhanKeystore {
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         let ed_bytes = fs::read(dir.join("ed25519.key"))?;
-        let ed_arr: [u8; 32] = ed_bytes.try_into()
+        let ed_arr: [u8; 32] = ed_bytes
+            .try_into()
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid ed25519 key size"))?;
         let ed25519_key = SigningKey::from_bytes(&ed_arr);
         let ed25519_pub = ed25519_key.verifying_key();
-        
+
         // Verify metadata <-> actual public-key fingerprint consistency
-        let loaded_ed25519_fingerprint = hex::encode(blake3::hash(ed25519_pub.as_bytes()).as_bytes());
+        let loaded_ed25519_fingerprint =
+            hex::encode(blake3::hash(ed25519_pub.as_bytes()).as_bytes());
         if loaded_ed25519_fingerprint != meta.ed25519_identity.public_key_fingerprint {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "Corrupt Keystore: Ed25519 public key fingerprint mismatch"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Corrupt Keystore: Ed25519 public key fingerprint mismatch",
+            ));
         }
 
         let mldsa_sec_bytes = fs::read(dir.join("mldsa87.sec"))?;
@@ -156,16 +166,23 @@ impl VardhanKeystore {
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         // Verify metadata <-> actual public-key fingerprint consistency
-        let loaded_mldsa87_fingerprint = hex::encode(blake3::hash(mldsa87_public.as_bytes()).as_bytes());
+        let loaded_mldsa87_fingerprint =
+            hex::encode(blake3::hash(mldsa87_public.as_bytes()).as_bytes());
         if loaded_mldsa87_fingerprint != meta.mldsa87_identity.public_key_fingerprint {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "Corrupt Keystore: ML-DSA-87 public key fingerprint mismatch"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Corrupt Keystore: ML-DSA-87 public key fingerprint mismatch",
+            ));
         }
 
         // Verify private/public key consistency where technically possible
         let dummy_payload = b"consistency_check";
         let dummy_sig = mldsa_sign(dummy_payload, &mldsa87_secret);
         if mldsa_verify(&dummy_sig, dummy_payload, &mldsa87_public).is_err() {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "Corrupt Keystore: ML-DSA-87 private/public key mismatch"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Corrupt Keystore: ML-DSA-87 private/public key mismatch",
+            ));
         }
 
         Ok(Self {
@@ -196,7 +213,7 @@ impl VardhanKeystore {
     pub fn ed25519_identity(&self) -> &KeyIdentity {
         &self.ed25519_identity
     }
-    
+
     pub fn ed25519_public_key(&self) -> ed25519_dalek::VerifyingKey {
         self.ed25519_key.verifying_key()
     }
@@ -204,7 +221,7 @@ impl VardhanKeystore {
     pub fn mldsa87_identity(&self) -> &KeyIdentity {
         &self.mldsa87_identity
     }
-    
+
     pub fn mldsa87_public_key(&self) -> &MlDsaPublicKey {
         &self.mldsa87_public
     }
@@ -227,7 +244,10 @@ mod tests {
         let k = VardhanKeystore::generate();
         let res1 = k.sign_ed25519(b"hello");
         let res2 = k.sign_ed25519(b"world");
-        assert_eq!(res1.key_identity.public_key_fingerprint, res2.key_identity.public_key_fingerprint);
+        assert_eq!(
+            res1.key_identity.public_key_fingerprint,
+            res2.key_identity.public_key_fingerprint
+        );
     }
 
     #[test]
@@ -235,7 +255,10 @@ mod tests {
         let k = VardhanKeystore::generate();
         let res1 = k.sign_mldsa87(b"hello");
         let res2 = k.sign_mldsa87(b"world");
-        assert_eq!(res1.key_identity.public_key_fingerprint, res2.key_identity.public_key_fingerprint);
+        assert_eq!(
+            res1.key_identity.public_key_fingerprint,
+            res2.key_identity.public_key_fingerprint
+        );
     }
 
     #[test]
@@ -269,20 +292,23 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let k1 = VardhanKeystore::generate();
         k1.save_to_dir(dir.path()).unwrap();
-        
+
         let k2 = VardhanKeystore::load_from_dir(dir.path()).unwrap();
-        
+
         assert_eq!(k1.ed25519_identity().key_id, k2.ed25519_identity().key_id);
         assert_eq!(k1.mldsa87_identity().key_id, k2.mldsa87_identity().key_id);
-        
+
         let payload = b"test payload";
         let sig1 = k1.sign_ed25519(payload);
         let sig2 = k2.sign_ed25519(payload);
         assert_eq!(sig1.signature_hex, sig2.signature_hex);
-        
+
         let mldsa_sig1 = k1.sign_mldsa87(payload);
         let mldsa_sig2 = k2.sign_mldsa87(payload);
-        assert_eq!(mldsa_sig1.key_identity.key_id, mldsa_sig2.key_identity.key_id);
+        assert_eq!(
+            mldsa_sig1.key_identity.key_id,
+            mldsa_sig2.key_identity.key_id
+        );
     }
 
     #[test]
@@ -290,16 +316,23 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let k1 = VardhanKeystore::generate();
         k1.save_to_dir(dir.path()).unwrap();
-        
+
         // Corrupt the metadata fingerprint
         let meta_path = dir.path().join("keystore_meta.json");
         let mut meta_str = fs::read_to_string(&meta_path).unwrap();
-        meta_str = meta_str.replace(&k1.ed25519_identity().public_key_fingerprint, "corrupted_fingerprint_data");
+        meta_str = meta_str.replace(
+            &k1.ed25519_identity().public_key_fingerprint,
+            "corrupted_fingerprint_data",
+        );
         fs::write(&meta_path, meta_str).unwrap();
-        
+
         // Load should fail due to inconsistency
         let k2_result = VardhanKeystore::load_from_dir(dir.path());
         assert!(k2_result.is_err());
-        if let Err(e) = k2_result { assert!(e.to_string().contains("fingerprint mismatch")); } else { panic!("expected error"); }
+        if let Err(e) = k2_result {
+            assert!(e.to_string().contains("fingerprint mismatch"));
+        } else {
+            panic!("expected error");
+        }
     }
 }

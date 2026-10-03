@@ -78,9 +78,9 @@ pub enum CanonicalObjectRef {
     Constraint(ConstraintId),
     DecisionTwin(DecisionId),
     DecisionCandidate(DecisionCandidateId),
-    DecisionMemory(DecisionMemoryId),               // Upgraded via FA-13
-    PolicyEvaluation(PolicyEvaluationId),           // Upgraded via FA-13
-    AssuranceResult(AssuranceResultId),             // Upgraded via FA-13
+    DecisionMemory(DecisionMemoryId),     // Upgraded via FA-13
+    PolicyEvaluation(PolicyEvaluationId), // Upgraded via FA-13
+    AssuranceResult(AssuranceResultId),   // Upgraded via FA-13
     Authorization(AuthorizationId),
     Action(ActionId),
     Execution(ExecutionId),
@@ -89,10 +89,10 @@ pub enum CanonicalObjectRef {
     Compensation(CompensationId),
     ModelProvenance(ModelArtifactId),
     PredictionError(PredictionErrorId),
-    RiskProfile(RiskProfileId),                     // Upgraded via FA-13
+    RiskProfile(RiskProfileId), // Upgraded via FA-13
     Scenario(ScenarioId),
     EvidenceRecord(EvidenceId),
-    
+
     // ── 7 ProofMesh Canonical Objects ──
     VerificationClaim(VerificationClaimId),
     ExecutionPlan(ExecutionPlanId),
@@ -103,8 +103,10 @@ pub enum CanonicalObjectRef {
     FaultScenario(FaultScenarioId),
 }
 
-use vardhan_state::id::{ContentHash, StateHash, ConfigurationHash, SchemaVersion, EvidenceLogicalId};
-use vardhan_state::evidence::{EvidenceCategory, ProvenanceEntry, AuthContext};
+use vardhan_state::evidence::{AuthContext, EvidenceCategory, ProvenanceEntry};
+use vardhan_state::id::{
+    ConfigurationHash, ContentHash, EvidenceLogicalId, SchemaVersion, StateHash,
+};
 
 /// Explicit cryptographic envelope binding all semantic fields of evidence.
 /// Fixes the subset-binding vulnerability by including schema_version and all metadata.

@@ -138,7 +138,9 @@ async fn sec018_valid_authenticated_sender_accepted() {
     let (node, valid_identity, valid_id, port, _) = setup_test_listener().await;
 
     let envelope = RaftRpcEnvelope {
-        sender_id: valid_id.clone(), receiver_id: NodeId::new("server-node"), version: 1,
+        sender_id: valid_id.clone(),
+        receiver_id: NodeId::new("server-node"),
+        version: 1,
         request_id: "1".to_string(),
         rpc_type: RaftRpcType::RequestVote,
         payload: serde_json::to_vec(&RequestVoteArgs {
@@ -150,12 +152,18 @@ async fn sec018_valid_authenticated_sender_accepted() {
         .unwrap(),
     };
 
-    let reply_bytes = send_envelope(port, &valid_identity, envelope).await.expect("Should receive reply");
+    let reply_bytes = send_envelope(port, &valid_identity, envelope)
+        .await
+        .expect("Should receive reply");
     let reply_env: RaftRpcEnvelope = serde_json::from_slice(&reply_bytes).unwrap();
     let reply: RequestVoteReply = serde_json::from_slice(&reply_env.payload).unwrap();
-    
+
     assert!(reply.vote_granted, "Legitimate vote should be granted");
-    assert_eq!(*node.current_term.read().await, 6, "Node term should update to 6");
+    assert_eq!(
+        *node.current_term.read().await,
+        6,
+        "Node term should update to 6"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -163,9 +171,11 @@ async fn sec018_forged_sender_id_rejected() {
     let (node, valid_identity, _valid_id, port, _) = setup_test_listener().await;
 
     let forged_id = NodeId::new("some-other-node");
-    
+
     let envelope = RaftRpcEnvelope {
-        sender_id: forged_id.clone(), receiver_id: NodeId::new("server-node"), version: 1,
+        sender_id: forged_id.clone(),
+        receiver_id: NodeId::new("server-node"),
+        version: 1,
         request_id: "2".to_string(),
         rpc_type: RaftRpcType::RequestVote,
         payload: serde_json::to_vec(&RequestVoteArgs {
@@ -179,10 +189,17 @@ async fn sec018_forged_sender_id_rejected() {
 
     let res = send_envelope(port, &valid_identity, envelope).await;
     // Should be dropped/timeout because the listener rejects the mismatched sender_id
-    assert!(res.is_err(), "Expected connection drop/timeout for forged sender");
-    
+    assert!(
+        res.is_err(),
+        "Expected connection drop/timeout for forged sender"
+    );
+
     // Crucially: prove the Raft state was NOT mutated
-    assert_eq!(*node.current_term.read().await, 5, "State must NOT mutate on forged identity");
+    assert_eq!(
+        *node.current_term.read().await,
+        5,
+        "State must NOT mutate on forged identity"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -193,7 +210,9 @@ async fn sec018_stale_unknown_peer_rejected() {
     let attacker_identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
 
     let envelope = RaftRpcEnvelope {
-        sender_id: valid_id.clone(), receiver_id: NodeId::new("server-node"), version: 1, // Attacker tries to claim the valid ID
+        sender_id: valid_id.clone(),
+        receiver_id: NodeId::new("server-node"),
+        version: 1, // Attacker tries to claim the valid ID
         request_id: "3".to_string(),
         rpc_type: RaftRpcType::RequestVote,
         payload: serde_json::to_vec(&RequestVoteArgs {
@@ -206,10 +225,17 @@ async fn sec018_stale_unknown_peer_rejected() {
     };
 
     let res = send_envelope(port, &attacker_identity, envelope).await;
-    assert!(res.is_err(), "Expected connection drop/timeout for unknown peer fingerprint");
-    
+    assert!(
+        res.is_err(),
+        "Expected connection drop/timeout for unknown peer fingerprint"
+    );
+
     // Prove the Raft state was NOT mutated
-    assert_eq!(*node.current_term.read().await, 5, "State must NOT mutate from unregistered peer");
+    assert_eq!(
+        *node.current_term.read().await,
+        5,
+        "State must NOT mutate from unregistered peer"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -220,7 +246,9 @@ async fn sec018_envelope_sender_mismatch_rejected() {
 
     // The client is valid and registered, BUT puts a different NodeId in the envelope
     let envelope = RaftRpcEnvelope {
-        sender_id: other_id.clone(), receiver_id: NodeId::new("server-node"), version: 1,
+        sender_id: other_id.clone(),
+        receiver_id: NodeId::new("server-node"),
+        version: 1,
         request_id: "4".to_string(),
         rpc_type: RaftRpcType::AppendEntries,
         payload: serde_json::to_vec(&AppendEntriesArgs {
@@ -235,8 +263,15 @@ async fn sec018_envelope_sender_mismatch_rejected() {
     };
 
     let res = send_envelope(port, &valid_identity, envelope).await;
-    assert!(res.is_err(), "Expected connection drop/timeout for mismatched envelope sender");
-    
+    assert!(
+        res.is_err(),
+        "Expected connection drop/timeout for mismatched envelope sender"
+    );
+
     // Prove the Raft state was NOT mutated
-    assert_eq!(*node.current_term.read().await, 5, "State must NOT mutate on mismatch");
+    assert_eq!(
+        *node.current_term.read().await,
+        5,
+        "State must NOT mutate on mismatch"
+    );
 }

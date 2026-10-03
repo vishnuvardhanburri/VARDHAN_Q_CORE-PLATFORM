@@ -1,9 +1,9 @@
 use rand::Rng;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
 /// ─── 1. THE CHAOS TWIN (Hostile Environment Simulator) ──────────────────────
 /// In a Hybrid Architecture, we assume the host OS is constantly under attack.
-/// The Chaos Twin intentionally mutates bits, drops packets, and corrupts data 
+/// The Chaos Twin intentionally mutates bits, drops packets, and corrupts data
 /// in transit to mathematically prove the Secure Enclave's resilience.
 pub struct ChaosTwin {
     pub active: bool,
@@ -12,13 +12,18 @@ pub struct ChaosTwin {
 
 impl ChaosTwin {
     pub fn new(active: bool, corruption_probability: f64) -> Self {
-        Self { active, corruption_probability }
+        Self {
+            active,
+            corruption_probability,
+        }
     }
 
     /// Randomly flips bits in the payload to simulate memory corruption or MITM attacks
     pub fn strike(&self, data: &mut [u8]) -> bool {
-        if !self.active { return false; }
-        
+        if !self.active {
+            return false;
+        }
+
         let mut rng = rand::thread_rng();
         if rng.gen_bool(self.corruption_probability) {
             // Induce targeted bit-flip corruption
@@ -40,24 +45,36 @@ pub struct NitroEnclaveBridge {
 
 impl NitroEnclaveBridge {
     pub fn new(vsock_cid: u32, vsock_port: u32) -> Self {
-        Self { vsock_cid, vsock_port }
+        Self {
+            vsock_cid,
+            vsock_port,
+        }
     }
 
-    /// Submits data to the hardware enclave. The enclave verifies the SHA256 integrity 
+    /// Submits data to the hardware enclave. The enclave verifies the SHA256 integrity
     /// before applying the Hybrid ML-DSA-87 / Ed25519 signatures.
-    pub fn execute_in_enclave(&self, original_hash: &str, payload: &[u8]) -> Result<String, &'static str> {
+    pub fn execute_in_enclave(
+        &self,
+        original_hash: &str,
+        payload: &[u8],
+    ) -> Result<String, &'static str> {
         // Enclave internal verification
         let mut hasher = Sha256::new();
         hasher.update(payload);
         let current_hash = hex::encode(hasher.finalize());
 
         if current_hash != original_hash {
-            // The Chaos Twin (or an attacker) corrupted the data. 
+            // The Chaos Twin (or an attacker) corrupted the data.
             // The Enclave autonomous nervous system rejects the transaction.
-            return Err("ENCLAVE_PANIC: Hardware-level payload corruption detected. Transaction severed.");
+            return Err(
+                "ENCLAVE_PANIC: Hardware-level payload corruption detected. Transaction severed.",
+            );
         }
 
-        Ok("ENCLAVE_SUCCESS: Payload integrity verified inside CPU ring-isolated memory.".to_string())
+        Ok(
+            "ENCLAVE_SUCCESS: Payload integrity verified inside CPU ring-isolated memory."
+                .to_string(),
+        )
     }
 }
 
@@ -65,7 +82,7 @@ impl NitroEnclaveBridge {
 /// Combines the hostile Chaos Twin with the fortress of the Nitro Enclave.
 pub fn execute_hybrid_transaction(payload_str: &str) {
     let mut payload = payload_str.as_bytes().to_vec();
-    
+
     // Calculate the absolute truth (Original Hash)
     let mut hasher = Sha256::new();
     hasher.update(&payload);
@@ -75,7 +92,7 @@ pub fn execute_hybrid_transaction(payload_str: &str) {
     let enclave = NitroEnclaveBridge::new(3, 5005);
 
     eprintln!("[HYBRID CORE] Original State Hash: {}", original_hash);
-    
+
     let corrupted = chaos_engine.strike(&mut payload);
     if corrupted {
         eprintln!("[HYBRID CORE] ⚠ CHAOS TWIN INJECTED HARDWARE CORRUPTION");

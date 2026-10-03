@@ -20,11 +20,11 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use ha_cluster::{
-    RaftConfig, RaftNode,
     raft::{
-        AppendEntriesArgs, AppendEntriesReply, LogEntry, MockRpcClient,
-        RequestVoteArgs, RequestVoteReply,
+        AppendEntriesArgs, AppendEntriesReply, LogEntry, MockRpcClient, RequestVoteArgs,
+        RequestVoteReply,
     },
+    RaftConfig, RaftNode,
 };
 use tokio::sync::RwLock;
 
@@ -34,7 +34,7 @@ fn test_config() -> RaftConfig {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     }
 }
 
@@ -45,7 +45,11 @@ type ClusterMap = Arc<RwLock<HashMap<ha_cluster::NodeId, Arc<RaftNode>>>>;
 /// we inject messages directly via byzantine_* helpers to simulate a
 /// Byzantine sender.
 async fn make_cluster() -> (ClusterMap, Arc<RaftNode>, Arc<RaftNode>, Arc<RaftNode>) {
-    for f in &["/tmp/p8_byzantine_a.json", "/tmp/p8_byzantine_b.json", "/tmp/p8_byzantine_c.json"] {
+    for f in &[
+        "/tmp/p8_byzantine_a.json",
+        "/tmp/p8_byzantine_b.json",
+        "/tmp/p8_byzantine_c.json",
+    ] {
         std::fs::remove_file(f).ok();
     }
 
@@ -88,10 +92,7 @@ async fn make_cluster() -> (ClusterMap, Arc<RaftNode>, Arc<RaftNode>, Arc<RaftNo
 
 /// Directly invoke `handle_request_vote` on a target node — simulates a
 /// Byzantine sender crafting a RequestVote message.
-async fn byzantine_request_vote(
-    target: &RaftNode,
-    args: RequestVoteArgs,
-) -> RequestVoteReply {
+async fn byzantine_request_vote(target: &RaftNode, args: RequestVoteArgs) -> RequestVoteReply {
     target.handle_request_vote(args).await
 }
 
@@ -114,20 +115,28 @@ async fn p8_1a_double_vote_same_term() {
     let (_cluster, _a, _b, node_c) = make_cluster().await;
 
     // First: Byzantine node votes for "attacker-1" at term 3
-    let vote1 = byzantine_request_vote(&node_c, RequestVoteArgs {
-        term: 3,
-        candidate_id: ha_cluster::NodeId::new("attacker-1"),
-        last_log_index: 5,
-        last_log_term: 3,
-    }).await;
+    let vote1 = byzantine_request_vote(
+        &node_c,
+        RequestVoteArgs {
+            term: 3,
+            candidate_id: ha_cluster::NodeId::new("attacker-1"),
+            last_log_index: 5,
+            last_log_term: 3,
+        },
+    )
+    .await;
 
     // Second: SAME term (3), different candidate "attacker-2" — Byzantine double vote
-    let vote2 = byzantine_request_vote(&node_c, RequestVoteArgs {
-        term: 3,
-        candidate_id: ha_cluster::NodeId::new("attacker-2"),
-        last_log_index: 5,
-        last_log_term: 3,
-    }).await;
+    let vote2 = byzantine_request_vote(
+        &node_c,
+        RequestVoteArgs {
+            term: 3,
+            candidate_id: ha_cluster::NodeId::new("attacker-2"),
+            last_log_index: 5,
+            last_log_term: 3,
+        },
+    )
+    .await;
 
     let granted_count = [vote1.vote_granted, vote2.vote_granted]
         .iter()
@@ -192,15 +201,21 @@ async fn p8_1b_uncommitted_entry_overwrite() {
     };
 
     let reply_evil = byzantine_append_entries(&id_b, ae_evil).await;
-    assert!(reply_evil.success,
-        "Raft allows same-term overwrite of uncommitted entries (log matching)");
+    assert!(
+        reply_evil.success,
+        "Raft allows same-term overwrite of uncommitted entries (log matching)"
+    );
 
     let log = id_b.log.read().await;
-    assert_eq!(&log[0].client_id, "evil",
-        "Uncommitted entry should be overwritten by same-term leader (expected Raft behavior)");
+    assert_eq!(
+        &log[0].client_id, "evil",
+        "Uncommitted entry should be overwritten by same-term leader (expected Raft behavior)"
+    );
     drop(log);
 
-    println!("P8.1b PASSED: Uncommitted entry overwritten — expected Raft behavior (I3=committed-only)");
+    println!(
+        "P8.1b PASSED: Uncommitted entry overwritten — expected Raft behavior (I3=committed-only)"
+    );
 }
 
 /// P8-001: Committed entry overwrite attempt (P8 finding).
@@ -239,8 +254,10 @@ async fn p8_001_committed_entry_overwrite_by_byzantine() {
     assert!(reply.success, "Node B should accept committed entry");
     {
         let log = id_b.log.read().await;
-        assert_eq!(&log[0].client_id, "client-committed",
-            "Committed entry should be in log");
+        assert_eq!(
+            &log[0].client_id, "client-committed",
+            "Committed entry should be in log"
+        );
     }
     {
         let commit = id_b.commit_index.read().await;
@@ -268,20 +285,26 @@ async fn p8_001_committed_entry_overwrite_by_byzantine() {
 
     if reply_trunc.success {
         let log = id_b.log.read().await;
-        let overwritten = log.get(0)
-            .map(|e| e.client_id.as_str())
-            == Some("byzantine-forged");
+        let overwritten = log.get(0).map(|e| e.client_id.as_str()) == Some("byzantine-forged");
         if overwritten {
             // P8-001 FINDING: Committed entry was silently overwritten
             println!("P8-001 FINDING: Committed entry overwritten by same-term Byzantine leader");
-            println!("  -> Raft layer does NOT protect committed entries from same-term truncation");
-            println!("  -> Mitigated by transport-level ML-KEM/ML-DSA authentication in production");
+            println!(
+                "  -> Raft layer does NOT protect committed entries from same-term truncation"
+            );
+            println!(
+                "  -> Mitigated by transport-level ML-KEM/ML-DSA authentication in production"
+            );
             println!("  -> Standard Raft assumes fail-stop; Byzantine protection requires authenticated channels");
         } else {
-            println!("P8.1b2 PASSED: Committed entry NOT overwritten (Raft protects committed entries)");
+            println!(
+                "P8.1b2 PASSED: Committed entry NOT overwritten (Raft protects committed entries)"
+            );
         }
     } else {
-        println!("P8.1b2 PASSED: AppendEntries rejected (log matching protected the committed entry)");
+        println!(
+            "P8.1b2 PASSED: AppendEntries rejected (log matching protected the committed entry)"
+        );
     }
 }
 
@@ -295,26 +318,38 @@ async fn p8_1c_forged_high_term_then_double_vote() {
     let (_cluster, _a, _b, node_c) = make_cluster().await;
 
     // Step 1: Byzantine node sends RequestVote with forged term 999
-    let vote_high = byzantine_request_vote(&node_c, RequestVoteArgs {
-        term: 999,
-        candidate_id: ha_cluster::NodeId::new("forged-leader-1"),
-        last_log_index: 0,
-        last_log_term: 0,
-    }).await;
+    let vote_high = byzantine_request_vote(
+        &node_c,
+        RequestVoteArgs {
+            term: 999,
+            candidate_id: ha_cluster::NodeId::new("forged-leader-1"),
+            last_log_index: 0,
+            last_log_term: 0,
+        },
+    )
+    .await;
 
-    assert_eq!(vote_high.term, 999,
-        "Node C should step down to term 999 on higher-term RequestVote");
+    assert_eq!(
+        vote_high.term, 999,
+        "Node C should step down to term 999 on higher-term RequestVote"
+    );
 
     // Step 2: In the same term (999), send another vote for a different candidate
-    let vote2 = byzantine_request_vote(&node_c, RequestVoteArgs {
-        term: 999,
-        candidate_id: ha_cluster::NodeId::new("forged-leader-2"),
-        last_log_index: 0,
-        last_log_term: 0,
-    }).await;
+    let vote2 = byzantine_request_vote(
+        &node_c,
+        RequestVoteArgs {
+            term: 999,
+            candidate_id: ha_cluster::NodeId::new("forged-leader-2"),
+            last_log_index: 0,
+            last_log_term: 0,
+        },
+    )
+    .await;
 
-    assert!(!vote2.vote_granted,
-        "Node C must not grant a second vote in term 999 — one-vote-per-term safety (I5)");
+    assert!(
+        !vote2.vote_granted,
+        "Node C must not grant a second vote in term 999 — one-vote-per-term safety (I5)"
+    );
 
     println!("P8.1c PASSED: Forged high term — one vote per term in term 999 enforced");
 }
@@ -346,7 +381,10 @@ async fn p8_1d_wrong_prev_log_term() {
     };
 
     let reply = byzantine_append_entries(&id_b, ae_legit).await;
-    assert!(reply.success, "Node B should accept legitimate AppendEntries");
+    assert!(
+        reply.success,
+        "Node B should accept legitimate AppendEntries"
+    );
 
     // Byzantine leader sends AppendEntries claiming prev_log_index=1,
     // prev_log_term=99 — fabricated previous term
@@ -367,15 +405,22 @@ async fn p8_1d_wrong_prev_log_term() {
 
     let reply_evil = byzantine_append_entries(&id_b, ae_evil).await;
 
-    assert!(!reply_evil.success,
-        "Node B must reject AppendEntries with wrong prev_log_term — log matching (I3)");
+    assert!(
+        !reply_evil.success,
+        "Node B must reject AppendEntries with wrong prev_log_term — log matching (I3)"
+    );
 
     // Verify node B's log is unchanged
     let log = id_b.log.read().await;
-    assert_eq!(log.len(), 1,
-        "Node B log should have 1 entry — Byzantine AppendEntries must not extend it");
-    assert_eq!(&log[0].data, b"legit-data",
-        "Node B's legit entry must not be corrupted");
+    assert_eq!(
+        log.len(),
+        1,
+        "Node B log should have 1 entry — Byzantine AppendEntries must not extend it"
+    );
+    assert_eq!(
+        &log[0].data, b"legit-data",
+        "Node B's legit entry must not be corrupted"
+    );
 
     println!("P8.1d PASSED: Wrong prev_log_term — follower rejected inconsistent entry");
 }
@@ -390,12 +435,16 @@ async fn p8_1e_stale_leader_append_entries() {
     let (_cluster, id_a, id_b, _id_c) = make_cluster().await;
 
     // Step node B down to term 50 via a higher-term RequestVote
-    let _ = byzantine_request_vote(&id_b, RequestVoteArgs {
-        term: 50,
-        candidate_id: ha_cluster::NodeId::new("byzantine-candidate"),
-        last_log_index: 0,
-        last_log_term: 0,
-    }).await;
+    let _ = byzantine_request_vote(
+        &id_b,
+        RequestVoteArgs {
+            term: 50,
+            candidate_id: ha_cluster::NodeId::new("byzantine-candidate"),
+            last_log_index: 0,
+            last_log_term: 0,
+        },
+    )
+    .await;
 
     // Node-a (stale, term 1) sends AppendEntries
     let entry = LogEntry {
@@ -416,15 +465,22 @@ async fn p8_1e_stale_leader_append_entries() {
 
     let reply = byzantine_append_entries(&id_b, ae_stale).await;
 
-    assert!(!reply.success,
-        "Node B (term 50) must reject AppendEntries from stale leader (term 1) — I2");
-    assert_eq!(reply.term, 50,
-        "Reply should report current term 50 to the stale leader");
+    assert!(
+        !reply.success,
+        "Node B (term 50) must reject AppendEntries from stale leader (term 1) — I2"
+    );
+    assert_eq!(
+        reply.term, 50,
+        "Reply should report current term 50 to the stale leader"
+    );
 
     // Node B's log must remain empty
     let log = id_b.log.read().await;
-    assert_eq!(log.len(), 0,
-        "Node B log must remain empty — stale leader AppendEntries rejected");
+    assert_eq!(
+        log.len(),
+        0,
+        "Node B log must remain empty — stale leader AppendEntries rejected"
+    );
 
     println!("P8.1e PASSED: Stale leader — follower rejected below-current-term AppendEntries");
 }
@@ -439,26 +495,38 @@ async fn p8_1f_vote_replay_attack() {
     let (_cluster, _a, _b, node_c) = make_cluster().await;
 
     // Original vote — legitimate candidate
-    let original = byzantine_request_vote(&node_c, RequestVoteArgs {
-        term: 5,
-        candidate_id: ha_cluster::NodeId::new("legit-candidate"),
-        last_log_index: 3,
-        last_log_term: 4,
-    }).await;
+    let original = byzantine_request_vote(
+        &node_c,
+        RequestVoteArgs {
+            term: 5,
+            candidate_id: ha_cluster::NodeId::new("legit-candidate"),
+            last_log_index: 3,
+            last_log_term: 4,
+        },
+    )
+    .await;
 
-    assert!(original.vote_granted,
-        "Node C should grant vote to legit-candidate in term 5");
+    assert!(
+        original.vote_granted,
+        "Node C should grant vote to legit-candidate in term 5"
+    );
 
     // Replay: same term (5), different candidate
-    let replay = byzantine_request_vote(&node_c, RequestVoteArgs {
-        term: 5,
-        candidate_id: ha_cluster::NodeId::new("replay-candidate"),
-        last_log_index: 3,
-        last_log_term: 4,
-    }).await;
+    let replay = byzantine_request_vote(
+        &node_c,
+        RequestVoteArgs {
+            term: 5,
+            candidate_id: ha_cluster::NodeId::new("replay-candidate"),
+            last_log_index: 3,
+            last_log_term: 4,
+        },
+    )
+    .await;
 
-    assert!(!replay.vote_granted,
-        "Node C must not grant replay vote in same term 5 — replay safety (I5)");
+    assert!(
+        !replay.vote_granted,
+        "Node C must not grant replay vote in same term 5 — replay safety (I5)"
+    );
 
     println!("P8.1f PASSED: Vote replay — second vote in same term rejected");
 }
@@ -555,7 +623,9 @@ async fn p8_1g_fork_via_conflicting_prev_log() {
         println!("  -> I3 protection relies on quorum intersection + transport auth");
         println!("  -> Real leader (node-a) will overwrite fork when it sends heartbeats");
     } else {
-        println!("P8.1g: At least one follower rejected conflicting AppendEntries — partial protection");
+        println!(
+            "P8.1g: At least one follower rejected conflicting AppendEntries — partial protection"
+        );
     }
 
     println!("P8.1g COMPLETE: Fork via conflicting prev_log — documented as P8 finding");

@@ -1,7 +1,7 @@
+use crate::identity::{ExecutionPlanId, FaultScenarioId, ReplayCapsuleId, VerificationClaimId};
 use serde::{Deserialize, Serialize};
-use vardhan_state::id::{ContentHash, StateHash};
-use crate::identity::{ExecutionPlanId, VerificationClaimId, ReplayCapsuleId, FaultScenarioId};
 use vardhan_state::authorization::ProvenanceTrail;
+use vardhan_state::id::{ContentHash, StateHash};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExecutionPool {
@@ -16,11 +16,23 @@ pub enum ExecutionPool {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExecutionTarget {
-    RustTest { test_module: String, target_crate: String },
-    CargoNextest { profile: String, filter_expr: String },
-    Replay { capsule_ref: ReplayCapsuleId },
-    FaultHarness { scenario_ref: FaultScenarioId },
-    InternalVerification { routine_name: String },
+    RustTest {
+        test_module: String,
+        target_crate: String,
+    },
+    CargoNextest {
+        profile: String,
+        filter_expr: String,
+    },
+    Replay {
+        capsule_ref: ReplayCapsuleId,
+    },
+    FaultHarness {
+        scenario_ref: FaultScenarioId,
+    },
+    InternalVerification {
+        routine_name: String,
+    },
     // Explicitly removed: Process(String) - no arbitrary command execution allowed in ProofMesh
 }
 

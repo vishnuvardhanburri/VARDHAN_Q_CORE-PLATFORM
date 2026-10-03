@@ -1,12 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-
 use crate::id::{
     ActionId, AuthorizationId, ConfigurationHash, DecisionId, EntityId, EvidenceId,
     FaultScenarioId, VerificationClaimId,
 };
+use crate::scope::{canonical_json, Hashable, TenantScoped};
 use crate::time::TimeContext;
-use crate::scope::{TenantScoped, Hashable, canonical_json};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProvenanceTrail {
@@ -17,27 +16,40 @@ pub struct ProvenanceTrail {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ActionType {
-    #[serde(rename = "READ")]    Read,
-    #[serde(rename = "MODIFY")]  Modify,
-    #[serde(rename = "CREATE")]  Create,
-    #[serde(rename = "DELETE")]  Delete,
-    #[serde(rename = "EXECUTE")] Execute,
-    #[serde(rename = "SYSTEMIC_FAULT_INJECTION")] SystemicFaultInjection,
+    #[serde(rename = "READ")]
+    Read,
+    #[serde(rename = "MODIFY")]
+    Modify,
+    #[serde(rename = "CREATE")]
+    Create,
+    #[serde(rename = "DELETE")]
+    Delete,
+    #[serde(rename = "EXECUTE")]
+    Execute,
+    #[serde(rename = "SYSTEMIC_FAULT_INJECTION")]
+    SystemicFaultInjection,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RiskLevel {
-    #[serde(rename = "LOW")]      Low,
-    #[serde(rename = "MEDIUM")]   Medium,
-    #[serde(rename = "HIGH")]     High,
-    #[serde(rename = "CRITICAL")] Critical,
+    #[serde(rename = "LOW")]
+    Low,
+    #[serde(rename = "MEDIUM")]
+    Medium,
+    #[serde(rename = "HIGH")]
+    High,
+    #[serde(rename = "CRITICAL")]
+    Critical,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AuthLevel {
-    #[serde(rename = "STANDARD")] Standard,
-    #[serde(rename = "ELEVATED")] Elevated,
-    #[serde(rename = "SYSTEMIC")] Systemic,
+    #[serde(rename = "STANDARD")]
+    Standard,
+    #[serde(rename = "ELEVATED")]
+    Elevated,
+    #[serde(rename = "SYSTEMIC")]
+    Systemic,
 }
 
 pub type Authorization = TenantScoped<AuthorizationInner>;
@@ -89,13 +101,16 @@ pub struct ProofMeshSystemicAuthorization {
     pub provenance: ProvenanceTrail,
 }
 
-use crate::id::{ContentHash, StateHash, TenantId, PolicyId};
+use crate::id::{ContentHash, PolicyId, StateHash, TenantId};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum PolicyStatus {
-    #[serde(rename = "PASS")] Pass,
-    #[serde(rename = "FAIL")] Fail,
-    #[serde(rename = "INDETERMINATE")] Indeterminate,
+    #[serde(rename = "PASS")]
+    Pass,
+    #[serde(rename = "FAIL")]
+    Fail,
+    #[serde(rename = "INDETERMINATE")]
+    Indeterminate,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

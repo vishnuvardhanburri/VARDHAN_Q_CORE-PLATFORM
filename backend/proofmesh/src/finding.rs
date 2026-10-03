@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-use vardhan_state::id::{ContentHash, EvidenceId, ExecutionId, StateHash};
 use crate::identity::{
     EvidenceQuorumSnapshotId, PolicyEvaluationId, VerificationClaimId, VerificationFindingId,
 };
+use serde::{Deserialize, Serialize};
 use vardhan_state::authorization::ProvenanceTrail;
+use vardhan_state::id::{ContentHash, EvidenceId, ExecutionId, StateHash};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FindingStatus {

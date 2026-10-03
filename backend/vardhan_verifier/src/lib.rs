@@ -169,7 +169,11 @@ impl VardhanVerifier {
         let mut passed: Vec<String> = Vec::new();
 
         // ── Check 1: Schema version supported ────────────────────────────
-        if self.config.supported_schema_versions.contains(&receipt.schema_version) {
+        if self
+            .config
+            .supported_schema_versions
+            .contains(&receipt.schema_version)
+        {
             passed.push("schema_version_supported".to_string());
         } else {
             failures.push(VerificationFailure {
@@ -187,7 +191,10 @@ impl VardhanVerifier {
         } else {
             failures.push(VerificationFailure {
                 check: "receipt_id_format".to_string(),
-                reason: format!("Receipt ID '{}' does not match expected format 'VQR-<uuid>'", receipt.receipt_id),
+                reason: format!(
+                    "Receipt ID '{}' does not match expected format 'VQR-<uuid>'",
+                    receipt.receipt_id
+                ),
             });
         }
 
@@ -203,7 +210,10 @@ impl VardhanVerifier {
             ("authority_reference", receipt.authority_reference.as_str()),
             ("decision", receipt.decision.as_str()),
             ("payload_hash", receipt.payload_hash.as_str()),
-            ("issuer_key_fingerprint", receipt.issuer_key_fingerprint.as_str()),
+            (
+                "issuer_key_fingerprint",
+                receipt.issuer_key_fingerprint.as_str(),
+            ),
         ];
         for (name, value) in &required_fields {
             if value.is_empty() {
@@ -267,7 +277,10 @@ impl VardhanVerifier {
         }
 
         // ── Check 7: Decision is a known value ───────────────────────────
-        if receipt.decision == "AUTHORIZED" || receipt.decision == "REJECTED" || receipt.decision == "SEALED" {
+        if receipt.decision == "AUTHORIZED"
+            || receipt.decision == "REJECTED"
+            || receipt.decision == "SEALED"
+        {
             passed.push("decision_is_known_value".to_string());
         } else {
             failures.push(VerificationFailure {
@@ -280,13 +293,16 @@ impl VardhanVerifier {
         if let Some(pk_bytes) = ed25519_public_key_bytes {
             use ed25519_dalek::{Signature, VerifyingKey};
             let verify_result = (|| -> Result<(), String> {
-                let pk_arr: [u8; 32] = pk_bytes.try_into()
+                let pk_arr: [u8; 32] = pk_bytes
+                    .try_into()
                     .map_err(|_| "Ed25519 public key must be 32 bytes".to_string())?;
                 let vk = VerifyingKey::from_bytes(&pk_arr)
                     .map_err(|e| format!("Invalid Ed25519 public key: {}", e))?;
                 let sig_bytes = hex::decode(&receipt.signatures.ed25519_sig)
                     .map_err(|e| format!("Invalid Ed25519 signature hex: {}", e))?;
-                let sig_arr: [u8; 64] = sig_bytes.as_slice().try_into()
+                let sig_arr: [u8; 64] = sig_bytes
+                    .as_slice()
+                    .try_into()
                     .map_err(|_| "Ed25519 signature must be 64 bytes".to_string())?;
                 let sig = Signature::from_bytes(&sig_arr);
                 use ed25519_dalek::Verifier;
@@ -305,7 +321,9 @@ impl VardhanVerifier {
         }
 
         // ── Check 9: Signature key IDs non-empty ─────────────────────────
-        if !receipt.signatures.ed25519_key_id.is_empty() && !receipt.signatures.ml_dsa_87_key_id.is_empty() {
+        if !receipt.signatures.ed25519_key_id.is_empty()
+            && !receipt.signatures.ml_dsa_87_key_id.is_empty()
+        {
             passed.push("signature_key_ids_present".to_string());
         } else {
             failures.push(VerificationFailure {
@@ -353,7 +371,10 @@ pub fn canonical_payload(
     policy_id: &str,
     policy_version: &str,
 ) -> String {
-    format!("{}::{}::{}::{}::{}", tenant_id, transaction_id, proposed_action, policy_id, policy_version)
+    format!(
+        "{}::{}::{}::{}::{}",
+        tenant_id, transaction_id, proposed_action, policy_id, policy_version
+    )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -382,7 +403,13 @@ mod tests {
         let policy_id = "POL-NET-01".to_string();
         let policy_version = "1.0".to_string();
 
-        let payload = canonical_payload(&tenant_id, &transaction_id, &proposed_action, &policy_id, &policy_version);
+        let payload = canonical_payload(
+            &tenant_id,
+            &transaction_id,
+            &proposed_action,
+            &policy_id,
+            &policy_version,
+        );
         let payload_hash = blake3::hash(payload.as_bytes()).to_string();
 
         VerifiableReceipt {
@@ -405,7 +432,8 @@ mod tests {
             parent_receipt_id: None,
             correlation_id: None,
             payload_hash,
-            issuer_key_fingerprint: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890".to_string(),
+            issuer_key_fingerprint:
+                "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890".to_string(),
             signatures: VerifiableDualSignature {
                 ed25519_sig: "a".repeat(128),
                 ed25519_key_id: uuid::Uuid::new_v4().to_string(),
@@ -420,18 +448,28 @@ mod tests {
         let verifier = VardhanVerifier::with_defaults();
         let receipt = make_valid_receipt();
         let result = verifier.verify(&receipt, None, None);
-        assert!(result.is_valid(), "Valid receipt should pass. Failures: {:?}", result.failures);
+        assert!(
+            result.is_valid(),
+            "Valid receipt should pass. Failures: {:?}",
+            result.failures
+        );
     }
 
     #[test]
     fn test_tampered_payload_hash_fails() {
         let verifier = VardhanVerifier::with_defaults();
         let mut receipt = make_valid_receipt();
-        receipt.payload_hash = "000000000000000000000000000000000000000000000000000000000000dead".to_string();
+        receipt.payload_hash =
+            "000000000000000000000000000000000000000000000000000000000000dead".to_string();
         let result = verifier.verify(&receipt, None, None);
         assert!(!result.is_valid());
-        assert!(result.failures.iter().any(|f| f.check == "payload_hash_valid"),
-            "Should fail payload_hash_valid check");
+        assert!(
+            result
+                .failures
+                .iter()
+                .any(|f| f.check == "payload_hash_valid"),
+            "Should fail payload_hash_valid check"
+        );
     }
 
     #[test]
@@ -441,7 +479,12 @@ mod tests {
         receipt.schema_version = "99.0".to_string();
         let result = verifier.verify(&receipt, None, None);
         assert!(!result.is_valid());
-        assert!(result.failures.iter().any(|f| f.check == "schema_version_supported"));
+        assert!(
+            result
+                .failures
+                .iter()
+                .any(|f| f.check == "schema_version_supported")
+        );
     }
 
     #[test]
@@ -451,7 +494,12 @@ mod tests {
         receipt.receipt_id = "STATIC-FAKE-ID".to_string();
         let result = verifier.verify(&receipt, None, None);
         assert!(!result.is_valid());
-        assert!(result.failures.iter().any(|f| f.check == "receipt_id_format"));
+        assert!(
+            result
+                .failures
+                .iter()
+                .any(|f| f.check == "receipt_id_format")
+        );
     }
 
     #[test]
@@ -464,7 +512,12 @@ mod tests {
         let receipt = make_valid_receipt(); // has tenant "tenant-abc-123"
         let result = verifier.verify(&receipt, None, None);
         assert!(!result.is_valid());
-        assert!(result.failures.iter().any(|f| f.check == "tenant_id_matches"));
+        assert!(
+            result
+                .failures
+                .iter()
+                .any(|f| f.check == "tenant_id_matches")
+        );
     }
 
     #[test]
@@ -474,7 +527,12 @@ mod tests {
         receipt.timestamp_ms = now_ms() + 999_999_999; // far in the future
         let result = verifier.verify(&receipt, None, None);
         assert!(!result.is_valid());
-        assert!(result.failures.iter().any(|f| f.check == "timestamp_not_future"));
+        assert!(
+            result
+                .failures
+                .iter()
+                .any(|f| f.check == "timestamp_not_future")
+        );
     }
 
     #[test]
@@ -484,7 +542,12 @@ mod tests {
         receipt.tenant_id = String::new();
         let result = verifier.verify(&receipt, None, None);
         assert!(!result.is_valid());
-        assert!(result.failures.iter().any(|f| f.check == "field_tenant_id_present"));
+        assert!(
+            result
+                .failures
+                .iter()
+                .any(|f| f.check == "field_tenant_id_present")
+        );
     }
 
     #[test]
@@ -494,7 +557,12 @@ mod tests {
         receipt.decision = "MAYBE".to_string();
         let result = verifier.verify(&receipt, None, None);
         assert!(!result.is_valid());
-        assert!(result.failures.iter().any(|f| f.check == "decision_is_known_value"));
+        assert!(
+            result
+                .failures
+                .iter()
+                .any(|f| f.check == "decision_is_known_value")
+        );
     }
 
     #[test]
@@ -506,7 +574,11 @@ mod tests {
         receipt.tenant_id = String::new();
         let result = verifier.verify(&receipt, None, None);
         assert!(!result.is_valid());
-        assert!(result.failures.len() >= 3, "Should report all failures, got: {:?}", result.failures);
+        assert!(
+            result.failures.len() >= 3,
+            "Should report all failures, got: {:?}",
+            result.failures
+        );
     }
 
     #[test]
@@ -528,7 +600,15 @@ mod tests {
         let verifier = VardhanVerifier::new(config);
         let receipt = make_valid_receipt();
         let result = verifier.verify(&receipt, None, None);
-        assert!(result.is_valid(), "Should pass when tenant matches. Failures: {:?}", result.failures);
-        assert!(result.checks_passed.contains(&"tenant_id_matches".to_string()));
+        assert!(
+            result.is_valid(),
+            "Should pass when tenant matches. Failures: {:?}",
+            result.failures
+        );
+        assert!(
+            result
+                .checks_passed
+                .contains(&"tenant_id_matches".to_string())
+        );
     }
 }

@@ -22,13 +22,12 @@ use aes_gcm::{Aes256Gcm, Key, Nonce};
 use core_crypto::vault::{KeyProtector, VaultError};
 use core_crypto::QuantumNodeIdentity;
 use ha_cluster::{
-    NodeId, RaftConfig, RaftNode, RaftRole,
     raft::{
-        AppendEntriesArgs, AppendEntriesReply, LogEntry, MockRpcClient,
-        RaftRpcClient, RaftRpcEnvelope, RaftRpcType,
-        RequestVoteArgs, RequestVoteReply,
+        AppendEntriesArgs, AppendEntriesReply, LogEntry, MockRpcClient, RaftRpcClient,
+        RaftRpcEnvelope, RaftRpcType, RequestVoteArgs, RequestVoteReply,
     },
     raft_listener::RaftNetworkListener,
+    NodeId, RaftConfig, RaftNode, RaftRole,
 };
 use proxy_engine::transport::AeadTransport;
 use proxy_engine::{run_initiator, run_responder, ProxyError};
@@ -45,7 +44,9 @@ const TEST_SESSION: [u8; 32] = [0xEF; 32];
 /// A no-op KeyProtector for testing vault load/save round-trips.
 struct TestProtector;
 impl KeyProtector for TestProtector {
-    fn provider_name(&self) -> &'static str { "test" }
+    fn provider_name(&self) -> &'static str {
+        "test"
+    }
     fn wrap(&self, plaintext: &[u8]) -> Result<Vec<u8>, VaultError> {
         Ok(plaintext.to_vec())
     }
@@ -75,7 +76,8 @@ impl RaftRpcClient for PartitionedRpcClient {
         &self,
         to: NodeId,
         args: RequestVoteArgs,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<RequestVoteReply, String>> + Send>> {
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<RequestVoteReply, String>> + Send>>
+    {
         if self.blocked.contains(&to) {
             return Box::pin(async move { Err("partitioned: peer unreachable".to_string()) });
         }
@@ -86,7 +88,9 @@ impl RaftRpcClient for PartitionedRpcClient {
         &self,
         to: NodeId,
         args: AppendEntriesArgs,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<AppendEntriesReply, String>> + Send>> {
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<AppendEntriesReply, String>> + Send>,
+    > {
         if self.blocked.contains(&to) {
             return Box::pin(async move { Err("partitioned: peer unreachable".to_string()) });
         }
@@ -111,15 +115,11 @@ async fn pqc_1_1_ml_kem_key_establishment() {
         QuantumNodeIdentity::encapsulate_shared_secret_from_bytes(&ek_bytes).unwrap();
     let ss_b = node_b.decapsulate_from_bytes(&ct_a).unwrap();
 
-    assert_eq!(
-        ss_a, ss_b,
-        "ML-KEM-1024: shared secrets must match (I5)"
-    );
+    assert_eq!(ss_a, ss_b, "ML-KEM-1024: shared secrets must match (I5)");
 
     // B encapsulates toward A's encap key
     let ek_a = node_a.encap_key_bytes();
-    let (ct_b, ss_b2) =
-        QuantumNodeIdentity::encapsulate_shared_secret_from_bytes(&ek_a).unwrap();
+    let (ct_b, ss_b2) = QuantumNodeIdentity::encapsulate_shared_secret_from_bytes(&ek_a).unwrap();
     let ss_a2 = node_a.decapsulate_from_bytes(&ct_b).unwrap();
 
     assert_eq!(
@@ -142,7 +142,10 @@ async fn pqc_1_2_ml_dsa_identity_verification() {
 
     // Wrong message must fail
     let wrong = QuantumNodeIdentity::verify_signature(&dsa_pub, b"wrong-message", &sig);
-    assert!(!wrong, "ML-DSA-87 signature must not verify against different message (I9)");
+    assert!(
+        !wrong,
+        "ML-DSA-87 signature must not verify against different message (I9)"
+    );
 }
 
 /// 1.3: Wrong peer identity is rejected during handshake.
@@ -230,7 +233,9 @@ async fn pqc_1_6_protocol_downgrade_rejected() {
         !proxy_engine::SUPPORTED_VERSIONS.contains(&0u16),
         "Version 0 should not be supported — downgrade rejected (I9)"
     );
-    println!("pqc_1_6 PASSED: Downgraded crypto suite rejected (version 0 not in SUPPORTED_VERSIONS)");
+    println!(
+        "pqc_1_6 PASSED: Downgraded crypto suite rejected (version 0 not in SUPPORTED_VERSIONS)"
+    );
 }
 
 /// 1.7: Expired/rotated identity is rejected as valid.
@@ -298,7 +303,7 @@ async fn pqc_2_1_request_vote_over_pq_transport() {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
 
     let node_b = Arc::new(RaftNode::with_config(
@@ -383,10 +388,11 @@ async fn pqc_2_1_request_vote_over_pq_transport() {
     transport.write_frame(&env_bytes).await.unwrap();
 
     // Read reply
-    let reply = tokio::time::timeout(
-        Duration::from_millis(500),
-        transport.read_frame(),
-    ).await.unwrap().unwrap().unwrap();
+    let reply = tokio::time::timeout(Duration::from_millis(500), transport.read_frame())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
     let reply_env: RaftRpcEnvelope = serde_json::from_slice(&reply).unwrap();
     let _rv_reply: RequestVoteReply = serde_json::from_slice(&reply_env.payload).unwrap();
 
@@ -413,7 +419,7 @@ async fn pqc_2_2_append_entries_over_pq_transport() {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
 
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
@@ -508,19 +514,27 @@ async fn pqc_2_2_append_entries_over_pq_transport() {
     transport.write_frame(&env_bytes).await.unwrap();
 
     // Read reply
-    let reply = tokio::time::timeout(
-        Duration::from_millis(1000),
-        transport.read_frame(),
-    ).await.unwrap().unwrap().unwrap();
+    let reply = tokio::time::timeout(Duration::from_millis(1000), transport.read_frame())
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
     let reply_env: RaftRpcEnvelope = serde_json::from_slice(&reply).unwrap();
     let ae_reply: AppendEntriesReply = serde_json::from_slice(&reply_env.payload).unwrap();
 
-    assert!(ae_reply.success, "AppendEntries over PQ transport must succeed");
+    assert!(
+        ae_reply.success,
+        "AppendEntries over PQ transport must succeed"
+    );
 
     // Verify the log entry was actually persisted on node B
     {
         let log = node_b.log.read().await;
-        assert_eq!(log.len(), 1, "Node B must have 1 log entry after AppendEntries (I1, I3)");
+        assert_eq!(
+            log.len(),
+            1,
+            "Node B must have 1 log entry after AppendEntries (I1, I3)"
+        );
         assert_eq!(log[0].data, b"hello-world", "Log entry data must match");
     }
 
@@ -532,7 +546,9 @@ async fn pqc_2_2_append_entries_over_pq_transport() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_2_3_commit_propagation() {
     // Full multi-node election + AppendEntries verified in pqc_2_4
-    println!("pqc_2_3: Commit propagation verified via AppendEntries over PQ transport (see pqc_2_4)");
+    println!(
+        "pqc_2_3: Commit propagation verified via AppendEntries over PQ transport (see pqc_2_4)"
+    );
 }
 
 /// 2.4: Leader election via PQ-authenticated transport.
@@ -545,23 +561,25 @@ async fn pqc_2_4_leader_election() {
         election_timeout_max_ms: 300,
         heartbeat_interval_ms: 100,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
 
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
     let rpc = Arc::new(MockRpcClient::new(cluster_map.clone()));
 
-    let nodes: Vec<Arc<RaftNode>> = (0..3).map(|i| {
-        let persistence = PathBuf::from(format!("/tmp/pqc_2_4_{}.json", i));
-        std::fs::remove_file(&persistence).ok();
-        Arc::new(RaftNode::with_config(
-            NodeId::new(format!("node-{}", i)),
-            persistence,
-            rpc.clone(),
-            config.clone(),
-        ))
-    }).collect();
+    let nodes: Vec<Arc<RaftNode>> = (0..3)
+        .map(|i| {
+            let persistence = PathBuf::from(format!("/tmp/pqc_2_4_{}.json", i));
+            std::fs::remove_file(&persistence).ok();
+            Arc::new(RaftNode::with_config(
+                NodeId::new(format!("node-{}", i)),
+                persistence,
+                rpc.clone(),
+                config.clone(),
+            ))
+        })
+        .collect();
 
     {
         let mut map = cluster_map.write().await;
@@ -591,7 +609,8 @@ async fn pqc_2_4_leader_election() {
     }
 
     assert_eq!(
-        leaders.len(), 1,
+        leaders.len(),
+        1,
         "Exactly one leader must be elected (I2): found {}",
         leaders.len()
     );
@@ -622,7 +641,7 @@ async fn pqc_2_5_leader_replacement() {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
@@ -670,7 +689,11 @@ async fn pqc_2_5_leader_replacement() {
     assert!(reply.success, "Step-down AppendEntries should succeed");
 
     let role = node_a.role_snapshot().await;
-    assert_eq!(role, RaftRole::Follower, "Old leader must step down when higher term arrives (I2)");
+    assert_eq!(
+        role,
+        RaftRole::Follower,
+        "Old leader must step down when higher term arrives (I2)"
+    );
 
     std::fs::remove_file("/tmp/pqc_2_5_a.json").ok();
     std::fs::remove_file("/tmp/pqc_2_5_b.json").ok();
@@ -680,7 +703,11 @@ async fn pqc_2_5_leader_replacement() {
 /// **Invariant I8**: Partition cannot create two valid committed histories.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_2_6_network_partition_rejoin() {
-    for f in &["/tmp/pqc_2_6_a.json", "/tmp/pqc_2_6_b.json", "/tmp/pqc_2_6_c.json"] {
+    for f in &[
+        "/tmp/pqc_2_6_a.json",
+        "/tmp/pqc_2_6_b.json",
+        "/tmp/pqc_2_6_c.json",
+    ] {
         std::fs::remove_file(f).ok();
     }
 
@@ -689,27 +716,32 @@ async fn pqc_2_6_network_partition_rejoin() {
         election_timeout_max_ms: 250,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
 
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
     let rpc = Arc::new(MockRpcClient::new(cluster_map.clone()));
 
-    let nodes: Vec<Arc<RaftNode>> = (0..3).map(|i| {
-        Arc::new(RaftNode::with_config(
-            NodeId::new(format!("node-{}", i)),
-            PathBuf::from(format!("/tmp/pqc_2_6_{}.json", i)),
-            rpc.clone(),
-            config.clone(),
-        ))
-    }).collect();
+    let nodes: Vec<Arc<RaftNode>> = (0..3)
+        .map(|i| {
+            Arc::new(RaftNode::with_config(
+                NodeId::new(format!("node-{}", i)),
+                PathBuf::from(format!("/tmp/pqc_2_6_{}.json", i)),
+                rpc.clone(),
+                config.clone(),
+            ))
+        })
+        .collect();
 
     // Simulate partition: node-2 isolated from node-0 and node-1
     // node-2 alone cannot reach quorum (needs 2 of 3)
     let peers_no_c: Vec<NodeId> = vec![NodeId::new("node-0"), NodeId::new("node-1")];
     let won = nodes[2].start_election(&peers_no_c).await.unwrap();
-    assert!(!won, "Isolated node must not win election without quorum (I8)");
+    assert!(
+        !won,
+        "Isolated node must not win election without quorum (I8)"
+    );
 
     for i in 0..3 {
         std::fs::remove_file(format!("/tmp/pqc_2_6_{}.json", i)).ok();
@@ -730,14 +762,19 @@ async fn pqc_2_7_delayed_packets_rejected() {
     // Encrypt with nonce seq=0
     let nonce_0 = Nonce::from_slice(&[0u8; 12]);
     let aad = b"AAD_for_seq_0";
-    let ct_0 = cipher.encrypt(nonce_0, Payload { msg: b"hello", aad }).unwrap();
+    let ct_0 = cipher
+        .encrypt(nonce_0, Payload { msg: b"hello", aad })
+        .unwrap();
 
     // Try to decrypt with nonce seq=1 (current rx_seq would be 1 after reading frame 0)
     let mut nonce_1_bytes = [0u8; 12];
     nonce_1_bytes[11] = 1;
     let nonce_1 = Nonce::from_slice(&nonce_1_bytes);
     let result = cipher.decrypt(nonce_1, Payload { msg: &ct_0, aad });
-    assert!(result.is_err(), "Delayed packet with stale nonce must be rejected (I6, I9)");
+    assert!(
+        result.is_err(),
+        "Delayed packet with stale nonce must be rejected (I6, I9)"
+    );
 
     println!("pqc_2_7 PASSED: Delayed packets rejected by AEAD nonce sequencing");
 }
@@ -788,7 +825,10 @@ async fn pqc_3_1_ciphertext_modification_rejected() {
     tampered[0] ^= 0x01;
 
     let result = cipher.decrypt(nonce, tampered.as_ref());
-    assert!(result.is_err(), "Ciphertext modification must be rejected (I9)");
+    assert!(
+        result.is_err(),
+        "Ciphertext modification must be rejected (I9)"
+    );
 }
 
 /// 3.2: Invalid authentication tag → Reject.
@@ -832,7 +872,10 @@ async fn pqc_3_4_wrong_sequence_number_rejected() {
 
     // Try to decrypt with wrong nonce (seq=1 instead of seq=0)
     let result = cipher.decrypt(nonce_1, ciphertext.as_ref());
-    assert!(result.is_err(), "Wrong sequence number (nonce) must be rejected (I6, I9)");
+    assert!(
+        result.is_err(),
+        "Wrong sequence number (nonce) must be rejected (I6, I9)"
+    );
 }
 
 /// 3.5: Wrong direction → Reject (AAD direction byte mismatch).
@@ -853,7 +896,15 @@ async fn pqc_3_5_wrong_direction_rejected() {
     aad_init.extend_from_slice(b"V1.0");
     aad_init.extend_from_slice(&(plaintext.len() as u32).to_be_bytes());
 
-    let ciphertext = cipher.encrypt(nonce, Payload { msg: plaintext, aad: &aad_init }).unwrap();
+    let ciphertext = cipher
+        .encrypt(
+            nonce,
+            Payload {
+                msg: plaintext,
+                aad: &aad_init,
+            },
+        )
+        .unwrap();
 
     // Try to decrypt with AAD with direction=0 (responder rx)
     let mut aad_resp = Vec::new();
@@ -863,7 +914,13 @@ async fn pqc_3_5_wrong_direction_rejected() {
     aad_resp.extend_from_slice(b"V1.0");
     aad_resp.extend_from_slice(&(plaintext.len() as u32).to_be_bytes());
 
-    let result = cipher.decrypt(nonce, Payload { msg: &ciphertext, aad: &aad_resp });
+    let result = cipher.decrypt(
+        nonce,
+        Payload {
+            msg: &ciphertext,
+            aad: &aad_resp,
+        },
+    );
     assert!(result.is_err(), "Wrong direction must be rejected (I4, I9)");
 }
 
@@ -885,7 +942,15 @@ async fn pqc_3_6_wrong_session_id_rejected() {
     aad_correct.extend_from_slice(b"V1.0");
     aad_correct.extend_from_slice(&(plaintext.len() as u32).to_be_bytes());
 
-    let ciphertext = cipher.encrypt(nonce, Payload { msg: plaintext, aad: &aad_correct }).unwrap();
+    let ciphertext = cipher
+        .encrypt(
+            nonce,
+            Payload {
+                msg: plaintext,
+                aad: &aad_correct,
+            },
+        )
+        .unwrap();
 
     // AAD with wrong session_id
     let mut aad_wrong = Vec::new();
@@ -895,8 +960,17 @@ async fn pqc_3_6_wrong_session_id_rejected() {
     aad_wrong.extend_from_slice(b"V1.0");
     aad_wrong.extend_from_slice(&(plaintext.len() as u32).to_be_bytes());
 
-    let result = cipher.decrypt(nonce, Payload { msg: &ciphertext, aad: &aad_wrong });
-    assert!(result.is_err(), "Wrong session ID must be rejected (I4, I9)");
+    let result = cipher.decrypt(
+        nonce,
+        Payload {
+            msg: &ciphertext,
+            aad: &aad_wrong,
+        },
+    );
+    assert!(
+        result.is_err(),
+        "Wrong session ID must be rejected (I4, I9)"
+    );
 }
 
 /// 3.7: Wrong peer identity → Reject (signature verification fails).
@@ -939,7 +1013,7 @@ async fn pqc_3_9_modified_raft_term_rejected() {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
@@ -979,7 +1053,10 @@ async fn pqc_3_9_modified_raft_term_rejected() {
         leader_commit: 0,
     };
     let reply = node_a.handle_append_entries(ae).await;
-    assert!(!reply.success, "Stale term AppendEntries must be rejected (I2)");
+    assert!(
+        !reply.success,
+        "Stale term AppendEntries must be rejected (I2)"
+    );
 
     let term = node_a.current_term.read().await;
     assert_eq!(*term, 2, "Stale term must not change current term (I2)");
@@ -1003,9 +1080,13 @@ async fn pqc_3_10_modified_request_id_rejected() {
             candidate_id: NodeId::new("node-a"),
             last_log_index: 0,
             last_log_term: 0,
-        }).unwrap(),
+        })
+        .unwrap(),
     };
-    assert_ne!(envelope_bad.request_id, "0", "request_id mismatch is detectable");
+    assert_ne!(
+        envelope_bad.request_id, "0",
+        "request_id mismatch is detectable"
+    );
     println!("pqc_3_10 PASSED: Modified request_id → reply discarded, no state transition (I1)");
 }
 
@@ -1027,14 +1108,31 @@ async fn pqc_3_11_modified_log_entry_rejected() {
     let plaintext = serde_json::to_vec(&entry).unwrap();
 
     let aad = b"VARDHAN_RAFT_ENVELOPE";
-    let ciphertext = cipher.encrypt(nonce, Payload { msg: &plaintext, aad }).unwrap();
+    let ciphertext = cipher
+        .encrypt(
+            nonce,
+            Payload {
+                msg: &plaintext,
+                aad,
+            },
+        )
+        .unwrap();
 
     // Modify the plaintext by flipping a byte in the ciphertext
     let mut tampered = ciphertext.clone();
     tampered[10] ^= 0x01;
 
-    let result = cipher.decrypt(nonce, Payload { msg: &tampered, aad });
-    assert!(result.is_err(), "Modified log entry must be rejected (I4, I9)");
+    let result = cipher.decrypt(
+        nonce,
+        Payload {
+            msg: &tampered,
+            aad,
+        },
+    );
+    assert!(
+        result.is_err(),
+        "Modified log entry must be rejected (I4, I9)"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1045,7 +1143,11 @@ async fn pqc_3_11_modified_log_entry_rejected() {
 /// **Invariant I2, I8**: No two leaders; partition cannot create split history.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_4_1_partition_elects_new_leader() {
-    for f in &["/tmp/pqc_4_1_a.json", "/tmp/pqc_4_1_b.json", "/tmp/pqc_4_1_c.json"] {
+    for f in &[
+        "/tmp/pqc_4_1_a.json",
+        "/tmp/pqc_4_1_b.json",
+        "/tmp/pqc_4_1_c.json",
+    ] {
         std::fs::remove_file(f).ok();
     }
 
@@ -1054,7 +1156,7 @@ async fn pqc_4_1_partition_elects_new_leader() {
         election_timeout_max_ms: 250,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
@@ -1104,7 +1206,10 @@ async fn pqc_4_1_partition_elects_new_leader() {
         config.clone(),
     ));
     let won_c = node_c_partitioned.start_election(&peers_01).await.unwrap();
-    assert!(!won_c, "I8: Isolated node must not win election without quorum (I8)");
+    assert!(
+        !won_c,
+        "I8: Isolated node must not win election without quorum (I8)"
+    );
 
     std::fs::remove_file("/tmp/pqc_4_1_a.json").ok();
     std::fs::remove_file("/tmp/pqc_4_1_b.json").ok();
@@ -1173,14 +1278,19 @@ async fn pqc_4_2_old_leader_steps_down() {
     let role = node_a.role_snapshot().await;
     assert_eq!(role, RaftRole::Follower, "Old leader must step down (I2)");
 
-    let result = node_a.submit_entry(LogEntry {
-        term: 1,
-        index: 1,
-        client_id: "test".to_string(),
-        request_id: "r1".to_string(),
-        data: b"data".to_vec(),
-    }).await;
-    assert!(result.is_err(), "Old leader (now follower) must not accept writes (I3)");
+    let result = node_a
+        .submit_entry(LogEntry {
+            term: 1,
+            index: 1,
+            client_id: "test".to_string(),
+            request_id: "r1".to_string(),
+            data: b"data".to_vec(),
+        })
+        .await;
+    assert!(
+        result.is_err(),
+        "Old leader (now follower) must not accept writes (I3)"
+    );
 
     std::fs::remove_file("/tmp/pqc_4_2_a.json").ok();
     std::fs::remove_file("/tmp/pqc_4_2_b.json").ok();
@@ -1199,7 +1309,7 @@ async fn pqc_4_3_committed_entries_survive() {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
@@ -1225,7 +1335,9 @@ async fn pqc_4_3_committed_entries_survive() {
         client_id: "client".to_string(),
         request_id: "req-1".to_string(),
         data: b"committed-data".to_vec(),
-    }).await.unwrap();
+    })
+    .await
+    .unwrap();
 
     {
         let mut ci = node.commit_index.write().await;
@@ -1279,12 +1391,14 @@ async fn pqc_4_4_stale_term_rejected() {
         *term = 5;
     }
 
-    let reply = node.handle_request_vote(RequestVoteArgs {
-        term: 1,
-        candidate_id: NodeId::new("node-b"),
-        last_log_index: 0,
-        last_log_term: 0,
-    }).await;
+    let reply = node
+        .handle_request_vote(RequestVoteArgs {
+            term: 1,
+            candidate_id: NodeId::new("node-b"),
+            last_log_index: 0,
+            last_log_term: 0,
+        })
+        .await;
     assert!(!reply.vote_granted, "I2: Stale term vote must be rejected");
 
     let log = node.log.read().await;
@@ -1308,7 +1422,7 @@ async fn pqc_4_5_restarted_node_recovers_state() {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
@@ -1334,7 +1448,9 @@ async fn pqc_4_5_restarted_node_recovers_state() {
         client_id: "c1".to_string(),
         request_id: "r1".to_string(),
         data: b"data-1".to_vec(),
-    }).await.unwrap();
+    })
+    .await
+    .unwrap();
 
     node.submit_entry(LogEntry {
         term: 5,
@@ -1342,7 +1458,9 @@ async fn pqc_4_5_restarted_node_recovers_state() {
         client_id: "c2".to_string(),
         request_id: "r2".to_string(),
         data: b"data-2".to_vec(),
-    }).await.unwrap();
+    })
+    .await
+    .unwrap();
 
     {
         let mut ci = node.commit_index.write().await;
@@ -1380,7 +1498,9 @@ async fn pqc_4_5_restarted_node_recovers_state() {
 /// **Invariant I2, I9**: Election safety maintained; retries are fail-safe.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_5_1_leader_crash_handshake_failure() {
-    println!("pqc_5_1: Leader crash + handshake failure — peer manager retries with backoff (I2, I9)");
+    println!(
+        "pqc_5_1: Leader crash + handshake failure — peer manager retries with backoff (I2, I9)"
+    );
 }
 
 /// 5.2: Leader crash + identity rotation.
@@ -1406,7 +1526,7 @@ async fn pqc_5_3_partition_stale_certificate() {
         election_timeout_max_ms: 250,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
@@ -1476,7 +1596,9 @@ async fn pqc_5_5_restart_rotated_signing_key() {
 
     let node = QuantumNodeIdentity::load_or_generate(&vault_path, &protector).unwrap();
     let mut node_mut = node.clone();
-    let _transition = node_mut.rotate_signing_key(&vault_path, &protector).unwrap();
+    let _transition = node_mut
+        .rotate_signing_key(&vault_path, &protector)
+        .unwrap();
     let new_fp = node_mut.signer_pub_fingerprint();
 
     // Restart
@@ -1512,7 +1634,7 @@ async fn pqc_5_7_new_leader_old_leader_reconnect() {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
@@ -1567,10 +1689,17 @@ async fn pqc_5_7_new_leader_old_leader_reconnect() {
         leader_commit: 0,
     };
     let reply = node_b.handle_append_entries(ae).await;
-    assert!(!reply.success, "Stale-leader AppendEntries must be rejected (I2)");
+    assert!(
+        !reply.success,
+        "Stale-leader AppendEntries must be rejected (I2)"
+    );
 
     let role_b = node_b.role_snapshot().await;
-    assert_eq!(role_b, RaftRole::Leader, "Current leader must remain leader (I2)");
+    assert_eq!(
+        role_b,
+        RaftRole::Leader,
+        "Current leader must remain leader (I2)"
+    );
 
     let term_b = node_b.current_term.read().await;
     assert_eq!(*term_b, 2, "Term must not regress (I2)");
@@ -1595,7 +1724,9 @@ async fn pqc_6_1_valid_rotation() {
     let old_fp = node.signer_pub_fingerprint();
 
     let mut node_mut = node.clone();
-    let transition = node_mut.rotate_signing_key(&vault_path, &protector).unwrap();
+    let transition = node_mut
+        .rotate_signing_key(&vault_path, &protector)
+        .unwrap();
 
     assert_eq!(transition.old_pubkey_fingerprint, old_fp);
     let new_fp = transition.new_pubkey_fingerprint;
@@ -1616,7 +1747,10 @@ async fn pqc_6_1_valid_rotation() {
         &transition_payload_bytes,
         &transition.transition_sig_bytes,
     );
-    assert!(valid, "Transition signature must verify with old key (I5, I7)");
+    assert!(
+        valid,
+        "Transition signature must verify with old key (I5, I7)"
+    );
 
     // Reload from vault — should have new key
     let node_reloaded = QuantumNodeIdentity::load_or_generate(&vault_path, &protector).unwrap();
@@ -1648,11 +1782,16 @@ async fn pqc_6_2_simultaneous_rotation() {
     let trans_a = a.rotate_signing_key(&vp1, &protector).unwrap();
     let trans_b = b.rotate_signing_key(&vp2, &protector).unwrap();
 
-    assert_ne!(old_fp_a, trans_a.new_pubkey_fingerprint, "Node A identity changed");
-    assert_ne!(old_fp_b, trans_b.new_pubkey_fingerprint, "Node B identity changed");
     assert_ne!(
-        trans_a.new_pubkey_fingerprint,
-        trans_b.new_pubkey_fingerprint,
+        old_fp_a, trans_a.new_pubkey_fingerprint,
+        "Node A identity changed"
+    );
+    assert_ne!(
+        old_fp_b, trans_b.new_pubkey_fingerprint,
+        "Node B identity changed"
+    );
+    assert_ne!(
+        trans_a.new_pubkey_fingerprint, trans_b.new_pubkey_fingerprint,
         "Distinct identities"
     );
 
@@ -1696,7 +1835,9 @@ async fn pqc_6_5_restart_after_rotation() {
 
     let node = QuantumNodeIdentity::load_or_generate(&vault_path, &protector).unwrap();
     let mut node_mut = node.clone();
-    node_mut.rotate_signing_key(&vault_path, &protector).unwrap();
+    node_mut
+        .rotate_signing_key(&vault_path, &protector)
+        .unwrap();
     let new_fp = node_mut.signer_pub_fingerprint();
 
     let node_reloaded = QuantumNodeIdentity::load_or_generate(&vault_path, &protector).unwrap();
@@ -1722,7 +1863,9 @@ async fn pqc_6_6_old_key_rejection() {
     let old_pub = node.dsa_public_key_bytes();
 
     let mut node_mut = node.clone();
-    node_mut.rotate_signing_key(&vault_path, &protector).unwrap();
+    node_mut
+        .rotate_signing_key(&vault_path, &protector)
+        .unwrap();
 
     let msg = b"message-after-rotation";
     let sig = node_mut.sign_payload(msg).unwrap();
@@ -1745,7 +1888,9 @@ async fn pqc_6_7_new_key_acceptance() {
 
     let node = QuantumNodeIdentity::load_or_generate(&vault_path, &protector).unwrap();
     let mut node_mut = node.clone();
-    node_mut.rotate_signing_key(&vault_path, &protector).unwrap();
+    node_mut
+        .rotate_signing_key(&vault_path, &protector)
+        .unwrap();
 
     let new_pub = node_mut.dsa_public_key_bytes();
     let msg = b"accepted-after-rotation";
@@ -1826,22 +1971,27 @@ async fn pqc_7_2_stale_term_no_state_change() {
         *term = 5;
     }
 
-    let reply = node.handle_append_entries(AppendEntriesArgs {
-        term: 1,
-        leader_id: NodeId::new("node-b"),
-        prev_log_index: 0,
-        prev_log_term: 0,
-        entries: vec![LogEntry {
+    let reply = node
+        .handle_append_entries(AppendEntriesArgs {
             term: 1,
-            index: 1,
-            client_id: "stale".to_string(),
-            request_id: "stale".to_string(),
-            data: b"stale-data".to_vec(),
-        }],
-        leader_commit: 0,
-    }).await;
+            leader_id: NodeId::new("node-b"),
+            prev_log_index: 0,
+            prev_log_term: 0,
+            entries: vec![LogEntry {
+                term: 1,
+                index: 1,
+                client_id: "stale".to_string(),
+                request_id: "stale".to_string(),
+                data: b"stale-data".to_vec(),
+            }],
+            leader_commit: 0,
+        })
+        .await;
 
-    assert!(!reply.success, "I2: Stale term AppendEntries must be rejected");
+    assert!(
+        !reply.success,
+        "I2: Stale term AppendEntries must be rejected"
+    );
     let log = node.log.read().await;
     assert!(log.is_empty(), "I2: No log entry added on stale term");
     let term = node.current_term.read().await;
@@ -1869,15 +2019,20 @@ async fn pqc_7_3_non_leader_cannot_commit() {
         config,
     ));
 
-    let result = node.submit_entry(LogEntry {
-        term: 1,
-        index: 1,
-        client_id: "test".to_string(),
-        request_id: "r1".to_string(),
-        data: b"data".to_vec(),
-    }).await;
+    let result = node
+        .submit_entry(LogEntry {
+            term: 1,
+            index: 1,
+            client_id: "test".to_string(),
+            request_id: "r1".to_string(),
+            data: b"data".to_vec(),
+        })
+        .await;
 
-    assert!(result.is_err(), "I3: Non-leader must not accept client writes");
+    assert!(
+        result.is_err(),
+        "I3: Non-leader must not accept client writes"
+    );
     assert!(
         result.unwrap_err().contains("not the leader"),
         "I3: Error must indicate non-leader status"
@@ -1898,7 +2053,7 @@ async fn pqc_7_4_committed_state_survives_restart() {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
@@ -1924,7 +2079,9 @@ async fn pqc_7_4_committed_state_survives_restart() {
         client_id: "c".to_string(),
         request_id: "r1".to_string(),
         data: b"survives".to_vec(),
-    }).await.unwrap();
+    })
+    .await
+    .unwrap();
 
     {
         let mut ci = node.commit_index.write().await;
@@ -1987,7 +2144,9 @@ async fn pqc_7_7_rotation_preserves_evidence() {
 
     // Rotate
     let mut node_mut = node.clone();
-    node_mut.rotate_signing_key(&vault_path, &protector).unwrap();
+    node_mut
+        .rotate_signing_key(&vault_path, &protector)
+        .unwrap();
 
     // Historical signature must still verify with old key
     assert!(
@@ -2001,7 +2160,12 @@ async fn pqc_7_7_rotation_preserves_evidence() {
 /// I8: A network partition cannot create two valid committed histories.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_7_8_partition_no_split_history() {
-    for f in &["/tmp/pqc_7_8_a.json", "/tmp/pqc_7_8_b.json", "/tmp/pqc_7_8_c.json", "/tmp/pqc_7_8_c_partitioned.json"] {
+    for f in &[
+        "/tmp/pqc_7_8_a.json",
+        "/tmp/pqc_7_8_b.json",
+        "/tmp/pqc_7_8_c.json",
+        "/tmp/pqc_7_8_c_partitioned.json",
+    ] {
         std::fs::remove_file(f).ok();
     }
 
@@ -2010,20 +2174,22 @@ async fn pqc_7_8_partition_no_split_history() {
         election_timeout_max_ms: 250,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
     let rpc = Arc::new(MockRpcClient::new(cluster_map.clone()));
 
-    let nodes: Vec<Arc<RaftNode>> = (0..3).map(|i| {
-        Arc::new(RaftNode::with_config(
-            NodeId::new(format!("node-{}", i)),
-            PathBuf::from(format!("/tmp/pqc_7_8_{}.json", i)),
-            rpc.clone(),
-            config.clone(),
-        ))
-    }).collect();
+    let nodes: Vec<Arc<RaftNode>> = (0..3)
+        .map(|i| {
+            Arc::new(RaftNode::with_config(
+                NodeId::new(format!("node-{}", i)),
+                PathBuf::from(format!("/tmp/pqc_7_8_{}.json", i)),
+                rpc.clone(),
+                config.clone(),
+            ))
+        })
+        .collect();
 
     {
         let mut map = cluster_map.write().await;
@@ -2046,7 +2212,10 @@ async fn pqc_7_8_partition_no_split_history() {
 
     let peers: Vec<NodeId> = vec![NodeId::new("node-0"), NodeId::new("node-1")];
     let won = node_c_partitioned.start_election(&peers).await.unwrap();
-    assert!(!won, "I8: Isolated node must not win election without quorum (I8)");
+    assert!(
+        !won,
+        "I8: Isolated node must not win election without quorum (I8)"
+    );
 
     for i in 0..3 {
         std::fs::remove_file(format!("/tmp/pqc_7_8_{}.json", i)).ok();
@@ -2078,7 +2247,11 @@ async fn pqc_7_9_fail_closed_on_crypto_failure() {
 
     // Verify with tampered signature
     let mut bad_sig = sig_b.clone();
-    if bad_sig[0] == 0 { bad_sig[0] = 1; } else { bad_sig[0] ^= 0xFF; }
+    if bad_sig[0] == 0 {
+        bad_sig[0] = 1;
+    } else {
+        bad_sig[0] ^= 0xFF;
+    }
     assert!(
         !QuantumNodeIdentity::verify_signature(&b_pub, message, &bad_sig),
         "I9: Tampered signature must fail verification"
@@ -2097,7 +2270,7 @@ async fn pqc_7_10_evidence_corresponds_to_committed_state() {
         election_timeout_max_ms: 400,
         heartbeat_interval_ms: 50,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
@@ -2133,9 +2306,19 @@ async fn pqc_7_10_evidence_corresponds_to_committed_state() {
 
     // Read back from persistence
     let persisted = std::fs::read_to_string("/tmp/pqc_7_10.json").unwrap();
-    let payload = if let Ok(env) = serde_json::from_str::<ha_cluster::raft::SecureEnvelope>(&persisted) { env.payload_json } else { persisted.clone() }; let state: ha_cluster::raft::RaftPersistentState = serde_json::from_str(&payload).unwrap();
+    let payload =
+        if let Ok(env) = serde_json::from_str::<ha_cluster::raft::SecureEnvelope>(&persisted) {
+            env.payload_json
+        } else {
+            persisted.clone()
+        };
+    let state: ha_cluster::raft::RaftPersistentState = serde_json::from_str(&payload).unwrap();
     let log = state.log;
-    assert_eq!(log.len(), 1, "I10: Evidence log must contain the committed entry");
+    assert_eq!(
+        log.len(),
+        1,
+        "I10: Evidence log must contain the committed entry"
+    );
 
     let persisted_bytes = serde_json::to_vec(&log[0]).unwrap();
     let persisted_hash = blake3::hash(&persisted_bytes);
@@ -2159,7 +2342,11 @@ async fn pqc_7_10_evidence_corresponds_to_committed_state() {
 /// **Invariants I1-I10**: All must hold.
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn pqc_8_1_end_to_end_with_boundary_attacks() {
-    for f in &["/tmp/pqc_e2e_0.json", "/tmp/pqc_e2e_1.json", "/tmp/pqc_e2e_2.json"] {
+    for f in &[
+        "/tmp/pqc_e2e_0.json",
+        "/tmp/pqc_e2e_1.json",
+        "/tmp/pqc_e2e_2.json",
+    ] {
         std::fs::remove_file(f).ok();
     }
 
@@ -2168,21 +2355,23 @@ async fn pqc_8_1_end_to_end_with_boundary_attacks() {
         election_timeout_max_ms: 300,
         heartbeat_interval_ms: 100,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     };
 
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
         Arc::new(RwLock::new(HashMap::new()));
     let rpc = Arc::new(MockRpcClient::new(cluster_map.clone()));
 
-    let nodes: Vec<Arc<RaftNode>> = (0..3).map(|i| {
-        Arc::new(RaftNode::with_config(
-            NodeId::new(format!("node-{}", i)),
-            PathBuf::from(format!("/tmp/pqc_e2e_{}.json", i)),
-            rpc.clone(),
-            config.clone(),
-        ))
-    }).collect();
+    let nodes: Vec<Arc<RaftNode>> = (0..3)
+        .map(|i| {
+            Arc::new(RaftNode::with_config(
+                NodeId::new(format!("node-{}", i)),
+                PathBuf::from(format!("/tmp/pqc_e2e_{}.json", i)),
+                rpc.clone(),
+                config.clone(),
+            ))
+        })
+        .collect();
 
     {
         let mut map = cluster_map.write().await;
@@ -2239,10 +2428,20 @@ async fn pqc_8_1_end_to_end_with_boundary_attacks() {
         let path = format!("/tmp/pqc_e2e_{}.json", i);
         if std::path::Path::new(&path).exists() {
             if let Ok(content) = std::fs::read_to_string(&path) {
-                let payload = if let Ok(env) = serde_json::from_str::<ha_cluster::raft::SecureEnvelope>(&content) { env.payload_json } else { content.clone() }; if let Ok(state) = serde_json::from_str::<ha_cluster::raft::RaftPersistentState>(&payload) {
+                let payload = if let Ok(env) =
+                    serde_json::from_str::<ha_cluster::raft::SecureEnvelope>(&content)
+                {
+                    env.payload_json
+                } else {
+                    content.clone()
+                };
+                if let Ok(state) =
+                    serde_json::from_str::<ha_cluster::raft::RaftPersistentState>(&payload)
+                {
                     if state.log.len() > 0 {
                         let entry_hash = blake3::hash(&serde_json::to_vec(&entry).unwrap());
-                        let persisted_hash = blake3::hash(&serde_json::to_vec(&state.log[0]).unwrap());
+                        let persisted_hash =
+                            blake3::hash(&serde_json::to_vec(&state.log[0]).unwrap());
                         assert_eq!(
                             entry_hash.as_bytes(),
                             persisted_hash.as_bytes(),
@@ -2259,4 +2458,3 @@ async fn pqc_8_1_end_to_end_with_boundary_attacks() {
         std::fs::remove_file(format!("/tmp/pqc_e2e_{}.json", i)).ok();
     }
 }
-

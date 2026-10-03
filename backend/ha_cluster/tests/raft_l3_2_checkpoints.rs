@@ -15,9 +15,9 @@ use std::time::Duration;
 use audit_ledger::{CommittedCheckpoint, CHECKPOINT_CLIENT_ID};
 use core_crypto::QuantumNodeIdentity;
 use ha_cluster::{
-    ClusterMembership, LedgerApplier, NodeId, RaftConfig, RaftNode,
-    RaftNetworkListener, RaftPeerManager, RaftRole,
     raft::{LogEntry, MockRpcClient, RaftPersistentState, RaftRpcClient},
+    ClusterMembership, LedgerApplier, NodeId, RaftConfig, RaftNetworkListener, RaftNode,
+    RaftPeerManager, RaftRole,
 };
 use ledger_sync::MerkleLedger;
 use tokio::sync::RwLock;
@@ -33,7 +33,7 @@ fn fast_config() -> RaftConfig {
         election_timeout_max_ms: 4000,
         heartbeat_interval_ms: 100,
         persist_on_submit: true,
-            state_machine_mac_key: Some([0x42; 32]),
+        state_machine_mac_key: Some([0x42; 32]),
     }
 }
 
@@ -97,15 +97,14 @@ async fn spawn_test_node_cp(
         .expect("Failed to open checkpoint writer");
 
     let applier = Arc::new(
-        LedgerApplier::new(
-            raft_node.clone(),
-            ledger.clone(),
-            identity.clone(),
-        )
-        .with_checkpoint_writer(std::sync::Arc::new(checkpoint_writer)),
+        LedgerApplier::new(raft_node.clone(), ledger.clone(), identity.clone())
+            .with_checkpoint_writer(std::sync::Arc::new(checkpoint_writer)),
     );
 
-    let (listener, tcp_listener, bound_addr) = RaftNetworkListener::new_test_insecure(addr, identity.clone(), raft_node.clone()).await.unwrap();
+    let (listener, tcp_listener, bound_addr) =
+        RaftNetworkListener::new_test_insecure(addr, identity.clone(), raft_node.clone())
+            .await
+            .unwrap();
     let lid = id.clone();
     let listener_handle = tokio::spawn(async move {
         if let Err(e) = listener.run(tcp_listener).await {
@@ -168,21 +167,42 @@ async fn spawn_cluster_cp_with_config(
     let node_b_id = NodeId::new("node-b");
     let node_c_id = NodeId::new("node-c");
 
-    membership.register_self(node_a_id.clone(), addr_a, addr_a.port()).await;
-    membership.register_self(node_b_id.clone(), addr_b, addr_b.port()).await;
-    membership.register_self(node_c_id.clone(), addr_c, addr_c.port()).await;
+    membership
+        .register_self(node_a_id.clone(), addr_a, addr_a.port())
+        .await;
+    membership
+        .register_self(node_b_id.clone(), addr_b, addr_b.port())
+        .await;
+    membership
+        .register_self(node_c_id.clone(), addr_c, addr_c.port())
+        .await;
 
-    membership.set_raft_port(node_a_id.clone(), addr_a.port()).await;
-    membership.set_raft_port(node_b_id.clone(), addr_b.port()).await;
-    membership.set_raft_port(node_c_id.clone(), addr_c.port()).await;
+    membership
+        .set_raft_port(node_a_id.clone(), addr_a.port())
+        .await;
+    membership
+        .set_raft_port(node_b_id.clone(), addr_b.port())
+        .await;
+    membership
+        .set_raft_port(node_c_id.clone(), addr_c.port())
+        .await;
 
     let peers: Vec<NodeId> = vec![node_a_id.clone(), node_b_id.clone(), node_c_id.clone()];
     let persist_a = PathBuf::from(format!("/tmp/raft_cp_{}_{}.json", run_id, node_a_id));
     let persist_b = PathBuf::from(format!("/tmp/raft_cp_{}_{}.json", run_id, node_b_id));
     let persist_c = PathBuf::from(format!("/tmp/raft_cp_{}_{}.json", run_id, node_c_id));
-    let cp_a = PathBuf::from(format!("/tmp/checkpoints_cp_{}_{}.jsonl", run_id, node_a_id));
-    let cp_b = PathBuf::from(format!("/tmp/checkpoints_cp_{}_{}.jsonl", run_id, node_b_id));
-    let cp_c = PathBuf::from(format!("/tmp/checkpoints_cp_{}_{}.jsonl", run_id, node_c_id));
+    let cp_a = PathBuf::from(format!(
+        "/tmp/checkpoints_cp_{}_{}.jsonl",
+        run_id, node_a_id
+    ));
+    let cp_b = PathBuf::from(format!(
+        "/tmp/checkpoints_cp_{}_{}.jsonl",
+        run_id, node_b_id
+    ));
+    let cp_c = PathBuf::from(format!(
+        "/tmp/checkpoints_cp_{}_{}.jsonl",
+        run_id, node_c_id
+    ));
 
     for p in [&persist_a, &persist_b, &persist_c] {
         std::fs::remove_file(p).ok();
@@ -192,9 +212,36 @@ async fn spawn_cluster_cp_with_config(
     }
 
     let mut nodes = vec![
-        spawn_test_node_cp(node_a_id.clone(), addr_a, membership.clone(), peers.clone(), &persist_a, &cp_a, config.clone()).await,
-        spawn_test_node_cp(node_b_id.clone(), addr_b, membership.clone(), peers.clone(), &persist_b, &cp_b, config.clone()).await,
-        spawn_test_node_cp(node_c_id.clone(), addr_c, membership.clone(), peers.clone(), &persist_c, &cp_c, config).await,
+        spawn_test_node_cp(
+            node_a_id.clone(),
+            addr_a,
+            membership.clone(),
+            peers.clone(),
+            &persist_a,
+            &cp_a,
+            config.clone(),
+        )
+        .await,
+        spawn_test_node_cp(
+            node_b_id.clone(),
+            addr_b,
+            membership.clone(),
+            peers.clone(),
+            &persist_b,
+            &cp_b,
+            config.clone(),
+        )
+        .await,
+        spawn_test_node_cp(
+            node_c_id.clone(),
+            addr_c,
+            membership.clone(),
+            peers.clone(),
+            &persist_c,
+            &cp_c,
+            config,
+        )
+        .await,
     ];
 
     tokio::time::sleep(Duration::from_millis(500)).await;
@@ -205,7 +252,9 @@ async fn spawn_cluster_cp_with_config(
 
 async fn find_leader_cp(nodes: &[TestNodeCP]) -> Option<Arc<RaftNode>> {
     for n in nodes {
-        if n.killed.load(Ordering::SeqCst) { continue; }
+        if n.killed.load(Ordering::SeqCst) {
+            continue;
+        }
         if *n.node.role.read().await == RaftRole::Leader {
             return Some(n.node.clone());
         }
@@ -216,8 +265,12 @@ async fn find_leader_cp(nodes: &[TestNodeCP]) -> Option<Arc<RaftNode>> {
 async fn count_leaders_cp(nodes: &[TestNodeCP]) -> usize {
     let mut count = 0;
     for n in nodes {
-        if n.killed.load(Ordering::SeqCst) { continue; }
-        if *n.node.role.read().await == RaftRole::Leader { count += 1; }
+        if n.killed.load(Ordering::SeqCst) {
+            continue;
+        }
+        if *n.node.role.read().await == RaftRole::Leader {
+            count += 1;
+        }
     }
     count
 }
@@ -225,8 +278,12 @@ async fn count_leaders_cp(nodes: &[TestNodeCP]) -> usize {
 async fn count_candidates_cp(nodes: &[TestNodeCP]) -> usize {
     let mut count = 0;
     for n in nodes {
-        if n.killed.load(Ordering::SeqCst) { continue; }
-        if *n.node.role.read().await == RaftRole::Candidate { count += 1; }
+        if n.killed.load(Ordering::SeqCst) {
+            continue;
+        }
+        if *n.node.role.read().await == RaftRole::Candidate {
+            count += 1;
+        }
     }
     count
 }
@@ -268,7 +325,10 @@ async fn wait_for_commit_cp(node: &RaftNode, index: u64) -> bool {
 }
 
 fn find_leader_idx(nodes: &[TestNodeCP], leader: &RaftNode) -> usize {
-    nodes.iter().position(|n| n.id == leader.id.clone()).unwrap()
+    nodes
+        .iter()
+        .position(|n| n.id == leader.id.clone())
+        .unwrap()
 }
 
 fn read_checkpoint_file(path: &Path) -> Vec<CommittedCheckpoint> {
@@ -284,27 +344,43 @@ fn read_checkpoint_file(path: &Path) -> Vec<CommittedCheckpoint> {
 async fn submit_entries_cp(leader: &RaftNode, term: u64, count: u64, run_id: usize) -> Vec<u64> {
     let mut indices = Vec::new();
     for i in 0..count {
-        let idx = leader.submit_entry(LogEntry {
-            term, index: 0,
-            client_id: "test".to_string(),
-            request_id: format!("r{}-{}-{}", run_id, i, term),
-            data: format!("entry-{}-{}", run_id, i).into_bytes(),
-        }).await.expect("submit should succeed");
-        assert!(wait_for_commit_cp(leader, idx).await, "Entry {} should commit", i);
+        let idx = leader
+            .submit_entry(LogEntry {
+                term,
+                index: 0,
+                client_id: "test".to_string(),
+                request_id: format!("r{}-{}-{}", run_id, i, term),
+                data: format!("entry-{}-{}", run_id, i).into_bytes(),
+            })
+            .await
+            .expect("submit should succeed");
+        assert!(
+            wait_for_commit_cp(leader, idx).await,
+            "Entry {} should commit",
+            i
+        );
         indices.push(idx);
     }
     indices
 }
 
-async fn wait_for_all_nodes_have_checkpoints(nodes: &[TestNodeCP], min_count: usize, timeout_dur: Duration) {
+async fn wait_for_all_nodes_have_checkpoints(
+    nodes: &[TestNodeCP],
+    min_count: usize,
+    timeout_dur: Duration,
+) {
     let _ = timeout(timeout_dur, async {
         loop {
-            let all = nodes.iter()
+            let all = nodes
+                .iter()
                 .all(|n| read_checkpoint_file(&n.checkpoint_path).len() >= min_count);
-            if all { return; }
+            if all {
+                return;
+            }
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
-    }).await;
+    })
+    .await;
 }
 
 async fn abort_all_cp(nodes: &mut [TestNodeCP]) {
@@ -346,7 +422,8 @@ async fn test_c1_normal_checkpoint_commit() {
     let leader_applier = nodes[leader_idx].applier.clone();
     let cp = leader_applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed")
+        .await
+        .expect("should succeed")
         .expect("should generate");
 
     let log_len = leader.log.read().await.len();
@@ -354,11 +431,13 @@ async fn test_c1_normal_checkpoint_commit() {
     for _ in 0..20 {
         interval.tick().await;
         let ci = *leader.commit_index.read().await;
-        if ci >= log_len as u64 { break; }
+        if ci >= log_len as u64 {
+            break;
+        }
     }
     let committed = *leader.commit_index.read().await >= log_len as u64;
     assert!(committed, "checkpoint entry should be committed");
-    tokio::time::sleep(Duration::from_millis(500)).await;  // Stabilize
+    tokio::time::sleep(Duration::from_millis(500)).await; // Stabilize
 
     // Apply committed entries (including the checkpoint entry) on ALL nodes
     // so that apply_checkpoint_entry persists to checkpoints.jsonl.
@@ -367,7 +446,10 @@ async fn test_c1_normal_checkpoint_commit() {
     }
 
     let checkpoints = read_checkpoint_file(&nodes[leader_idx].checkpoint_path);
-    assert!(!checkpoints.is_empty(), "Checkpoint should be persisted on leader");
+    assert!(
+        !checkpoints.is_empty(),
+        "Checkpoint should be persisted on leader"
+    );
     let cp_stored = &checkpoints[0].checkpoint;
     assert_eq!(cp_stored.version, 1);
     assert_eq!(cp_stored.cluster_id, leader.checkpoint_context().await.0);
@@ -378,7 +460,9 @@ async fn test_c1_normal_checkpoint_commit() {
 
     // Verify signature on persisted checkpoint
     let pub_key = nodes[leader_idx].identity.dsa_public_key_bytes();
-    cp_stored.verify_signature(&pub_key).expect("Signature should verify");
+    cp_stored
+        .verify_signature(&pub_key)
+        .expect("Signature should verify");
     let _ = &leader;
 
     info!("C1 PASSED: Normal checkpoint committed and persisted");
@@ -402,14 +486,20 @@ async fn test_c2_timer_triggered_checkpoint() {
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Abort background apply loops to prevent races
-    for n in &mut nodes { n.apply_handle.abort(); }
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.apply_handle.abort();
+    }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     let leader_node = &nodes[leader_idx];
     // Force=true simulates timer trigger
-    let cp = leader_node.applier
+    let cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed")
+        .await
+        .expect("should succeed")
         .expect("should generate");
 
     let log_len = leader.log.read().await.len();
@@ -426,15 +516,26 @@ async fn test_c2_timer_triggered_checkpoint() {
             let mut all_done = true;
             for n in &nodes {
                 let cps = read_checkpoint_file(&n.checkpoint_path);
-                if cps.len() < 1 { all_done = false; break; }
+                if cps.len() < 1 {
+                    all_done = false;
+                    break;
+                }
             }
-            if all_done { break; }
+            if all_done {
+                break;
+            }
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
-    }).await.expect("Nodes failed to persist checkpoints in time");
+    })
+    .await
+    .expect("Nodes failed to persist checkpoints in time");
 
     let checkpoints = read_checkpoint_file(&nodes[leader_idx].checkpoint_path);
-    assert_eq!(checkpoints.len(), 1, "Should have exactly 1 checkpoint from timer trigger");
+    assert_eq!(
+        checkpoints.len(),
+        1,
+        "Should have exactly 1 checkpoint from timer trigger"
+    );
     assert!(checkpoints[0].checkpoint.timestamp_ms > 0);
     abort_all_cp(&mut nodes).await;
     let _ = membership;
@@ -453,20 +554,29 @@ async fn test_c3_entry_count_triggered_checkpoint() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
 
     // With threshold 256 and only 5 entries, should NOT generate (entry-count trigger)
-    let result = leader_node.applier
+    let result = leader_node
+        .applier
         .generate_and_submit_checkpoint(256, false)
         .await;
     assert!(result.is_ok());
-    assert!(result.unwrap().is_none(), "Should not generate checkpoint with insufficient entries");
+    assert!(
+        result.unwrap().is_none(),
+        "Should not generate checkpoint with insufficient entries"
+    );
 
     let checkpoints = read_checkpoint_file(&nodes[leader_idx].checkpoint_path);
-    assert!(checkpoints.is_empty(), "No checkpoint should be generated below threshold");
+    assert!(
+        checkpoints.is_empty(),
+        "No checkpoint should be generated below threshold"
+    );
 
     info!("C3 PASSED: Entry-count trigger suppresses checkpoints below threshold");
     abort_all_cp(&mut nodes).await;
@@ -489,14 +599,20 @@ async fn test_c4_racing_triggers() {
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Abort background apply loops to prevent races
-    for n in &mut nodes { n.apply_handle.abort(); }
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.apply_handle.abort();
+    }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     let leader_node = &nodes[leader_idx];
     // Both triggers fire: force=true AND threshold=5 (met)
-    let cp = leader_node.applier
+    let cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(5, true)
-        .await.expect("should succeed")
+        .await
+        .expect("should succeed")
         .expect("should generate");
     assert_eq!(cp.ledger_entry_count, 10);
 
@@ -514,15 +630,26 @@ async fn test_c4_racing_triggers() {
             let mut all_done = true;
             for n in &nodes {
                 let cps = read_checkpoint_file(&n.checkpoint_path);
-                if cps.len() < 1 { all_done = false; break; }
+                if cps.len() < 1 {
+                    all_done = false;
+                    break;
+                }
             }
-            if all_done { break; }
+            if all_done {
+                break;
+            }
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
-    }).await.expect("Nodes failed to persist checkpoints in time");
+    })
+    .await
+    .expect("Nodes failed to persist checkpoints in time");
 
     let checkpoints = read_checkpoint_file(&nodes[leader_idx].checkpoint_path);
-    assert_eq!(checkpoints.len(), 1, "Racing triggers produce exactly one checkpoint");
+    assert_eq!(
+        checkpoints.len(),
+        1,
+        "Racing triggers produce exactly one checkpoint"
+    );
 
     info!("C4 PASSED: Racing triggers produce exactly one checkpoint");
     abort_all_cp(&mut nodes).await;
@@ -543,10 +670,15 @@ async fn test_c5_empty_ledger_suppression() {
 
     // No entries submitted
     leader_node.applier.apply_committed_entries().await.ok();
-    let result = leader_node.applier
+    let result = leader_node
+        .applier
         .generate_and_submit_checkpoint(1, true)
-        .await.expect("should return Ok(None)");
-    assert!(result.is_none(), "Should not generate checkpoint on empty ledger");
+        .await
+        .expect("should return Ok(None)");
+    assert!(
+        result.is_none(),
+        "Should not generate checkpoint on empty ledger"
+    );
 
     let checkpoints = read_checkpoint_file(&nodes[leader_idx].checkpoint_path);
     assert!(checkpoints.is_empty(), "No checkpoint on empty ledger");
@@ -569,14 +701,18 @@ async fn test_c6_leader_change_discards_uncommitted() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 3, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     // Generate checkpoint (submitted to Raft log but not yet committed)
     let leader_node = &nodes[leader_idx];
-    let cp = leader_node.applier
+    let cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed")
+        .await
+        .expect("should succeed")
         .expect("should generate");
 
     // Kill leader immediately — checkpoint may not be committed
@@ -589,19 +725,26 @@ async fn test_c6_leader_change_discards_uncommitted() {
             if let Some(l) = find_leader_cp(&nodes).await {
                 if l.id != leader.id.clone() {
                     tokio::time::sleep(Duration::from_millis(500)).await;
-                    if *l.role.read().await == RaftRole::Leader && count_leaders_cp(&nodes).await == 1 {
+                    if *l.role.read().await == RaftRole::Leader
+                        && count_leaders_cp(&nodes).await == 1
+                    {
                         return l;
                     }
                 }
             }
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
-    }).await.expect("No new leader after kill");
+    })
+    .await
+    .expect("No new leader after kill");
 
     let new_term = *new_leader.current_term.read().await;
     assert!(new_term > term, "Term should advance after leader crash");
 
-    info!("C6 PASSED: Leader change handled gracefully (term {} → {})", term, new_term);
+    info!(
+        "C6 PASSED: Leader change handled gracefully (term {} → {})",
+        term, new_term
+    );
     abort_all_cp(&mut nodes).await;
     let _ = membership;
 }
@@ -619,13 +762,17 @@ async fn test_c7_duplicate_submission_idempotent() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    let cp1 = leader_node.applier
+    let cp1 = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed")
+        .await
+        .expect("should succeed")
         .expect("should generate");
 
     let log_len = leader.log.read().await.len();
@@ -634,12 +781,16 @@ async fn test_c7_duplicate_submission_idempotent() {
 
     // Submit again — should produce a NEW checkpoint (different Raft index) but
     // same merkle_root (ledger hasn't changed)
-    let cp2 = leader_node.applier
+    let cp2 = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed")
+        .await
+        .expect("should succeed")
         .expect("should generate");
-    assert_eq!(cp1.merkle_root, cp2.merkle_root,
-        "Duplicate checkpoint should have same Merkle root (ledger unchanged)");
+    assert_eq!(
+        cp1.merkle_root, cp2.merkle_root,
+        "Duplicate checkpoint should have same Merkle root (ledger unchanged)"
+    );
 
     info!("C7 PASSED: Duplicate submission produces consistent checkpoint");
     abort_all_cp(&mut nodes).await;
@@ -659,12 +810,18 @@ async fn test_c8_deletion_detection() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    leader_node.applier.generate_and_submit_checkpoint(0, true).await
-        .expect("should succeed").expect("should generate");
+    leader_node
+        .applier
+        .generate_and_submit_checkpoint(0, true)
+        .await
+        .expect("should succeed")
+        .expect("should generate");
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
@@ -693,7 +850,8 @@ async fn test_c8_deletion_detection() {
         previous_checkpoint_hash: hex::encode([0u8; 32]),
         timestamp_ms: std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap().as_millis(),
+            .unwrap()
+            .as_millis(),
         signature: String::new(),
         signer_pub_fingerprint: String::new(),
     };
@@ -713,16 +871,21 @@ async fn test_c8_deletion_detection() {
 
     // Reopening the writer — scan should succeed (first checkpoint, prev_hash == zeros)
     let result = audit_ledger::CheckpointWriter::open(path);
-    assert!(result.is_ok(), "Forged checkpoint should open (chain starts fresh)");
+    assert!(
+        result.is_ok(),
+        "Forged checkpoint should open (chain starts fresh)"
+    );
 
     // Verify the forged checkpoint's signature is valid (it was signed by the real key)
     let saved_content = std::fs::read_to_string(path).unwrap();
-    let saved_cp: CommittedCheckpoint = serde_json::from_str(
-        saved_content.lines().next().unwrap()
-    ).unwrap();
+    let saved_cp: CommittedCheckpoint =
+        serde_json::from_str(saved_content.lines().next().unwrap()).unwrap();
     let pub_key = leader_node.identity.dsa_public_key_bytes();
     let verify_result = saved_cp.checkpoint.verify_signature(&pub_key);
-    assert!(verify_result.is_ok(), "Forged checkpoint signature should verify (same key)");
+    assert!(
+        verify_result.is_ok(),
+        "Forged checkpoint signature should verify (same key)"
+    );
 
     // The key test: deletion is detected because when the file is cleared
     // and a new checkpoint is written, it starts with prev_hash = [0;32],
@@ -756,39 +919,57 @@ async fn test_c9_reorder_detection() {
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Abort background apply loops to prevent races with manual apply
-    for n in &mut nodes { n.apply_handle.abort(); }
+    for n in &mut nodes {
+        n.apply_handle.abort();
+    }
 
     // Manually apply committed entries on all nodes
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     {
         let leader_node = &nodes[leader_idx];
-        leader_node.applier.generate_and_submit_checkpoint(0, true).await
-            .expect("cp1").expect("cp1");
+        leader_node
+            .applier
+            .generate_and_submit_checkpoint(0, true)
+            .await
+            .expect("cp1")
+            .expect("cp1");
     }
 
     let log_len1 = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len1 as u64).await);
-    tokio::time::sleep(Duration::from_millis(500)).await;  // Stabilize
-    // Manually apply to persist cp1
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    tokio::time::sleep(Duration::from_millis(500)).await; // Stabilize
+                                                          // Manually apply to persist cp1
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     let _ = wait_for_all_nodes_have_checkpoints(&nodes, 1, Duration::from_secs(5)).await;
 
     // Submit more, generate second checkpoint
     submit_entries_cp(&leader, term, 3, run_id + 1000).await;
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     {
         let leader_node = &nodes[leader_idx];
-        leader_node.applier.generate_and_submit_checkpoint(0, true).await
-            .expect("cp2").expect("cp2");
+        leader_node
+            .applier
+            .generate_and_submit_checkpoint(0, true)
+            .await
+            .expect("cp2")
+            .expect("cp2");
     }
 
     let log_len2 = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len2 as u64).await);
 
     // Manually apply to persist cp2
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     let _ = wait_for_all_nodes_have_checkpoints(&nodes, 2, Duration::from_secs(5)).await;
 
     let path = &nodes[leader_idx].checkpoint_path;
@@ -802,7 +983,10 @@ async fn test_c9_reorder_detection() {
     // Reopen should fail — chain breaks because the second checkpoint's
     // previous_checkpoint_hash won't match the first (which is now last)
     let result = audit_ledger::CheckpointWriter::open(path);
-    assert!(result.is_err(), "Reordered checkpoints should fail chain verification");
+    assert!(
+        result.is_err(),
+        "Reordered checkpoints should fail chain verification"
+    );
 
     info!("C9 PASSED: Reorder detection works");
     abort_all_cp(&mut nodes).await;
@@ -822,12 +1006,18 @@ async fn test_c10_modification_detection() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    leader_node.applier.generate_and_submit_checkpoint(0, true).await
-        .expect("should succeed").expect("should generate");
+    leader_node
+        .applier
+        .generate_and_submit_checkpoint(0, true)
+        .await
+        .expect("should succeed")
+        .expect("should generate");
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
@@ -835,9 +1025,8 @@ async fn test_c10_modification_detection() {
 
     let path = &nodes[leader_idx].checkpoint_path;
     let content = std::fs::read_to_string(path).unwrap();
-    let mut cp: CommittedCheckpoint = serde_json::from_str(
-        content.lines().next().unwrap()
-    ).unwrap();
+    let mut cp: CommittedCheckpoint =
+        serde_json::from_str(content.lines().next().unwrap()).unwrap();
 
     // Modify merkle_root
     cp.checkpoint.merkle_root = "deadbeef".repeat(8);
@@ -847,12 +1036,14 @@ async fn test_c10_modification_detection() {
     // canonical_hash (which the signature covers) changed when merkle_root
     // was modified.
     let pub_key = leader_node.identity.dsa_public_key_bytes();
-    let verify_result = tokio::task::spawn_blocking(move || {
-        cp.checkpoint.verify_signature(&pub_key)
-    }).await;
+    let verify_result =
+        tokio::task::spawn_blocking(move || cp.checkpoint.verify_signature(&pub_key)).await;
     assert!(verify_result.is_ok(), "Verification should not panic");
     let result = verify_result.unwrap();
-    assert!(result.is_err(), "Modified checkpoint signature should not verify");
+    assert!(
+        result.is_err(),
+        "Modified checkpoint signature should not verify"
+    );
 
     info!("C10 PASSED: Modification detection works");
     abort_all_cp(&mut nodes).await;
@@ -872,13 +1063,18 @@ async fn test_c11_ledger_entry_modification_detected() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    let cp = leader_node.applier
+    let cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed").expect("should generate");
+        .await
+        .expect("should succeed")
+        .expect("should generate");
     let correct_merkle = cp.merkle_root.clone();
 
     let log_len = leader.log.read().await.len();
@@ -896,10 +1092,11 @@ async fn test_c11_ledger_entry_modification_detected() {
     // invalidates the signature
     let canonical_changed = verify_result.unwrap();
     let sig_bytes = hex::decode(&tampered.signature).unwrap();
-    let sig_valid = QuantumNodeIdentity::verify_signature(
-        &pub_key, &canonical_changed, &sig_bytes
+    let sig_valid = QuantumNodeIdentity::verify_signature(&pub_key, &canonical_changed, &sig_bytes);
+    assert!(
+        !sig_valid,
+        "Tampered Merkle root should invalidate signature"
     );
-    assert!(!sig_valid, "Tampered Merkle root should invalidate signature");
 
     info!("C11 PASSED: Ledger entry modification (Merkle root tampering) detected via signature");
     abort_all_cp(&mut nodes).await;
@@ -919,13 +1116,18 @@ async fn test_c12_tail_truncation_detected() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 10, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    let cp = leader_node.applier
+    let cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed").expect("should generate");
+        .await
+        .expect("should succeed")
+        .expect("should generate");
     assert_eq!(cp.ledger_entry_count, 10);
     assert_eq!(cp.ledger_last_seq, 9);
 
@@ -974,12 +1176,18 @@ async fn test_c13_insertion_detection() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    leader_node.applier.generate_and_submit_checkpoint(0, true).await
-        .expect("cp1").expect("cp1");
+    leader_node
+        .applier
+        .generate_and_submit_checkpoint(0, true)
+        .await
+        .expect("cp1")
+        .expect("cp1");
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
@@ -1000,7 +1208,10 @@ async fn test_c13_insertion_detection() {
 
     // Reopen should fail — second checkpoint has wrong prev_hash
     let result = audit_ledger::CheckpointWriter::open(path);
-    assert!(result.is_err(), "Inserted bogus checkpoint should fail chain verification");
+    assert!(
+        result.is_err(),
+        "Inserted bogus checkpoint should fail chain verification"
+    );
 
     info!("C13 PASSED: Insertion detection works");
     abort_all_cp(&mut nodes).await;
@@ -1020,19 +1231,27 @@ async fn test_c14_wrong_signing_key_rejected() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 3, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    let cp = leader_node.applier
+    let cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed").expect("should generate");
+        .await
+        .expect("should succeed")
+        .expect("should generate");
 
     // Verify with wrong key
     let wrong_identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
     let wrong_pub = wrong_identity.dsa_public_key_bytes();
     let result = cp.verify_signature(&wrong_pub);
-    assert!(result.is_err(), "Wrong signing key should fail verification");
+    assert!(
+        result.is_err(),
+        "Wrong signing key should fail verification"
+    );
 
     // Verify with correct key
     let correct_pub = leader_node.identity.dsa_public_key_bytes();
@@ -1057,19 +1276,27 @@ async fn test_c15_invalid_signature_rejected() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 3, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    let mut cp = leader_node.applier
+    let mut cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed").expect("should generate");
+        .await
+        .expect("should succeed")
+        .expect("should generate");
 
     // Corrupt the signature
     cp.signature = "00".repeat(4627);
     let pub_key = leader_node.identity.dsa_public_key_bytes();
     let result = cp.verify_signature(&pub_key);
-    assert!(result.is_err(), "Invalid signature should fail verification");
+    assert!(
+        result.is_err(),
+        "Invalid signature should fail verification"
+    );
 
     info!("C15 PASSED: Invalid signature rejected");
     abort_all_cp(&mut nodes).await;
@@ -1089,13 +1316,18 @@ async fn test_c16_wrong_merkle_root_rejected() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    let mut cp = leader_node.applier
+    let mut cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed").expect("should generate");
+        .await
+        .expect("should succeed")
+        .expect("should generate");
 
     let original_merkle = cp.merkle_root.clone();
     cp.merkle_root = "deadbeef".repeat(8);
@@ -1104,7 +1336,10 @@ async fn test_c16_wrong_merkle_root_rejected() {
     // (which is over the original canonical hash) no longer verifies.
     let pub_key = leader_node.identity.dsa_public_key_bytes();
     let result = cp.verify_signature(&pub_key);
-    assert!(result.is_err(), "Tampered Merkle root should fail signature verification");
+    assert!(
+        result.is_err(),
+        "Tampered Merkle root should fail signature verification"
+    );
     assert_ne!(cp.merkle_root, original_merkle);
 
     info!("C16 PASSED: Wrong Merkle root rejected");
@@ -1125,21 +1360,30 @@ async fn test_c17_wrong_prev_checkpoint_hash_rejected() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    leader_node.applier.generate_and_submit_checkpoint(0, true).await
-        .expect("cp1").expect("cp1");
+    leader_node
+        .applier
+        .generate_and_submit_checkpoint(0, true)
+        .await
+        .expect("cp1")
+        .expect("cp1");
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
     let _ = wait_for_all_nodes_have_checkpoints(&nodes, 1, Duration::from_secs(5)).await;
 
     // Generate a second checkpoint
-    let mut cp2 = leader_node.applier
+    let mut cp2 = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("cp2").expect("cp2");
+        .await
+        .expect("cp2")
+        .expect("cp2");
 
     // Corrupt the previous_checkpoint_hash
     cp2.previous_checkpoint_hash = "ab".repeat(32);
@@ -1147,7 +1391,10 @@ async fn test_c17_wrong_prev_checkpoint_hash_rejected() {
     let pub_key = leader_node.identity.dsa_public_key_bytes();
     // Signature should fail because prev_hash is part of canonical bytes
     let result = cp2.verify_signature(&pub_key);
-    assert!(result.is_err(), "Wrong prev_checkpoint_hash should fail signature verification");
+    assert!(
+        result.is_err(),
+        "Wrong prev_checkpoint_hash should fail signature verification"
+    );
 
     info!("C17 PASSED: Wrong previous checkpoint hash rejected");
     abort_all_cp(&mut nodes).await;
@@ -1167,18 +1414,26 @@ async fn test_c18_wrong_raft_term_rejected() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 3, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    let mut cp = leader_node.applier
+    let mut cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed").expect("should generate");
+        .await
+        .expect("should succeed")
+        .expect("should generate");
 
     cp.raft_term = 99999;
     let pub_key = leader_node.identity.dsa_public_key_bytes();
     let result = cp.verify_signature(&pub_key);
-    assert!(result.is_err(), "Wrong Raft term should fail signature verification");
+    assert!(
+        result.is_err(),
+        "Wrong Raft term should fail signature verification"
+    );
 
     info!("C18 PASSED: Wrong Raft term rejected");
     abort_all_cp(&mut nodes).await;
@@ -1198,18 +1453,26 @@ async fn test_c19_wrong_raft_log_index_rejected() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 3, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    let mut cp = leader_node.applier
+    let mut cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed").expect("should generate");
+        .await
+        .expect("should succeed")
+        .expect("should generate");
 
     cp.raft_log_index = 99999;
     let pub_key = leader_node.identity.dsa_public_key_bytes();
     let result = cp.verify_signature(&pub_key);
-    assert!(result.is_err(), "Wrong Raft log index should fail signature verification");
+    assert!(
+        result.is_err(),
+        "Wrong Raft log index should fail signature verification"
+    );
 
     info!("C19 PASSED: Wrong Raft log index rejected");
     abort_all_cp(&mut nodes).await;
@@ -1229,7 +1492,8 @@ async fn test_c20_quorum_failure_no_commit() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     // Kill 2 followers to prevent quorum (3-node cluster → need 2 for quorum)
-    let follower_indices: Vec<usize> = nodes.iter()
+    let follower_indices: Vec<usize> = nodes
+        .iter()
         .enumerate()
         .filter(|(i, _)| *i != leader_idx)
         .map(|(i, _)| i)
@@ -1252,29 +1516,45 @@ async fn test_c20_quorum_failure_no_commit() {
     // so new AppendEntries RPCs fail immediately instead of racing against
     // surviving worker tasks.
     for idx in &follower_indices {
-        nodes[leader_idx].peer_manager.clear_worker(&nodes[*idx].id).await;
+        nodes[leader_idx]
+            .peer_manager
+            .clear_worker(&nodes[*idx].id)
+            .await;
     }
 
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Leader should still be leader (no election possible with 1/3 nodes)
     let is_leader = leader.is_leader().await;
-    assert!(is_leader, "Leader should still think it's leader (no quorum for election)");
+    assert!(
+        is_leader,
+        "Leader should still think it's leader (no quorum for election)"
+    );
 
     // Submit entries — they won't commit (no quorum)
-    let idx = leader.submit_entry(LogEntry {
-        term, index: 0,
-        client_id: "test".to_string(),
-        request_id: format!("r{}-1", run_id),
-        data: b"quorum-test".to_vec(),
-    }).await.expect("submit should succeed (leader appends to own log)");
+    let idx = leader
+        .submit_entry(LogEntry {
+            term,
+            index: 0,
+            client_id: "test".to_string(),
+            request_id: format!("r{}-1", run_id),
+            data: b"quorum-test".to_vec(),
+        })
+        .await
+        .expect("submit should succeed (leader appends to own log)");
 
     // With only 1 node, commit_index won't advance (quorum = 2)
     tokio::time::sleep(Duration::from_millis(500)).await;
     let commit_idx = *leader.commit_index.read().await;
-    assert!(commit_idx < idx, "Without quorum, entry should not be committed");
+    assert!(
+        commit_idx < idx,
+        "Without quorum, entry should not be committed"
+    );
 
-    info!("C20 PASSED: Quorum failure prevents checkpoint commitment (commit_index={} < {})", commit_idx, idx);
+    info!(
+        "C20 PASSED: Quorum failure prevents checkpoint commitment (commit_index={} < {})",
+        commit_idx, idx
+    );
     abort_all_cp(&mut nodes).await;
     let _ = membership;
 }
@@ -1292,13 +1572,18 @@ async fn test_c21_crash_during_checkpoint() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
-    for n in &nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
-    let cp = leader_node.applier
+    let cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed").expect("should generate");
+        .await
+        .expect("should succeed")
+        .expect("should generate");
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
@@ -1314,14 +1599,18 @@ async fn test_c21_crash_during_checkpoint() {
             if let Some(l) = find_leader_cp(&nodes).await {
                 if l.id != leader.id.clone() {
                     tokio::time::sleep(Duration::from_millis(500)).await;
-                    if *l.role.read().await == RaftRole::Leader && count_leaders_cp(&nodes).await == 1 {
+                    if *l.role.read().await == RaftRole::Leader
+                        && count_leaders_cp(&nodes).await == 1
+                    {
                         return l;
                     }
                 }
             }
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
-    }).await.expect("No new leader after crash");
+    })
+    .await
+    .expect("No new leader after crash");
 
     let new_term = *new_leader.current_term.read().await;
     assert!(new_term > term, "Term should advance");
@@ -1333,7 +1622,8 @@ async fn test_c21_crash_during_checkpoint() {
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     if new_leader_node.ledger.len().await > 0 {
-        let result = new_leader_node.applier
+        let result = new_leader_node
+            .applier
             .generate_and_submit_checkpoint(0, true)
             .await;
         if let Ok(Some(_)) = result {
@@ -1362,34 +1652,59 @@ async fn test_c22_restart_during_commitment() {
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Abort background apply loops to prevent races
-    for n in &mut nodes { n.apply_handle.abort(); }
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.apply_handle.abort();
+    }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     {
         let leader_node = &nodes[leader_idx];
-        leader_node.applier.generate_and_submit_checkpoint(0, true).await
-            .expect("should succeed").expect("should generate");
+        leader_node
+            .applier
+            .generate_and_submit_checkpoint(0, true)
+            .await
+            .expect("should succeed")
+            .expect("should generate");
     }
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
-    tokio::time::sleep(Duration::from_millis(500)).await;  // Stabilize
+    tokio::time::sleep(Duration::from_millis(500)).await; // Stabilize
 
     // Manually apply to persist cp1 on leader
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     // Verify checkpoint was persisted before restart
     let checkpoints_before = read_checkpoint_file(&nodes[leader_idx].checkpoint_path);
-    assert_eq!(checkpoints_before.len(), 1, "Checkpoint should be persisted before restart");
+    assert_eq!(
+        checkpoints_before.len(),
+        1,
+        "Checkpoint should be persisted before restart"
+    );
 
     // Verify persisted state has the log on disk
     let persist = &nodes[leader_idx].persist_path;
     assert!(persist.exists(), "Persist file should exist");
     let content = std::fs::read_to_string(persist).unwrap();
-    let payload = if let Ok(env) = serde_json::from_str::<ha_cluster::raft::SecureEnvelope>(&content) { env.payload_json } else { content.clone() }; let state: RaftPersistentState = serde_json::from_str(&payload)
-        .expect("Persisted state should be valid JSON");
-    assert!(state.log.iter().any(|e| e.client_id == CHECKPOINT_CLIENT_ID),
-        "Persisted state should contain checkpoint entry");
+    let payload =
+        if let Ok(env) = serde_json::from_str::<ha_cluster::raft::SecureEnvelope>(&content) {
+            env.payload_json
+        } else {
+            content.clone()
+        };
+    let state: RaftPersistentState =
+        serde_json::from_str(&payload).expect("Persisted state should be valid JSON");
+    assert!(
+        state
+            .log
+            .iter()
+            .any(|e| e.client_id == CHECKPOINT_CLIENT_ID),
+        "Persisted state should contain checkpoint entry"
+    );
     drop(state);
     drop(content);
 
@@ -1399,9 +1714,8 @@ async fn test_c22_restart_during_commitment() {
 
     let old = std::mem::replace(&mut nodes[leader_idx], {
         let identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
-        let dummy_rpc: Arc<dyn RaftRpcClient> = Arc::new(MockRpcClient::new(
-            Arc::new(RwLock::new(HashMap::new()))
-        ));
+        let dummy_rpc: Arc<dyn RaftRpcClient> =
+            Arc::new(MockRpcClient::new(Arc::new(RwLock::new(HashMap::new()))));
         let dummy = Arc::new(RaftNode::new(
             NodeId::new("placeholder"),
             PathBuf::from("/tmp/placeholder_cp.json"),
@@ -1409,7 +1723,9 @@ async fn test_c22_restart_during_commitment() {
         ));
         let ledger = Arc::new(MerkleLedger::new());
         let applier = Arc::new(LedgerApplier::new(
-            dummy.clone(), ledger.clone(), identity.clone()
+            dummy.clone(),
+            ledger.clone(),
+            identity.clone(),
         ));
         TestNodeCP {
             id: NodeId::new("placeholder"),
@@ -1444,7 +1760,8 @@ async fn test_c22_restart_during_commitment() {
         &new_persist,
         &new_cp_path,
         fast_config(),
-    ).await;
+    )
+    .await;
     nodes[leader_idx] = restarted;
 
     tokio::time::sleep(Duration::from_millis(500)).await;
@@ -1461,7 +1778,11 @@ async fn test_c22_restart_during_commitment() {
     nodes[leader_idx].apply_handle.abort();
 
     // Apply committed entries — should process the checkpoint entry
-    nodes[leader_idx].applier.apply_committed_entries().await.ok();
+    nodes[leader_idx]
+        .applier
+        .apply_committed_entries()
+        .await
+        .ok();
 
     let mut recovered_cps = vec![];
     let _ = timeout(Duration::from_secs(10), async {
@@ -1472,9 +1793,13 @@ async fn test_c22_restart_during_commitment() {
             }
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
-    }).await;
+    })
+    .await;
 
-    assert!(!recovered_cps.is_empty(), "Restarted node should have applied checkpoint");
+    assert!(
+        !recovered_cps.is_empty(),
+        "Restarted node should have applied checkpoint"
+    );
 
     info!("C22 PASSED: Restart during commitment recovers state from disk");
     abort_all_cp(&mut nodes).await;
@@ -1497,18 +1822,26 @@ async fn test_c23_new_leader_recovery() {
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Abort background apply loops to prevent races
-    for n in &mut nodes { n.apply_handle.abort(); }
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.apply_handle.abort();
+    }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     {
         let leader_node = &nodes[leader_idx];
-        leader_node.applier.generate_and_submit_checkpoint(0, true).await
-            .expect("should succeed").expect("should generate");
+        leader_node
+            .applier
+            .generate_and_submit_checkpoint(0, true)
+            .await
+            .expect("should succeed")
+            .expect("should generate");
     }
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
-    tokio::time::sleep(Duration::from_millis(500)).await;  // Stabilize
+    tokio::time::sleep(Duration::from_millis(500)).await; // Stabilize
 
     // Manually apply to persist cp1 on all nodes
     for n in &mut nodes {
@@ -1531,21 +1864,27 @@ async fn test_c23_new_leader_recovery() {
             if let Some(l) = find_leader_cp(&nodes).await {
                 if l.id != leader.id.clone() {
                     tokio::time::sleep(Duration::from_millis(500)).await;
-                    if *l.role.read().await == RaftRole::Leader && count_leaders_cp(&nodes).await == 1 {
+                    if *l.role.read().await == RaftRole::Leader
+                        && count_leaders_cp(&nodes).await == 1
+                    {
                         return l;
                     }
                 }
             }
             tokio::time::sleep(Duration::from_millis(50)).await;
         }
-    }).await.expect("No new leader after crash");
+    })
+    .await
+    .expect("No new leader after crash");
 
     let new_leader_idx = find_leader_idx(&nodes, &new_leader);
 
     // New leader should have the checkpoint entry in its log
     let nlog = new_leader.log.read().await;
-    assert!(nlog.iter().any(|e| e.client_id == CHECKPOINT_CLIENT_ID),
-        "New leader should have checkpoint entry in log");
+    assert!(
+        nlog.iter().any(|e| e.client_id == CHECKPOINT_CLIENT_ID),
+        "New leader should have checkpoint entry in log"
+    );
     drop(nlog);
 
     // New leader loaded commit_index from persist but last_applied ==
@@ -1560,19 +1899,30 @@ async fn test_c23_new_leader_recovery() {
     nodes[new_leader_idx].apply_handle.abort();
 
     // New leader should be able to apply it
-    nodes[new_leader_idx].applier.apply_committed_entries().await.ok();
+    nodes[new_leader_idx]
+        .applier
+        .apply_committed_entries()
+        .await
+        .ok();
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     let new_cps = read_checkpoint_file(&nodes[new_leader_idx].checkpoint_path);
-    assert!(!new_cps.is_empty(), "New leader should have applied checkpoint");
+    assert!(
+        !new_cps.is_empty(),
+        "New leader should have applied checkpoint"
+    );
 
     // Verify checkpoint hash matches across nodes
     let leader_cp_hash = read_checkpoint_file(&nodes[leader_idx].checkpoint_path)[0]
-        .checkpoint.checkpoint_hash().unwrap();
+        .checkpoint
+        .checkpoint_hash()
+        .unwrap();
     let new_cp_hash = new_cps[0].checkpoint.checkpoint_hash().unwrap();
     // Note: leader_idx node was aborted, but its checkpoint file persists on disk
-    assert_eq!(leader_cp_hash, new_cp_hash,
-        "New leader's checkpoint should match old leader's");
+    assert_eq!(
+        leader_cp_hash, new_cp_hash,
+        "New leader's checkpoint should match old leader's"
+    );
 
     info!("C23 PASSED: New leader recovery — committed checkpoint is consistent");
     abort_all_cp(&mut nodes).await;
@@ -1595,50 +1945,115 @@ async fn test_c24_cross_node_consistency() {
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Abort background apply loops to prevent races
-    for n in &mut nodes { n.apply_handle.abort(); }
+    for n in &mut nodes {
+        n.apply_handle.abort();
+    }
 
     // Manually apply committed entries on all nodes
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     let leader_node = &nodes[leader_idx];
-    let cp = leader_node.applier
+    let cp = leader_node
+        .applier
         .generate_and_submit_checkpoint(0, true)
-        .await.expect("should succeed").expect("should generate");
+        .await
+        .expect("should succeed")
+        .expect("should generate");
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
-    tokio::time::sleep(Duration::from_millis(500)).await;  // Stabilize
+    tokio::time::sleep(Duration::from_millis(500)).await; // Stabilize
 
     // Manually apply to persist cp1 on all nodes
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     // All 3 nodes should have the EXACT SAME checkpoint
     for n in &nodes {
         let cps = read_checkpoint_file(&n.checkpoint_path);
-        assert_eq!(cps.len(), 1, "Node {} should have exactly 1 checkpoint", n.id);
+        assert_eq!(
+            cps.len(),
+            1,
+            "Node {} should have exactly 1 checkpoint",
+            n.id
+        );
         let cp_node = &cps[0].checkpoint;
-        assert_eq!(cp_node.cluster_id, cp.cluster_id, "cluster_id mismatch on node {}", n.id);
-        assert_eq!(cp_node.config_epoch, cp.config_epoch, "config_epoch mismatch on node {}", n.id);
-        assert_eq!(cp_node.raft_term, cp.raft_term, "raft_term mismatch on node {}", n.id);
-        assert_eq!(cp_node.raft_log_index, cp.raft_log_index, "raft_log_index mismatch on node {}", n.id);
-        assert_eq!(cp_node.ledger_first_seq, cp.ledger_first_seq, "ledger_first_seq mismatch on node {}", n.id);
-        assert_eq!(cp_node.ledger_last_seq, cp.ledger_last_seq, "ledger_last_seq mismatch on node {}", n.id);
-        assert_eq!(cp_node.ledger_entry_count, cp.ledger_entry_count, "ledger_entry_count mismatch on node {}", n.id);
-        assert_eq!(cp_node.merkle_root, cp.merkle_root, "merkle_root mismatch on node {}", n.id);
-        assert_eq!(cp_node.previous_checkpoint_hash, cp.previous_checkpoint_hash, "prev_hash mismatch on node {}", n.id);
-        assert_eq!(cp_node.signature, cp.signature, "signature mismatch on node {}", n.id);
-        assert_eq!(cp_node.signer_pub_fingerprint, cp.signer_pub_fingerprint, "signer_fp mismatch on node {}", n.id);
+        assert_eq!(
+            cp_node.cluster_id, cp.cluster_id,
+            "cluster_id mismatch on node {}",
+            n.id
+        );
+        assert_eq!(
+            cp_node.config_epoch, cp.config_epoch,
+            "config_epoch mismatch on node {}",
+            n.id
+        );
+        assert_eq!(
+            cp_node.raft_term, cp.raft_term,
+            "raft_term mismatch on node {}",
+            n.id
+        );
+        assert_eq!(
+            cp_node.raft_log_index, cp.raft_log_index,
+            "raft_log_index mismatch on node {}",
+            n.id
+        );
+        assert_eq!(
+            cp_node.ledger_first_seq, cp.ledger_first_seq,
+            "ledger_first_seq mismatch on node {}",
+            n.id
+        );
+        assert_eq!(
+            cp_node.ledger_last_seq, cp.ledger_last_seq,
+            "ledger_last_seq mismatch on node {}",
+            n.id
+        );
+        assert_eq!(
+            cp_node.ledger_entry_count, cp.ledger_entry_count,
+            "ledger_entry_count mismatch on node {}",
+            n.id
+        );
+        assert_eq!(
+            cp_node.merkle_root, cp.merkle_root,
+            "merkle_root mismatch on node {}",
+            n.id
+        );
+        assert_eq!(
+            cp_node.previous_checkpoint_hash, cp.previous_checkpoint_hash,
+            "prev_hash mismatch on node {}",
+            n.id
+        );
+        assert_eq!(
+            cp_node.signature, cp.signature,
+            "signature mismatch on node {}",
+            n.id
+        );
+        assert_eq!(
+            cp_node.signer_pub_fingerprint, cp.signer_pub_fingerprint,
+            "signer_fp mismatch on node {}",
+            n.id
+        );
     }
 
     // Verify checkpoint hashes are identical
-    let cp_hashes: Vec<[u8; 32]> = nodes.iter()
+    let cp_hashes: Vec<[u8; 32]> = nodes
+        .iter()
         .map(|n| {
             read_checkpoint_file(&n.checkpoint_path)[0]
-                .checkpoint.checkpoint_hash().unwrap()
+                .checkpoint
+                .checkpoint_hash()
+                .unwrap()
         })
         .collect();
     for i in 1..cp_hashes.len() {
-        assert_eq!(cp_hashes[0], cp_hashes[i], "Checkpoint hash mismatch between node 0 and node {}", i);
+        assert_eq!(
+            cp_hashes[0], cp_hashes[i],
+            "Checkpoint hash mismatch between node 0 and node {}",
+            i
+        );
     }
 
     info!("C24 PASSED: Cross-node consistency — all nodes have identical committed checkpoint");
@@ -1666,28 +2081,40 @@ async fn regression_idempotency_skips_duplicate() {
     let term = *leader.current_term.read().await;
 
     // Abort background apply so we control the apply manually
-    for n in &mut nodes { n.apply_handle.abort(); }
+    for n in &mut nodes {
+        n.apply_handle.abort();
+    }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
     // Submit one entry, commit, then manually apply
-    let idx = leader.submit_entry(LogEntry {
-        term, index: 0,
-        client_id: "client-reg".to_string(),
-        request_id: "req-001".to_string(),
-        data: b"reg-data".to_vec(),
-    }).await.unwrap();
+    let idx = leader
+        .submit_entry(LogEntry {
+            term,
+            index: 0,
+            client_id: "client-reg".to_string(),
+            request_id: "req-001".to_string(),
+            data: b"reg-data".to_vec(),
+        })
+        .await
+        .unwrap();
 
     assert!(wait_for_commit_cp(&leader, idx).await);
     tokio::time::sleep(Duration::from_millis(500)).await; // Stabilize
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     // Submit duplicate (same client_id + request_id)
-    let dup_idx = leader.submit_entry(LogEntry {
-        term, index: 0,
-        client_id: "client-reg".to_string(),
-        request_id: "req-001".to_string(),
-        data: b"reg-data".to_vec(),
-    }).await.unwrap();
+    let dup_idx = leader
+        .submit_entry(LogEntry {
+            term,
+            index: 0,
+            client_id: "client-reg".to_string(),
+            request_id: "req-001".to_string(),
+            data: b"reg-data".to_vec(),
+        })
+        .await
+        .unwrap();
 
     assert!(wait_for_commit_cp(&leader, dup_idx).await);
     tokio::time::sleep(Duration::from_millis(500)).await; // Stabilize
@@ -1700,8 +2127,11 @@ async fn regression_idempotency_skips_duplicate() {
     // Ledger must have exactly 1 block — the duplicate must NOT create a second
     for n in &nodes {
         let ledger_len = n.ledger.len().await;
-        assert_eq!(ledger_len, 1,
-            "Node {} ledger should have 1 block after duplicate apply (idempotency)", n.id);
+        assert_eq!(
+            ledger_len, 1,
+            "Node {} ledger should have 1 block after duplicate apply (idempotency)",
+            n.id
+        );
     }
 
     info!("REGRESSION PASSED: Idempotency — duplicate (client_id, request_id) skipped");
@@ -1759,10 +2189,14 @@ async fn regression_deterministic_merkle_root() {
     let root_a = applier_a.merkle_root_for_range(0, 0).await;
     let root_b = applier_b.merkle_root_for_range(0, 0).await;
 
-    assert_eq!(root_a, root_b,
-        "Merkle root must be deterministic across nodes with different identities");
-    assert_ne!(root_a, [0u8; 32],
-        "Merkle root must not be zero for non-empty input");
+    assert_eq!(
+        root_a, root_b,
+        "Merkle root must be deterministic across nodes with different identities"
+    );
+    assert_ne!(
+        root_a, [0u8; 32],
+        "Merkle root must not be zero for non-empty input"
+    );
 
     info!("REGRESSION PASSED: Deterministic Merkle root — identical across nodes");
 }
@@ -1786,19 +2220,26 @@ async fn regression_ledger_seq_not_raft_index() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     // Abort background apply loops
-    for n in &mut nodes { n.apply_handle.abort(); }
+    for n in &mut nodes {
+        n.apply_handle.abort();
+    }
 
     // Submit 3 entries
     submit_entries_cp(&leader, term, 3, run_id).await;
     tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Manually apply — creates 3 LedgerBlocks at seq 0, 1, 2
-    for n in &mut nodes { n.applier.apply_committed_entries().await.ok(); }
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     // Generate checkpoint (occupies Raft log index 4, but NOT a ledger entry)
     {
         let leader_node = &nodes[leader_idx];
-        leader_node.applier.generate_and_submit_checkpoint(0, true).await
+        leader_node
+            .applier
+            .generate_and_submit_checkpoint(0, true)
+            .await
             .expect("should succeed")
             .expect("should generate");
     }
@@ -1829,12 +2270,16 @@ async fn regression_ledger_seq_not_raft_index() {
     // Ledger should have exactly 5 blocks (3 + 2, NOT 7 — checkpoint doesn't add)
     for n in &nodes {
         let ledger_len = n.ledger.len().await;
-        assert_eq!(ledger_len, 5,
+        assert_eq!(
+            ledger_len, 5,
             "Node {} should have 5 LedgerBlocks (3 pre-checkpoint + 2 post), got {}",
-            n.id, ledger_len);
+            n.id, ledger_len
+        );
     }
 
-    info!("REGRESSION PASSED: ledger_seq vs Raft log index — checkpoint doesn't consume ledger seq");
+    info!(
+        "REGRESSION PASSED: ledger_seq vs Raft log index — checkpoint doesn't consume ledger seq"
+    );
     abort_all_cp(&mut nodes).await;
     let _ = membership;
 }

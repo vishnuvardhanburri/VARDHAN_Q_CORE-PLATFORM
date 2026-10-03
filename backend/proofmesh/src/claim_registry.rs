@@ -1,15 +1,19 @@
+use crate::identity::{CanonicalObjectRef, VerificationClaimId};
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
-use vardhan_state::id::{ContentHash, StateHash, TenantId, DeltaId, EntityId, ConfigurationHash, CommitIndex};
-use vardhan_state::time::{TimeContext, now_utc};
-use crate::identity::{VerificationClaimId, CanonicalObjectRef};
 use vardhan_state::authorization::ProvenanceTrail;
+use vardhan_state::id::{
+    CommitIndex, ConfigurationHash, ContentHash, DeltaId, EntityId, StateHash, TenantId,
+};
+use vardhan_state::objects::{
+    ScopedEntityId, StateSnapshot, StateTransitionRecord, StateTransitionStatus,
+};
 use vardhan_state::scope::TenantScoped;
 use vardhan_state::store::StateStore;
-use vardhan_state::objects::{StateTransitionRecord, StateTransitionStatus, ScopedEntityId, StateSnapshot};
+use vardhan_state::time::{now_utc, TimeContext};
 use vardhan_state::transition::TransitionType;
-use async_trait::async_trait;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ClaimStatus {
@@ -65,27 +69,27 @@ impl VerificationClaim {
 
     pub fn transition_to(&mut self, new_status: ClaimStatus) -> Result<(), &'static str> {
         match (self.status, new_status) {
-            (ClaimStatus::Created, ClaimStatus::Validated) |
-            (ClaimStatus::Created, ClaimStatus::Rejected) => {
+            (ClaimStatus::Created, ClaimStatus::Validated)
+            | (ClaimStatus::Created, ClaimStatus::Rejected) => {
                 self.status = new_status;
                 Ok(())
-            },
-            (ClaimStatus::Validated, ClaimStatus::EvidenceGathering) |
-            (ClaimStatus::Validated, ClaimStatus::Rejected) => {
+            }
+            (ClaimStatus::Validated, ClaimStatus::EvidenceGathering)
+            | (ClaimStatus::Validated, ClaimStatus::Rejected) => {
                 self.status = new_status;
                 Ok(())
-            },
-            (ClaimStatus::EvidenceGathering, ClaimStatus::QuorumReady) |
-            (ClaimStatus::EvidenceGathering, ClaimStatus::Indeterminate) => {
+            }
+            (ClaimStatus::EvidenceGathering, ClaimStatus::QuorumReady)
+            | (ClaimStatus::EvidenceGathering, ClaimStatus::Indeterminate) => {
                 self.status = new_status;
                 Ok(())
-            },
-            (ClaimStatus::QuorumReady, ClaimStatus::Certified) |
-            (ClaimStatus::QuorumReady, ClaimStatus::Rejected) |
-            (ClaimStatus::QuorumReady, ClaimStatus::Indeterminate) => {
+            }
+            (ClaimStatus::QuorumReady, ClaimStatus::Certified)
+            | (ClaimStatus::QuorumReady, ClaimStatus::Rejected)
+            | (ClaimStatus::QuorumReady, ClaimStatus::Indeterminate) => {
                 self.status = new_status;
                 Ok(())
-            },
+            }
             _ => Err("Invalid lifecycle transition"),
         }
     }
@@ -93,7 +97,11 @@ impl VerificationClaim {
 
 #[async_trait]
 pub trait ConsensusSubmitter: Send + Sync {
-    async fn propose_and_wait(&self, transition: StateTransitionRecord, timeout: Duration) -> Result<StateSnapshot, &'static str>;
+    async fn propose_and_wait(
+        &self,
+        transition: StateTransitionRecord,
+        timeout: Duration,
+    ) -> Result<StateSnapshot, &'static str>;
 }
 
 pub struct ClaimRegistry<C: ConsensusSubmitter> {
@@ -105,36 +113,56 @@ impl<C: ConsensusSubmitter> ClaimRegistry<C> {
         Self { consensus_client }
     }
 
-    pub async fn register_claim(&self, tenant_id: TenantId, claim: VerificationClaim) -> Result<TenantScoped<VerificationClaim>, &'static str> {
+    pub async fn register_claim(
+        &self,
+        tenant_id: TenantId,
+        claim: VerificationClaim,
+    ) -> Result<TenantScoped<VerificationClaim>, &'static str> {
         let scoped_claim = TenantScoped::new(tenant_id, claim.clone());
-        let proposer = ScopedEntityId { tenant_id, entity_id: EntityId::from(uuid::Uuid::new_v4()) };
-        
+        let proposer = ScopedEntityId {
+            tenant_id,
+            entity_id: EntityId::from(uuid::Uuid::new_v4()),
+        };
+
         // PROPOSE to real consensus, do NOT fake commit indexes locally.
         let transition = StateTransitionRecord::propose(
             tenant_id,
             DeltaId::from(uuid::Uuid::new_v4()),
             claim.state_hash,
             StateHash::from([0u8; 32]), // Computed by the state machine during apply
-            TransitionType::Known(vardhan_state::transition::KnownTransitionType::VerificationClaimCreate),
+            TransitionType::Known(
+                vardhan_state::transition::KnownTransitionType::VerificationClaimCreate,
+            ),
             proposer,
             ConfigurationHash::from(claim.config_hash.0),
-        ).map_err(|_| "Failed to propose transition")?;
+        )
+        .map_err(|_| "Failed to propose transition")?;
 
         // Await the authoritative Raft commit
-        let new_state = self.consensus_client.propose_and_wait(transition, Duration::from_secs(5)).await?;
-        
+        let new_state = self
+            .consensus_client
+            .propose_and_wait(transition, Duration::from_secs(5))
+            .await?;
+
         let mut authoritative_claim = scoped_claim.inner().clone();
         authoritative_claim.state_hash = new_state.state_hash;
-        
+
         Ok(scoped_claim.rewrap(authoritative_claim))
     }
 
-    pub async fn advance_claim(&self, scoped_claim: &mut TenantScoped<VerificationClaim>, new_status: ClaimStatus) -> Result<(), &'static str> {
+    pub async fn advance_claim(
+        &self,
+        scoped_claim: &mut TenantScoped<VerificationClaim>,
+        new_status: ClaimStatus,
+    ) -> Result<(), &'static str> {
         let mut inner = scoped_claim.inner().clone();
         inner.transition_to(new_status)?;
-        
-        let proposer = ScopedEntityId { tenant_id: scoped_claim.tenant_id(), entity_id: EntityId::from(uuid::Uuid::new_v4()) };
-        
+
+        let proposer = ScopedEntityId {
+            tenant_id: scoped_claim.tenant_id(),
+            entity_id: EntityId::from(uuid::Uuid::new_v4()),
+        };
+
         let transition = StateTransitionRecord::propose(
             scoped_claim.tenant_id(),
             DeltaId::from(uuid::Uuid::new_v4()),
@@ -143,14 +171,18 @@ impl<C: ConsensusSubmitter> ClaimRegistry<C> {
             TransitionType::Unknown("VERIFICATION_CLAIM_UPDATE".to_string()),
             proposer,
             ConfigurationHash::from(inner.config_hash.0),
-        ).map_err(|_| "Failed to propose transition")?;
-        
+        )
+        .map_err(|_| "Failed to propose transition")?;
+
         // Await the authoritative Raft commit
-        let new_state = self.consensus_client.propose_and_wait(transition, Duration::from_secs(5)).await?;
-        
+        let new_state = self
+            .consensus_client
+            .propose_and_wait(transition, Duration::from_secs(5))
+            .await?;
+
         inner.state_hash = new_state.state_hash;
         *scoped_claim = scoped_claim.rewrap(inner);
-        
+
         Ok(())
     }
 }

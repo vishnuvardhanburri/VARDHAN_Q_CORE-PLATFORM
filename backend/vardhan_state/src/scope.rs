@@ -207,9 +207,12 @@ const PLATFORM_UUID: uuid::Uuid = uuid!("00000000-0000-0000-0000-000000000002");
 impl CanonicalTenantId {
     /// Validates the tenant ID against the object's stated verification scope.
     /// This is a deterministic RUNTIME VALIDATION INVARIANT (FA-1).
-    pub fn validate_context(self, object_scope: VerificationScope) -> Result<crate::id::TenantId, DecodeError> {
+    pub fn validate_context(
+        self,
+        object_scope: VerificationScope,
+    ) -> Result<crate::id::TenantId, DecodeError> {
         let current_uuid = *self.0.as_uuid();
-        
+
         match object_scope {
             VerificationScope::Global => {
                 if current_uuid == GLOBAL_UUID {
@@ -217,20 +220,20 @@ impl CanonicalTenantId {
                 } else {
                     Err(DecodeError::ScopeMismatch)
                 }
-            },
+            }
             VerificationScope::Platform => {
                 if current_uuid == PLATFORM_UUID {
                     Ok(self.0)
                 } else {
                     Err(DecodeError::ScopeMismatch)
                 }
-            },
+            }
             VerificationScope::Tenant(expected_tenant) => {
                 // Ensure the expected tenant is not secretly using reserved global/platform IDs
                 let expected_uuid = *expected_tenant.as_uuid();
-                if current_uuid == expected_uuid 
+                if current_uuid == expected_uuid
                     && current_uuid != GLOBAL_UUID
-                    && current_uuid != PLATFORM_UUID 
+                    && current_uuid != PLATFORM_UUID
                 {
                     Ok(expected_tenant)
                 } else {

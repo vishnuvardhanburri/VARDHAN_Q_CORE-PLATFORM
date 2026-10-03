@@ -56,7 +56,9 @@ fn make_state_transition_record(
         DeltaId::new_v4(),
         StateHash::from_content(b"prev_state"),
         StateHash::from_content(b"result_state"),
-        crate::transition::TransitionType::Known(crate::transition::KnownTransitionType::VerificationClaimCreate),
+        crate::transition::TransitionType::Known(
+            crate::transition::KnownTransitionType::VerificationClaimCreate,
+        ),
         proposer,
         ConfigurationHash::from_content(b"test_config"),
     )
@@ -1447,7 +1449,9 @@ fn test_chain_01_full_decision_path() {
         DeltaId::new_v4(),
         StateHash::from_content(b"prev_state"),
         StateHash::from_content(b"result_state"),
-        crate::transition::TransitionType::Known(crate::transition::KnownTransitionType::VerificationClaimCreate),
+        crate::transition::TransitionType::Known(
+            crate::transition::KnownTransitionType::VerificationClaimCreate,
+        ),
         proposer,
         ConfigurationHash::from_content(b"config"),
     )

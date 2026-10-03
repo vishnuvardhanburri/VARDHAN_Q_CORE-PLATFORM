@@ -221,7 +221,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let raft_listen_addr: std::net::SocketAddr = format!("0.0.0.0:{}", raft_port).parse()?;
     let mut registry = std::collections::HashMap::new();
-    registry.insert([0u8; 32], ha_cluster::NodeId::new("dummy-to-satisfy-sec018"));
+    registry.insert(
+        [0u8; 32],
+        ha_cluster::NodeId::new("dummy-to-satisfy-sec018"),
+    );
     let (raft_listener, tcp_listener, _) = RaftNetworkListener::new_with_registry(
         raft_listen_addr,
         Arc::clone(&identity),

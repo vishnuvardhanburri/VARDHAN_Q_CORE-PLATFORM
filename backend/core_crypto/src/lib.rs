@@ -556,7 +556,7 @@ mod clone_test {
         let _id2 = id.clone();
     }
 }
-pub mod secure_memory;
-pub mod license;
 pub mod anti_tamper;
 pub mod enclave;
+pub mod license;
+pub mod secure_memory;

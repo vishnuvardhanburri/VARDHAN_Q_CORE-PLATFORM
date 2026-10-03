@@ -1,10 +1,10 @@
-use std::sync::Arc;
 use core_crypto::QuantumNodeIdentity;
 use ha_cluster::{
-    ClusterMembership, NodeId, RaftNode, RaftNetworkListener, RaftPeerManager, raft::RaftRpcClient,
+    raft::RaftRpcClient, ClusterMembership, NodeId, RaftNetworkListener, RaftNode, RaftPeerManager,
 };
+use std::sync::Arc;
 use tokio::time::{timeout, Duration};
-use tracing::{info, error};
+use tracing::{error, info};
 
 struct TestNode {
     id: NodeId,
@@ -38,11 +38,10 @@ async fn spawn_node(
     ));
 
     // 3. Start the Network Listener
-    let (listener, tcp_listener, bound_addr) = RaftNetworkListener::new_test_insecure(
-        addr,
-        identity.clone(),
-        raft_node.clone(),
-    ).await.unwrap();
+    let (listener, tcp_listener, bound_addr) =
+        RaftNetworkListener::new_test_insecure(addr, identity.clone(), raft_node.clone())
+            .await
+            .unwrap();
 
     let listener_id = id.clone();
     let listener_handle = tokio::spawn(async move {
@@ -82,9 +81,15 @@ async fn test_l3_leader_election() {
     let addr_b: std::net::SocketAddr = "127.0.0.1:18092".parse().unwrap();
     let addr_c: std::net::SocketAddr = "127.0.0.1:18093".parse().unwrap();
 
-    membership.register_self(NodeId::new("node-a"), addr_a, 18091).await;
-    membership.register_self(NodeId::new("node-b"), addr_b, 18092).await;
-    membership.register_self(NodeId::new("node-c"), addr_c, 18093).await;
+    membership
+        .register_self(NodeId::new("node-a"), addr_a, 18091)
+        .await;
+    membership
+        .register_self(NodeId::new("node-b"), addr_b, 18092)
+        .await;
+    membership
+        .register_self(NodeId::new("node-c"), addr_c, 18093)
+        .await;
 
     // Spawn 3 nodes
     let mut node_a = spawn_node(NodeId::new("node-a"), addr_a, membership.clone()).await;
@@ -149,12 +154,16 @@ async fn test_l3_leader_election() {
     })
     .await;
 
-    let (role_a, role_b, role_c) = election_result.expect("Election timed out — stable leader not reached in 5s");
+    let (role_a, role_b, role_c) =
+        election_result.expect("Election timed out — stable leader not reached in 5s");
 
     info!("Roles: A={:?}, B={:?}, C={:?}", role_a, role_b, role_c);
 
     // Verify exactly one leader
-    let leaders = [role_a, role_b, role_c].iter().filter(|&&r| r == ha_cluster::RaftRole::Leader).count();
+    let leaders = [role_a, role_b, role_c]
+        .iter()
+        .filter(|&&r| r == ha_cluster::RaftRole::Leader)
+        .count();
     if leaders != 1 {
         let state_a = node_a.node.current_term.read().await;
         let state_b = node_b.node.current_term.read().await;
@@ -168,7 +177,11 @@ async fn test_l3_leader_election() {
 
     // Check that no Raft run task has panicked or unexpectedly returned.
     // run() is an infinite loop; if it completes the task panicked.
-    for (name, handle) in [("A", &node_a.run_handle), ("B", &node_b.run_handle), ("C", &node_c.run_handle)] {
+    for (name, handle) in [
+        ("A", &node_a.run_handle),
+        ("B", &node_b.run_handle),
+        ("C", &node_c.run_handle),
+    ] {
         // Abort the infinite run loop — the test is done.
         // If the task had panicked, abort() is a no-op and the panic is silently lost,
         // but the election assertions above would have already failed.
