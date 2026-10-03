@@ -30,6 +30,7 @@ import { LiveWebResearchProvider } from './LiveWebResearchProvider';
 import type { LiveWebResearchResult } from './LiveWebResearchProvider';
 import { DeepProspectBuilder } from './DeepProspectBuilder';
 import type { DeepBuilderResult } from './DeepTypes';
+import { QCoreSubmissionOrchestrator } from './QCoreSubmissionOrchestrator';
 import { VardhanDecisionEngine, type Decision } from './VardhanDecisionEngine';
 import { VardhanModelGateway, type ModelProvider } from './VardhanModelGateway';
 import { EvidenceLedger } from './EvidenceLedger';
@@ -331,6 +332,37 @@ export class VardhanSystemManager {
     } else {
       this.onProgress('system', `Finding: ${decision.outcome} — defensible finding.`);
       auditTrail.push(`Finding: ${decision.outcome} — evidence IDs: ${decision.evidence_ids.join(', ')}`);
+
+      // ─── Q-CORE PRODUCTION ORCHESTRATION ────────────────────────────────────
+      // Submit fully verified findings BEFORE any commercial/outreach scoring!
+      if (prospect?.technical_findings && prospect.technical_findings.length > 0) {
+        try {
+          const runContext = {
+            engine_identity: "VARDHAN_INTELLIGENCE_CORE",
+            engine_version: "4.2.0",
+            run_id: `run_${Date.now()}`,
+            organization_id: `org_${myCase.company}`,
+            target_canonical_domain: myCase.company_surface?.origin || myCase.company
+          };
+          
+          const orchestrator = new QCoreSubmissionOrchestrator();
+          const results = await orchestrator.submitFindings(
+            prospect.technical_findings,
+            myCase.evidence,
+            runContext,
+            myCase.company,
+            this.onProgress.bind(this)
+          );
+          
+          const successful = results.filter(r => r.receipt).length;
+          if (successful > 0) {
+            auditTrail.push(`Q-Core SEAL SUCCESS: ${successful} finding(s)`);
+          }
+        } catch (err: any) {
+          this.onProgress('system', `Q-Core Orchestration Error: ${err.message}`);
+          auditTrail.push(`Q-Core Error: ${err.message}`);
+        }
+      }
     }
 
     // === OWNER ===

@@ -29,47 +29,7 @@ export interface VerificationResult {
 }
 
 export class FindingVerificationEngine {
-  /**
-   * Production orchestration point for verifying a finding and automatically
-   * sealing it into the Q-Core Trust Boundary if verified.
-   */
-  static async verifyAndSeal(
-    candidate: SignalCandidate,
-    evidence: Evidence[],
-    companyName: string,
-    runContext: IntelligenceRunContext,
-    qcoreService: QCoreIntegrationService
-  ): Promise<VerificationResult & { qcore_receipt?: any, qcore_error?: string }> {
-    
-    // 1. Core Verification
-    const verification = this.verify(candidate, evidence, companyName);
-
-    // 2. Gate: Must be actually VERIFIED to proceed to Q-Core
-    if (!verification.isVerified || !verification.verifiedFinding) {
-      return verification;
-    }
-
-    // 3. Q-Core Orchestration
-    try {
-      const contract = VerificationToContractAdapter.adapt(
-        verification.verifiedFinding,
-        runContext,
-        evidence
-      );
-
-      const receipt = await qcoreService.submitFinding(contract, evidence, "svc:vardhan-intelligence:v2-prod");
-      
-      return {
-        ...verification,
-        qcore_receipt: receipt
-      };
-    } catch (error: any) {
-      return {
-        ...verification,
-        qcore_error: error.message || String(error)
-      };
-    }
-  }
+  
 
   /**
    * Evaluates a candidate signal against its proof contract.
