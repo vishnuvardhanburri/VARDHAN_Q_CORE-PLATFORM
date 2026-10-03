@@ -210,6 +210,19 @@ export interface VerifiedFinding extends DeepSignal {
   proof_contract_id: string;
   verification_reasons: string[];
   _verified: true;
+  
+  // --- Q-Core Governance & Semantic Context ---
+  technical_area?: string;
+  technical_mechanism?: string;
+  expected_behavior?: string;
+  materiality?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  requires_authorized_assessment?: boolean;
+  decision_candidate?: string;
+  policy_reference?: string;
+  entry_point_id?: string;
+  expectation_id?: string;
+  differential_id?: string;
+  hypothesis_id?: string;
 }
 
 // ── Email ────────────────────────────────────────────────────────────────────
@@ -745,4 +758,13 @@ export interface QueuedCompany {
 export interface DeepBuilderResult {
   prospect: DeepProspect;
   case_ref?: IntelligenceCase;
+}
+
+// ── Intelligence Run Context ─────────────────────────────────────────────────
+export interface IntelligenceRunContext {
+  engine_identity: string;      // e.g., 'VARDHAN_INTELLIGENCE_CORE'
+  engine_version: string;       // e.g., '2.4.1'
+  run_id: string;               // Unique execution ID
+  organization_id: string;      // The canonical organization identity (tenant mapping)
+  target_canonical_domain: string; // The primary domain being investigated
 }

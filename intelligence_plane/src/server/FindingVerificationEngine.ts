@@ -1,12 +1,15 @@
 import {
-  SignalCandidate,
   DeepSignal,
   VerifiedFinding
 } from './DeepTypes';
 import {
   Evidence,
+  SignalCandidate,
   SourceRelationship
 } from './IntelligenceCase';
+import { VerificationToContractAdapter } from './VerificationToContractAdapter';
+import type { QCoreIntegrationService } from './QCoreIntegrationService';
+import type { IntelligenceRunContext } from './DeepTypes';
 import {
   getContractForType,
   ProofContract
@@ -26,6 +29,48 @@ export interface VerificationResult {
 }
 
 export class FindingVerificationEngine {
+  /**
+   * Production orchestration point for verifying a finding and automatically
+   * sealing it into the Q-Core Trust Boundary if verified.
+   */
+  static async verifyAndSeal(
+    candidate: SignalCandidate,
+    evidence: Evidence[],
+    companyName: string,
+    runContext: IntelligenceRunContext,
+    qcoreService: QCoreIntegrationService
+  ): Promise<VerificationResult & { qcore_receipt?: any, qcore_error?: string }> {
+    
+    // 1. Core Verification
+    const verification = this.verify(candidate, evidence, companyName);
+
+    // 2. Gate: Must be actually VERIFIED to proceed to Q-Core
+    if (!verification.isVerified || !verification.verifiedFinding) {
+      return verification;
+    }
+
+    // 3. Q-Core Orchestration
+    try {
+      const contract = VerificationToContractAdapter.adapt(
+        verification.verifiedFinding,
+        runContext,
+        evidence
+      );
+
+      const receipt = await qcoreService.submitFinding(contract, evidence, "svc:vardhan-intelligence:v2-prod");
+      
+      return {
+        ...verification,
+        qcore_receipt: receipt
+      };
+    } catch (error: any) {
+      return {
+        ...verification,
+        qcore_error: error.message || String(error)
+      };
+    }
+  }
+
   /**
    * Evaluates a candidate signal against its proof contract.
    * PROOF must be derived from evidence, not candidate wording.
@@ -129,10 +174,10 @@ export class FindingVerificationEngine {
       attribution,
       verifiedFinding: {
         signal_id: `sig_${candidate.id}`,
-        type: candidate.type,
+        type: candidate.type as any,
         source_url: candidate.source_url,
         excerpt: candidate.raw_match,
-        provenance: candidate.provenance as any,
+        provenance: (candidate.provenance || 'REAL_PUBLIC_OBSERVATION') as any,
         signal_strength: candidate.initial_strength,
         relevance: `Verified finding of type ${candidate.type} satisfying proof contract.`,
         related_evidence_ids: candidate.evidence_ids,
@@ -140,6 +185,18 @@ export class FindingVerificationEngine {
         proof_contract_id: candidate.type,
         verification_reasons: ['Proof contract satisfied'],
         _verified: true,
+        // Propagate governance context
+        technical_area: candidate.technical_area,
+        technical_mechanism: candidate.technical_mechanism,
+        expected_behavior: candidate.expected_behavior,
+        materiality: candidate.materiality,
+        requires_authorized_assessment: candidate.requires_authorized_assessment,
+        decision_candidate: candidate.decision_candidate,
+        policy_reference: candidate.policy_reference,
+        entry_point_id: candidate.entry_point_id,
+        expectation_id: candidate.expectation_id,
+        differential_id: candidate.differential_id,
+        hypothesis_id: candidate.hypothesis_id
       }
     };
   }

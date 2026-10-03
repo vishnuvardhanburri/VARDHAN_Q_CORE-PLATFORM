@@ -104,6 +104,20 @@ export interface SignalCandidate {
   initial_strength: SignalStrength;
   evidence_ids: string[];
   qualification_gaps: string[];
+  
+  // --- Q-Core Governance & Semantic Context ---
+  technical_area?: string;
+  technical_mechanism?: string;
+  expected_behavior?: string;
+  materiality?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  requires_authorized_assessment?: boolean;
+  decision_candidate?: string;
+  policy_reference?: string;
+  entry_point_id?: string;
+  expectation_id?: string;
+  differential_id?: string;
+  hypothesis_id?: string;
+  provenance?: string;
 }
 
 export interface SourceCoverage {
