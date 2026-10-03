@@ -472,7 +472,7 @@ console.log('\n==================================================');
 console.log(`Provider architecture tests: ${pass} passed, ${fail} failed.`);
 if (fail === 0) console.log('ALL TESTS PASSED.');
 else { console.log('\nFAILURES:'); failures.forEach(f => console.log('  - ' + f)); }
-expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+expect(fail).toBe(0);
 
   });
 });

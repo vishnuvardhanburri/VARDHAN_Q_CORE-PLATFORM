@@ -337,13 +337,13 @@ async function runTests() {
   console.log(`Results: ${passed.length} passed, ${failed.length} failed`);
   if (failed.length > 0) {
     console.log('SOME TESTS FAILED');
-    expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+    expect(failed).toBe(0);
   } else {
     console.log('ALL TESTS PASSED.');
   }
 }
 
-runTests().catch(e => { console.error('FATAL:', e.message); expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0); });
+runTests().catch(e => { console.error('FATAL:', e.message); expect(failed).toBe(0); });
 
   });
 });

@@ -27,5 +27,11 @@ hex = "0.4"
 vardhan_hybrid_core = { path = "../hybrid_core" }
 vardhan_transaction = { path = "../vardhan_transaction" }
 vardhan_verifier = { path = "../vardhan_verifier" }
+authority_gate = { path = "../authority_gate" }
+enterprise_tenant = { path = "../enterprise_tenant" }
+vardhan_keystore = { path = "../vardhan_keystore" }
+vardhan_state = { path = "../vardhan_state" }
 axum = "0.8.9"
 tokio = { version = "1.53.1", features = ["full"] }
+tracing = "0.1"
+tempfile = "3"

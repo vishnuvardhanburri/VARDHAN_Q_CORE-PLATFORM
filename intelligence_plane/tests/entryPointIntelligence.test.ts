@@ -856,13 +856,13 @@ async function main(): Promise<void> {
 
   if (testsFailed > 0) {
     console.error('\n❌ ENTRY POINT INTELLIGENCE TESTS FAILED');
-    expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+    expect(testsFailed).toBe(0);
   } else {
     console.log('\n✅ ALL ENTRY POINT INTELLIGENCE TESTS PASSED');
   }
 }
 
 await main();
-  expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+  expect(testsFailed).toBe(0);
   });
 });

@@ -393,7 +393,7 @@ console.log('\n=== DifferentialFindingEngine Test Results ===');
 console.log(`Passed: ${passed}/${passed + failed}`);
 console.log(`Failed: ${failed}/${passed + failed}`);
 if (failed > 0) {
-  expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+  expect(fail).toBe(0);
 }
 console.log('\n✅ ALL DIFFERENTIAL FINDING ENGINE TESTS PASSED');
 

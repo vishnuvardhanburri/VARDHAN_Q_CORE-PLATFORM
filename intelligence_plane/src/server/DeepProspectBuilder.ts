@@ -675,7 +675,7 @@ export class DeepProspectBuilder {
       recommended_subjects: [], decision: 'NO_GO' as DeepDecision, confidence: 'LOW' as DeepConfidence,
       artifact_path: '', audit_trail: auditTrail
     } as Omit<DeepProspect, 'email_draft'>;
-    const email = null;
+    const email: DeepEmailDraft | null = null;
 
     // 11) FINAL DECISION + CONFIDENCE
     // COMMERCIAL-INTELLIGENCE MODEL (priority reset):

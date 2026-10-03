@@ -34,6 +34,7 @@
  * Each ExpectedBehavior carries evidence_ids and a confidence level.
  */
 
+import { createHash } from 'crypto';
 import type { Evidence } from './IntelligenceCase';
 import type { EntryPoint, EntryPointGraph } from './EntryPointModel';
 import type { ExpectedBehavior, ExpectationType, ExpectationSource } from './findings/ProblemFinding';
@@ -44,13 +45,27 @@ import { normalizeUrl } from './EntryPointDiscovery';
 /**
  * Keywords in evidence text that indicate authentication is documented as required.
  */
-
+const AUTH_REQUIRED_INDICATORS = [
+  'authentication required', 'auth required', 'requires authentication',
+  'must be authenticated', 'authentication is required',
+  'jwt', 'bearer token', 'api key', 'api-key',
+  'sign in', 'sign-in', 'log in', 'log-in',
+  'authorization required', 'auth required',
+  'oauth', 'oidc', 'sso', 'saml',
+  'session required', 'login required',
+  '401', '403', 'unauthorized', 'forbidden',
+];
 
 /**
  * Keywords in evidence text that indicate authentication is documented as NOT required.
  */
-
-
+const AUTH_NOT_REQUIRED_INDICATORS = [
+  'publicly accessible', 'no authentication', 'no auth',
+  'unauthenticated access', 'open to', 'no login',
+  'public access', 'without authentication',
+  'no api key needed', 'no token',
+  'guest', 'anonymous',
+];
 /**
  * Keywords indicating the endpoint exposes or requires a security control
  * (CORS, CSP, HSTS, etc.).
@@ -92,7 +107,7 @@ function mapEvidenceOriginToSource(
 /**
  * Determine whether evidence text mentions an auth-related pattern.
  */
- {
+function evidenceMentionsAuth(text: string): { auth_required?: boolean; auth_not_required?: boolean } {
   const lower = text.toLowerCase();
   const required = AUTH_REQUIRED_INDICATORS.some(kw => lower.includes(kw.toLowerCase()));
   const notRequired = AUTH_NOT_REQUIRED_INDICATORS.some(kw => lower.includes(kw.toLowerCase()));
@@ -104,11 +119,16 @@ function mapEvidenceOriginToSource(
  * construction in client code (implies the endpoint is expected to be authenticated).
  * This is only applied when evidence source_type is JS_BUNDLE.
  */
-
-
+function jsEvidenceImpliesAuth(text: string): boolean {
+  const lower = text.toLowerCase();
+  // Patterns that indicate client-side JS constructs auth headers
+  return ['buildrequestheaders', 'authorization', 'bearer token', 'stytch', 'jwt', 'api key']
+    .some(kw => lower.includes(kw.toLowerCase()));
+}
 /** Generate a stable ID for an expectation. */
-function makeExpectationId(entryPointId: string, expectationType: string, counter: number): string {
-  return `exp_${entryPointId.slice(0, 8)}_${expectationType.toLowerCase()}_${counter}`;
+function makeExpectationId(entryPointId: string, expectationType: string, counter: number, statement: string = ''): string {
+  const hash = createHash('sha256').update(`${entryPointId}_${expectationType}_${statement}`).digest('hex').substr(0, 8);
+  return `exp_${entryPointId.slice(0, 8)}_${expectationType.toLowerCase()}_${hash}`;
 }
 
 /**
@@ -333,7 +353,7 @@ export class ExpectationEngine {
 
           if (authNotRequired && !authRequired) {
             const expectation: ExpectedBehavior = {
-              expectation_id: makeExpectationId(ep.entry_point_id, 'AUTH_NOT_REQUIRED', counter++),
+              expectation_id: makeExpectationId(ep.entry_point_id, 'AUTH_NOT_REQUIRED', counter++, 'NOT_REQUIRED'),
               entry_point_id: ep.entry_point_id,
               expectation_type: 'AUTH_NOT_REQUIRED',
               statement: `Authentication is not required to access this entry point. Evidence: ${authEvidence.map(e => e.id).join(', ')}`,
@@ -354,7 +374,7 @@ export class ExpectationEngine {
           } else if (authRequired && !authNotRequired) {
             const isJsSource = authEvidence.some(e => e.source_type === 'JS_BUNDLE');
             const expectation: ExpectedBehavior = {
-              expectation_id: makeExpectationId(ep.entry_point_id, 'AUTH_REQUIRED', counter++),
+              expectation_id: makeExpectationId(ep.entry_point_id, 'AUTH_REQUIRED', counter++, 'REQUIRED'),
               entry_point_id: ep.entry_point_id,
               expectation_type: 'AUTH_REQUIRED',
               statement: `Authentication is required to access this entry point. Evidence: ${authEvidence.map(e => e.id).join(', ')}`,

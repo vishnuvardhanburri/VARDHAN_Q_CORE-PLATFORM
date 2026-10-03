@@ -705,13 +705,13 @@ async function main() {
   if (failCount > 0) {
     console.error('\nFAILURES:');
     failures.forEach(f => console.error('  - ' + f));
-    expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+    expect(failCount).toBe(0);
   } else {
     console.log('\nALL TESTS PASSED.');
   }
 }
 
-main().catch((e) => { console.error(e); expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0); });
+main().catch((e) => { console.error(e); expect(failCount).toBe(0); });
 
   });
 });

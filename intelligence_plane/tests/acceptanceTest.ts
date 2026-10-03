@@ -195,7 +195,7 @@ async function runTests() {
 
   if (failCount > 0) {
     console.error("TEST SUITE FAILED. ASSERTIONS DID NOT MATCH.");
-    expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+    expect(failCount).toBe(0);
   }
 }
 

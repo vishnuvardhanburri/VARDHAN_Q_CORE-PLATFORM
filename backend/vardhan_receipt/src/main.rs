@@ -1,3 +1,4 @@
+use pqcrypto_traits::sign::PublicKey;
 use vardhan_hybrid_core::execute_hybrid_transaction;
 use clap::{Parser, Subcommand};
 use pqcrypto_mldsa::mldsa87::{keypair as mldsa_keypair, detached_sign as mldsa_sign};
@@ -67,6 +68,10 @@ pub struct Provenance {
 pub struct QCoreValidationRequest {
     tenant_id: String,
     finding_id: String,
+    /// The identity of the workload submitting this request.
+    /// Format: "svc:<service-name>:<instance-id>"
+    #[serde(default)]
+    actor_workload_id: String,
     evidence_package: EvidencePackage,
     decision_candidate: DecisionCandidate,
     provenance: Provenance,
@@ -210,10 +215,13 @@ pub struct HybridReceipt {
 }
 
 mod gateway;
+mod policy_authority;
+mod keystore_manager;
 
 #[tokio::main]
 async fn main() {
     anti_tamper::assert_integrity();
+    keystore_manager::init_keystore();
     let cli = Cli::parse();
 
     match &cli.command {
@@ -302,8 +310,12 @@ async fn main() {
                 }
             };
             
+            let keystore = keystore_manager::get_keystore();
+            let ed_pub_bytes = keystore.ed25519_public_key().to_bytes();
+            let mldsa_pub_bytes = keystore.mldsa87_public_key().as_bytes();
+
             let verifier = VardhanVerifier::with_defaults();
-            let result = verifier.verify(&receipt, None, None); // Signatures skipped for now due to ephemeral keys in PoC
+            let result = verifier.verify(&receipt, Some(&ed_pub_bytes), Some(mldsa_pub_bytes));
             
             println!("{}", serde_json::to_string_pretty(&result).unwrap());
             
@@ -450,19 +462,32 @@ pub fn process_transaction(request: QCoreValidationRequest) -> Result<VardhanSea
     // ── Authority Evaluation ─────────────────────────────────────────────────
     let _ = tx.transition(TransactionState::AuthorityEvaluation);
 
+    let evaluator = policy_authority::GatewayAuthorityEvaluator::new();
+    let ctx = policy_authority::AuthEvalContext {
+        tenant_id: request.tenant_id.clone(),
+        actor_workload_id: request.actor_workload_id.clone(),
+        policy_reference: request.decision_candidate.policy_reference.clone(),
+        declared_policy_version: "1.0".to_string(), // In a fully dynamic system this would come from the request
+        action_type: request.decision_candidate.action_type.clone(),
+    };
+
+    let decision = evaluator.evaluate(&ctx);
+    
     let authority_result = AuthorityResult {
-        authorized: true,
-        authority_reference: "gate:VardhanGate:VARDHAN_CORE_INTELLIGENCE_POLICY_V1".to_string(),
+        authorized: decision.is_allow(),
+        authority_reference: decision.gate_reference().unwrap_or("gate:VardhanGate:DENIED").to_string(),
         evaluated_at_ms: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64,
-        reason: "All 10 Q-Core independent validation checks passed".to_string(),
+        reason: decision.reason().to_string(),
     };
 
     if let Err(_) = tx.apply_authority_result(authority_result.clone()) {
         return Err(("ERROR".to_string(), "Failed to apply authority result".to_string()));
     }
 
-    if !authority_result.authorized {
-        return Err(("REJECTED_UNAUTHORIZED".to_string(), authority_result.reason));
+    if !decision.is_allow() {
+        let _ = tx.reject(RejectionReason::AuthorityDenied);
+        let code = decision.rejection_code().unwrap_or("REJECTED_UNAUTHORIZED").to_string();
+        return Err((code, decision.reason().to_string()));
     }
 
     let _ = tx.transition(TransactionState::Executing);
@@ -476,14 +501,11 @@ pub fn process_transaction(request: QCoreValidationRequest) -> Result<VardhanSea
     );
     let payload_hash = blake3::hash(canonical_payload.as_bytes()).to_string();
 
-    let (_, pq_sk) = mldsa_keypair();
-    let pq_sig = mldsa_sign(payload_hash.as_bytes(), &pq_sk);
+    let keystore = keystore_manager::get_keystore();
+    let ed25519_sig_result = keystore.sign_ed25519(payload_hash.as_bytes());
+    let mldsa_sig_result = keystore.sign_mldsa87(payload_hash.as_bytes());
 
-    let mut csprng = OsRng;
-    let ed_sk = SigningKey::generate(&mut csprng);
-    let ed_sig: ed25519_dalek::Signature = ed_sk.sign(payload_hash.as_bytes());
-
-    let issuer_key_fingerprint = blake3::hash(ed_sk.verifying_key().as_bytes()).to_string();
+    let issuer_key_fingerprint = ed25519_sig_result.key_identity.public_key_fingerprint.clone();
 
     let evidence_commitments = vec![EvidenceCommitment {
         evidence_id: request.evidence_package.evidence_id,
@@ -492,10 +514,10 @@ pub fn process_transaction(request: QCoreValidationRequest) -> Result<VardhanSea
     }];
 
     let signatures = DualSignature {
-        ed25519_sig: hex::encode(ed_sig.to_bytes()),
-        ed25519_key_id: Uuid::new_v4().to_string(),
-        ml_dsa_87_sig: hex::encode(pq_sig.as_bytes()),
-        ml_dsa_87_key_id: Uuid::new_v4().to_string(),
+        ed25519_sig: ed25519_sig_result.signature_hex,
+        ed25519_key_id: ed25519_sig_result.key_identity.key_id,
+        ml_dsa_87_sig: mldsa_sig_result.signature_hex,
+        ml_dsa_87_key_id: mldsa_sig_result.key_identity.key_id,
     };
 
     let mut receipt = VardhanSealedReceipt::build(
@@ -530,4 +552,73 @@ pub fn process_transaction(request: QCoreValidationRequest) -> Result<VardhanSea
     let _ = tx.seal(receipt.receipt_id.clone());
 
     Ok(receipt)
+}
+
+#[cfg(test)]
+mod keystore_tests {
+    use super::*;
+    use std::env;
+    use tempfile::tempdir;
+    use vardhan_verifier::{VardhanVerifier, VerifiableReceipt};
+
+    #[tokio::test]
+    async fn test_gateway_persistent_keystore_end_to_end() {
+        let temp_dir = tempdir().unwrap();
+        let keystore_path = temp_dir.path().join("qcore_keys");
+        env::set_var("VARDHAN_KEYSTORE_DIR", keystore_path.to_str().unwrap());
+        
+        // 1. Initialize keystore in process
+        crate::keystore_manager::init_keystore();
+        let keystore = crate::keystore_manager::get_keystore();
+        
+        let key_id = keystore.ed25519_identity().key_id.clone();
+        
+        // 2. Build a valid request
+        let request_json = r#"{
+            "tenant_id": "org-vardhan-intelligence",
+            "finding_id": "find-12345",
+            "actor_workload_id": "svc:vardhan-intelligence:test-01",
+            "evidence_package": {
+                "evidence_id": "ev-9999",
+                "data_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                "category": "STATIC_ANALYSIS"
+            },
+            "decision_candidate": {
+                "action_type": "SEAL_VERIFIED_FINDING",
+                "policy_reference": "VARDHAN_CORE_INTELLIGENCE_POLICY_V1"
+            },
+            "provenance": {
+                "source_identity": "engine-v2",
+                "timestamp": "2026-10-03T12:00:00Z",
+                "version": "1.0.0"
+            }
+        }"#;
+        
+        let request: QCoreValidationRequest = serde_json::from_str(request_json).unwrap();
+        
+        // 3. Process transaction
+        let receipt = process_transaction(request.clone()).unwrap();
+        
+        // 4. Assert stable key ID is in the receipt
+        assert_eq!(receipt.signatures.ed25519_key_id, key_id);
+        
+        // 5. Verify receipt signatures using the independent verifier
+        let receipt_json = serde_json::to_string(&receipt).unwrap();
+        let verifiable_receipt: VerifiableReceipt = serde_json::from_str(&receipt_json).unwrap();
+        
+        let verifier = VardhanVerifier::with_defaults();
+        let ed_pub_bytes = keystore.ed25519_public_key().to_bytes();
+        let mldsa_pub_bytes = keystore.mldsa87_public_key().as_bytes();
+        let result = verifier.verify(&verifiable_receipt, Some(&ed_pub_bytes), Some(mldsa_pub_bytes));
+        
+        assert!(result.is_valid(), "Verification failed: {:?}", result.failures);
+        
+        // 6. Reload keystore from disk (simulating process restart)
+        let reloaded_keystore = vardhan_keystore::VardhanKeystore::load_from_dir(&keystore_path).unwrap();
+        assert_eq!(reloaded_keystore.ed25519_identity().key_id, key_id);
+        
+        // Ensure the reloaded keystore can also verify the receipt (producing the same public key bytes)
+        let reloaded_ed_pub_bytes = reloaded_keystore.ed25519_public_key().to_bytes();
+        assert_eq!(ed_pub_bytes, reloaded_ed_pub_bytes);
+    }
 }

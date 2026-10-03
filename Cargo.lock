@@ -5728,6 +5728,7 @@ dependencies = [
  "rand 0.8.8",
  "serde",
  "serde_json",
+ "tempfile",
  "uuid",
 ]
 
@@ -5747,6 +5748,7 @@ dependencies = [
 name = "vardhan_receipt"
 version = "0.1.0"
 dependencies = [
+ "authority_gate",
  "axum",
  "base64ct",
  "blake3",
@@ -5755,6 +5757,7 @@ dependencies = [
  "colored",
  "core_crypto",
  "ed25519-dalek",
+ "enterprise_tenant",
  "hex",
  "mimalloc",
  "pqcrypto-mldsa",
@@ -5762,9 +5765,13 @@ dependencies = [
  "rand 0.8.8",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
+ "tracing",
  "uuid",
  "vardhan_hybrid_core",
+ "vardhan_keystore",
+ "vardhan_state",
  "vardhan_transaction",
  "vardhan_verifier",
 ]

@@ -719,7 +719,7 @@ export class VardhanOperator {
         return;
       }
       const { email_draft: _omit, ...prospectForEmail } = p;
-      const draft = { primary_subject: 'test', alternate_subject: 'test', body: 'test' };
+      const draft = p.email_draft as any;
       this.println('\n=== DEEP EMAIL DRAFT (NOT SENT) ===');
       this.println(`To:      ${p.selected_owner ? p.selected_owner.name : 'technical owner'}`);
       this.println(`Role:    ${p.selected_owner ? p.selected_owner.role : ''}`);
@@ -737,7 +737,7 @@ export class VardhanOperator {
         if (claim.evidence_ids.length === 0) {
           this.println(`    (none)`);
         } else {
-          claim.evidence_ids.forEach(id => this.println(`    • ${id}`));
+          claim.evidence_ids.forEach((id: string) => this.println(`    • ${id}`));
         }
       }
       this.println('\nNEVER AUTO-SENT. Use "send --confirm" (requires configured transport + OUTREACH_READY).');

@@ -762,12 +762,12 @@ async function runAll(): Promise<void> {
   if (fail > 0) {
     console.log('Failures:');
     for (const f of failures) console.log('  - ' + f);
-    expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+    expect(fail).toBe(0);
   }
   console.log('✓ All §22 tests passed.\n');
 }
 
-runAll().catch(e => { console.error(e); expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0); });
+runAll().catch(e => { console.error(e); expect(fail).toBe(0); });
 
   });
 });

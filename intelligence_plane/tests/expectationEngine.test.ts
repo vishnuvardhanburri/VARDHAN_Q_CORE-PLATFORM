@@ -1092,7 +1092,7 @@ console.log('\n=== ExpectationEngine Test Results ===');
 console.log(`Passed: ${passed}/${passed + failed}`);
 console.log(`Failed: ${failed}/${passed + failed}`);
 if (failed > 0) {
-  expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+  expect(failed).toBe(0);
 }
 console.log('\n✅ ALL EXPECTATION ENGINE TESTS PASSED');
 

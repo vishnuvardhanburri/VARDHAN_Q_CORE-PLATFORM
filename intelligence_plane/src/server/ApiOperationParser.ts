@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { Evidence } from './IntelligenceCase';
 
 export interface DocumentedApiOperation {
@@ -89,9 +90,7 @@ export class ApiOperationParser {
     const ops: DocumentedApiOperation[] = [];
     // Match the curl command line roughly up to a newline that doesn't end with a slash, or end of string.
     // We'll just grab chunks of text that start with curl and grab the next 500 chars to analyze.
-    const curlRegex = /curl\s+[^]+?(?=
-
-|$)/gi;
+    const curlRegex = new RegExp('curl\\s+[\\s\\S]+?(?=\\n\\n|$)', 'gi');
     let match;
     while ((match = curlRegex.exec(text)) !== null) {
       const curlBlock = match[0];
@@ -111,7 +110,7 @@ export class ApiOperationParser {
       const hasAuthHeader = curlLower.includes('authorization:') || curlLower.includes('x-api-key') || curlLower.includes('bearer ');
       
       ops.push({
-        operationId: `curl_${Math.random().toString(36).substr(2, 5)}`,
+        operationId: `curl_${createHash('sha256').update(`${docUrl}_${method}_${urlObj.pathname}`).digest('hex').substr(0,10)}`,
         endpoint: urlObj.pathname,
         method: method,
         baseUrl: `${urlObj.protocol}//${urlObj.hostname}`,
@@ -143,7 +142,7 @@ export class ApiOperationParser {
       const baseUrl = `${urlObj.protocol}//${urlObj.hostname}`;
 
       ops.push({
-        operationId: `ref_${Math.random().toString(36).substr(2, 5)}`,
+        operationId: `ref_${createHash('sha256').update(`${docUrl}_${method}_${path}`).digest('hex').substr(0,10)}`,
         endpoint: path,
         method: method,
         baseUrl: baseUrl,

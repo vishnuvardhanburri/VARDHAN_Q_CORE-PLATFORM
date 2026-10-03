@@ -506,10 +506,10 @@ async function main(): Promise<void> {
 
   if (testsFailed > 0) {
     console.error('\n❌ TECHNICAL PROBLEM DETECTION TESTS FAILED');
-    expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+    expect(testsFailed).toBe(0);
   } else {
     console.log('\n✅ ALL TECHNICAL PROBLEM DETECTION TESTS PASSED');
-    expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+    expect(testsFailed).toBe(0);
   }
 }
 

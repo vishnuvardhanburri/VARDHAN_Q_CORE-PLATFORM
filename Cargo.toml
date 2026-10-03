@@ -21,7 +21,7 @@ members = [
     "backend/ha_cluster",
     "backend/auth_service",
     "backend/vardhan_model",
-    "backend/vardhan_state", "backend/proofmesh", "backend/authority_gate", "backend/decision_twin", "backend/proofmesh",
+    "backend/vardhan_state", "backend/proofmesh", "backend/authority_gate", "backend/decision_twin",
     "backend/vardhan_receipt",
     "backend/vardhan_transaction",
     "backend/vardhan_keystore",

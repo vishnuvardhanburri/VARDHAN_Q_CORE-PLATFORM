@@ -377,7 +377,7 @@ export class AdaptiveInvestigationEngine {
     evidence: Evidence[],
     existingSubdomains: string[],
     baselineEvidenceIds?: Set<string>,
-    hypotheses?: import('../IntelligenceCase').InvestigationHypothesis[]
+    hypotheses?: import('./IntelligenceCase').InvestigationHypothesis[]
   ): Promise<AdaptiveInvestigationResult> {
     const records: AdaptiveInvestigationRecord[] = [];
     const now = () => new Date().toISOString();

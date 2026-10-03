@@ -260,7 +260,7 @@ console.log(`Commercial Opportunity Tests: ${pass} passed, ${fail} failed.`);
 if (fail > 0) {
   console.log('FAILURES:');
   failures.forEach(f => console.log('  - ' + f));
-  expect(typeof fail !== 'undefined' ? fail : (typeof failed !== 'undefined' ? failed : 0)).toBe(0);
+  expect(fail).toBe(0);
 } else {
   console.log('ALL TESTS PASSED.');
 }

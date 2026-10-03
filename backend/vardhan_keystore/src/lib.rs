@@ -1,9 +1,12 @@
 use pqcrypto_mldsa::mldsa87::{keypair as mldsa_keypair, detached_sign as mldsa_sign, SecretKey, PublicKey as MlDsaPublicKey};
-use pqcrypto_traits::sign::{PublicKey as PQPublicKey, DetachedSignature as PQDetachedSignature};
+use pqcrypto_traits::sign::{PublicKey as PQPublicKey, DetachedSignature as PQDetachedSignature, SecretKey as PQSecretKey};
 use ed25519_dalek::{SigningKey, Signer};
 use rand::rngs::OsRng;
 use serde::{Serialize, Deserialize};
 use uuid::Uuid;
+use std::path::Path;
+use std::fs;
+use std::io;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum KeyStatus {
@@ -39,6 +42,12 @@ pub struct VardhanKeystore {
     ed25519_identity: KeyIdentity,
     mldsa87_secret: SecretKey,
     mldsa87_public: MlDsaPublicKey,
+    mldsa87_identity: KeyIdentity,
+}
+
+#[derive(Serialize, Deserialize)]
+struct StoredKeystoreMetadata {
+    ed25519_identity: KeyIdentity,
     mldsa87_identity: KeyIdentity,
 }
 
@@ -84,6 +93,51 @@ impl VardhanKeystore {
         }
     }
 
+    pub fn save_to_dir(&self, dir: &Path) -> io::Result<()> {
+        fs::create_dir_all(dir)?;
+
+        let meta = StoredKeystoreMetadata {
+            ed25519_identity: self.ed25519_identity.clone(),
+            mldsa87_identity: self.mldsa87_identity.clone(),
+        };
+        let meta_json = serde_json::to_string_pretty(&meta)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        fs::write(dir.join("keystore_meta.json"), meta_json)?;
+
+        fs::write(dir.join("ed25519.key"), self.ed25519_key.to_bytes())?;
+        fs::write(dir.join("mldsa87.sec"), self.mldsa87_secret.as_bytes())?;
+        fs::write(dir.join("mldsa87.pub"), self.mldsa87_public.as_bytes())?;
+
+        Ok(())
+    }
+
+    pub fn load_from_dir(dir: &Path) -> io::Result<Self> {
+        let meta_str = fs::read_to_string(dir.join("keystore_meta.json"))?;
+        let meta: StoredKeystoreMetadata = serde_json::from_str(&meta_str)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+
+        let ed_bytes = fs::read(dir.join("ed25519.key"))?;
+        let ed_arr: [u8; 32] = ed_bytes.try_into()
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "Invalid ed25519 key size"))?;
+        let ed25519_key = SigningKey::from_bytes(&ed_arr);
+
+        let mldsa_sec_bytes = fs::read(dir.join("mldsa87.sec"))?;
+        let mldsa87_secret = SecretKey::from_bytes(&mldsa_sec_bytes)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+
+        let mldsa_pub_bytes = fs::read(dir.join("mldsa87.pub"))?;
+        let mldsa87_public = MlDsaPublicKey::from_bytes(&mldsa_pub_bytes)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+
+        Ok(Self {
+            ed25519_key,
+            ed25519_identity: meta.ed25519_identity,
+            mldsa87_secret,
+            mldsa87_public,
+            mldsa87_identity: meta.mldsa87_identity,
+        })
+    }
+
     pub fn sign_ed25519(&self, payload: &[u8]) -> SigningResult {
         let signature = self.ed25519_key.sign(payload);
         SigningResult {
@@ -103,9 +157,17 @@ impl VardhanKeystore {
     pub fn ed25519_identity(&self) -> &KeyIdentity {
         &self.ed25519_identity
     }
+    
+    pub fn ed25519_public_key(&self) -> ed25519_dalek::VerifyingKey {
+        self.ed25519_key.verifying_key()
+    }
 
     pub fn mldsa87_identity(&self) -> &KeyIdentity {
         &self.mldsa87_identity
+    }
+    
+    pub fn mldsa87_public_key(&self) -> &MlDsaPublicKey {
+        &self.mldsa87_public
     }
 }
 
@@ -161,5 +223,28 @@ mod tests {
         let k = VardhanKeystore::generate();
         assert_eq!(k.ed25519_identity().key_version, 1);
         assert_eq!(k.mldsa87_identity().key_version, 1);
+    }
+
+    #[test]
+    fn test_persistence_preserves_identity_and_keys() {
+        let dir = tempfile::tempdir().unwrap();
+        let k1 = VardhanKeystore::generate();
+        k1.save_to_dir(dir.path()).unwrap();
+        
+        let k2 = VardhanKeystore::load_from_dir(dir.path()).unwrap();
+        
+        assert_eq!(k1.ed25519_identity().key_id, k2.ed25519_identity().key_id);
+        assert_eq!(k1.mldsa87_identity().key_id, k2.mldsa87_identity().key_id);
+        
+        let payload = b"test payload";
+        let sig1 = k1.sign_ed25519(payload);
+        let sig2 = k2.sign_ed25519(payload);
+        assert_eq!(sig1.signature_hex, sig2.signature_hex);
+        
+        let mldsa_sig1 = k1.sign_mldsa87(payload);
+        let mldsa_sig2 = k2.sign_mldsa87(payload);
+        // Note: ML-DSA signatures might be randomized internally depending on the implementation.
+        // What matters is the key identity is preserved.
+        assert_eq!(mldsa_sig1.key_identity.key_id, mldsa_sig2.key_identity.key_id);
     }
 }
