@@ -57,8 +57,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let path = std::env::var("EBPF_OBJECT_PATH")
         .unwrap_or_else(|_| "/etc/vardhan/vardhan_firewall.o".to_string());
-    let interface = std::env::var("EBPF_INTERFACE")
-        .unwrap_or_else(|_| "eth0".to_string());
+    let interface = std::env::var("EBPF_INTERFACE").unwrap_or_else(|_| "eth0".to_string());
 
     println!("[eBPF] Loading XDP program from {}", path);
     println!("[eBPF] Attaching XDP program to {}", interface);
@@ -76,8 +75,9 @@ async fn main() -> Result<(), anyhow::Error> {
     println!("{}", "✓ Ring-0 Kernel Hook Active".green().bold());
 
     if let Ok(ips) = std::env::var("RAFT_PEER_IPS") {
-        let mut allowed_peers: HashMap<_, u32, u32> =
-            HashMap::try_from(bpf.map_mut("ALLOWED_PEERS").context("ALLOWED_PEERS map not found")?)?;
+        let mut allowed_peers: HashMap<_, u32, u32> = HashMap::try_from(
+            bpf.map_mut("ALLOWED_PEERS").context("ALLOWED_PEERS map not found")?,
+        )?;
         for ip_str in ips.split(',').map(str::trim).filter(|s| !s.is_empty()) {
             if let Ok(ip) = ip_str.parse::<std::net::Ipv4Addr>() {
                 let ip_u32 = u32::from(ip);
