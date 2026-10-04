@@ -134,8 +134,12 @@ mod tests {
     fn test_duplicate_key_same_tenant_rejected() {
         let mut reg = IdempotencyRegistry::new();
         let key = IdempotencyKey::new("key1");
-        reg.check_and_register("tenant1", &key, "tx1", 1000).unwrap();
-        assert!(reg.check_and_register("tenant1", &key, "tx2", 1000).is_err());
+        reg.check_and_register("tenant1", &key, "tx1", 1000)
+            .unwrap();
+        assert!(
+            reg.check_and_register("tenant1", &key, "tx2", 1000)
+                .is_err()
+        );
     }
 
     #[test]
@@ -159,8 +163,11 @@ mod tests {
     fn test_duplicate_returns_original_transaction_id() {
         let mut reg = IdempotencyRegistry::new();
         let key = IdempotencyKey::new("key1");
-        reg.check_and_register("tenant1", &key, "tx1", 1000).unwrap();
-        let err = reg.check_and_register("tenant1", &key, "tx2", 1000).unwrap_err();
+        reg.check_and_register("tenant1", &key, "tx1", 1000)
+            .unwrap();
+        let err = reg
+            .check_and_register("tenant1", &key, "tx2", 1000)
+            .unwrap_err();
         assert_eq!(err.original_transaction_id, "tx1");
     }
 
@@ -168,10 +175,14 @@ mod tests {
     fn test_complete_marks_record() {
         let mut reg = IdempotencyRegistry::new();
         let key = IdempotencyKey::new("key1");
-        reg.check_and_register("tenant1", &key, "tx1", 1000).unwrap();
+        reg.check_and_register("tenant1", &key, "tx1", 1000)
+            .unwrap();
         reg.complete("tenant1", &key);
         let map_key = ("tenant1".to_string(), "key1".to_string());
-        assert_eq!(reg.store.get(&map_key).unwrap().status, IdempotencyStatus::Completed);
+        assert_eq!(
+            reg.store.get(&map_key).unwrap().status,
+            IdempotencyStatus::Completed
+        );
     }
 
     #[test]
@@ -180,10 +191,14 @@ mod tests {
         let key1 = IdempotencyKey::new("key1");
         let key2 = IdempotencyKey::new("key2");
         reg.check_and_register("tenant1", &key1, "tx1", 0).unwrap();
-        reg.check_and_register("tenant1", &key2, "tx2", 1000).unwrap();
+        reg.check_and_register("tenant1", &key2, "tx2", 1000)
+            .unwrap();
         sleep(Duration::from_millis(1));
         reg.purge_expired();
         assert_eq!(reg.store.len(), 1);
-        assert!(reg.store.contains_key(&("tenant1".to_string(), "key2".to_string())));
+        assert!(
+            reg.store
+                .contains_key(&("tenant1".to_string(), "key2".to_string()))
+        );
     }
 }

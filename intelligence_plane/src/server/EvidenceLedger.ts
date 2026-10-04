@@ -53,9 +53,11 @@ export interface CompanyEvidence {
   };
 }
 
-/** Simple deterministic hash of content (SHA-256, hex digest). */
+/** Deterministic hash of content (SHA-256, full 64-hex-char digest).
+ * F-008: Previously truncated to 16 hex chars, which increased collision risk.
+ * Now uses full-length digest. */
 function hashContent(s: string): string {
-  return createHash('sha256').update(s).digest('hex').slice(0, 16);
+  return createHash('sha256').update(s).digest('hex');
 }
 
 /** Generate a unique evidence ID. */

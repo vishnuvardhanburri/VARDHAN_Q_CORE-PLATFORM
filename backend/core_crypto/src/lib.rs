@@ -75,10 +75,19 @@ impl QuantumNodeIdentity {
             let env: EncryptedEnvelope = serde_json::from_str(&env_json)?;
             let plaintext = vault::unwrap_envelope(protector, &env)?;
             let stored: StoredIdentity = serde_json::from_slice(&plaintext)?;
-            let ek_arr: [u8; ENCAP_KEY_LEN] = stored.kem_encap_key_bytes.as_slice().try_into().map_err(|_| "Invalid encap key length")?;
-            let ek_encoded = ml_kem::Encoded::<<MlKem1024 as KemCore>::EncapsulationKey>::from(ek_arr);
+            let ek_arr: [u8; ENCAP_KEY_LEN] = stored
+                .kem_encap_key_bytes
+                .as_slice()
+                .try_into()
+                .map_err(|_| "Invalid encap key length")?;
+            let ek_encoded =
+                ml_kem::Encoded::<<MlKem1024 as KemCore>::EncapsulationKey>::from(ek_arr);
             let ek = <MlKem1024 as KemCore>::EncapsulationKey::from_bytes(&ek_encoded);
-            let pk_arr: [u8; ml_dsa_87::PK_LEN] = stored.dsa_public_key_bytes.as_slice().try_into().map_err(|_| "Invalid DSA pk length")?;
+            let pk_arr: [u8; ml_dsa_87::PK_LEN] = stored
+                .dsa_public_key_bytes
+                .as_slice()
+                .try_into()
+                .map_err(|_| "Invalid DSA pk length")?;
             let pk = ml_dsa_87::PublicKey::try_from_bytes(pk_arr).map_err(|e| e.to_string())?;
             let mut dsa_sk = [0u8; ml_dsa_87::SK_LEN];
             dsa_sk.copy_from_slice(&stored.dsa_private_key_bytes);
@@ -161,7 +170,8 @@ impl QuantumNodeIdentity {
             old_pubkey_bytes: transition_payload.old_pubkey_bytes,
             new_pubkey_bytes: transition_payload.new_pubkey_bytes,
             transition_sig_bytes: old_sig,
-            transition_timestamp_ms: SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as u128,
+            transition_timestamp_ms: SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis()
+                as u128,
         };
         self.dsa_public_key = new_dsa_pk;
         self.dsa_private_key_bytes = zeroize::Zeroizing::new(new_dsa_sk.into_bytes());
@@ -203,53 +213,97 @@ impl QuantumNodeIdentity {
     pub fn encapsulate_shared_secret(
         remote_encap_key: &<MlKem1024 as KemCore>::EncapsulationKey,
     ) -> Result<(Ciphertext<MlKem1024>, SharedKey<MlKem1024>), CryptoError> {
-        remote_encap_key.encapsulate(&mut OsRng).map_err(|_| CryptoError::EncapsulationFailed)
+        remote_encap_key
+            .encapsulate(&mut OsRng)
+            .map_err(|_| CryptoError::EncapsulationFailed)
     }
 
     pub fn decapsulate_shared_secret(
         &self,
         ciphertext: &Ciphertext<MlKem1024>,
     ) -> Result<SharedKey<MlKem1024>, CryptoError> {
-        let dk_arr: ml_kem::Encoded<<MlKem1024 as KemCore>::DecapsulationKey> = self.kem_decap_key_bytes.as_slice().try_into().map_err(|_| CryptoError::InvalidKeyLength { expected: 2400, actual: self.kem_decap_key_bytes.len() })?;
+        let dk_arr: ml_kem::Encoded<<MlKem1024 as KemCore>::DecapsulationKey> = self
+            .kem_decap_key_bytes
+            .as_slice()
+            .try_into()
+            .map_err(|_| CryptoError::InvalidKeyLength {
+                expected: 2400,
+                actual: self.kem_decap_key_bytes.len(),
+            })?;
         let decap_key = <MlKem1024 as KemCore>::DecapsulationKey::from_bytes(&dk_arr);
-        decap_key.decapsulate(ciphertext).map_err(|_| CryptoError::DecapsulationFailed)
+        decap_key
+            .decapsulate(ciphertext)
+            .map_err(|_| CryptoError::DecapsulationFailed)
     }
 
     pub fn encapsulate_shared_secret_from_bytes(
         remote_encap_key_bytes: &[u8],
     ) -> Result<(Vec<u8>, Vec<u8>), CryptoError> {
         if remote_encap_key_bytes.len() != ENCAP_KEY_LEN {
-            return Err(CryptoError::InvalidKeyLength { expected: ENCAP_KEY_LEN, actual: remote_encap_key_bytes.len() });
+            return Err(CryptoError::InvalidKeyLength {
+                expected: ENCAP_KEY_LEN,
+                actual: remote_encap_key_bytes.len(),
+            });
         }
-        let ek_fixed: [u8; ENCAP_KEY_LEN] = remote_encap_key_bytes.try_into().map_err(|_| CryptoError::Internal("Bad encap key slice length".to_string()))?;
+        let ek_fixed: [u8; ENCAP_KEY_LEN] = remote_encap_key_bytes
+            .try_into()
+            .map_err(|_| CryptoError::Internal("Bad encap key slice length".to_string()))?;
         let ek_arr = ml_kem::Encoded::<<MlKem1024 as KemCore>::EncapsulationKey>::from(ek_fixed);
         let ek = <MlKem1024 as KemCore>::EncapsulationKey::from_bytes(&ek_arr);
-        let (ct, ss) = ek.encapsulate(&mut OsRng).map_err(|_| CryptoError::EncapsulationFailed)?;
+        let (ct, ss) = ek
+            .encapsulate(&mut OsRng)
+            .map_err(|_| CryptoError::EncapsulationFailed)?;
         Ok((ct.to_vec(), ss.to_vec()))
     }
 
     pub fn decapsulate_from_bytes(&self, ciphertext_bytes: &[u8]) -> Result<Vec<u8>, CryptoError> {
         if ciphertext_bytes.len() != CIPHERTEXT_LEN {
-            return Err(CryptoError::InvalidKeyLength { expected: CIPHERTEXT_LEN, actual: ciphertext_bytes.len() });
+            return Err(CryptoError::InvalidKeyLength {
+                expected: CIPHERTEXT_LEN,
+                actual: ciphertext_bytes.len(),
+            });
         }
-        let ct_fixed: [u8; CIPHERTEXT_LEN] = ciphertext_bytes.try_into().map_err(|_| CryptoError::Internal("Bad ciphertext slice length".to_string()))?;
+        let ct_fixed: [u8; CIPHERTEXT_LEN] = ciphertext_bytes
+            .try_into()
+            .map_err(|_| CryptoError::Internal("Bad ciphertext slice length".to_string()))?;
         let ct: Ciphertext<MlKem1024> = ct_fixed.into();
-        let dk_arr: ml_kem::Encoded<<MlKem1024 as KemCore>::DecapsulationKey> = self.kem_decap_key_bytes.as_slice().try_into().map_err(|_| CryptoError::InvalidKeyLength { expected: 2400, actual: self.kem_decap_key_bytes.len() })?;
+        let dk_arr: ml_kem::Encoded<<MlKem1024 as KemCore>::DecapsulationKey> = self
+            .kem_decap_key_bytes
+            .as_slice()
+            .try_into()
+            .map_err(|_| CryptoError::InvalidKeyLength {
+                expected: 2400,
+                actual: self.kem_decap_key_bytes.len(),
+            })?;
         let decap_key = <MlKem1024 as KemCore>::DecapsulationKey::from_bytes(&dk_arr);
-        let ss = decap_key.decapsulate(&ct).map_err(|_| CryptoError::DecapsulationFailed)?;
+        let ss = decap_key
+            .decapsulate(&ct)
+            .map_err(|_| CryptoError::DecapsulationFailed)?;
         Ok(ss.to_vec())
     }
 
     pub fn sign_payload(&self, payload: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-        let dsa_private_key = ml_dsa_87::PrivateKey::try_from_bytes(*self.dsa_private_key_bytes).map_err(|e| format!("Failed to restore ML-DSA-87 key: {e}"))?;
-        let signature = dsa_private_key.try_sign(payload, &[]).map_err(|e| format!("Failed to sign payload with ML-DSA-87: {e}"))?;
+        let dsa_private_key = ml_dsa_87::PrivateKey::try_from_bytes(*self.dsa_private_key_bytes)
+            .map_err(|e| format!("Failed to restore ML-DSA-87 key: {e}"))?;
+        let signature = dsa_private_key
+            .try_sign(payload, &[])
+            .map_err(|e| format!("Failed to sign payload with ML-DSA-87: {e}"))?;
         Ok(signature.to_vec())
     }
 
     pub fn verify_signature(peer_dsa_pub_bytes: &[u8], payload: &[u8], signature: &[u8]) -> bool {
-        let pk_arr: [u8; ml_dsa_87::PK_LEN] = match peer_dsa_pub_bytes.try_into() { Ok(arr) => arr, Err(_) => return false };
-        let pk = match ml_dsa_87::PublicKey::try_from_bytes(pk_arr) { Ok(k) => k, Err(_) => return false };
-        let sig_arr: [u8; ml_dsa_87::SIG_LEN] = match signature.try_into() { Ok(arr) => arr, Err(_) => return false };
+        let pk_arr: [u8; ml_dsa_87::PK_LEN] = match peer_dsa_pub_bytes.try_into() {
+            Ok(arr) => arr,
+            Err(_) => return false,
+        };
+        let pk = match ml_dsa_87::PublicKey::try_from_bytes(pk_arr) {
+            Ok(k) => k,
+            Err(_) => return false,
+        };
+        let sig_arr: [u8; ml_dsa_87::SIG_LEN] = match signature.try_into() {
+            Ok(arr) => arr,
+            Err(_) => return false,
+        };
         pk.verify(payload, &sig_arr, &[])
     }
 
@@ -294,19 +348,31 @@ mod tests {
     fn test_quantum_identity_handshake() {
         let node_a = QuantumNodeIdentity::generate_node_identity().unwrap();
         let node_b = QuantumNodeIdentity::generate_node_identity().unwrap();
-        let (ciphertext, secret_a) = QuantumNodeIdentity::encapsulate_shared_secret(&node_b.kem_encap_key).unwrap();
+        let (ciphertext, secret_a) =
+            QuantumNodeIdentity::encapsulate_shared_secret(&node_b.kem_encap_key).unwrap();
         let secret_b = node_b.decapsulate_shared_secret(&ciphertext).unwrap();
-        assert_eq!(secret_a.as_slice(), secret_b.as_slice(), "ML-KEM-1024 shared secrets must match");
+        assert_eq!(
+            secret_a.as_slice(),
+            secret_b.as_slice(),
+            "ML-KEM-1024 shared secrets must match"
+        );
         let ek_bytes = node_b.encap_key_bytes();
-        let (ct_bytes, ss_a_bytes) = QuantumNodeIdentity::encapsulate_shared_secret_from_bytes(&ek_bytes).unwrap();
+        let (ct_bytes, ss_a_bytes) =
+            QuantumNodeIdentity::encapsulate_shared_secret_from_bytes(&ek_bytes).unwrap();
         let ss_b_bytes = node_b.decapsulate_from_bytes(&ct_bytes).unwrap();
         assert_eq!(ss_a_bytes, ss_b_bytes, "Byte-level KEM must agree");
         let payload = b"VARDHAN_QUANTUM_PROXY_MANIFEST_001";
         let signature = node_a.sign_payload(payload).unwrap();
         let dsa_pub = node_a.dsa_public_key_bytes();
-        assert!(QuantumNodeIdentity::verify_signature(&dsa_pub, payload, &signature), "ML-DSA-87 signature must be valid");
+        assert!(
+            QuantumNodeIdentity::verify_signature(&dsa_pub, payload, &signature),
+            "ML-DSA-87 signature must be valid"
+        );
         let dsa_pub_b = node_b.dsa_public_key_bytes();
-        assert!(!QuantumNodeIdentity::verify_signature(&dsa_pub_b, payload, &signature), "Signature verified by wrong key must fail");
+        assert!(
+            !QuantumNodeIdentity::verify_signature(&dsa_pub_b, payload, &signature),
+            "Signature verified by wrong key must fail"
+        );
         let block_hash = QuantumNodeIdentity::hash_ledger_block(payload);
         assert_ne!(block_hash, [0u8; 32]);
     }
@@ -322,10 +388,10 @@ mod clone_test {
     }
 }
 
+pub mod aer_kep_q;
+pub mod aer_kep_q_runtime;
 pub mod anti_tamper;
 pub mod enclave;
+pub mod exposure_detector;
 pub mod license;
 pub mod secure_memory;
-pub mod aer_kep_q;
-pub mod exposure_detector;
-pub mod aer_kep_q_runtime;

@@ -7,8 +7,7 @@
 
 use crate::aer_kep_q::{EpochDescriptor, EpochStatus};
 use crate::exposure_detector::{
-    ExposureDetector, ExposureDetectorError, ExposureEvent, ExposureTransition,
-    PeerEpochRegistry,
+    ExposureDetector, ExposureDetectorError, ExposureEvent, ExposureTransition, PeerEpochRegistry,
 };
 use crate::vault::{self, KeyProtector};
 use crate::QuantumNodeIdentity;
@@ -33,24 +32,39 @@ pub struct PendingMessageRegistry {
 }
 
 impl PendingMessageRegistry {
-    pub fn register(&mut self, message_id: u64, epoch: u64, context: &[u8]) -> Result<(), RuntimeError> {
+    pub fn register(
+        &mut self,
+        message_id: u64,
+        epoch: u64,
+        context: &[u8],
+    ) -> Result<(), RuntimeError> {
         if self.pending.contains_key(&message_id) {
             return Err(RuntimeError::DuplicateMessageId(message_id));
         }
-        self.pending.insert(message_id, PendingMessage {
+        self.pending.insert(
             message_id,
-            epoch,
-            context_commitment: QuantumNodeIdentity::hash_ledger_block(context),
-        });
+            PendingMessage {
+                message_id,
+                epoch,
+                context_commitment: QuantumNodeIdentity::hash_ledger_block(context),
+            },
+        );
         Ok(())
     }
 
     pub fn acknowledge(&mut self, message_id: u64) -> Result<PendingMessage, RuntimeError> {
-        self.pending.remove(&message_id).ok_or(RuntimeError::UnknownMessageId(message_id))
+        self.pending
+            .remove(&message_id)
+            .ok_or(RuntimeError::UnknownMessageId(message_id))
     }
 
     pub fn pending_for_epoch(&self, epoch: u64) -> Vec<PendingMessage> {
-        let mut values: Vec<_> = self.pending.values().filter(|m| m.epoch == epoch).cloned().collect();
+        let mut values: Vec<_> = self
+            .pending
+            .values()
+            .filter(|m| m.epoch == epoch)
+            .cloned()
+            .collect();
         values.sort_by_key(|m| m.message_id);
         values
     }
@@ -65,14 +79,20 @@ impl PendingMessageRegistry {
         let mut registry = Self::default();
         for value in values {
             if registry.pending.insert(value.message_id, value).is_some() {
-                return Err(RuntimeError::PersistedStateInvalid("duplicate pending message id".into()));
+                return Err(RuntimeError::PersistedStateInvalid(
+                    "duplicate pending message id".into(),
+                ));
             }
         }
         Ok(registry)
     }
 
-    pub fn len(&self) -> usize { self.pending.len() }
-    pub fn is_empty(&self) -> bool { self.pending.is_empty() }
+    pub fn len(&self) -> usize {
+        self.pending.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.pending.is_empty()
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -96,7 +116,10 @@ pub struct RuntimeStateStore<P: KeyProtector> {
 
 impl<P: KeyProtector> RuntimeStateStore<P> {
     pub fn new(path: impl Into<PathBuf>, protector: Arc<P>) -> Self {
-        Self { path: path.into(), protector }
+        Self {
+            path: path.into(),
+            protector,
+        }
     }
 
     fn load(&self, domain_id: &str) -> Result<Option<PersistedRuntimeState>, RuntimeError> {
@@ -110,7 +133,9 @@ impl<P: KeyProtector> RuntimeStateStore<P> {
         let state: PersistedRuntimeState = serde_json::from_slice(&plaintext)
             .map_err(|e| RuntimeError::PersistedStateInvalid(e.to_string()))?;
         if state.version != STATE_VERSION || state.domain_id != domain_id {
-            return Err(RuntimeError::PersistedStateInvalid("version or domain mismatch".into()));
+            return Err(RuntimeError::PersistedStateInvalid(
+                "version or domain mismatch".into(),
+            ));
         }
         Ok(Some(state))
     }
@@ -134,9 +159,16 @@ impl<P: KeyProtector> RuntimeStateStore<P> {
         Ok(())
     }
 
-    pub fn initialize_epoch(&self, domain_id: &str, requested_epoch: u64) -> Result<u64, RuntimeError> {
+    pub fn initialize_epoch(
+        &self,
+        domain_id: &str,
+        requested_epoch: u64,
+    ) -> Result<u64, RuntimeError> {
         let next = match self.load(domain_id)? {
-            Some(state) => state.committed_epoch.checked_add(1).ok_or(RuntimeError::EpochExhausted)?,
+            Some(state) => state
+                .committed_epoch
+                .checked_add(1)
+                .ok_or(RuntimeError::EpochExhausted)?,
             None => requested_epoch,
         };
         self.save(&PersistedRuntimeState {
@@ -156,7 +188,9 @@ impl<P: KeyProtector> RuntimeStateStore<P> {
         self.save(state)
     }
 
-    pub fn path(&self) -> &Path { &self.path }
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
 }
 
 #[derive(Debug, Error)]
@@ -188,7 +222,11 @@ pub struct AerKepQRuntime {
 }
 
 impl AerKepQRuntime {
-    pub fn new(domain_id: impl Into<String>, initial_epoch: u64, signer: Arc<QuantumNodeIdentity>) -> Result<Self, RuntimeError> {
+    pub fn new(
+        domain_id: impl Into<String>,
+        initial_epoch: u64,
+        signer: Arc<QuantumNodeIdentity>,
+    ) -> Result<Self, RuntimeError> {
         Ok(Self {
             detector: ExposureDetector::new(domain_id, initial_epoch)?,
             signer,
@@ -207,7 +245,10 @@ impl AerKepQRuntime {
     ) -> Result<Self, RuntimeError> {
         let domain_id = domain_id.into();
         let epoch = match store.load_state(&domain_id)? {
-            Some(state) => state.committed_epoch.checked_add(1).ok_or(RuntimeError::EpochExhausted)?,
+            Some(state) => state
+                .committed_epoch
+                .checked_add(1)
+                .ok_or(RuntimeError::EpochExhausted)?,
             None => initial_epoch,
         };
         let pending = match store.load_state(&domain_id)? {
@@ -233,25 +274,45 @@ impl AerKepQRuntime {
         })
     }
 
-    pub fn domain_id(&self) -> &str { self.detector.domain_id() }
-    pub fn active_epoch(&self) -> u64 { self.detector.active_epoch() }
-    pub fn status(&self) -> EpochStatus { self.detector.status() }
-    pub fn descriptor(&self) -> Result<EpochDescriptor, RuntimeError> { Ok(self.detector.descriptor(&self.signer)?) }
+    pub fn domain_id(&self) -> &str {
+        self.detector.domain_id()
+    }
+    pub fn active_epoch(&self) -> u64 {
+        self.detector.active_epoch()
+    }
+    pub fn status(&self) -> EpochStatus {
+        self.detector.status()
+    }
+    pub fn descriptor(&self) -> Result<EpochDescriptor, RuntimeError> {
+        Ok(self.detector.descriptor(&self.signer)?)
+    }
 
-    pub fn register_pending(&mut self, message_id: u64, context: &[u8]) -> Result<(), RuntimeError> {
-        if self.status() != EpochStatus::Active { return Err(RuntimeError::RuntimeNotActive); }
-        self.pending.register(message_id, self.active_epoch(), context)
+    pub fn register_pending(
+        &mut self,
+        message_id: u64,
+        context: &[u8],
+    ) -> Result<(), RuntimeError> {
+        if self.status() != EpochStatus::Active {
+            return Err(RuntimeError::RuntimeNotActive);
+        }
+        self.pending
+            .register(message_id, self.active_epoch(), context)
     }
 
     pub fn acknowledge(&mut self, message_id: u64) -> Result<PendingMessage, RuntimeError> {
         self.pending.acknowledge(message_id)
     }
 
-    pub fn pending_for_epoch(&self, epoch: u64) -> Vec<PendingMessage> { self.pending.pending_for_epoch(epoch) }
+    pub fn pending_for_epoch(&self, epoch: u64) -> Vec<PendingMessage> {
+        self.pending.pending_for_epoch(epoch)
+    }
 
     /// Quarantine the exposed epoch and return application messages whose
     /// transport artifacts must be reissued under the fresh epoch.
-    pub fn on_exposure(&mut self, event: ExposureEvent) -> Result<(ExposureTransition, Vec<PendingMessage>), RuntimeError> {
+    pub fn on_exposure(
+        &mut self,
+        event: ExposureEvent,
+    ) -> Result<(ExposureTransition, Vec<PendingMessage>), RuntimeError> {
         let old_epoch = self.active_epoch();
         let transition = self.detector.on_exposure(event, &self.signer)?;
         let reissue = self.pending.pending_for_epoch(old_epoch);
@@ -269,7 +330,10 @@ impl AerKepQRuntime {
         if event.observed_epoch != self.active_epoch() {
             return Err(RuntimeError::Exposure(ExposureDetectorError::StaleExposure));
         }
-        let next_epoch = self.active_epoch().checked_add(1).ok_or(RuntimeError::EpochExhausted)?;
+        let next_epoch = self
+            .active_epoch()
+            .checked_add(1)
+            .ok_or(RuntimeError::EpochExhausted)?;
         let mut checkpoint = PersistedRuntimeState {
             version: STATE_VERSION,
             domain_id: self.domain_id().to_string(),
@@ -291,12 +355,17 @@ impl AerKepQRuntime {
         trusted_peer_signer: &[u8],
     ) -> Result<bool, RuntimeError> {
         let peer_id = peer_id.into();
-        let registry = self.peer_epochs.entry(peer_id).or_insert_with(|| PeerEpochRegistry::new(descriptor.domain_id.clone()));
+        let registry = self
+            .peer_epochs
+            .entry(peer_id)
+            .or_insert_with(|| PeerEpochRegistry::new(descriptor.domain_id.clone()));
         Ok(registry.apply(descriptor, trusted_peer_signer)?)
     }
 
     pub fn peer_epoch(&self, peer_id: &str) -> Option<u64> {
-        self.peer_epochs.get(peer_id).and_then(PeerEpochRegistry::active_epoch)
+        self.peer_epochs
+            .get(peer_id)
+            .and_then(PeerEpochRegistry::active_epoch)
     }
 }
 
@@ -313,7 +382,12 @@ mod tests {
         let mut runtime = AerKepQRuntime::new("bank-a", 1, signer).unwrap();
         runtime.register_pending(10, b"txn-a").unwrap();
         runtime.register_pending(11, b"txn-b").unwrap();
-        let (transition, reissue) = runtime.on_exposure(ExposureEvent { observed_epoch: 1, reason: ExposureReason::SecretMaterialExposure }).unwrap();
+        let (transition, reissue) = runtime
+            .on_exposure(ExposureEvent {
+                observed_epoch: 1,
+                reason: ExposureReason::SecretMaterialExposure,
+            })
+            .unwrap();
         assert_eq!(transition.previous_epoch, 1);
         assert_eq!(transition.new_epoch, 2);
         assert_eq!(reissue.len(), 2);
@@ -337,20 +411,26 @@ mod tests {
         let mut runtime = AerKepQRuntime::new("bank-a", 1, signer).unwrap();
         let peer_detector = ExposureDetector::new("bank-a", 7).unwrap();
         let descriptor = peer_detector.descriptor(&peer_signer).unwrap();
-        assert!(runtime.apply_peer_descriptor("node-b", &descriptor, &peer_signer.dsa_public_key_bytes()).unwrap());
+        assert!(runtime
+            .apply_peer_descriptor("node-b", &descriptor, &peer_signer.dsa_public_key_bytes())
+            .unwrap());
         assert_eq!(runtime.peer_epoch("node-b"), Some(7));
     }
 
     #[test]
     fn persistent_restart_advances_epoch_and_keeps_pending_metadata() {
         let root = std::env::temp_dir();
-        let stamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         let state_path = root.join(format!("aer-kep-q-{stamp}.state"));
         let kek_path = root.join(format!("aer-kep-q-{stamp}.kek"));
         let protector = Arc::new(LocalDevKeyProtector::new(kek_path.clone()));
         let store = RuntimeStateStore::new(&state_path, protector.clone());
         let signer = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
-        let mut first = AerKepQRuntime::new_persistent("bank-a", 1, signer.clone(), &store).unwrap();
+        let mut first =
+            AerKepQRuntime::new_persistent("bank-a", 1, signer.clone(), &store).unwrap();
         assert_eq!(first.active_epoch(), 1);
         first.register_pending(9, b"ctx").unwrap();
         first.persist(&store).unwrap();

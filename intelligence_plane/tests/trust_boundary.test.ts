@@ -105,6 +105,8 @@ function baseContract(): VerifiedFindingContract {
     authorization_context: {
       requires_authorized_assessment: true,
     },
+    decision_candidate: 'SEAL_VERIFIED_FINDING',
+    policy_reference: 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1',
     created_at: new Date().toISOString(),
     evidence_earliest_retrieved_at: new Date().toISOString(),
     evidence_latest_retrieved_at: new Date().toISOString(),
@@ -249,6 +251,78 @@ section('Case 14 — Context artifact in evidence_refs');
   assert(r.failures.some(f => f.code === 'CONTEXT_ARTIFACT'), 'CONTEXT_ARTIFACT raised');
 }
 
+section('Case 16 — Missing engine_id (mirrors Rust check 3)');
+{
+  const c = baseContract();
+  c.intelligence.engine_id = '';
+  const r = validator.validate(c, EVIDENCE_STORE);
+  assert(!r.passed, 'Contract rejected');
+  assert(r.failures.some(f => f.code === 'MISSING_ENGINE_ID'), 'MISSING_ENGINE_ID raised');
+}
+
+section('Case 17 — Missing canonical_domain (mirrors Rust check 4)');
+{
+  const c = baseContract();
+  c.organization.canonical_domain = '';
+  const r = validator.validate(c, EVIDENCE_STORE);
+  assert(!r.passed, 'Contract rejected');
+  assert(r.failures.some(f => f.code === 'MISSING_CANONICAL_DOMAIN'), 'MISSING_CANONICAL_DOMAIN raised');
+}
+
+section('Case 18 — Missing entry_point_id (mirrors Rust check 5)');
+{
+  const c = baseContract();
+  c.affected_resource.entry_point_id = '';
+  const r = validator.validate(c, EVIDENCE_STORE);
+  assert(!r.passed, 'Contract rejected');
+  assert(r.failures.some(f => f.code === 'MISSING_ENTRY_POINT_ID'), 'MISSING_ENTRY_POINT_ID raised');
+}
+
+section('Case 19 — Missing evidence_origin (mirrors Rust check 9)');
+{
+  const c = baseContract();
+  c.evidence_refs[0].evidence_origin = '';
+  const r = validator.validate(c, EVIDENCE_STORE);
+  assert(!r.passed, 'Contract rejected');
+  assert(r.failures.some(f => f.code === 'MISSING_EVIDENCE_ORIGIN'), 'MISSING_EVIDENCE_ORIGIN raised');
+}
+
+section('Case 20 — Missing observation_ids (mirrors Rust check 13)');
+{
+  const c = baseContract();
+  c.provenance_chain.observation_ids = [];
+  const r = validator.validate(c, EVIDENCE_STORE);
+  assert(!r.passed, 'Contract rejected');
+  assert(r.failures.some(f => f.code === 'MISSING_OBSERVATION_IDS'), 'MISSING_OBSERVATION_IDS raised');
+}
+
+section('Case 21 — Missing verification_contract_id (mirrors Rust check 15)');
+{
+  const c = baseContract();
+  c.provenance_chain.verification_contract_id = '';
+  const r = validator.validate(c, EVIDENCE_STORE);
+  assert(!r.passed, 'Contract rejected');
+  assert(r.failures.some(f => f.code === 'MISSING_VERIFICATION_CONTRACT_ID'), 'MISSING_VERIFICATION_CONTRACT_ID raised');
+}
+
+section('Case 22 — Unauthorized action type (mirrors Rust check 19)');
+{
+  const c = baseContract();
+  c.decision_candidate = 'BYPASS_VALIDATION';
+  const r = validator.validate(c, EVIDENCE_STORE);
+  assert(!r.passed, 'Contract rejected');
+  assert(r.failures.some(f => f.code === 'UNAUTHORIZED_ACTION'), 'UNAUTHORIZED_ACTION raised');
+}
+
+section('Case 23 — Unknown policy reference (mirrors Rust check 20)');
+{
+  const c = baseContract();
+  c.policy_reference = 'ATTACKER_INJECTED_POLICY';
+  const r = validator.validate(c, EVIDENCE_STORE);
+  assert(!r.passed, 'Contract rejected');
+  assert(r.failures.some(f => f.code === 'UNKNOWN_POLICY_REFERENCE'), 'UNKNOWN_POLICY_REFERENCE raised');
+}
+
 section('Case 15 — Valid contract (all fields correct) — MUST PASS');
 {
   const c = baseContract();
@@ -257,7 +331,7 @@ section('Case 15 — Valid contract (all fields correct) — MUST PASS');
     console.error('  Failures:');
     r.failures.forEach(f => console.error(`    [${f.code}] ${f.message}`));
   }
-  assert(r.passed, 'Contract accepted — passed all 14 checks');
+  assert(r.passed, 'Contract accepted — passed all 22 checks');
   assert(r.failures.length === 0, 'Zero validation failures');
 }
 

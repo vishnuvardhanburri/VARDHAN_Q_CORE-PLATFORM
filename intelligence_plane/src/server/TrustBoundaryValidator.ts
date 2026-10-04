@@ -1,8 +1,9 @@
 /**
  * VARDHAN — TRUST BOUNDARY VALIDATOR
  * ─────────────────────────────────────────────────────────────────────────────
- * Runs 14 independent validation checks on a VerifiedFindingContract
- * BEFORE it is transmitted to Q-Core.
+ * Runs 20 independent validation checks on a VerifiedFindingContract
+ * BEFORE it is transmitted to Q-Core. This matches the Rust
+ * `trust_boundary.rs` validator exactly (F-007: canonical 20-check set).
  *
  * Q-Core performs its own independent validation on receipt.
  * These are not redundant — they catch problems before a network call
@@ -187,6 +188,107 @@ export class TrustBoundaryValidator {
       failures.push({
         code: 'MISSING_AUTHORIZATION_CONTEXT',
         message: 'authorization_context.requires_authorized_assessment must be explicitly set as a boolean',
+      });
+    }
+
+    // ── Check 15: intelligence engine identity non-empty ─────────────────────
+    // Mirrors Rust check 3: intel.engine_id and run_id must not be empty
+    if (
+      !contract.intelligence?.engine_id ||
+      contract.intelligence.engine_id.trim().length === 0
+    ) {
+      failures.push({
+        code: 'MISSING_ENGINE_ID',
+        message: 'intelligence.engine_id must be non-empty',
+      });
+    }
+    if (
+      !contract.intelligence?.run_id ||
+      contract.intelligence.run_id.trim().length === 0
+    ) {
+      failures.push({
+        code: 'MISSING_ENGINE_RUN_ID',
+        message: 'intelligence.run_id must be non-empty',
+      });
+    }
+
+    // ── Check 16: canonical_domain non-empty ─────────────────────────────────
+    // Mirrors Rust check 4: organization.canonical_domain must not be empty
+    if (
+      !contract.organization?.canonical_domain ||
+      contract.organization.canonical_domain.trim().length === 0
+    ) {
+      failures.push({
+        code: 'MISSING_CANONICAL_DOMAIN',
+        message: 'organization.canonical_domain must be non-empty',
+      });
+    }
+
+    // ── Check 17: resource entry_point_id non-empty ──────────────────────────
+    // Mirrors Rust check 5: affected_resource.entry_point_id must not be empty
+    if (
+      !contract.affected_resource?.entry_point_id ||
+      contract.affected_resource.entry_point_id.trim().length === 0
+    ) {
+      failures.push({
+        code: 'MISSING_ENTRY_POINT_ID',
+        message: 'affected_resource.entry_point_id must be non-empty',
+      });
+    }
+
+    // ── Check 18: evidence_origin non-empty ──────────────────────────────────
+    // Mirrors Rust check 9: evidence_origin must not be empty
+    for (const ref of contract.evidence_refs ?? []) {
+      if (!ref.evidence_origin || ref.evidence_origin.trim().length === 0) {
+        failures.push({
+          code: 'MISSING_EVIDENCE_ORIGIN',
+          message: `evidence_id '${ref.evidence_id}' has empty evidence_origin`,
+        });
+      }
+    }
+
+    // ── Check 19: provenance_chain observation_ids non-empty ─────────────────
+    // Mirrors Rust check 13: observation_ids must not be empty
+    if (
+      !contract.provenance_chain?.observation_ids ||
+      contract.provenance_chain.observation_ids.length === 0
+    ) {
+      failures.push({
+        code: 'MISSING_OBSERVATION_IDS',
+        message: 'provenance_chain.observation_ids must contain at least one entry',
+      });
+    }
+
+    // ── Check 20: provenance_chain verification_contract_id non-empty ──────────
+    // Mirrors Rust check 15: verification_contract_id must not be empty
+    if (
+      !contract.provenance_chain?.verification_contract_id ||
+      contract.provenance_chain.verification_contract_id.trim().length === 0
+    ) {
+      failures.push({
+        code: 'MISSING_VERIFICATION_CONTRACT_ID',
+        message: 'provenance_chain.verification_contract_id must be non-empty',
+      });
+    }
+
+    // ── Check 21: decision_candidate must be SEAL_VERIFIED_FINDING ────────────
+    // Mirrors Rust check 19: action_type must be in allowed_actions.
+    // The canonical allowlist is externalized in F-003; here we verify
+    // the TS-side contract before delegating to Q-Core authority evaluation.
+    if (contract.decision_candidate !== 'SEAL_VERIFIED_FINDING') {
+      failures.push({
+        code: 'UNAUTHORIZED_ACTION',
+        message: `decision_candidate '${contract.decision_candidate}' is not an authorized action type`,
+      });
+    }
+
+    // ── Check 22: policy_reference must be canonical policy ID ────────────────
+    // Mirrors Rust check 20: policy_reference must be in allowed_policies.
+    // The canonical policy ID is externalized in F-003.
+    if (contract.policy_reference !== 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1') {
+      failures.push({
+        code: 'UNKNOWN_POLICY_REFERENCE',
+        message: `policy_reference '${contract.policy_reference}' is not a registered policy`,
       });
     }
 

@@ -262,6 +262,11 @@ impl VardhanVerifier {
             &receipt.proposed_action,
             &receipt.policy_id,
             &receipt.policy_version,
+            &receipt.state_hash_at_decision.clone().unwrap_or_default(),
+            &receipt.evidence_commitments,
+            &receipt.authority_reference,
+            &receipt.decision,
+            &receipt.outcome_code,
         );
         let expected_hash = blake3::hash(expected_payload.as_bytes()).to_string();
         if expected_hash == receipt.payload_hash {
@@ -364,16 +369,39 @@ impl VardhanVerifier {
 
 /// Deterministic canonical payload for signing. Must be identical between
 /// issuer and verifier — any deviation will cause hash/signature mismatch.
+///
+/// F-014: Now covers ALL signed fields including evidence_commitments,
+/// decision, outcome_code, authority_reference, and state_hash_at_decision.
 pub fn canonical_payload(
     tenant_id: &str,
     transaction_id: &str,
     proposed_action: &str,
     policy_id: &str,
     policy_version: &str,
+    state_hash_at_decision: &str,
+    evidence_commitments: &[VerifiableEvidenceCommitment],
+    authority_reference: &str,
+    decision: &str,
+    outcome_code: &str,
 ) -> String {
+    let evidence_str: String = evidence_commitments
+        .iter()
+        .map(|ec| format!("{}|{}|{}", ec.evidence_id, ec.content_hash, ec.category))
+        .collect::<Vec<_>>()
+        .join(";");
+
     format!(
-        "{}::{}::{}::{}::{}",
-        tenant_id, transaction_id, proposed_action, policy_id, policy_version
+        "{}::{}::{}::{}::{}::{}::{}::{}::{}::{}",
+        tenant_id,
+        transaction_id,
+        proposed_action,
+        policy_id,
+        policy_version,
+        state_hash_at_decision,
+        evidence_str,
+        authority_reference,
+        decision,
+        outcome_code,
     )
 }
 
@@ -409,6 +437,11 @@ mod tests {
             &proposed_action,
             &policy_id,
             &policy_version,
+            "",
+            &vec![],
+            "gate:VardhanGate",
+            "AUTHORIZED",
+            "QUARANTINE_OK",
         );
         let payload_hash = blake3::hash(payload.as_bytes()).to_string();
 
@@ -609,6 +642,66 @@ mod tests {
             result
                 .checks_passed
                 .contains(&"tenant_id_matches".to_string())
+        );
+    }
+
+    #[test]
+    fn test_f014_canonical_payload_different_evidence_commitment_fails() {
+        // F-014: Tampering with evidence_commitments must change the hash
+        let verifier = VardhanVerifier::with_defaults();
+        let mut receipt = make_valid_receipt();
+        receipt.evidence_commitments = vec![VerifiableEvidenceCommitment {
+            evidence_id: "ev-modified".to_string(),
+            content_hash: "deadbeef".to_string(),
+            category: "TAMPERED".to_string(),
+        }];
+        let result = verifier.verify(&receipt, None, None);
+        assert!(
+            !result.is_valid(),
+            "Modifying evidence_commitments must fail payload_hash_valid"
+        );
+        assert!(
+            result
+                .failures
+                .iter()
+                .any(|f| f.check == "payload_hash_valid"),
+            "Should fail payload_hash_valid check when evidence_commitments change"
+        );
+    }
+
+    #[test]
+    fn test_f014_canonical_payload_different_decision_fails() {
+        // F-014: Changing decision must change the hash
+        let verifier = VardhanVerifier::with_defaults();
+        let mut receipt = make_valid_receipt();
+        receipt.decision = "REJECTED".to_string();
+        let result = verifier.verify(&receipt, None, None);
+        assert!(
+            !result.is_valid(),
+            "Changing decision must fail payload_hash_valid"
+        );
+    }
+
+    #[test]
+    fn test_f014_canonical_payload_different_outcome_code_fails() {
+        // F-014: Changing outcome_code must change the hash
+        let verifier = VardhanVerifier::with_defaults();
+        let mut receipt = make_valid_receipt();
+        receipt.outcome_code = "SEALING_FAILED".to_string();
+        let result = verifier.verify(&receipt, None, None);
+        assert!(!result.is_valid());
+    }
+
+    #[test]
+    fn test_f014_canonical_payload_different_authority_reference_fails() {
+        // F-014: Changing authority_reference must change the hash
+        let verifier = VardhanVerifier::with_defaults();
+        let mut receipt = make_valid_receipt();
+        receipt.authority_reference = "gate:MaliciousGate".to_string();
+        let result = verifier.verify(&receipt, None, None);
+        assert!(
+            !result.is_valid(),
+            "Changing authority_reference must fail payload_hash_valid"
         );
     }
 }

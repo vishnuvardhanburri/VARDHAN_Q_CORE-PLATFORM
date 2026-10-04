@@ -4,6 +4,57 @@ import type { ProblemFinding } from './findings/ProblemFinding';
 import type { IntelligenceRunContext } from './DeepTypes';
 import type { Evidence } from './IntelligenceCase';
 import type { VerifiedFindingContract } from './VerifiedFindingContract';
+import * as fs from 'fs';
+import * as path from 'path';
+
+/** F-009: Persistent idempotency store for submitted finding IDs.
+ *
+ * Replaces the in-process Set<string> with a file-backed store that survives
+ * process restarts. Uses atomic write (temp + rename) for durability.
+ */
+export class PersistentIdempotencyStore {
+  private storePath: string;
+  private seen: Set<string>;
+
+  constructor(storePath?: string) {
+    this.storePath = storePath ?? path.join(process.cwd(), '.qcore-idempotency.json');
+    this.seen = new Set<string>();
+    this.load();
+  }
+
+  private load(): void {
+    try {
+      if (fs.existsSync(this.storePath)) {
+        const data = fs.readFileSync(this.storePath, 'utf-8');
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) {
+          for (const id of parsed) {
+            if (typeof id === 'string') this.seen.add(id);
+          }
+        }
+      }
+    } catch {
+      // If we can't load, start empty — fail-open only for idempotency
+      // (this is not a security critical path for authorization)
+    }
+  }
+
+  private save(): void {
+    const tmpPath = this.storePath + '.tmp';
+    const data = JSON.stringify(Array.from(this.seen));
+    fs.writeFileSync(tmpPath, data, { mode: 0o600 });
+    fs.renameSync(tmpPath, this.storePath);
+  }
+
+  has(key: string): boolean {
+    return this.seen.has(key);
+  }
+
+  add(key: string): void {
+    this.seen.add(key);
+    this.save();
+  }
+}
 
 /** Interface that any Q-Core integration service must implement. */
 export interface IQCoreIntegrationService {
@@ -16,6 +67,7 @@ export interface IQCoreIntegrationService {
 
 export class QCoreSubmissionOrchestrator {
   private qcoreService: IQCoreIntegrationService;
+  private idempotencyStore: PersistentIdempotencyStore;
 
   constructor(qcoreService?: IQCoreIntegrationService | string) {
     if (qcoreService && typeof qcoreService === 'object') {
@@ -25,6 +77,8 @@ export class QCoreSubmissionOrchestrator {
         typeof qcoreService === 'string' ? qcoreService : 'http://127.0.0.1:8080'
       );
     }
+    // F-009: Use persistent idempotency store instead of in-process Set
+    this.idempotencyStore = new PersistentIdempotencyStore();
   }
 
   /**
@@ -47,7 +101,6 @@ export class QCoreSubmissionOrchestrator {
     onProgress: (stage: string, msg: string) => void
   ): Promise<{ receipt?: any; error?: string; finding_id: string }[]> {
     const results = [];
-    const submittedFindingIds = new Set<string>();
 
     for (const pf of problemFindings) {
       if (pf.verification_result.status !== 'VERIFIED') continue;
@@ -63,13 +116,14 @@ export class QCoreSubmissionOrchestrator {
 
       // Deduplicate: if multiple ProblemFindings reference the same VerifiedFinding,
       // submit only once to avoid redundant Q-Core sealing.
+      // F-009: Uses persistent store that survives process restart.
       const vfSignalId = pf.qcore_verified_finding.signal_id;
-      if (submittedFindingIds.has(vfSignalId)) {
+      if (this.idempotencyStore.has(vfSignalId)) {
         onProgress('qcore', `Finding ${pf.finding_id} references already-submitted VerifiedFinding (signal_id: ${vfSignalId}) — deduplicating.`);
         results.push({ finding_id: pf.finding_id, error: 'Duplicate verified finding already submitted' });
         continue;
       }
-      submittedFindingIds.add(vfSignalId);
+      this.idempotencyStore.add(vfSignalId);
 
       onProgress('qcore', `Finding ${pf.finding_id} has authoritative VerifiedFinding, preparing Q-Core contract...`);
 

@@ -252,7 +252,7 @@ pub struct AuthorityResult {
 }
 
 /// Structured reason for rejection or failure.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum RejectionReason {
     TenantMismatch,
@@ -401,16 +401,36 @@ impl VardhanTransaction {
     }
 
     /// Reject with an explicit reason (validation failure path).
+    ///
+    /// This method routes all state transitions through the canonical
+    /// `transition()` method, enforcing the state-machine invariant.
+    /// Terminal states cannot be re-rejected — that returns
+    /// `TransactionError::AlreadyTerminal`.
     pub fn reject(&mut self, reason: RejectionReason) -> Result<(), TransactionError> {
-        self.rejection_reason = Some(reason);
-        // Determine which terminal state to go to based on current state
+        // If already terminal, reject() must fail — the state machine is
+        // authoritative and immutable once a terminal state is reached.
+        // Do NOT mutate any fields until we know the transition is valid.
+        if self.state.is_terminal() {
+            return Err(TransactionError::AlreadyTerminal {
+                current: self.state.clone(),
+            });
+        }
+
+        // Determine which terminal state to go to based on current state.
+        // All transitions go through transition() — never direct mutation.
         let terminal = match &self.state {
             TransactionState::Validating => TransactionState::ValidationFailed,
             TransactionState::AuthorityEvaluation => TransactionState::Rejected,
+            // For all other states, the canonical transition is attempted.
+            // transition() will reject transitions from terminal states
+            // or from states not in the allowed-transition table.
             _ => TransactionState::Rejected,
         };
-        self.state = terminal;
-        self.updated_at_ms = now_ms();
+
+        // transition() is the canonical state-mutation guard.
+        // Only mutate rejection_reason if the transition succeeds.
+        self.transition(terminal)?;
+        self.rejection_reason = Some(reason);
         Ok(())
     }
 }
@@ -640,5 +660,226 @@ mod tests {
         assert_eq!(tx.policy_version, "1.0");
         // The policy_version field is set at creation and never mutated by transitions.
         // This ensures historical verification can always determine what policy applied.
+    }
+
+    // ── F-002 Regression Tests: State Machine Bypass Prevention ──────────────
+
+    #[test]
+    fn test_reject_from_receipted_is_error() {
+        // F-002: reject() must not bypass transition() from terminal states
+        let mut tx = make_tx();
+        tx.transition(TransactionState::Validating).unwrap();
+        tx.transition(TransactionState::AuthorityEvaluation)
+            .unwrap();
+        tx.apply_authority_result(AuthorityResult {
+            authorized: true,
+            authority_reference: "gate:VardhanGate".into(),
+            evaluated_at_ms: now_ms(),
+            reason: "Approved".into(),
+        })
+        .unwrap();
+        tx.transition(TransactionState::Executing).unwrap();
+        tx.apply_outcome(TransactionOutcome {
+            result_code: "OK".into(),
+            summary: "Executed".into(),
+            effect_observed: true,
+            recorded_at_ms: now_ms(),
+        })
+        .unwrap();
+        tx.transition(TransactionState::OutcomeRecorded).unwrap();
+        tx.transition(TransactionState::Receipted).unwrap();
+
+        // Rejecting a Receipted (terminal) transaction must fail
+        let result = tx.reject(RejectionReason::MalformedPayload);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            TransactionError::AlreadyTerminal { .. }
+        ));
+        // State must remain Receipted — not mutated
+        assert_eq!(tx.state, TransactionState::Receipted);
+        // Rejection reason must NOT be set on a terminal transaction
+        assert!(tx.rejection_reason.is_none());
+    }
+
+    #[test]
+    fn test_reject_from_executed_is_invalid() {
+        // F-002: reject() from Executed (non-terminal but no allowed path to Rejected)
+        let mut tx = make_tx();
+        tx.transition(TransactionState::Validating).unwrap();
+        tx.transition(TransactionState::AuthorityEvaluation)
+            .unwrap();
+        tx.apply_authority_result(AuthorityResult {
+            authorized: true,
+            authority_reference: "gate:VardhanGate".into(),
+            evaluated_at_ms: now_ms(),
+            reason: "Approved".into(),
+        })
+        .unwrap();
+        tx.transition(TransactionState::Executing).unwrap();
+        tx.apply_outcome(TransactionOutcome {
+            result_code: "OK".into(),
+            summary: "Executed".into(),
+            effect_observed: true,
+            recorded_at_ms: now_ms(),
+        })
+        .unwrap();
+
+        // Rejecting from Executed should fail — no transition from Executed to Rejected
+        let result = tx.reject(RejectionReason::MalformedPayload);
+        assert!(result.is_err());
+        // Must be InvalidTransition, not AlreadyTerminal (Executed is not terminal)
+        assert!(matches!(
+            result.unwrap_err(),
+            TransactionError::InvalidTransition { .. }
+        ));
+        assert_eq!(tx.state, TransactionState::Executed);
+    }
+
+    #[test]
+    fn test_reject_from_failed_is_error() {
+        // F-002: reject() from Failed (terminal) must fail
+        let mut tx = make_tx();
+        tx.transition(TransactionState::Validating).unwrap();
+        tx.transition(TransactionState::AuthorityEvaluation)
+            .unwrap();
+        tx.apply_authority_result(AuthorityResult {
+            authorized: true,
+            authority_reference: "gate:VardhanGate".into(),
+            evaluated_at_ms: now_ms(),
+            reason: "Approved".into(),
+        })
+        .unwrap();
+        tx.transition(TransactionState::Executing).unwrap();
+        tx.apply_outcome(TransactionOutcome {
+            result_code: "ERR".into(),
+            summary: "Failed".into(),
+            effect_observed: false,
+            recorded_at_ms: now_ms(),
+        })
+        .unwrap();
+        assert_eq!(tx.state, TransactionState::Failed);
+
+        let result = tx.reject(RejectionReason::MalformedPayload);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            TransactionError::AlreadyTerminal { .. }
+        ));
+        assert_eq!(tx.state, TransactionState::Failed);
+    }
+
+    #[test]
+    fn test_reject_from_requested_is_invalid() {
+        // F-002: reject() from Requested — no allowed transition to any terminal
+        let mut tx = make_tx();
+        let result = tx.reject(RejectionReason::MalformedPayload);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_reject_from_validation_failed_is_error() {
+        // F-002: reject() from another terminal state (ValidationFailed)
+        let mut tx = make_tx();
+        tx.transition(TransactionState::Validating).unwrap();
+        tx.reject(RejectionReason::TenantMismatch).unwrap();
+        assert_eq!(tx.state, TransactionState::ValidationFailed);
+
+        let result = tx.reject(RejectionReason::MalformedPayload);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            TransactionError::AlreadyTerminal { .. }
+        ));
+    }
+
+    #[test]
+    fn test_reject_restores_reason_on_terminal() {
+        // F-002: reject() must not overwrite rejection_reason when it fails
+        let mut tx = make_tx();
+        tx.transition(TransactionState::Validating).unwrap();
+        tx.reject(RejectionReason::TenantMismatch).unwrap();
+        assert_eq!(tx.rejection_reason, Some(RejectionReason::TenantMismatch));
+
+        // Attempt second reject from terminal — should fail and NOT overwrite reason
+        let result = tx.reject(RejectionReason::MalformedPayload);
+        assert!(result.is_err());
+        // Original reason must be preserved — reject() does not mutate on failure
+        assert_eq!(tx.rejection_reason, Some(RejectionReason::TenantMismatch));
+    }
+
+    #[test]
+    fn test_state_unchanged_after_failed_reject() {
+        // F-002: state must not change after a failed reject()
+        let mut tx = make_tx();
+        tx.transition(TransactionState::Validating).unwrap();
+        tx.transition(TransactionState::AuthorityEvaluation)
+            .unwrap();
+        tx.apply_authority_result(AuthorityResult {
+            authorized: true,
+            authority_reference: "gate:VardhanGate".into(),
+            evaluated_at_ms: now_ms(),
+            reason: "Approved".into(),
+        })
+        .unwrap();
+        tx.transition(TransactionState::Executing).unwrap();
+        tx.apply_outcome(TransactionOutcome {
+            result_code: "OK".into(),
+            summary: "Done".into(),
+            effect_observed: true,
+            recorded_at_ms: now_ms(),
+        })
+        .unwrap();
+        let state_before = tx.state.clone();
+        let updated_before = tx.updated_at_ms;
+        let reason_before = tx.rejection_reason.clone();
+
+        // reject from Executed should fail
+        let result = tx.reject(RejectionReason::MalformedPayload);
+        assert!(result.is_err());
+        assert_eq!(tx.state, state_before);
+        assert_eq!(tx.updated_at_ms, updated_before);
+        assert_eq!(tx.rejection_reason, reason_before);
+    }
+
+    #[test]
+    fn test_full_lifecycle_with_reject_paths() {
+        // Valid reject from Validating -> ValidationFailed
+        let mut tx = make_tx();
+        tx.transition(TransactionState::Validating).unwrap();
+        tx.reject(RejectionReason::MalformedPayload).unwrap();
+        assert_eq!(tx.state, TransactionState::ValidationFailed);
+
+        // Valid reject from AuthorityEvaluation -> Rejected
+        let mut tx2 = make_tx();
+        tx2.transition(TransactionState::Validating).unwrap();
+        tx2.transition(TransactionState::AuthorityEvaluation)
+            .unwrap();
+        tx2.reject(RejectionReason::PolicyDenied).unwrap();
+        assert_eq!(tx2.state, TransactionState::Rejected);
+
+        // Full happy path to Receipted
+        let mut tx3 = make_tx();
+        tx3.transition(TransactionState::Validating).unwrap();
+        tx3.transition(TransactionState::AuthorityEvaluation)
+            .unwrap();
+        tx3.apply_authority_result(AuthorityResult {
+            authorized: true,
+            authority_reference: "gate:VardhanGate".into(),
+            evaluated_at_ms: now_ms(),
+            reason: "Approved".into(),
+        })
+        .unwrap();
+        tx3.transition(TransactionState::Executing).unwrap();
+        tx3.apply_outcome(TransactionOutcome {
+            result_code: "OK".into(),
+            summary: "Done".into(),
+            effect_observed: true,
+            recorded_at_ms: now_ms(),
+        })
+        .unwrap();
+        let rid = format!("VQR-{}", Uuid::new_v4());
+        tx3.seal(&rid).unwrap();
+        assert_eq!(tx3.state, TransactionState::Receipted);
     }
 }

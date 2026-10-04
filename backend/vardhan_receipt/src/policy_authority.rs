@@ -1,3 +1,4 @@
+use crate::auth_config::AuthConfigLoader;
 use serde::{Deserialize, Serialize};
 /// Q-Core Policy → Authority → Decision Runtime
 ///
@@ -10,6 +11,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// FAIL-CLOSED: Any ambiguity in tenant, actor, policy, or operation → DENY.
 use std::collections::HashMap;
+use std::path::Path;
 
 // ─── Policy Registry ─────────────────────────────────────────────────────────
 
@@ -18,44 +20,64 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub struct PolicyEntry {
     /// The canonical policy ID string used in request.decision_candidate.policy_reference
-    pub policy_id: &'static str,
+    pub policy_id: String,
     /// The only version currently active. Requests with any other version → DENY.
-    pub policy_version: &'static str,
+    pub policy_version: String,
     /// The action_type strings this policy governs. Any other action → DENY.
-    pub governed_actions: &'static [&'static str],
+    pub governed_actions: Vec<String>,
     /// The actor_workload_id prefixes that are authorized under this policy.
     /// A prefix match is used: actor must START with one of these values.
     /// Empty list → DENY for all actors.
-    pub authorized_actor_prefixes: &'static [&'static str],
+    pub authorized_actor_prefixes: Vec<String>,
 }
 
-/// The static policy registry. All valid policy IDs and their versions are
-/// registered here at compile time. There is no runtime-dynamic registration.
-/// Adding a new policy requires code review and deployment.
+/// The policy registry, loaded from external configuration (F-003).
+///
+/// All valid policy IDs and their versions are populated from the external
+/// auth config file. There is no runtime-dynamic registration.
 ///
 /// FAIL-CLOSED: Any policy_reference not in this registry → DENY immediately.
 pub struct PolicyRegistry {
-    entries: HashMap<&'static str, PolicyEntry>,
+    entries: HashMap<String, PolicyEntry>,
 }
 
 impl PolicyRegistry {
-    /// Build the registry. Called once at process startup.
+    /// Build the registry from external configuration.
+    /// In production, this requires an auth config file — fails closed if missing.
+    /// In development, uses a default configuration.
     pub fn build() -> Self {
-        let mut entries = HashMap::new();
+        Self::build_with_base_dir(None)
+    }
 
-        entries.insert(
-            "VARDHAN_CORE_INTELLIGENCE_POLICY_V1",
-            PolicyEntry {
-                policy_id: "VARDHAN_CORE_INTELLIGENCE_POLICY_V1",
-                policy_version: "1.0",
-                governed_actions: &["SEAL_VERIFIED_FINDING"],
-                // Only workloads whose actor_workload_id begins with
-                // "svc:vardhan-intelligence:" are authorized under this policy.
-                authorized_actor_prefixes: &["svc:vardhan-intelligence:"],
-            },
-        );
-
-        Self { entries }
+    /// Build the registry from external configuration in the given base directory.
+    pub fn build_with_base_dir(base_dir: Option<&Path>) -> Self {
+        match AuthConfigLoader::load_required(base_dir) {
+            Ok(config) => {
+                let mut entries = HashMap::new();
+                for policy_cfg in config.policies {
+                    entries.insert(
+                        policy_cfg.policy_id.clone(),
+                        PolicyEntry {
+                            policy_id: policy_cfg.policy_id,
+                            policy_version: policy_cfg.policy_version,
+                            governed_actions: policy_cfg.governed_actions,
+                            authorized_actor_prefixes: policy_cfg.authorized_actor_prefixes,
+                        },
+                    );
+                }
+                Self { entries }
+            }
+            Err(e) => {
+                // Production fail-closed: no policies → empty registry → all DENY
+                tracing::error!(
+                    "No auth configuration available. Registry is empty. All requests will be DENY. Error: {}",
+                    e
+                );
+                Self {
+                    entries: HashMap::new(),
+                }
+            }
+        }
     }
 
     /// Resolve a policy entry by its canonical ID string.
@@ -157,9 +179,7 @@ pub struct AuthEvalContext {
     pub action_type: String,
 }
 
-/// The registered tenant registry. In production this would be backed by the
-/// `enterprise_tenant::TenantManager`. For the synchronous `process_transaction`
-/// path we use a static registry to avoid async plumbing through a synchronous call.
+/// The registered tenant registry, loaded from external configuration (F-003).
 ///
 /// FAIL-CLOSED: Any tenant_id not registered here → DENY immediately.
 pub struct TenantRegistry {
@@ -168,19 +188,26 @@ pub struct TenantRegistry {
 
 impl TenantRegistry {
     pub fn build() -> Self {
-        // In production, tenants are provisioned via enterprise_tenant::TenantManager.
-        // This registry mirrors the provisioned tenants that are authorized to call
-        // the Q-Core gateway. Unknown tenants are DENIED regardless of other fields.
-        //
-        // NOTE: These are real tenant IDs provisioned at PoC onboarding.
-        // They are NOT hard-coded allows — they are explicit registrations.
-        // The absence of a tenant ID here is an explicit DENY.
-        let mut known = HashMap::new();
-        // PoC tenants — added by explicit provisioning, not by default.
-        known.insert("org-vardhan-intelligence".to_string(), ());
-        known.insert("org-acme-bank-poc".to_string(), ());
-        known.insert("org-test-tenant-valid".to_string(), ());
-        Self { known }
+        Self::build_with_base_dir(None)
+    }
+
+    /// Build the tenant registry from external configuration.
+    pub fn build_with_base_dir(base_dir: Option<&Path>) -> Self {
+        match AuthConfigLoader::load_required(base_dir) {
+            Ok(config) => Self {
+                known: config.tenant_lookup(),
+            },
+            Err(e) => {
+                // Production fail-closed: no tenants → empty registry → all DENY
+                tracing::error!(
+                    "No auth configuration available. Tenant registry is empty. All requests will be DENY. Error: {}",
+                    e
+                );
+                Self {
+                    known: HashMap::new(),
+                }
+            }
+        }
     }
 
     /// Returns true iff the tenant_id is a registered, provisioned tenant.
@@ -282,7 +309,11 @@ impl GatewayAuthorityEvaluator {
         }
 
         // E5: action_type must be governed by this policy.
-        if !policy.governed_actions.contains(&ctx.action_type.as_str()) {
+        if !policy
+            .governed_actions
+            .iter()
+            .any(|a| a == &ctx.action_type)
+        {
             return AuthDecision::Deny {
                 rejection_code: "DENY_ACTION_NOT_GOVERNED".to_string(),
                 reason: format!(

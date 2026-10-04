@@ -3,6 +3,8 @@ target_new/
 target_prod/
 frontend/.next/
 frontend/node_modules/
+intelligence_plane/node_modules/
+node_modules/
 dashboard/.next/
 dist/
 *.log

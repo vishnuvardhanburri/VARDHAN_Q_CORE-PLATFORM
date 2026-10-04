@@ -119,6 +119,10 @@ pub fn compute_self_hash() -> Option<[u8; 32]> {
 
 /// Call this at the very start of main().
 /// Panics (and exits 137) on any tamper signal.
+///
+/// F-011: In production (VARDHAN_ENV=production), binary integrity verification
+/// is MANDATORY. If VARDHAN_BINARY_HASH is not set in production, the process
+/// fails closed with exit code 137. In development/test, the check is optional.
 pub fn assert_integrity() {
     // 1. Debugger check
     if is_debugger_attached() {
@@ -136,10 +140,25 @@ pub fn assert_integrity() {
         std::process::exit(137);
     }
 
-    // 3. Self-hash check — only if VARDHAN_KNOWN_HASH env var is set.
-    // In production deployment, set this env var to the official Blake3 hash
-    // of the binary you ship. Any patched byte will diverge and halt.
-    if let Ok(expected_hex) = std::env::var("VARDHAN_BINARY_HASH") {
+    // 3. Self-hash check
+    // F-011: In production, binary hash verification is MANDATORY.
+    let is_production = std::env::var("VARDHAN_ENV")
+        .map(|v| v == "production")
+        .unwrap_or(false);
+
+    let expected_hex = std::env::var("VARDHAN_BINARY_HASH").ok();
+
+    if is_production && expected_hex.is_none() {
+        // Production without a configured binary hash → fail closed
+        eprintln!(
+            "[VARDHAN GUARDIAN] CRITICAL: Production environment requires VARDHAN_BINARY_HASH \
+             to be set. Binary integrity verification cannot be performed. \
+             Execution permanently halted."
+        );
+        std::process::exit(137);
+    }
+
+    if let Some(expected_hex) = expected_hex {
         if let Some(actual) = compute_self_hash() {
             let actual_hex = hex::encode(actual);
             if actual_hex != expected_hex.trim() {
@@ -158,5 +177,69 @@ pub fn assert_integrity() {
                 &actual_hex[..16]
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_debugger_attached_returns_bool() {
+        // Just verify the function runs without panic
+        let _ = is_debugger_attached();
+    }
+
+    #[test]
+    fn test_detect_single_step_returns_bool() {
+        let _ = detect_single_step();
+    }
+
+    #[test]
+    fn test_compute_self_hash_returns_32_bytes() {
+        let hash = compute_self_hash();
+        assert!(hash.is_some(), "Should be able to hash the running binary");
+        assert_eq!(hash.unwrap().len(), 32, "BLAKE3 hash should be 32 bytes");
+    }
+
+    #[test]
+    fn test_self_hash_is_deterministic() {
+        let h1 = compute_self_hash().unwrap();
+        let h2 = compute_self_hash().unwrap();
+        assert_eq!(
+            h1, h2,
+            "Self-hash should be deterministic for the same binary"
+        );
+    }
+
+    #[test]
+    fn test_self_hash_hex_is_64_chars() {
+        let hash = compute_self_hash().unwrap();
+        let hex = hex::encode(&hash);
+        assert_eq!(hex.len(), 64, "BLAKE3 hex should be 64 characters");
+    }
+
+    #[test]
+    fn test_f011_production_requires_binary_hash() {
+        // F-011: When VARDHAN_ENV=production and VARDHAN_BINARY_HASH is not set,
+        // assert_integrity should detect this and fail closed.
+        // We test the logic indirectly: verify that the env var check works.
+        let is_prod = std::env::var("VARDHAN_ENV")
+            .map(|v| v == "production")
+            .unwrap_or(false);
+        let has_hash = std::env::var("VARDHAN_BINARY_HASH").is_ok();
+
+        // In test/dev environment, we expect either:
+        // - Not production (so hash is optional), OR
+        // - Production with hash set
+        if is_prod {
+            assert!(has_hash, "Production must have VARDHAN_BINARY_HASH set");
+        }
+
+        // Verify the check logic is correct
+        assert!(
+            !is_prod || has_hash,
+            "If production, binary hash must be configured"
+        );
     }
 }

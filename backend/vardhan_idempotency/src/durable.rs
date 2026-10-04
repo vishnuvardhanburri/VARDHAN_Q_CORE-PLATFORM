@@ -46,7 +46,10 @@ impl DurableIdempotencyRegistry {
     }
 
     fn now_ms() -> u64 {
-        SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64
     }
 
     fn load(&self) -> Result<DurableState, DurableIdempotencyError> {
@@ -59,7 +62,11 @@ impl DurableIdempotencyRegistry {
     fn save(&self, state: &DurableState) -> Result<(), DurableIdempotencyError> {
         let tmp = self.path.with_extension("state.tmp");
         let bytes = serde_json::to_vec_pretty(state)?;
-        let mut file = OpenOptions::new().create(true).write(true).truncate(true).open(&tmp)?;
+        let mut file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(&tmp)?;
         file.write_all(&bytes)?;
         file.sync_all()?;
         drop(file);
@@ -74,9 +81,16 @@ impl DurableIdempotencyRegistry {
         Ok(())
     }
 
-    fn with_lock<T>(&self, mut operation: impl FnMut() -> Result<T, DurableIdempotencyError>) -> Result<T, DurableIdempotencyError> {
+    fn with_lock<T>(
+        &self,
+        mut operation: impl FnMut() -> Result<T, DurableIdempotencyError>,
+    ) -> Result<T, DurableIdempotencyError> {
         for _ in 0..200 {
-            match OpenOptions::new().write(true).create_new(true).open(&self.lock_path) {
+            match OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&self.lock_path)
+            {
                 Ok(mut lock) => {
                     let _ = lock.write_all(b"vardhan-idempotency-lock");
                     let result = operation();
@@ -102,11 +116,15 @@ impl DurableIdempotencyRegistry {
         self.with_lock(|| {
             let now = Self::now_ms();
             let mut state = self.load()?;
-            state.records.retain(|entry| entry.record.expires_at_ms > now);
+            state
+                .records
+                .retain(|entry| entry.record.expires_at_ms > now);
 
-            if let Some(entry) = state.records.iter().find(|entry| {
-                entry.record.tenant_id == tenant_id && entry.key == key.as_str()
-            }) {
+            if let Some(entry) = state
+                .records
+                .iter()
+                .find(|entry| entry.record.tenant_id == tenant_id && entry.key == key.as_str())
+            {
                 if entry.record.status != IdempotencyStatus::Failed {
                     return Ok(Err(DuplicateDetected {
                         original_transaction_id: entry.record.transaction_id.clone(),
@@ -131,25 +149,43 @@ impl DurableIdempotencyRegistry {
         })
     }
 
-    pub fn complete(&self, tenant_id: &str, key: &IdempotencyKey) -> Result<(), DurableIdempotencyError> {
+    pub fn complete(
+        &self,
+        tenant_id: &str,
+        key: &IdempotencyKey,
+    ) -> Result<(), DurableIdempotencyError> {
         self.with_lock(|| {
             let mut state = self.load()?;
-            if let Some(entry) = state.records.iter_mut().find(|entry| entry.record.tenant_id == tenant_id && entry.key == key.as_str()) {
+            if let Some(entry) = state
+                .records
+                .iter_mut()
+                .find(|entry| entry.record.tenant_id == tenant_id && entry.key == key.as_str())
+            {
                 entry.record.status = IdempotencyStatus::Completed;
             }
             self.save(&state)
         })
     }
 
-    pub fn fail(&self, tenant_id: &str, key: &IdempotencyKey) -> Result<(), DurableIdempotencyError> {
+    pub fn fail(
+        &self,
+        tenant_id: &str,
+        key: &IdempotencyKey,
+    ) -> Result<(), DurableIdempotencyError> {
         self.with_lock(|| {
             let mut state = self.load()?;
-            if let Some(entry) = state.records.iter_mut().find(|entry| entry.record.tenant_id == tenant_id && entry.key == key.as_str()) {
+            if let Some(entry) = state
+                .records
+                .iter_mut()
+                .find(|entry| entry.record.tenant_id == tenant_id && entry.key == key.as_str())
+            {
                 entry.record.status = IdempotencyStatus::Failed;
             }
             self.save(&state)
         })
     }
 
-    pub fn path(&self) -> &Path { &self.path }
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
 }

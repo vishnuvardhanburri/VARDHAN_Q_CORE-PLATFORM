@@ -1,0 +1,84 @@
+name: Supply Chain Security (F-013)
+
+on:
+  push:
+    branches: ["main", "fix/phase7-security-remediation"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  supply-chain:
+    name: Supply Chain Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev
+
+      - name: Install cargo-audit
+        uses: rustsec/audit-ci-action@v2.3.0
+        with:
+          sca-policy: none
+
+      - name: Install cargo-deny
+        run: |
+          cargo install cargo-deny
+
+      - name: Install cargo-sbom
+        run: |
+          cargo install cargo-sbom
+
+      - name: Run cargo audit
+        run: |
+          cargo audit
+
+      - name: Run cargo deny (advisories)
+        run: |
+          cargo deny check advisories
+
+      - name: Generate SBOM
+        run: |
+          cargo sbom --output-format cyclone_dx_json_1_5 > bom.json
+          echo "SBOM generated with $(wc -l < bom.json) lines"
+
+      - name: Verify SBOM exists
+        run: |
+          if [ ! -f bom.json ]; then
+            echo "FAIL: bom.json not found"
+            exit 1
+          fi
+          echo "PASS: bom.json exists"
+
+      - name: Verify deny.toml exists
+        run: |
+          if [ ! -f deny.toml ]; then
+            echo "FAIL: deny.toml not found"
+            exit 1
+          fi
+          echo "PASS: deny.toml exists"
+
+      - name: Verify .cargo/audit.toml exists
+        run: |
+          if [ ! -f .cargo/audit.toml ]; then
+            echo "FAIL: .cargo/audit.toml not found"
+            exit 1
+          fi
+          echo "PASS: .cargo/audit.toml exists"
+
+      - name: Secret scanning (trufflehog)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: .
+          redact: true
+
+      - name: Cargo formatting check
+        run: |
+          cargo fmt --all -- --check
+
+      - name: Build workspace
+        run: |
+          cargo build --workspace

@@ -41,11 +41,21 @@ impl TrustBoundaryValidator {
             return Err("evidence_refs must not be empty".to_string());
         }
 
-        // 8. evidence integrity
+        // 8. evidence integrity — content_hash must be valid SHA-256 hex
+        // F-010: Algorithm boundary — evidence content hashes use SHA-256
+        // (computed by the intelligence plane in TypeScript), NOT BLAKE3.
+        // BLAKE3 is used for Rust-internal payload/receipt hashing only.
         for ev in &contract.evidence_refs {
-            if ev.content_hash.is_empty() || ev.content_hash.len() != 64 {
+            let hash = &ev.content_hash;
+            if hash.is_empty() || hash.len() != 64 {
                 return Err(format!(
-                    "Invalid evidence content_hash for {}",
+                    "Invalid evidence content_hash for {} — expected 64-char SHA-256 hex, got length {}",
+                    ev.evidence_id, hash.len()
+                ));
+            }
+            if !hash.chars().all(|c| c.is_ascii_hexdigit()) {
+                return Err(format!(
+                    "evidence content_hash for {} is not valid hex (SHA-256) — non-hex characters detected",
                     ev.evidence_id
                 ));
             }

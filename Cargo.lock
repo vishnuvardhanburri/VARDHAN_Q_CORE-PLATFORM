@@ -1295,14 +1295,17 @@ dependencies = [
  "ed25519-dalek",
  "fips204",
  "hex",
+ "hkdf",
  "libc",
  "ml-kem",
  "rand 0.8.8",
  "serde",
  "serde_cbor",
  "serde_json",
+ "sha3",
  "thiserror 2.0.20",
  "tokio",
+ "tracing",
  "zeroize",
 ]
 
@@ -5706,6 +5709,7 @@ dependencies = [
  "hex",
  "rand 0.8.8",
  "sha2 0.10.9",
+ "tracing",
 ]
 
 [[package]]
@@ -5713,6 +5717,8 @@ name = "vardhan_idempotency"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
+ "thiserror 2.0.20",
  "uuid",
 ]
 
@@ -5720,6 +5726,7 @@ dependencies = [
 name = "vardhan_keystore"
 version = "0.1.0"
 dependencies = [
+ "aes-gcm 0.11.1",
  "blake3",
  "ed25519-dalek",
  "hex",
@@ -5729,7 +5736,10 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "thiserror 2.0.20",
+ "tracing",
  "uuid",
+ "zeroize",
 ]
 
 [[package]]
@@ -5765,6 +5775,7 @@ dependencies = [
  "rand 0.8.8",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tempfile",
  "tokio",
  "tracing",
