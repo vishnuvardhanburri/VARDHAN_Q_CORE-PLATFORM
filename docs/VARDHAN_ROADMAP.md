@@ -2,51 +2,101 @@
 
 > **BE DIFFERENT**
 
-This is the current product and engineering roadmap. It replaces older repository-specific roadmap language that described a separate Quantum Proxy product.
+This is the current product, engineering, assurance and commercialization roadmap. It is organized around the two-pillar platform and uses explicit production gates rather than treating documentation or feature completion as production readiness.
 
-## Product Model
+## 01 — Platform Mind Map
 
 ```mermaid
-flowchart TB
-    V[Vardhan Technologies]
-    V --> I[Vardhan Intelligence]
-    V --> Q[Vardhan Q Core]
-    Q --> PQ[PQ / Quantum Security]
-    Q --> IND[7 Industry Planes]
-    Q --> ENT[Enterprise Security + Integrations]
-    I --> F[VerifiedFindingContract]
-    F --> Q
+mindmap
+  root((Vardhan Technologies))
+    Vardhan Intelligence
+      External Intelligence
+      Internal Intelligence
+      Discovery
+      Collection
+      Normalization
+      Entity Resolution
+      Enrichment
+      Correlation
+      Verification
+      Risk Scoring
+      VerifiedFindingContract
+    Vardhan Q Core
+      Trust Boundary
+      Authority
+      Policy Engine
+      Transaction Engine
+      Secure Execution
+      PQ Security
+        ML-KEM-1024
+        ML-DSA-87
+        AER-KEP-Q
+      Key Lifecycle
+      Seven Industry Planes
+      Receipts
+      Ledger
+      Independent Verification
+      HA / DR
+      Enterprise Integrations
+    Assurance
+      Independent Architecture Review
+      Penetration Test
+      Red Team
+      Cryptographic Review
+      Secure Code Review
+      Supply Chain Review
+      ISO 27001
+      SOC 2 Type II
+      Cyber Essentials Plus
 ```
 
-## Phase Map
+## 02 — How the Platform Operates
 
 ```mermaid
 flowchart LR
-    P0[Phase 0
-Foundation] --> P1[Phase 1
-Enterprise Control Plane]
-    P1 --> P2[Phase 2
-Industry Framework]
-    P2 --> P3[Phase 3
-Continuous Security Operations]
-    P3 --> P4[Phase 4
-Compliance & Assurance]
-    P4 --> P5[Phase 5
-Enterprise Integrations]
-    P5 --> P6[Phase 6
-Resilience & Deployment]
-    P6 --> P7[Phase 7
-Independent Assurance]
-    P7 --> P8[Phase 8
-Global Commercial Platform]
+    SRC[External + Internal Sources]
+    SRC --> I1[Discover]
+    I1 --> I2[Collect]
+    I2 --> I3[Normalize]
+    I3 --> I4[Resolve]
+    I4 --> I5[Enrich]
+    I5 --> I6[Correlate]
+    I6 --> I7[Verify]
+    I7 --> I8[Score]
+    I8 --> F[VerifiedFindingContract]
+    F --> T[Q Core Trust Boundary]
+    T --> A[Authority + Policy]
+    A --> X[Transaction Engine]
+    X --> S[Secure Execution]
+    S --> PQ[PQ / AER-KEP-Q]
+    PQ --> R[Signed Receipt]
+    R --> L[Ledger]
+    L --> V[Independent Verification]
 ```
+
+**Core principle:** Intelligence produces evidence-backed findings. Q Core independently validates, governs, protects, executes and proves the resulting action.
+
+## 03 — Roadmap at a Glance
+
+```mermaid
+flowchart TB
+    P0[0 · Foundation] --> P1[1 · Enterprise Control Plane]
+    P1 --> P2[2 · Industry Framework]
+    P2 --> P3[3 · Continuous Security Operations]
+    P3 --> P4[4 · Compliance & Assurance Engineering]
+    P4 --> P5[5 · Enterprise Integrations]
+    P5 --> P6[6 · Resilience & Enterprise Deployment]
+    P6 --> P7[7 · Independent Security Assurance]
+    P7 --> P8[8 · Global Commercial Platform]
+```
+
+---
 
 ## Phase 0 — Foundation
 
 **Status: Engineering baseline established**
 
-- PQ cryptography
-- ML-KEM / ML-DSA
+- PQ cryptography: ML-KEM / ML-DSA
 - Trust boundary
 - Authority / governance
 - Transaction state machine
@@ -57,94 +107,134 @@ Global Commercial Platform]
 - Exposure detection / quarantine / recovery
 - Restart-safe runtime state
 - Durable idempotency
-- CI/build infrastructure
+- CI / build infrastructure
 
-**Gate:** stable foundation for enterprise platform development.
+**Gate:** stable foundation for enterprise platform hardening.
 
 ## Phase 1 — Enterprise Control Plane
 
 **Status: Engineering implemented; production hardening continues**
 
-- Organizations / tenants
-- Users / roles / RBAC
-- Projects / environments
-- Asset inventory
-- Security policies
-- Configuration
-- Secrets / key-management interfaces
-- Enterprise API
-- Admin console
-- Audit trail
-- Notifications
-- Health / status
-- Entitlements / licensing
+```mermaid
+flowchart LR
+    O[Organizations / Tenants] --> U[Users / RBAC]
+    U --> P[Policies]
+    P --> C[Configuration]
+    C --> API[Enterprise API]
+    API --> A[Admin + Audit]
+    A --> H[Health / Notifications]
+```
 
-## Phase 2 — Industry Framework
+Scope:
+- organizations / tenants
+- users / roles / RBAC
+- projects / environments
+- asset inventory
+- security policies
+- configuration
+- secrets / key-management interfaces
+- enterprise API
+- admin console
+- audit trail
+- notifications
+- health / status
+- entitlements / licensing
+
+## Phase 2 — Seven Industry Framework
 
 **Status: Common architecture established; industry-depth execution continues**
 
-Seven planes:
+```mermaid
+flowchart TB
+    Q[Q Core Common Substrate]
+    Q --> B[Banking / Financial Services]
+    Q --> H[Healthcare]
+    Q --> G[Government / Public Sector]
+    Q --> T[Telecom]
+    Q --> E[Energy / Critical Infrastructure]
+    Q --> I[Insurance]
+    Q --> R[Education / Research]
+```
 
-1. Banking / Financial Services
-2. Healthcare
-3. Government / Public Sector
-4. Telecom
-5. Energy / Critical Infrastructure
-6. Insurance
-7. Education / Research
+Each plane must provide:
+- industry asset model
+- threat model
+- security workflows
+- policies
+- risk model
+- compliance/control mappings
+- dashboards
+- integrations
+- reporting
+- deployment templates
 
-Each plane must provide its own asset model, threat model, workflows, policies, risk model, compliance mappings, dashboards, integrations, reporting, and deployment templates while using the common Q Core substrate.
+The seven planes share the same trust, cryptographic, governance, transaction, evidence and integration substrate.
 
 ## Phase 3 — Continuous Security Operations
 
 **Status: Engineering foundation established; production data/connectors continue**
 
-- Continuous monitoring
-- Exposure detection
-- Risk scoring
-- Security posture
-- Policy drift
-- Crypto posture
-- Key lifecycle
+```mermaid
+flowchart LR
+    M[Continuous Monitoring] --> E[Exposure Detection]
+    E --> R[Risk Scoring]
+    R --> P[Security Posture]
+    P --> A[Alerts / Incidents]
+    A --> X[Governed Remediation]
+    X --> M
+```
+
+Scope:
+- continuous monitoring
+- exposure detection
+- risk scoring
+- security posture
+- policy drift
+- crypto posture
+- key lifecycle
 - AER-KEP-Q operations
-- Alerts
-- Incident workflows
-- Safe automated remediation
-- Executive reporting
+- alerts
+- incident workflows
+- safe automated remediation
+- executive reporting
 
 ## Phase 4 — Compliance & Assurance Engineering
 
 **Status: Engineering controls implemented; external assurance remains separate**
 
-- Control mapping
-- Audit evidence
-- Immutable receipts
-- Compliance dashboards
-- Evidence export
-- Security reports
-- Vulnerability management
+- control mapping
+- audit evidence
+- immutable receipts
+- compliance dashboards
+- evidence export
+- security reports
+- vulnerability management
 - SBOM
-- Secure release evidence
-- Incident records
-- Access reviews
-- Policy history
+- secure release evidence
+- incident records
+- access reviews
+- policy history
 
-Target mappings include NIST CSF 2.0, PCI DSS, SOC 2, NIST SP 800-53, HIPAA, SOX, GDPR, and ISO 27001 as applicable. A mapping is not certification.
+Target mappings include NIST CSF 2.0, PCI DSS, SOC 2, NIST SP 800-53, HIPAA, SOX, GDPR and ISO 27001 as applicable. **A mapping is not a certification.**
 
 ## Phase 5 — Enterprise Integrations
 
 **Status: Integration architecture established; deployment-specific connectors continue**
 
-- IAM
-- SIEM / SOC
-- Cloud
-- Kubernetes
-- Databases
-- Network
-- KMS / HSM
-- ITSM
-- Industry environments
-- Security products
+```mermaid
+mindmap
+  root((Q Core Integrations))
+    IAM
+    SIEM / SOC
+    Cloud
+    Kubernetes
+    Databases
+    Network
+    KMS / HSM
+    ITSM
+    Industry Systems
+    Security Products
+```
 
 Goal: integrate into existing enterprise infrastructure rather than require customers to rebuild it.
 
@@ -152,80 +242,163 @@ Goal: integrate into existing enterprise infrastructure rather than require cust
 
 **Status: Engineering baseline established; real-world failure validation remains a gate**
 
-- Multi-node HA
-- Distributed idempotency
-- Failover
-- Disaster recovery
-- Backup / restore
+```mermaid
+flowchart LR
+    N[Multi-node HA] --> F[Failover]
+    F --> DR[Disaster Recovery]
+    DR --> B[Backup / Restore]
+    B --> MR[Multi-region]
+    MR --> U[Zero-downtime Upgrade]
+    U --> RB[Rollback Protection]
+    RB --> N
+```
+
+Scope:
+- multi-node HA
+- distributed idempotency
+- failover
+- disaster recovery
+- backup / restore
 - HSM / KMS deployment
-- Key rotation
-- Multi-region
-- Offline / isolated deployment where applicable
-- Zero-downtime upgrades
-- Rollback protection
-- Real failure testing
+- key rotation
+- multi-region
+- offline / isolated deployment where applicable
+- zero-downtime upgrades
+- rollback protection
+- real failure testing
 
-## Phase 7 — Independent Security Assurance
+---
 
-**Status: External work / assurance gate**
+# Phase 7 — Independent Security Assurance
 
-Required work includes:
+**Status: External assurance gate**
 
-- Independent architecture review
-- External penetration test
-- Red-team assessment
+## Assurance Stack
+
+```mermaid
+flowchart TB
+    A[Architecture Review]
+    B[Secure Code Review]
+    C[Penetration Test]
+    D[Red Team]
+    E[AER-KEP-Q Cryptographic Review]
+    F[Supply Chain Review]
+    G[HSM / KMS Assessment]
+    H[Remediation]
+    I[Independent Retest]
+    A --> H
+    B --> H
+    C --> H
+    D --> H
+    E --> H
+    F --> H
+    G --> H
+    H --> I
+```
+
+Required external work includes:
+- independent architecture review
+- external penetration test
+- red-team assessment
 - AER-KEP-Q cryptographic review
-- Threat-model review
-- Secure-code assessment
-- Supply-chain assessment
+- threat-model review
+- secure-code assessment
+- supply-chain assessment
 - ISO 27001 program / certification as applicable
-- SOC 2 readiness / attestation as applicable
-- Customer assurance packages
+- SOC 2 readiness / Type II attestation as applicable
+- Cyber Essentials / Cyber Essentials Plus as applicable to UK operations
+- customer-specific assurance packages
 
-**Important:** repository CI passing does not equal independent security assurance.
+### Certification / Badge Rule
 
-## Phase 8 — Global Commercial Platform
+**Target badges are not current certifications.** The repository may show the assurance roadmap, but official certification badges or claims should only be published after the relevant certificate, attestation or assessment is actually issued.
+
+Recommended sequence:
+
+```mermaid
+flowchart LR
+    R[Readiness Assessment] --> C1[Cyber Essentials]
+    C1 --> C2[Cyber Essentials Plus]
+    R --> ISO[ISO 27001 Program]
+    ISO --> ISOC[ISO 27001 Certification]
+    R --> SOC[SOC 2 Controls]
+    SOC --> T1[Type I / Readiness]
+    T1 --> T2[SOC 2 Type II]
+    R --> PT[Pentest + Red Team]
+    R --> CR[Cryptographic Review]
+```
+
+These assurance tracks overlap but are not substitutes for one another.
+
+---
+
+# Phase 8 — Global Commercial Platform
 
 **Status: Future commercial execution**
 
-- Global enterprise sales
-- Strategic bank pilots
-- Sector specialists
-- Government / regulated-market programs
-- Integrators and channel partners
-- Production expansion
-- Multi-country deployment
-- Annual recurring platform contracts
-- Industry-specific expansion
-
-The commercial strategy is **pilot → production → annual platform revenue → expansion**.
-
-## Dependency / Gate Model
-
 ```mermaid
-flowchart TD
-    A[Engineering Baseline] --> B[Production Hardening]
-    B --> C[Independent Security Review]
-    C --> D[Remediation + Retest]
-    D --> E[Certification / Assurance]
-    E --> F[Controlled Enterprise Pilot]
-    F --> G[Production Deployment]
-    G --> H[Expansion Across Systems]
-    H --> I[Global Commercial Scale]
+flowchart LR
+    P[Pilot] --> PR[Production]
+    PR --> ARR[Annual Platform Revenue]
+    ARR --> EX[Expansion]
+    EX --> MC[Multi-country / Multi-industry]
+    MC --> GC[Global Commercial Scale]
 ```
 
-## What Is Already Different
+Scope:
+- global enterprise sales
+- strategic bank pilots
+- sector specialists
+- government / regulated-market programs
+- integrators and channel partners
+- production expansion
+- multi-country deployment
+- annual recurring platform contracts
+- industry-specific expansion
 
-The platform is not positioned as a list of cryptographic algorithms. The differentiated system is the integration of:
+---
+
+## Production Gate — Non-Negotiable
+
+```mermaid
+flowchart TB
+    E[Engineering] --> T[Test Evidence]
+    T --> CI[Green CI]
+    CI --> SC[Supply Chain Verification]
+    SC --> RT[Runtime / Integration Evidence]
+    RT --> DEP[Deployment Security]
+    DEP --> EXT[Independent Security Review]
+    EXT --> FIX[Remediation]
+    FIX --> RETEST[Independent Retest]
+    RETEST --> ASSURE[Applicable Certification / Assurance]
+    ASSURE --> PILOT[Controlled Enterprise Pilot]
+    PILOT --> PROD[Production]
+```
+
+The platform must **not** be described as fully production-ready merely because compilation succeeds.
+
+Production gate requires, as applicable:
+
+- green CI for the exact release commit
+- runtime/integration evidence
+- supply-chain verification
+- deployment-specific security configuration
+- HSM/KMS controls where required
+- resilience/failure testing
+- independent security assessment
+- remediation and independent retest
+- applicable certification / assurance completion
+
+## What Is Already Different
 
 ```text
 Intelligence
    ↓
 Evidence
    ↓
-Independent Verification
+VerifiedFindingContract
    ↓
-Trust Boundary
+Independent Trust Validation
    ↓
 Policy / Authority
    ↓
@@ -240,24 +413,12 @@ Ledger
 Independent Proof
 ```
 
-## Production Gate
-
-The repository should not be described as fully production-ready merely because compilation succeeds. The production gate requires:
-
-- green CI for the relevant commit
-- runtime/integration evidence
-- supply-chain verification
-- deployment-specific security configuration
-- HSM/KMS controls where required
-- resilience/failure testing
-- independent security assessment
-- remediation and independent retest
-- applicable certification/assurance completion
+The differentiation is the integrated control path—not a claim of a new cryptographic primitive.
 
 ## Source of Truth
 
-- `README.md` — concise platform entry point
+- `README.md` — concise platform entry point and visual overview
 - `docs/VARDHAN_ARCHITECTURE_REALTIME.md` — visual architecture and runtime behavior
 - `docs/BACKEND_ARCHITECTURE_AUDIT.md` — backend architecture and technical boundaries
-- `runtime/` — current runtime status, tests, errors, and reports
-- this file — current product roadmap and gates
+- `runtime/` — current runtime status, tests, errors and reports
+- this file — current product roadmap, assurance roadmap and production gates
