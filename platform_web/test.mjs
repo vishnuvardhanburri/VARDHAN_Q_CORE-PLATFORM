@@ -5,22 +5,30 @@ const requiredMarkers = [
   'Vardhan Technologies',
   'Intelligence',
   'Q Core',
-  'Enterprise Access',
+  'Enterprise access',
   'AER-KEP-Q',
   'Compliance',
-  'Usage & Plans',
+  'Usage & billing',
+  'Cyber Essentials / Plus',
+  'ISO 27001',
+  'SOC 2 Type II',
+  'Independent penetration test',
 ];
 
 for (const marker of requiredMarkers) {
-  if (!html.includes(marker)) {
-    throw new Error(`premium shell missing required surface: ${marker}`);
-  }
+  if (!html.includes(marker)) throw new Error(`enterprise shell missing required surface: ${marker}`);
 }
 
-for (const marker of ['landing', 'app', 'modal', 'demoLogin', 'logout']) {
-  if (!html.includes(`id="${marker}"`)) {
-    throw new Error(`premium shell missing interaction anchor: ${marker}`);
-  }
+for (const marker of ['public', 'app', 'auth', 'loginForm']) {
+  if (!html.includes(`id="${marker}"`)) throw new Error(`enterprise shell missing interaction anchor: ${marker}`);
 }
 
-console.log(`premium shell contract: ${requiredMarkers.length} surfaces + 5 interaction anchors verified`);
+for (const marker of ['demoLogin', 'demo@example.com', 'password123']) {
+  if (html.includes(marker)) throw new Error(`demo authentication artifact must not exist: ${marker}`);
+}
+
+for (const endpoint of ['/api/v1/auth/login', '/api/v1/me']) {
+  if (!html.includes(endpoint)) throw new Error(`enterprise shell missing server API integration: ${endpoint}`);
+}
+
+console.log(`enterprise platform contract: ${requiredMarkers.length} surfaces + authenticated API/fail-closed checks verified`);
