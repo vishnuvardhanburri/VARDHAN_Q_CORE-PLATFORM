@@ -2,11 +2,71 @@
 
 > **BE DIFFERENT**
 
-Security infrastructure for regulated enterprises, banks, and high-consequence digital operations.
+**Post-quantum security infrastructure for regulated enterprises, banks, and high-consequence digital operations.**
 
 Vardhan Technologies combines **Vardhan Intelligence** and **Vardhan Q Core** into one governed security platform.
 
+## Assurance & Certification Roadmap
+
+> These are **target assurance outcomes**, not certifications already held. Badges become claimable only after the corresponding assessment, certification or attestation is actually completed.
+
+| Assurance | Purpose | Target status |
+|---|---|---|
+| ![Cyber Essentials](https://img.shields.io/badge/Cyber_Essentials-Target-1f2937) | Baseline UK cyber controls | Planned |
+| ![Cyber Essentials Plus](https://img.shields.io/badge/Cyber_Essentials_Plus-Target-1f2937) | Independently tested baseline controls | Planned |
+| ![ISO 27001](https://img.shields.io/badge/ISO_27001-Target-1f2937) | Information security management system | Planned |
+| ![SOC 2 Type II](https://img.shields.io/badge/SOC_2_Type_II-Target-1f2937) | Operating effectiveness of security controls | Planned |
+| ![PCI DSS](https://img.shields.io/badge/PCI_DSS-Target-1f2937) | Payment-card environments where applicable | Applicable deployments |
+| ![NIST](https://img.shields.io/badge/NIST_Mappings-Target-1f2937) | Control and assurance mapping | Engineering mapping |
+| ![Independent Pentest](https://img.shields.io/badge/Independent_Pentest-Target-1f2937) | External technical validation | Required |
+| ![Crypto Review](https://img.shields.io/badge/Cryptographic_Review-Target-1f2937) | Independent review of cryptographic design | Required |
+
+**Important:** Vardhan does not use target badges as proof of certification. Formal certificates, reports and attestations will be published only when issued by the relevant independent assessor or certification body.
+
 ---
+
+## Platform Mind Map
+
+```mermaid
+mindmap
+  root((Vardhan Technologies))
+    Vardhan Intelligence
+      External Intelligence
+      Internal Intelligence
+      Discovery
+      Asset Intelligence
+      Threat Intelligence
+      Entry-Point Intelligence
+      Entity Resolution
+      Correlation
+      Verification
+      VerifiedFindingContract
+    Vardhan Q Core
+      Trust Boundary
+      Authority
+      Policy Engine
+      Transaction Engine
+      Secure Execution
+      PQ Security
+        ML-KEM-1024
+        ML-DSA-87
+        AER-KEP-Q
+      Key Lifecycle
+      Seven Industry Planes
+      Receipts
+      Ledger
+      Independent Verification
+      HA / DR
+      Enterprise Integrations
+    Assurance
+      Independent Security Review
+      Cryptographic Review
+      Pentest
+      Red Team
+      ISO 27001
+      SOC 2 Type II
+      Cyber Essentials Plus
+```
 
 ## How Vardhan Actually Works
 
@@ -19,7 +79,6 @@ flowchart LR
     E --> F[Enrich & Correlate]
     F --> G[Verify & Score]
     G --> H[VerifiedFindingContract]
-
     H --> I[Q Core Trust Boundary]
     I --> J[Authority & Policy]
     J --> K[Transaction Engine]
@@ -27,88 +86,76 @@ flowchart LR
     L --> M[Signed Receipt]
     M --> N[Ledger]
     N --> O[Independent Verification]
-
     P[PQ / Quantum Security] --> L
     Q[AER-KEP-Q] --> P
     R[7 Industry Planes] --> J
 ```
 
-**In simple terms:** Intelligence discovers and proves what is happening. Q Core decides what is trusted, authorized, executed, and provable.
+**In simple terms:** Intelligence discovers and proves what is happening. Q Core decides what is trusted, authorized, protected, executed, and provable.
 
 ## Two-Pillar Architecture
 
-### 1. Vardhan Intelligence
+### Vardhan Intelligence
 
 **Discover → Collect → Normalize → Resolve → Enrich → Correlate → Verify → Score → Deliver**
 
-- External intelligence
-- Internal intelligence
+- External and internal intelligence
 - Attack-surface discovery
-- Asset and technology intelligence
-- Vulnerability and exposure intelligence
-- Threat-actor and campaign intelligence
+- Asset, technology, vulnerability and exposure intelligence
+- Threat actors and campaigns
 - Initial-access / entry-point intelligence
 - Entity resolution and graph correlation
 - Evidence and confidence scoring
-- `VerifiedFindingContract` delivery
+- `VerifiedFindingContract`
 
-### 2. Vardhan Q Core
+### Vardhan Q Core
 
 **Trust → Govern → Protect → Execute → Prove**
 
-- Versioned trust boundary
-- Authority and policy enforcement
-- Transaction state machine
+- Trust boundary and authority
+- Policy and transaction state machine
 - Secure execution
-- Post-quantum cryptography
-- Key lifecycle and protection
+- PQ cryptography and key lifecycle
 - AER-KEP-Q
 - Signed receipts and BLAKE3 integrity
 - Ledger and independent verification
-- HA / DR / enterprise deployment controls
+- HA / DR and enterprise deployment
 - Seven industry planes
 
 **Quantum/PQ security is inside Q Core. It is not a third business pillar.**
 
 ---
 
-## Real-Time Finding Lifecycle
+## Real-Time Operational Flow
 
 ```mermaid
 sequenceDiagram
-    participant X as External/Internal Sources
-    participant I as Vardhan Intelligence
+    participant X as Sources
+    participant I as Intelligence
     participant V as VerifiedFindingContract
-    participant T as Q Core Trust Boundary
-    participant A as Authority/Policy
+    participant T as Trust Boundary
+    participant A as Authority
     participant E as Transaction Engine
     participant C as Crypto Security
     participant L as Ledger
     participant R as Independent Verifier
 
-    X->>I: New asset / event / threat data
+    X->>I: Asset / event / threat data
     I->>I: Normalize + resolve + enrich
     I->>I: Correlate + verify + score
-    I->>V: Produce verified finding
-    V->>T: Submit contract
-    T->>T: Validate canonical 22-check boundary
+    I->>V: Evidence-backed finding
+    V->>T: Contract submission
+    T->>T: Canonical validation
     T->>A: Valid finding
-    A->>A: Evaluate policy + authority
-    A->>E: Authorize governed transaction
-    E->>C: Secure execution / PQ controls
+    A->>E: Authorized transaction
+    E->>C: Secure / PQ execution
     C-->>E: Cryptographic result
-    E->>L: Seal signed receipt
-    L->>R: Evidence / receipt
-    R-->>T: Independent verification result
+    E->>L: Signed receipt
+    L->>R: Evidence
+    R-->>T: Independent verification
 ```
 
-The upstream intelligence label is **never treated as sufficient trust by itself**. The Q Core boundary independently validates the contract before governed execution.
-
----
-
 ## Seven Industry Planes
-
-All seven industries use the same Q Core security substrate; each plane adds domain-specific assets, workflows, policies, controls, risk models, integrations, dashboards, reporting, and deployment templates.
 
 ```mermaid
 flowchart TB
@@ -122,29 +169,100 @@ flowchart TB
     Q --> R[Education / Research]
 ```
 
----
+Each plane uses the common Q Core substrate while adding domain-specific assets, threat models, workflows, policies, controls, risk models, integrations, dashboards, reporting and deployment templates.
 
-## Security & Cryptographic Layer
+## Cryptographic & Resilience Flow
 
 ```mermaid
 flowchart TB
-    A[Policy / Authority] --> B[Secure Transaction]
-    B --> C[Cryptographic Control]
-    C --> D[ML-KEM-1024]
-    C --> E[ML-DSA-87]
-    C --> F[Ed25519]
-    C --> G[BLAKE3]
-    C --> H[AER-KEP-Q]
-    B --> I[Signed Receipt]
-    I --> J[Ledger]
-    J --> K[Independent Verification]
+    P[Policy / Authority] --> X[Secure Transaction]
+    X --> K[Cryptographic Control]
+    K --> MK[ML-KEM-1024]
+    K --> MD[ML-DSA-87]
+    K --> ED[Ed25519]
+    K --> B[BLAKE3]
+    K --> A[AER-KEP-Q]
+    A --> E[Active Epoch]
+    E --> D[Exposure Detection]
+    D --> Q[Quarantine Exposed Epoch]
+    Q --> N[Fresh Authenticated Epoch]
+    N --> R[Reissue Pending Application Payloads]
+    X --> SR[Signed Receipt]
+    SR --> L[Ledger]
+    L --> IV[Independent Verification]
 ```
 
-AER-KEP-Q provides authenticated epochs, ML-KEM session establishment, transcript binding, replay protection, exposure detection, quarantine, fresh-epoch recovery, descriptor validation, and rollback protection.
+AER-KEP-Q is an engineered protocol candidate using established primitives. It does not claim retroactive protection for ciphertexts whose complete decryption state was already exposed, nor does the repository claim a newly invented primitive or completed peer-reviewed proof.
 
-It deliberately does **not** claim retroactive protection for ciphertexts whose complete decryption state was already exposed. That epoch is quarantined and new traffic moves to a fresh authenticated epoch.
+---
 
-AER-KEP-Q is an engineered protocol candidate built from established primitives; it is not presented as a newly invented primitive or completed peer-reviewed proof.
+## Roadmap Mind Map
+
+```mermaid
+mindmap
+  root((Vardhan Technologies))
+    Phase 0 Foundation
+      PQ Crypto
+      Trust Boundary
+      Receipts
+      Ledger
+      AER-KEP-Q
+      Durable Idempotency
+    Phase 1 Enterprise Control Plane
+      Tenancy
+      RBAC
+      Policies
+      APIs
+      Admin
+    Phase 2 Industry Framework
+      Banking
+      Healthcare
+      Government
+      Telecom
+      Energy
+      Insurance
+      Education
+    Phase 3 Security Operations
+      Monitoring
+      Exposure
+      Risk
+      Incidents
+      Remediation
+    Phase 4 Assurance
+      Evidence
+      Compliance Mapping
+      SBOM
+      Vulnerability Management
+    Phase 5 Integrations
+      IAM
+      SIEM
+      Cloud
+      Kubernetes
+      KMS / HSM
+      ITSM
+    Phase 6 Resilience
+      HA
+      DR
+      Failover
+      Backup
+      Multi-region
+      Zero-downtime
+    Phase 7 Independent Assurance
+      Pentest
+      Red Team
+      Crypto Review
+      Architecture Review
+      ISO 27001
+      SOC 2 Type II
+    Phase 8 Global Platform
+      Enterprise Pilots
+      Strategic Contracts
+      Global Expansion
+```
+
+Detailed roadmap: [`docs/VARDHAN_ROADMAP.md`](docs/VARDHAN_ROADMAP.md)
+
+Detailed architecture: [`docs/VARDHAN_ARCHITECTURE_REALTIME.md`](docs/VARDHAN_ARCHITECTURE_REALTIME.md)
 
 ---
 
@@ -157,113 +275,42 @@ flowchart LR
     CI --> S[Signed Release Artifact]
     S --> P[Production Deployment]
     P --> M[Runtime Monitoring]
-    M --> X[Incident / Exposure Detection]
+    M --> X[Exposure / Incident Detection]
     X --> Q[Governed Response]
     Q --> P
 ```
 
-Production claims require runtime evidence in addition to compilation. The repository validates Rust, Intelligence Plane, trust-boundary integration, Linux eBPF, supply chain, and release controls in CI; deployment-specific HSM/KMS, HA/DR, and external assurance remain separate concerns.
-
----
+Production claims require runtime evidence in addition to compilation. Deployment-specific HSM/KMS, HA/DR and external assurance remain separate gates.
 
 ## Repository Map
 
 ```text
 Vardhan Technologies
-│
 ├── backend/              Q Core Rust services + cryptographic substrate
 ├── intelligence_plane/   Vardhan Intelligence + evidence/verification
 ├── contracts/            Versioned platform contracts
 ├── sdks/                 TypeScript + Python SDKs
 ├── zk_engine/            Zero-knowledge engine
-├── runtime/              Short operational status/reports
+├── runtime/              Operational status and reports
 ├── docs/                 Architecture, assurance, roadmap, industry docs
 └── .github/              CI, security and release workflows
 ```
 
-Detailed visual architecture: [`docs/VARDHAN_ARCHITECTURE_REALTIME.md`](docs/VARDHAN_ARCHITECTURE_REALTIME.md)
-
-Product roadmap: [`docs/VARDHAN_ROADMAP.md`](docs/VARDHAN_ROADMAP.md)
-
----
-
-## Roadmap
-
-```mermaid
-gantt
-    title Vardhan Technologies Engineering → Assurance → Global Platform
-    dateFormat YYYY-MM-DD
-    axisFormat %b %Y
-    section Engineering
-    Foundation (Phase 0)       :done,p0,2026-01-01,2026-06-30
-    Enterprise Control Plane   :done,p1,2026-05-01,2026-07-31
-    Industry Framework         :done,p2,2026-06-01,2026-08-15
-    Continuous Security Ops    :done,p3,2026-06-15,2026-08-31
-    Compliance & Assurance Eng :done,p4,2026-07-01,2026-08-31
-    Enterprise Integrations    :done,p5,2026-07-15,2026-09-15
-    Resilience & Deployment    :done,p6,2026-08-01,2026-09-30
-    section Assurance
-    Independent Security Review :p7,2026-10-01,2026-12-31
-    section Commercial
-    Global Commercial Platform :p8,2027-01-01,2027-12-31
-```
-
-The dates above are planning visualization only, not delivery guarantees. See the roadmap document for evidence-backed status and gates.
-
----
-
 ## Validation
-
-### Rust
 
 ```bash
 cargo fmt --all -- --check
 cargo test --workspace
 cargo build --workspace --release
-```
-
-### Intelligence Plane
-
-```bash
-cd intelligence_plane
-npm install
-npx tsc -p tsconfig.xavira.json --noEmit
-npx tsx tests/trust_boundary.test.ts
-npx vitest run
-```
-
-### Security / Supply Chain
-
-```bash
 cargo audit
 cargo deny check advisories
 ```
 
-### Linux eBPF
-
-Kernel and userspace components are compiled together in CI. Production runtime configuration uses `EBPF_OBJECT_PATH` and `EBPF_INTERFACE`.
-
----
+For the Intelligence Plane, run its typecheck, trust-boundary tests and Vitest suite. Linux eBPF kernel/userspace compatibility is validated in CI.
 
 ## Runtime Truth
 
-`runtime/` is intentionally small:
-
-```text
-runtime/
-├── report.md
-├── status.md
-├── tests.md
-└── errors.md
-```
-
 CI status is authoritative. Documentation must not claim a workflow is green without a verified successful run.
-
----
-
-## Security Position
-
-Vardhan Q Core is security infrastructure and a cryptographic control plane—not a collection of unrelated algorithms. Security claims are bounded by implementation evidence, test evidence, deployment configuration, and independent assurance status.
 
 **Vardhan Technologies — BE DIFFERENT**
 
