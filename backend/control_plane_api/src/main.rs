@@ -1,7 +1,7 @@
 use auth_service::{AuthState, CredentialStore, RateLimiter, SessionStore};
 use control_plane_api::{serve, ControlPlaneState};
 use std::{env, net::SocketAddr, path::PathBuf, sync::Arc};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -18,7 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sessions = Arc::new(SessionStore::new());
     let auth = AuthState {
         credentials: Arc::new(credential_store),
-        sessions: sessions.clone(),
+        sessions,
         rate_limiter: Arc::new(RateLimiter::new()),
         ledger: None,
         identity: None,
@@ -26,6 +26,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         admin_token: None,
     };
 
+    // Cross-origin access is denied by default. Production deployments must explicitly
+    // provide the browser origin allowlist; same-origin deployments need no CORS rule.
     let cors = if let Ok(origins) = env::var("VARDHAN_ALLOWED_ORIGINS") {
         let origins: Vec<_> = origins
             .split(',')
@@ -33,8 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .collect();
         CorsLayer::new().allow_origins(origins)
     } else {
-        // No cross-origin browser access until an explicit production allowlist is configured.
-        CorsLayer::new().allow_origin(Any)
+        CorsLayer::new()
     };
 
     let addr: SocketAddr = env::var("VARDHAN_CONTROL_PLANE_ADDR")
