@@ -5,6 +5,9 @@ use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
 
+mod platform;
+pub use platform::*;
+
 #[derive(Error, Debug)]
 pub enum TenantError {
     #[error("Tenant ID '{0}' not found")]
@@ -20,7 +23,7 @@ pub struct TenantConfig {
     pub tenant_id: String,
     pub company_name: String,
     pub max_requests_per_sec: u64,
-    pub sla_tier: String, // "POC_PILOT", "ENTERPRISE_MASTER"
+    pub sla_tier: String,
 }
 
 pub struct TenantSession {
@@ -33,21 +36,11 @@ pub struct TenantManager {
 }
 
 impl TenantManager {
-    pub fn new() -> Self {
-        Self {
-            tenants: RwLock::new(HashMap::new()),
-        }
-    }
+    pub fn new() -> Self { Self { tenants: RwLock::new(HashMap::new()) } }
 
     pub async fn register_tenant(&self, config: TenantConfig) -> Result<(), TenantError> {
-        let identity = QuantumNodeIdentity::generate_node_identity()
-            .map_err(|_| TenantError::KeyInitializationFailed)?;
-
-        let session = TenantSession {
-            config: config.clone(),
-            identity: Arc::new(identity),
-        };
-
+        let identity = QuantumNodeIdentity::generate_node_identity().map_err(|_| TenantError::KeyInitializationFailed)?;
+        let session = TenantSession { config: config.clone(), identity: Arc::new(identity) };
         let mut lock = self.tenants.write().await;
         lock.insert(config.tenant_id.clone(), session);
         Ok(())
@@ -55,12 +48,22 @@ impl TenantManager {
 
     pub async fn get_tenant_session(&self, tenant_id: &str) -> Result<TenantSession, TenantError> {
         let lock = self.tenants.read().await;
-        let session = lock
-            .get(tenant_id)
-            .ok_or_else(|| TenantError::TenantNotFound(tenant_id.to_string()))?;
-        Ok(TenantSession {
-            config: session.config.clone(),
-            identity: session.identity.clone(),
-        })
+        let session = lock.get(tenant_id).ok_or_else(|| TenantError::TenantNotFound(tenant_id.to_string()))?;
+        Ok(TenantSession { config: session.config.clone(), identity: session.identity.clone() })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn tenant_manager_registers_and_retrieves_tenant() {
+        let manager = TenantManager::new();
+        manager.register_tenant(TenantConfig { tenant_id: "t1".into(), company_name: "Test".into(), max_requests_per_sec: 100, sla_tier: "ENTERPRISE_MASTER".into() }).await.unwrap();
+        assert_eq!(manager.get_tenant_session("t1").await.unwrap().config.company_name, "Test");
+    }
+}
+
+#[cfg(test)]
+mod platform_tests;
