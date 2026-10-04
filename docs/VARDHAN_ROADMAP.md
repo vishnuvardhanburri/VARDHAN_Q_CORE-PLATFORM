@@ -296,6 +296,46 @@ flowchart TB
     H --> I
 ```
 
+## Certification & Assurance Badges
+
+> **These are roadmap targets, not certifications currently held.** A badge becomes an official claim only after the corresponding certificate, attestation or independent assessment is actually issued.
+
+| Roadmap target | What it demonstrates | Gate |
+|---|---|---|
+| ![Cyber Essentials](https://img.shields.io/badge/Cyber_Essentials-TARGET-1f2937) | UK baseline cyber controls | Readiness + certification |
+| ![Cyber Essentials Plus](https://img.shields.io/badge/Cyber_Essentials_Plus-TARGET-1f2937) | Independently tested baseline controls | External technical assessment |
+| ![ISO 27001](https://img.shields.io/badge/ISO_27001-TARGET-1f2937) | Information security management system | Certification audit |
+| ![SOC 2 Type II](https://img.shields.io/badge/SOC_2_Type_II-TARGET-1f2937) | Operating effectiveness of security controls | Type II observation period + attestation |
+| ![PCI DSS](https://img.shields.io/badge/PCI_DSS-TARGET-1f2937) | Payment-card security where applicable | Applicable-scope assessment |
+| ![NIST](https://img.shields.io/badge/NIST_Control_Mapping-TARGET-1f2937) | Control framework alignment | Evidence-backed mapping |
+| ![Independent Pentest](https://img.shields.io/badge/Independent_Pentest-REQUIRED-1f2937) | External technical attack validation | Pentest + remediation + retest |
+| ![Red Team](https://img.shields.io/badge/Red_Team-REQUIRED-1f2937) | Adversarial end-to-end validation | Red-team exercise + remediation |
+| ![Crypto Review](https://img.shields.io/badge/Cryptographic_Review-REQUIRED-1f2937) | Independent cryptographic assessment | AER-KEP-Q + crypto architecture review |
+| ![HSM KMS](https://img.shields.io/badge/HSM_KMS_Assessment-REQUIRED-1f2937) | Production key-custody assurance | Deployment assessment |
+
+### Assurance sequence
+
+```mermaid
+flowchart LR
+    R[Readiness Assessment]
+    R --> CE[Cyber Essentials]
+    CE --> CEP[Cyber Essentials Plus]
+    R --> ISO[ISO 27001 Program]
+    ISO --> ISOC[ISO 27001 Certification]
+    R --> SOC[SOC 2 Controls]
+    SOC --> T1[Readiness / Type I where used]
+    T1 --> T2[SOC 2 Type II]
+    R --> PT[Independent Pentest]
+    R --> RT[Red Team]
+    R --> CR[AER-KEP-Q Crypto Review]
+    R --> HSM[HSM / KMS Assessment]
+    PT --> FIX[Remediation]
+    RT --> FIX
+    CR --> FIX
+    HSM --> FIX
+    FIX --> RETEST[Independent Retest]
+```
+
 Required external work includes:
 - independent architecture review
 - external penetration test
@@ -309,26 +349,7 @@ Required external work includes:
 - Cyber Essentials / Cyber Essentials Plus as applicable to UK operations
 - customer-specific assurance packages
 
-### Certification / Badge Rule
-
-**Target badges are not current certifications.** The repository may show the assurance roadmap, but official certification badges or claims should only be published after the relevant certificate, attestation or assessment is actually issued.
-
-Recommended sequence:
-
-```mermaid
-flowchart LR
-    R[Readiness Assessment] --> C1[Cyber Essentials]
-    C1 --> C2[Cyber Essentials Plus]
-    R --> ISO[ISO 27001 Program]
-    ISO --> ISOC[ISO 27001 Certification]
-    R --> SOC[SOC 2 Controls]
-    SOC --> T1[Type I / Readiness]
-    T1 --> T2[SOC 2 Type II]
-    R --> PT[Pentest + Red Team]
-    R --> CR[Cryptographic Review]
-```
-
-These assurance tracks overlap but are not substitutes for one another.
+These assurance tracks overlap but are **not substitutes for one another**. Certification does not by itself prove that every customer deployment is secure.
 
 ---
 
