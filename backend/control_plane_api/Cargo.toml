@@ -1,0 +1,18 @@
+[package]
+name = "control_plane_api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.8"
+auth_service = { path = "../auth_service" }
+enterprise_tenant = { path = "../enterprise_tenant" }
+saas_metering = { path = "../saas_metering" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sled = "0.34"
+thiserror = "1"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "request-id", "trace"] }
+tracing = "0.1"
+uuid = { version = "1", features = ["v4", "serde"] }
