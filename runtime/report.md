@@ -1,14 +1,31 @@
 # Runtime Report
 
-## Current State
-- Q-Core runtime and AER-KEP-Q integration are active on `main`.
-- Existing receipt, authority, ledger, and verification paths remain unchanged.
-- AER-KEP-Q provides authenticated epoch lifecycle, exposure quarantine, fresh epoch recovery, replay protection, and HA descriptor validation.
+## Current Architecture
 
-## Security Boundary
-- Full-state exposure does not provide retroactive protection for ciphertexts created under the exposed epoch.
-- Exposed epochs are quarantined and new traffic uses a fresh authenticated epoch.
-- AER-KEP-Q is a protocol candidate built on standardized ML-KEM and ML-DSA primitives; this repository does not claim a new cryptographic primitive.
+Vardhan Technologies operates as two integrated pillars:
 
-## Validation
-See `runtime/status.md` and `runtime/tests.md`.
+1. **Vardhan Intelligence** — external/internal intelligence, discovery, normalization, entity resolution, enrichment, correlation, verification, scoring, and `VerifiedFindingContract` delivery.
+2. **Vardhan Q Core** — trust boundary, authority, policy, transaction execution, PQ/quantum security, AER-KEP-Q, key lifecycle, receipts, ledger, and independent verification.
+
+The seven industry planes and PQ/quantum capabilities are Q Core capabilities, not separate products.
+
+## Runtime Security Boundary
+
+- Intelligence findings enter Q Core through the canonical `VerifiedFindingContract`.
+- Q Core validates the trust boundary before authority and transaction execution.
+- Existing receipt signing, authority, ledger, and independent-verification paths remain protected.
+- AER-KEP-Q authenticates epoch descriptors, quarantines exposed epochs, and establishes fresh epochs after exposure.
+
+## eBPF Runtime Contract
+
+- Kernel XDP program: `vardhan_firewall`.
+- Peer allowlist map: `ALLOWED_PEERS` with IPv4 `u32` keys and `u32` values.
+- Object path is configurable through `EBPF_OBJECT_PATH`.
+- Network interface is configurable through `EBPF_INTERFACE`.
+
+## Security Limits
+
+- Full-state exposure does not provide retroactive protection for ciphertexts created under an exposed epoch.
+- No complete QROM proof is claimed for AER-KEP-Q.
+- HSM/KMS persistence, deployment-specific HA transport, and independent external assurance remain deployment/assurance work.
+- CI success is build/test evidence, not a security certification.
