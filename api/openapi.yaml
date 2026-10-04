@@ -1,0 +1,232 @@
+openapi: 3.1.0
+info:
+  title: Vardhan Technologies Enterprise Control Plane API
+  version: 1.0.0
+  description: Canonical versioned API contract for Vardhan Technologies. Authentication, authorization and commercial entitlements are server-enforced.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Platform
+  - name: Organizations
+  - name: Billing
+  - name: Usage
+paths:
+  /platform/health:
+    get:
+      security: []
+      tags: [Platform]
+      responses:
+        '200':
+          description: Control-plane health
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Health' }
+  /catalog/plans:
+    get:
+      security: []
+      tags: [Billing]
+      responses:
+        '200':
+          description: Available commercial plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Plan' }
+  /me:
+    get:
+      tags: [Platform]
+      responses:
+        '200':
+          description: Authenticated principal
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [username, authenticated]
+                properties:
+                  username: { type: string }
+                  authenticated: { type: boolean }
+  /organizations:
+    get:
+      tags: [Organizations]
+      responses:
+        '200':
+          description: Organizations visible to the caller
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  organizations:
+                    type: array
+                    items: { $ref: '#/components/schemas/Organization' }
+    post:
+      tags: [Organizations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 120 }
+      responses:
+        '201':
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  organization: { $ref: '#/components/schemas/Organization' }
+                  subscription: { $ref: '#/components/schemas/Subscription' }
+  /organizations/{id}:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Organizations]
+      responses:
+        '200': { description: Organization }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /organizations/{id}/entitlements:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Billing]
+      responses:
+        '200':
+          description: Server-resolved entitlements
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [organization_id, plan, subscription_status, entitlements]
+                properties:
+                  organization_id: { type: string, format: uuid }
+                  plan: { $ref: '#/components/schemas/Plan' }
+                  subscription_status: { type: string }
+                  entitlements:
+                    type: array
+                    items: { type: string }
+  /organizations/{id}/subscription:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Billing]
+      responses:
+        '200':
+          description: Subscription state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subscription: { $ref: '#/components/schemas/Subscription' }
+    post:
+      tags: [Billing]
+      description: Requests a plan change. This never activates paid entitlements; verified billing events are required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan_id]
+              properties:
+                plan_id: { type: string }
+      responses:
+        '202': { description: Billing activation pending }
+  /organizations/{id}/usage:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Usage]
+      responses:
+        '200':
+          description: Current usage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  usage: { $ref: '#/components/schemas/Usage' }
+  /organizations/{id}/usage/record:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    post:
+      tags: [Usage]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bytes_processed, transactions]
+              properties:
+                bytes_processed: { type: integer, format: int64, minimum: 0 }
+                transactions: { type: integer, format: int64, minimum: 0 }
+      responses:
+        '200': { description: Usage recorded }
+components:
+  parameters:
+    OrganizationId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: session-token
+  responses:
+    Forbidden:
+      description: Organization access denied
+    NotFound:
+      description: Resource not found
+  schemas:
+    Health:
+      type: object
+      required: [service, status, mode, authentication, demo_authentication]
+      properties:
+        service: { type: string }
+        status: { type: string }
+        mode: { type: string }
+        authentication: { type: string }
+        demo_authentication: { type: boolean }
+    Plan:
+      type: object
+      required: [id, name, tier, contact_sales, entitlements]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        tier: { type: string }
+        contact_sales: { type: boolean }
+        entitlements:
+          type: array
+          items: { type: string }
+    Organization:
+      type: object
+      required: [id, name, owner, created_at_ms]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        owner: { type: string }
+        created_at_ms: { type: integer, format: int64 }
+    Subscription:
+      type: object
+      required: [organization_id, plan_id, status, provider]
+      properties:
+        organization_id: { type: string, format: uuid }
+        plan_id: { type: string }
+        status: { type: string }
+        provider: { type: string }
+        external_customer_id: { type: [string, 'null'] }
+        external_subscription_id: { type: [string, 'null'] }
+    Usage:
+      type: object
+      required: [organization_id, transactions, bytes_processed]
+      properties:
+        organization_id: { type: string, format: uuid }
+        transactions: { type: integer, format: int64 }
+        bytes_processed: { type: integer, format: int64 }
