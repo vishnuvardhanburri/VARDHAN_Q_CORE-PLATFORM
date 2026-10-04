@@ -1,9 +1,6 @@
 use crate::execution_plan::{ExecutionStep, ExecutionTarget};
 use std::collections::HashSet;
-use std::io::Write;
 use std::time::Duration;
-use tempfile::NamedTempFile;
-use tokio::process::Command;
 use tokio::time::timeout;
 
 pub struct IsolatedExecutor {
@@ -27,7 +24,7 @@ impl IsolatedExecutor {
         &self,
         step: &ExecutionStep,
         timeout_ms: u64,
-        max_memory_bytes: u64,
+        _max_memory_bytes: u64,
     ) -> Result<Vec<u8>, String> {
         let (cmd_name, mut cmd_args) = match &step.target {
             ExecutionTarget::RustTest {

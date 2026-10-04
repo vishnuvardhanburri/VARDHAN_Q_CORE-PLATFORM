@@ -6,14 +6,12 @@ use ha_cluster::{
     drain::{ActiveSessionCounter, DrainController},
     heartbeat::{start_heartbeat, HeartbeatConfig},
     raft::RaftNode,
-    CheckpointWriter, ClusterMembership, LedgerApplier, NodeId, RaftNetworkListener,
-    RaftPeerManager,
+    CheckpointWriter, ClusterMembership, NodeId, RaftNetworkListener, RaftPeerManager,
 };
 use pq_shield::IngressShield;
-use std::net::{SocketAddr, ToSocketAddrs};
+use std::net::ToSocketAddrs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tracing::warn;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

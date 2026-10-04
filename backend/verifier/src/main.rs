@@ -1,13 +1,11 @@
 use aes_gcm::{
-    Aes256Gcm, Key, Nonce,
+    Aes256Gcm,
     aead::{Aead, KeyInit, Payload},
 };
 use core_crypto::QuantumNodeIdentity;
 use proxy_engine::run_initiator;
 use proxy_engine::transport::AeadTransport;
-use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -24,7 +22,7 @@ async fn send_tampered_frame(
     stream: &mut TcpStream,
     key: &[u8; 32],
     session_id: &[u8; 32],
-    is_tx: bool,
+    _is_tx: bool,
     seq: u64,
     direction_marker: u8, // override
     version: &[u8; 4],    // override
@@ -65,14 +63,14 @@ async fn send_tampered_frame(
 
 async fn run_tests() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n--- [1] FUNCTIONAL TESTS ---");
-    let (mut stream1, session1) = connect_and_handshake().await?;
+    let (stream1, session1) = connect_and_handshake().await?;
     assert_ne!(
         session1.client_to_server_key, session1.server_to_client_key,
         "[FAIL] Tx/Rx keys are identical"
     );
     println!("[PASS] Directional session keys differ.");
 
-    let (mut stream2, session2) = connect_and_handshake().await?;
+    let (stream2, session2) = connect_and_handshake().await?;
     assert_ne!(
         session1.session_id, session2.session_id,
         "[FAIL] Session IDs are not unique"
@@ -112,7 +110,7 @@ async fn run_tests() -> Result<(), Box<dyn std::error::Error>> {
     println!("[PASS] 64 KiB boundary succeeds.");
 
     // Oversized frames
-    let (mut stream3, session3) = connect_and_handshake().await?;
+    let (stream3, session3) = connect_and_handshake().await?;
     let mut t3 = AeadTransport::new(
         stream3,
         *session3.client_to_server_key,
@@ -251,7 +249,7 @@ async fn run_tests() -> Result<(), Box<dyn std::error::Error>> {
     println!("[PASS] Wrong protocol version -> REJECT");
 
     // 7. Truncated frame
-    let (mut s, ctx) = connect_and_handshake().await?;
+    let (mut s, _ctx) = connect_and_handshake().await?;
     s.write_all(&[0x00, 0x00, 0x00, 0x10, 0x01, 0x02, 0x03])
         .await?; // declares 16 bytes, sends 3
     // We must wait slightly or just check if it gets closed. It will hang waiting for more bytes, but when we drop it drops.

@@ -157,7 +157,7 @@ impl CredentialStore {
 
         // Write both record and hash index atomically
         let id_bytes = id.as_bytes();
-        let hash_bytes = key_hash.as_bytes();
+        let _hash_bytes = key_hash.as_bytes();
         let record_key = Self::apikey_key(&id);
         let hash_key = Self::apikey_hash_key(&key_hash);
 

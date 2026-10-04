@@ -81,7 +81,7 @@ impl DrainController {
         );
 
         // Step 1: mark self as Draining in the membership table
-        if let Err(e) = self.membership.mark_draining(&self.self_node_id).await {
+        if let Err(_e) = self.membership.mark_draining(&self.self_node_id).await {
             warn!(err = %e, "Could not mark self Draining in membership (node may not be registered)");
         }
 

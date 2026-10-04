@@ -21,6 +21,24 @@ import type { Evidence } from './IntelligenceCase';
 
 export const FINDING_CONTRACT_VERSION = '1.0';
 
+// ── Canonical Constants ──────────────────────────────────────────────────────
+
+/**
+ * The only valid decision candidate for a verified finding crossing
+ * the Q-Core trust boundary.
+ */
+export const SEAL_VERIFIED_FINDING = 'SEAL_VERIFIED_FINDING';
+
+/**
+ * The canonical policy reference for all Vardhan Intelligence findings.
+ */
+export const VARDHAN_CORE_INTELLIGENCE_POLICY_V1 = 'VARDHAN_CORE_INTELLIGENCE_POLICY_V1';
+
+/**
+ * Required decision candidates for the TrustBoundaryValidator.
+ */
+export const REQUIRED_DECISION_CANDIDATES = [SEAL_VERIFIED_FINDING] as const;
+
 // ── Separated Identity Roles ──────────────────────────────────────────────────
 
 /** Identity of the Intelligence engine that produced this finding. */

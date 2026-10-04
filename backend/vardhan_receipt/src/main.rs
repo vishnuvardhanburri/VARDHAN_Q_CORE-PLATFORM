@@ -341,7 +341,7 @@ async fn main() {
                 std::process::exit(1);
             }
 
-            use vardhan_verifier::{VardhanVerifier, VerifiableReceipt, VerifierConfig};
+            use vardhan_verifier::{VardhanVerifier, VerifiableReceipt};
             let receipt: VerifiableReceipt = match serde_json::from_str(&input) {
                 Ok(r) => r,
                 Err(e) => {
@@ -402,7 +402,6 @@ fn print_error(status: &str, msg: &str) {
 pub fn process_transaction(
     request: QCoreValidationRequest,
 ) -> Result<VardhanSealedReceipt, (String, String)> {
-    use rand::rngs::OsRng;
     use std::time::{SystemTime, UNIX_EPOCH};
     use vardhan_transaction::{
         AuthorityResult, RejectionReason, TransactionKind, TransactionOutcome,
@@ -527,7 +526,7 @@ pub fn process_transaction(
         ml_dsa_87_key_id: mldsa_sig_result.key_identity.key_id,
     };
 
-    let mut receipt = VardhanSealedReceipt::build(
+    let receipt = VardhanSealedReceipt::build(
         tx.transaction_id.clone(),
         "SEALED".to_string(),
         request.contract.organization.organization_id,

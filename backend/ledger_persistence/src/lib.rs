@@ -1,7 +1,6 @@
 use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes256Gcm, Nonce};
 use argon2::Argon2;
-use core_crypto::QuantumNodeIdentity;
 use ledger_sync::{LedgerBlock, MerkleLedger};
 use rand::RngCore;
 use std::fs::{File, OpenOptions};

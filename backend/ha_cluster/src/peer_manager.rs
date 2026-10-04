@@ -5,11 +5,9 @@ use crate::raft::{
 use crate::{ClusterMembership, NodeId};
 use core_crypto::QuantumNodeIdentity;
 use proxy_engine::{run_initiator, transport::AeadTransport};
-use rand::Rng;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::sync::{mpsc, oneshot, RwLock};
@@ -139,7 +137,7 @@ impl RaftPeerManagerInner {
         let self_id = self.self_node_id.clone();
 
         tokio::spawn(async move {
-            if let Err(e) = run_peer_worker(addr, identity, to_id.clone(), self_id, rx).await {
+            if let Err(_e) = run_peer_worker(addr, identity, to_id.clone(), self_id, rx).await {
                 error!(peer = %to_id, err = %e, "Peer worker terminated fatally");
             }
         });
@@ -240,7 +238,7 @@ async fn run_peer_worker(
                 info!(peer = %to_id, "TCP connected");
                 s
             }
-            Ok(Err(e)) => {
+            Ok(Err(_e)) => {
                 error!(peer = %to_id, err = %e, "TCP connect failed, retrying in {:?}...", backoff);
                 tokio::time::sleep(backoff).await;
                 backoff = (backoff * 2).min(Duration::from_secs(30));
@@ -266,7 +264,7 @@ async fn run_peer_worker(
                 info!(peer = %to_id, "PQ handshake successful");
                 s
             }
-            Ok(Err(e)) => {
+            Ok(Err(_e)) => {
                 error!(peer = %to_id, err = %e, "PQ handshake failed, retrying in {:?}...", backoff);
                 tokio::time::sleep(backoff).await;
                 backoff = (backoff * 2).min(Duration::from_secs(30));
@@ -327,7 +325,7 @@ async fn run_peer_worker(
                     pending_responses.insert(request_id.clone(), response_tx);
 
                     info!(peer = %to_id, req_id = request_id: request_id.clone(), "Sending RPC frame");
-                    if let Err(e) = transport.write_frame(&env_bytes).await {
+                    if let Err(_e) = transport.write_frame(&env_bytes).await {
                         error!(peer = %to_id, err = %e, "Transport write failed");
                         for (_, tx) in pending_responses.drain() {
                             let _ = tx.send(Err("Connection lost".to_string()));
@@ -340,7 +338,7 @@ async fn run_peer_worker(
                         Ok(Some(frame)) => {
                             let resp_env: RaftRpcEnvelope = match serde_json::from_slice(&frame) {
                                 Ok(env) => env,
-                                Err(e) => {
+                                Err(_e) => {
                                     error!(peer = %to_id, err = %e, "Deserialize resp env failed");
                                     continue;
                                 }
@@ -360,7 +358,7 @@ async fn run_peer_worker(
                             }
                             break;
                         }
-                        Err(e) => {
+                        Err(_e) => {
                             error!(peer = %to_id, err = %e, "Transport read failed");
                             for (_, tx) in pending_responses.drain() {
                                 let _ = tx.send(Err("Connection lost".to_string()));

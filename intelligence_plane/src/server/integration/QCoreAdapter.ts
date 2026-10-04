@@ -2,6 +2,25 @@ import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
 
+// Import the full contract types from the canonical definition
+import { VerifiedFindingContract } from '../VerifiedFindingContract';
+
+// Re-export the full contract types so tests can import them from here
+export type {
+  VerifiedFindingContract,
+  IntelligenceIdentity,
+  OrganizationIdentity,
+  ResourceIdentity,
+  EvidenceRef,
+  ProvenanceChain,
+  AuthorizationContext,
+  FINDING_CONTRACT_VERSION,
+  computeEvidenceContentHash,
+  VARDHAN_CORE_INTELLIGENCE_POLICY_V1,
+  SEAL_VERIFIED_FINDING,
+  REQUIRED_DECISION_CANDIDATES,
+} from '../VerifiedFindingContract';
+
 // Receipt Model
 export interface DualSignature {
   ed25519_sig: string;
@@ -42,31 +61,17 @@ export interface QCoreReceipt {
 }
 
 export interface QCoreValidationRequest {
-  tenant_id: string;
-  finding_id: string;
-  evidence_package: {
-    evidence_id: string;
-    data_hash: string;
-    category: string;
-  };
-  decision_candidate: {
-    action_type: string;
-    policy_reference: string;
-  };
-  provenance: {
-    source_identity: string;
-    timestamp: string;
-    version: string;
-  };
+  contract: VerifiedFindingContract;
+  actor_workload_id: string;
 }
 
 export class QCoreAdapter {
   private binaryPath: string;
 
   constructor(binaryPath?: string) {
-    this.binaryPath = binaryPath || path.resolve(__dirname, '../../../../target/release/vardhan-receipt');
+    this.binaryPath = binaryPath || path.resolve(__dirname || process.cwd(), '../../../../target/release/vardhan-receipt');
     if (!fs.existsSync(this.binaryPath)) {
-        console.warn(`WARNING: Q-Core binary not found at ${this.binaryPath}. Ensure cargo build --release was run.`);
+      console.warn(`WARNING: Q-Core binary not found at ${this.binaryPath}. Ensure cargo build --release was run.`);
     }
   }
 
@@ -87,7 +92,7 @@ export class QCoreAdapter {
         stderrData += data.toString();
       });
 
-      process.on('close', (code) => {
+      process.on('close', () => {
         // Even on validation failures (like REJECTED_UNAUTHORIZED), the binary returns JSON with status.
         try {
           // Parse the last JSON object from stdout
@@ -104,8 +109,8 @@ export class QCoreAdapter {
             schema_version: '1.0',
             transaction_id: 'NONE',
             status: 'ERROR',
-            tenant_id: request.tenant_id,
-            subject_id: request.finding_id,
+            tenant_id: request.contract?.organization?.organization_id || 'UNKNOWN',
+            subject_id: request.contract?.finding_id || 'UNKNOWN',
             actor_identity: 'NONE',
             proposed_action: 'NONE',
             policy_id: 'NONE',

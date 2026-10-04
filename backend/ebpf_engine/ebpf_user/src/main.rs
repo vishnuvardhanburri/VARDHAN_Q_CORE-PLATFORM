@@ -1,6 +1,4 @@
-use anyhow::Context;
 use colored::*;
-use tokio::signal;
 
 #[cfg(not(target_os = "linux"))]
 #[tokio::main]

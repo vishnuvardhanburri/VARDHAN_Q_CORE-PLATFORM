@@ -1,9 +1,8 @@
-use crate::{ClusterNode, NodeId};
+use crate::NodeId;
 use audit_ledger::{
     Checkpoint, CheckpointWriter, CommittedCheckpoint, CHECKPOINT_CLIENT_ID, CHECKPOINT_VERSION,
 };
 use core_crypto::QuantumNodeIdentity;
-use futures::future::join_all;
 use futures::stream::{FuturesUnordered, StreamExt};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -15,7 +14,7 @@ use std::path::PathBuf;
 use std::pin::Pin;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tokio::time::{sleep, Duration, Instant};
+use tokio::time::{Duration, Instant};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LogEntry {
@@ -796,7 +795,7 @@ impl RaftNode {
 
         // Capture values needed for persistence, then release log write lock.
         let commit_idx_val = std::cmp::min(args.leader_commit, log.len() as u64);
-        let log_len_after = log.len();
+        let _log_len_after = log.len();
         let term_for_persist = *self.current_term.read().await;
         let voted_for_for_persist = self.voted_for.read().await.clone();
         let log_clone = log.clone();
@@ -918,7 +917,7 @@ impl RaftNode {
         let mut max_reply_term = cur_term;
         let needed_votes = (peers.len() + 1) / 2 + 1;
 
-        while let Some((peer, result)) = rpc_futures.next().await {
+        while let Some((_peer, result)) = rpc_futures.next().await {
             if let Ok(reply) = result {
                 info!(
                     candidate_id = %self.id,
@@ -981,7 +980,7 @@ impl RaftNode {
             // term) or changed our role. If state changed, abort the transition
             // to prevent split-brain.
             {
-                let mut term_guard = self.current_term.write().await;
+                let term_guard = self.current_term.write().await;
                 let mut role_guard = self.role.write().await;
                 if *term_guard != cur_term || *role_guard != RaftRole::Candidate {
                     drop(term_guard);
@@ -1238,7 +1237,7 @@ impl RaftNode {
                                     );
                                 }
                             }
-                            Err(e) => {
+                            Err(_e) => {
                                 warn!(
                                     node_id = %self.id,
                                     peer = %peer,
@@ -1362,7 +1361,7 @@ impl LedgerApplier {
 
             // Idempotency check
             {
-                let mut applied = self.applied_requests.write().await;
+                let applied = self.applied_requests.write().await;
                 if applied.contains_key(&(client_id.clone(), request_id.clone())) {
                     let mut la = self.raft_node.last_applied.write().await;
                     *la = index;
@@ -1408,7 +1407,7 @@ impl LedgerApplier {
                 *s += 1;
                 v
             };
-            let event_json = match serde_json::from_slice::<serde_json::Value>(&entry_data) {
+            let _event_json = match serde_json::from_slice::<serde_json::Value>(&entry_data) {
                 Ok(v) => serde_json::to_string(&v).unwrap_or_default(),
                 Err(_) => String::from_utf8_lossy(&entry_data).to_string(),
             };

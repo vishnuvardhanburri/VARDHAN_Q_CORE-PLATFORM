@@ -79,8 +79,11 @@
 | trustBoundaryCanonical.test.ts (vitest) | 4 | 4 | 0 |
 | persistentIdempotency.test.ts | 6 | 6 | 0 |
 | supplyChainSecurity.test.ts | 4 | 4 | 0 |
-| **Total vitest** | **14** | **14** | **0** |
-| **Total script tests** | **45** | **45** | **0** |
+| Total vitest | 14 | 14 | 0 |
+| Total script tests | 45 | 45 | 0 |
+| boundary.test.ts (vitest) | 5 | 5 | 0 |
+| Total vitest (incl boundary) | 19 | 19 | 0 |
+| Total script tests | 45 | 45 | 0 |
 
 ## Regression Rule
 

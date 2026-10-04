@@ -461,7 +461,7 @@ impl IngressShield {
                             "{{\"error\":\"not_leader_post_handshake\",\"role\":\"{}\",\"leader_id\":{:?}}}\n",
                             role_as_str(role), leader_hint
                         );
-                        let leader_json = match &leader_hint {
+                        let _leader_json = match &leader_hint {
                             Some(l) => format!("\"{}\"", l),
                             None => "null".to_string(),
                         };

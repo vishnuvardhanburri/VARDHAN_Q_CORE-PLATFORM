@@ -4,15 +4,10 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 use vardhan_state::authorization::ProvenanceTrail;
-use vardhan_state::id::{
-    CommitIndex, ConfigurationHash, ContentHash, DeltaId, EntityId, StateHash, TenantId,
-};
-use vardhan_state::objects::{
-    ScopedEntityId, StateSnapshot, StateTransitionRecord, StateTransitionStatus,
-};
+use vardhan_state::id::{ConfigurationHash, ContentHash, DeltaId, EntityId, StateHash, TenantId};
+use vardhan_state::objects::{ScopedEntityId, StateSnapshot, StateTransitionRecord};
 use vardhan_state::scope::TenantScoped;
-use vardhan_state::store::StateStore;
-use vardhan_state::time::{now_utc, TimeContext};
+use vardhan_state::time::TimeContext;
 use vardhan_state::transition::TransitionType;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

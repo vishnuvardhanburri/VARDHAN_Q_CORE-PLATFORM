@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use tracing::{error, info};
+use tracing::info;
 use uuid::Uuid;
 use vardhan_state::authorization::{
     ActionType, Authorization, AuthorizationInner, PolicyEvaluation, PolicyStatus,

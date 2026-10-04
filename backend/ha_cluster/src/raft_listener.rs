@@ -1,15 +1,10 @@
-use crate::raft::{
-    AppendEntriesArgs, AppendEntriesReply, RaftNode, RaftRpcEnvelope, RaftRpcType, RequestVoteArgs,
-    RequestVoteReply,
-};
+use crate::raft::{AppendEntriesArgs, RaftNode, RaftRpcEnvelope, RaftRpcType, RequestVoteArgs};
 use crate::NodeId;
 use core_crypto::QuantumNodeIdentity;
 use proxy_engine::run_responder;
 use proxy_engine::transport::AeadTransport;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::net::TcpListener;
-use tokio::net::TcpStream;
 
 /// Maps DSA-public-key BLAKE3 fingerprints → NodeId.
 ///
@@ -91,7 +86,7 @@ impl RaftNetworkListener {
         let conn_limit = Arc::new(tokio::sync::Semaphore::new(100));
 
         loop {
-            let (mut stream, peer_addr) = listener.accept().await?;
+            let (mut stream, _peer_addr) = listener.accept().await?;
             let identity = Arc::clone(&self.identity);
             let raft_node = Arc::clone(&self.raft_node);
             let peer_registry = Arc::clone(&self.peer_registry);
@@ -114,7 +109,7 @@ impl RaftNetworkListener {
                 // 1. PQ Handshake (Responder)
                 let session = match run_responder(&mut stream, &identity).await {
                     Ok(s) => s,
-                    Err(e) => {
+                    Err(_e) => {
                         warn!(peer = %peer_addr, err = %e, "PQ handshake failed");
                         return;
                     }
@@ -125,7 +120,7 @@ impl RaftNetworkListener {
                 // The fingerprint is pinned for the entire connection lifetime.
                 let peer_dsa_fingerprint =
                     QuantumNodeIdentity::hash_ledger_block(&session.peer_dsa_pub_bytes);
-                let peer_fingerprint_hex = hex::encode(peer_dsa_fingerprint);
+                let _peer_fingerprint_hex = hex::encode(peer_dsa_fingerprint);
 
                 // SEC-018 CORE: Validate that the authenticated fingerprint maps to a known NodeId.
                 //
@@ -202,7 +197,7 @@ impl RaftNetworkListener {
                                 &bytes
                             ) {
                                 Ok(env) => env,
-                                Err(e) => {
+                                Err(_e) => {
                                     error!(peer = %peer_addr, err = %e, "Malformed Raft envelope");
                                     break;
                                 }
@@ -278,7 +273,7 @@ impl RaftNetworkListener {
                                         &envelope.payload
                                     ) {
                                         Ok(a) => a,
-                                        Err(e) => {
+                                        Err(_e) => {
                                             error!(peer = %peer_addr, err = %e, "Malformed RequestVote args");
                                             break;
                                         }
@@ -286,7 +281,7 @@ impl RaftNetworkListener {
                                     let reply = raft_node.handle_request_vote(args).await;
                                     match serde_json::to_vec(&reply) {
                                         Ok(b) => b,
-                                        Err(e) => {
+                                        Err(_e) => {
                                             error!(peer = %peer_addr, err = %e, "Failed to serialize RequestVoteReply");
                                             break;
                                         }
@@ -299,7 +294,7 @@ impl RaftNetworkListener {
                                         &envelope.payload
                                     ) {
                                         Ok(a) => a,
-                                        Err(e) => {
+                                        Err(_e) => {
                                             error!(peer = %peer_addr, err = %e, "Malformed AppendEntries args");
                                             break;
                                         }
@@ -307,7 +302,7 @@ impl RaftNetworkListener {
                                     let reply = raft_node.handle_append_entries(args).await;
                                     match serde_json::to_vec(&reply) {
                                         Ok(b) => b,
-                                        Err(e) => {
+                                        Err(_e) => {
                                             error!(peer = %peer_addr, err = %e, "Failed to serialize AppendEntriesReply");
                                             break;
                                         }
@@ -326,14 +321,14 @@ impl RaftNetworkListener {
                             };
                             let reply_bytes = match serde_json::to_vec(&reply_env) {
                                 Ok(b) => b,
-                                Err(e) => {
+                                Err(_e) => {
                                     error!(peer = %peer_addr, err = %e, "Failed to serialize reply envelope");
                                     break;
                                 }
                             };
 
                             // Send Encrypted Response
-                            if let Err(e) = transport.write_frame(&reply_bytes).await {
+                            if let Err(_e) = transport.write_frame(&reply_bytes).await {
                                 warn!(peer = %peer_addr, err = %e, "Failed to send Raft reply");
                                 break;
                             }
@@ -342,7 +337,7 @@ impl RaftNetworkListener {
                             info!(peer = %peer_addr, "Peer closed Raft connection");
                             break;
                         }
-                        Err(e) => {
+                        Err(_e) => {
                             warn!(peer = %peer_addr, err = %e, "Transport error in Raft loop");
                             break;
                         }

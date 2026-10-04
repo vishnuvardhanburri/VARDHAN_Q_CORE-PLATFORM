@@ -9,6 +9,7 @@ dashboard/.next/
 dist/
 *.log
 cloudflared
+cargo_test_results.txt
 kek.bin
 kek_a.bin
 kek_b.bin
@@ -25,3 +26,10 @@ scripts/venv/
 data/
 "vardhan quantum frontend "
 reference/
+__pycache__/
+*.pyc
+*.pyo
+zk_engine/node_modules/
+zk_engine/.next/
+# Generated JS artifacts
+intelligence_plane/src/**/*.js

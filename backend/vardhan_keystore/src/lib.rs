@@ -199,7 +199,7 @@ impl VardhanKeystore {
 
         let (mldsa87_pub, mldsa87_sec) = mldsa_keypair();
 
-        let now_ms = std::time::SystemTime::now()
+        let _now_ms = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_millis() as u64;

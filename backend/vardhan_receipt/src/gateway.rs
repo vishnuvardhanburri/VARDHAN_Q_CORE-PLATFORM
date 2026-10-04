@@ -1,9 +1,8 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::post, Json, Router};
+use axum::{http::StatusCode, response::IntoResponse, routing::post, Json, Router};
 use serde_json::json;
 use std::net::SocketAddr;
-use std::sync::Arc;
 
-use crate::{process_transaction, QCoreValidationRequest, VardhanSealedReceipt};
+use crate::{process_transaction, QCoreValidationRequest};
 
 pub async fn start_server(port: u16) {
     let app = Router::new()

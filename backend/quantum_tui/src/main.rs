@@ -5,13 +5,13 @@ use crossterm::{
 };
 use ratatui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    text::{Line, Span},
+    text::Span,
     widgets::{Block, Borders, Gauge, List, ListItem, Paragraph, Sparkline, Wrap},
     Frame, Terminal,
 };
-use std::{error::Error, io, sync::Arc, time::Duration};
+use std::{error::Error, io, time::Duration};
 use tokio::sync::mpsc;
 
 #[derive(Clone, Debug)]

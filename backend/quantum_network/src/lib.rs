@@ -120,8 +120,8 @@ impl GossipEngine {
             }
             GossipMessage::AppendRequest {
                 session_id,
-                payload,
-                timestamp_ms,
+                payload: _,
+                timestamp_ms: _,
             } => {
                 if let Some(ref cluster) = self.cluster {
                     let nodes = cluster.healthy_peers().await;

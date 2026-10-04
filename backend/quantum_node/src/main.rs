@@ -6,12 +6,12 @@ use ledger_sync::{LedgerBlock, LedgerSyncChannel, MerkleLedger};
 use proxy_engine::{run_initiator, QuantumProxyListener};
 use quantum_network::{GossipEngine, GossipMessage, PeerRegistry};
 use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::signal;
 use tokio::sync::{broadcast, mpsc};
-use tracing::{error, info, warn};
+use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser, Debug)]
