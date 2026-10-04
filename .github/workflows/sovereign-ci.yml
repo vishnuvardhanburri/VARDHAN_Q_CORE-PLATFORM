@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
   quantum-core-build:
     name: Build Rust Quantum Core
@@ -17,7 +20,6 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev
       - name: Build Core
-        working-directory: ./backend
         run: cargo build --workspace --release
 
   zk-engine-build:
