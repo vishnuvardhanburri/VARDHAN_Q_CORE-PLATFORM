@@ -21,7 +21,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .cyan()
             .bold()
     );
-    println!("{}", "eBPF XDP requires Linux kernel — running in network simulation mode on macOS. All traffic permitted in dev mode.".yellow().bold());
+    println!("{}", "eBPF XDP requires Linux kernel — running in network simulation mode on this platform. All traffic permitted in dev mode.".yellow().bold());
     Ok(())
 }
 
@@ -57,7 +57,11 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let path = std::env::var("EBPF_OBJECT_PATH")
         .unwrap_or_else(|_| "/etc/vardhan/vardhan_firewall.o".to_string());
+    let interface = std::env::var("EBPF_INTERFACE")
+        .unwrap_or_else(|_| "eth0".to_string());
+
     println!("[eBPF] Loading XDP program from {}", path);
+    println!("[eBPF] Attaching XDP program to {}", interface);
 
     let mut bpf = Bpf::load_file(&path)?;
     let program: &mut Xdp = bpf
@@ -66,19 +70,21 @@ async fn main() -> Result<(), anyhow::Error> {
         .try_into()?;
     program.load()?;
     program
-        .attach("eth0", XdpFlags::default())
-        .context("failed to attach the XDP program with default flags - try changing XdpFlags::default() to XdpFlags::SKB_MODE")?;
+        .attach(&interface, XdpFlags::default())
+        .context("failed to attach the XDP program with default flags; use a deployment-specific XDP mode if required")?;
 
     println!("{}", "✓ Ring-0 Kernel Hook Active".green().bold());
 
     if let Ok(ips) = std::env::var("RAFT_PEER_IPS") {
         let mut allowed_peers: HashMap<_, u32, u32> =
             HashMap::try_from(bpf.map_mut("ALLOWED_PEERS").context("ALLOWED_PEERS map not found")?)?;
-        for ip_str in ips.split(',') {
+        for ip_str in ips.split(',').map(str::trim).filter(|s| !s.is_empty()) {
             if let Ok(ip) = ip_str.parse::<std::net::Ipv4Addr>() {
                 let ip_u32 = u32::from(ip);
                 allowed_peers.insert(ip_u32, 1, 0)?;
                 println!("[eBPF] Allowed Peer IP: {}", ip_str);
+            } else {
+                eprintln!("[eBPF] Ignoring invalid RAFT_PEER_IPS entry: {}", ip_str);
             }
         }
     }
