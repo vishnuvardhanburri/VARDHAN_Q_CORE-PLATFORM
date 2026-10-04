@@ -28,9 +28,9 @@ async fn main() -> Result<(), anyhow::Error> {
 #[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
+    use anyhow::Context;
     use aya::maps::HashMap;
     use aya::{
-        include_bytes_aligned,
         programs::{Xdp, XdpFlags},
         Bpf,
     };
@@ -59,19 +59,21 @@ async fn main() -> Result<(), anyhow::Error> {
         .unwrap_or_else(|_| "/etc/vardhan/vardhan_firewall.o".to_string());
     println!("[eBPF] Loading XDP program from {}", path);
 
-    // In production, we'd read from `path`. For CI, we can load a dummy or the real bytes.
     let mut bpf = Bpf::load_file(&path)?;
-    let program: &mut Xdp = bpf.program_mut("vardhan_firewall").unwrap().try_into()?;
+    let program: &mut Xdp = bpf
+        .program_mut("vardhan_firewall")
+        .context("vardhan_firewall XDP program not found in eBPF object")?
+        .try_into()?;
     program.load()?;
-    program.attach("eth0", XdpFlags::default())
+    program
+        .attach("eth0", XdpFlags::default())
         .context("failed to attach the XDP program with default flags - try changing XdpFlags::default() to XdpFlags::SKB_MODE")?;
 
     println!("{}", "✓ Ring-0 Kernel Hook Active".green().bold());
 
-    // Allow listed IPs
     if let Ok(ips) = std::env::var("RAFT_PEER_IPS") {
         let mut allowed_peers: HashMap<_, u32, u32> =
-            HashMap::try_from(bpf.map_mut("ALLOWED_PEERS").unwrap())?;
+            HashMap::try_from(bpf.map_mut("ALLOWED_PEERS").context("ALLOWED_PEERS map not found")?)?;
         for ip_str in ips.split(',') {
             if let Ok(ip) = ip_str.parse::<std::net::Ipv4Addr>() {
                 let ip_u32 = u32::from(ip);
@@ -81,7 +83,7 @@ async fn main() -> Result<(), anyhow::Error> {
         }
     }
 
-    signal::ctrl_c().await?;
+    tokio::signal::ctrl_c().await?;
     println!("Exiting...");
     Ok(())
 }
