@@ -2,7 +2,7 @@ name: Supply Chain Security (F-013)
 
 on:
   push:
-    branches: ["main", "fix/phase7-security-remediation"]
+    branches: ["main"]
   pull_request:
     branches: ["main"]
 
@@ -44,26 +44,20 @@ jobs:
 
       - name: Verify SBOM exists
         run: |
-          if [ ! -f bom.json ]; then
-            echo "FAIL: bom.json not found"
+          if [ ! -s bom.json ]; then
+            echo "FAIL: bom.json not found or empty"
             exit 1
           fi
           echo "PASS: bom.json exists"
 
       - name: Verify deny.toml exists
         run: |
-          if [ ! -f deny.toml ]; then
-            echo "FAIL: deny.toml not found"
-            exit 1
-          fi
+          test -f deny.toml || { echo "FAIL: deny.toml not found"; exit 1; }
           echo "PASS: deny.toml exists"
 
       - name: Verify .cargo/audit.toml exists
         run: |
-          if [ ! -f .cargo/audit.toml ]; then
-            echo "FAIL: .cargo/audit.toml not found"
-            exit 1
-          fi
+          test -f .cargo/audit.toml || { echo "FAIL: .cargo/audit.toml not found"; exit 1; }
           echo "PASS: .cargo/audit.toml exists"
 
       - name: Secret scanning (trufflehog)
@@ -76,4 +70,4 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Build workspace
-        run: cargo build --workspace
+        run: cargo build --workspace --release
