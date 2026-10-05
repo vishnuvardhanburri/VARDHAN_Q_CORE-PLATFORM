@@ -84,11 +84,11 @@ pub async fn billing_webhook(State(state): State<ControlPlaneState>, headers: He
     let verified_key = verified_key(&event.organization_id);
     let transaction = state.db.transaction(|tx| {
         if tx.get(&event_key)?.is_some() {
-            return Ok(false);
+            return Ok::<bool, sled::transaction::ConflictableTransactionError>(false);
         }
         tx.insert(event_key.as_slice(), timestamp_bytes.as_slice())?;
         tx.insert(verified_key.as_slice(), verified_bytes.as_slice())?;
-        Ok(true)
+        Ok::<bool, sled::transaction::ConflictableTransactionError>(true)
     });
     match transaction {
         Ok(false) => (StatusCode::OK, Json(json!({ "accepted": true, "duplicate": true, "event_id": event.event_id }))).into_response(),
