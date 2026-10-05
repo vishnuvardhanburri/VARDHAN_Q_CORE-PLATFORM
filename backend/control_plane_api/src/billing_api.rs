@@ -1,10 +1,9 @@
 use crate::{is_member, key, plan, ControlPlaneState, Subscription};
 use crate::billing::{event_key, now_secs, verify_timestamp, BillingEvent, BillingProviderAdapter, HmacBillingProvider, SubscriptionState};
-use axum::{body::Bytes, extract::{Path, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, Extension, Json};
+use axum::{body::Bytes, extract::{Path, State}, http::{HeaderMap, StatusCode}, response::{IntoResponse, Response}, Extension, Json};
 use auth_service::middleware::AuthenticatedUser;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sled::transaction::Transactional;
 
 const VERIFIED_PREFIX: &[u8] = b"billing:verified:";
 
@@ -21,11 +20,11 @@ pub struct VerifiedBillingState {
 
 fn verified_key(org_id: &str) -> Vec<u8> { key(VERIFIED_PREFIX, org_id) }
 
-fn json_error(status: StatusCode, message: &str) -> impl IntoResponse { (status, Json(json!({ "error": message }))) }
+fn json_error(status: StatusCode, message: &str) -> Response { (status, Json(json!({ "error": message }))).into_response() }
 
 pub async fn verified_entitlements(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> impl IntoResponse {
     if !is_member(&state.db, &id, &user.username).unwrap_or(false) {
-        return json_error(StatusCode::FORBIDDEN, "Organization access denied.").into_response();
+        return json_error(StatusCode::FORBIDDEN, "Organization access denied.");
     }
     let Some(verified) = state.db.get(verified_key(&id)).ok().flatten().and_then(|v| serde_json::from_slice::<VerifiedBillingState>(&v).ok()) else {
         return Json(json!({ "organization_id": id, "subscription_status": "unverified", "entitlements": [], "activation": "requires_verified_billing_event" })).into_response();
@@ -34,7 +33,7 @@ pub async fn verified_entitlements(State(state): State<ControlPlaneState>, Exten
         return Json(json!({ "organization_id": id, "subscription_status": verified.status, "entitlements": [], "activation": "suspended" })).into_response();
     }
     let Some(p) = plan(&verified.effective_plan_id) else {
-        return json_error(StatusCode::INTERNAL_SERVER_ERROR, "Unknown verified plan.").into_response();
+        return json_error(StatusCode::INTERNAL_SERVER_ERROR, "Unknown verified plan.");
     };
     Json(json!({ "organization_id": id, "plan": p, "subscription_status": verified.status, "provider": verified.provider, "entitlements": p.entitlements, "activation": "verified" })).into_response()
 }
@@ -87,15 +86,15 @@ pub async fn billing_webhook(State(state): State<ControlPlaneState>, headers: He
         if tx.get(&event_key)?.is_some() {
             return Ok(false);
         }
-        tx.insert(&event_key, timestamp_bytes.as_slice())?;
-        tx.insert(&verified_key, verified_bytes.as_slice())?;
+        tx.insert(event_key.as_slice(), timestamp_bytes.as_slice())?;
+        tx.insert(verified_key.as_slice(), verified_bytes.as_slice())?;
         Ok(true)
     });
     match transaction {
-        Ok(false) => (StatusCode::OK, Json(json!({ "accepted": true, "duplicate": true, "event_id": event.event_id }))),
+        Ok(false) => (StatusCode::OK, Json(json!({ "accepted": true, "duplicate": true, "event_id": event.event_id }))).into_response(),
         Ok(true) => {
             let _ = state.db.flush();
-            (StatusCode::OK, Json(json!({ "accepted": true, "duplicate": false, "event_id": event.event_id })))
+            (StatusCode::OK, Json(json!({ "accepted": true, "duplicate": false, "event_id": event.event_id }))).into_response()
         }
         Err(_) => json_error(StatusCode::INTERNAL_SERVER_ERROR, "Billing state transaction failed."),
     }
