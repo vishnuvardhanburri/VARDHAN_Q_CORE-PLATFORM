@@ -1,4 +1,11 @@
-use crate::{is_member, member_role, qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState}, security_operations::{SecurityFindingInput, SecurityOperationsStore}, ControlPlaneState};
+use crate::{
+    continuous_operations::{ContinuousOperationsStore, MonitoringSignalInput, RemediationInput},
+    is_member,
+    member_role,
+    qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState},
+    security_operations::{SecurityFindingInput, SecurityOperationsStore},
+    ControlPlaneState,
+};
 use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Extension, Json};
 use auth_service::AuthenticatedUser;
 use serde::Deserialize;
@@ -47,26 +54,13 @@ pub struct ReceiptTelemetryInput {
 
 pub async fn security_posture(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
-    let security = SecurityOperationsStore::new(state.db.clone());
-    let findings = security.findings(&id).unwrap_or_default();
-    let incidents = security.incidents(&id).unwrap_or_default();
-    let telemetry = QCoreTelemetryStore::new(state.db.clone());
-    let transactions = telemetry.transactions(&id).unwrap_or_default();
-    let receipts = telemetry.receipts(&id).unwrap_or_default();
-    let mut by_severity = serde_json::Map::new();
-    for level in ["critical", "high", "medium", "low", "info"] {
-        by_severity.insert(level.to_string(), json!(findings.iter().filter(|f| f.severity == level).count()));
+    match crate::continuous_operations::build_snapshot(&state, &id) {
+        Ok(snapshot) => Json(snapshot).into_response(),
+        Err(error) => (
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"status":"unavailable","error":error.to_string()})),
+        ).into_response(),
     }
-    Json(json!({
-        "organization_id": id,
-        "status": "operational",
-        "data_state": if findings.is_empty() && incidents.is_empty() && transactions.is_empty() && receipts.is_empty() { "not_populated" } else { "populated" },
-        "findings": {"total": findings.len(), "by_severity": by_severity},
-        "risk": {"critical": findings.iter().filter(|f| f.risk_band == "critical").count(), "high": findings.iter().filter(|f| f.risk_band == "high").count(), "medium": findings.iter().filter(|f| f.risk_band == "medium").count(), "low": findings.iter().filter(|f| f.risk_band == "low").count(), "info": findings.iter().filter(|f| f.risk_band == "info").count()},
-        "incidents": {"open": incidents.iter().filter(|i| i.status == "open").count(), "total": incidents.len()},
-        "crypto_posture": {"status": "available", "source": "control-plane"},
-        "q_core": {"transactions": transactions.len(), "receipts": receipts.len()}
-    })).into_response()
 }
 
 pub async fn findings(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
@@ -78,8 +72,73 @@ pub async fn findings(State(state): State<ControlPlaneState>, Extension(user): E
 pub async fn ingest_finding(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>, Json(input): Json<SecurityFindingInput>) -> Response {
     if !can_operate(&state, &id, &user) { return denied(); }
     match SecurityOperationsStore::new(state.db.clone()).record_finding(&id, &input) {
-        Ok(finding) => (axum::http::StatusCode::OK, Json(json!({"status":"accepted","finding":finding}))).into_response(),
-        Err(err) => (axum::http::StatusCode::BAD_REQUEST, Json(json!({"status":"rejected","error":err.to_string()}))).into_response(),
+        Ok(finding) => {
+            let ops = ContinuousOperationsStore::new(state.db.clone());
+            if finding.risk_score >= 70 {
+                let signal = MonitoringSignalInput {
+                    signal_id: format!("finding:{}", finding.finding_id),
+                    source: "intelligence".into(),
+                    severity: finding.severity.clone(),
+                    title: format!("{}-risk security finding", finding.risk_band),
+                    message: format!(
+                        "Finding {} is linked to verified receipt {}.",
+                        finding.finding_id, finding.receipt_id
+                    ),
+                    evidence_refs: finding.evidence_refs.clone(),
+                    correlation_id: Some(finding.receipt_id.clone()),
+                    observed_at_ms: finding.updated_at_ms,
+                };
+                if let Err(error) = ops.record_monitoring_signal(&id, &signal) {
+                    return (
+                        axum::http::StatusCode::SERVICE_UNAVAILABLE,
+                        Json(json!({"status":"unavailable","error":error.to_string()})),
+                    ).into_response();
+                }
+            }
+
+            let remediation = if finding.risk_score >= 90 {
+                SecurityOperationsStore::new(state.db.clone())
+                    .incidents(&id)
+                    .ok()
+                    .and_then(|items| {
+                        items.into_iter().find(|item| {
+                            item.finding_ids.iter().any(|fid| fid == &finding.finding_id)
+                        })
+                    })
+                    .and_then(|incident| {
+                        ops.propose_remediation(
+                            &id,
+                            &RemediationInput {
+                                action: "ACKNOWLEDGE_INCIDENT".into(),
+                                finding_id: Some(finding.finding_id.clone()),
+                                incident_id: Some(incident.incident_id),
+                                rationale: "Critical risk requires explicit operator acknowledgement before governed remediation execution.".into(),
+                            },
+                            &user.username,
+                            finding.updated_at_ms,
+                        ).ok()
+                    })
+            } else {
+                None
+            };
+
+            (
+                axum::http::StatusCode::OK,
+                Json(json!({
+                    "status":"accepted",
+                    "finding":finding,
+                    "operations":{
+                        "alert_created": finding.risk_score >= 70,
+                        "remediation_proposed": remediation.is_some()
+                    },
+                    "remediation": remediation
+                })),
+            ).into_response()
+        },
+        Err(err) => (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(json!({"status":"rejected","error":err.to_string()})),
+        ).into_response(),
     }
 }
 

@@ -25,6 +25,7 @@ pub mod receipt_key_registry;
 pub mod receipt_transport;
 pub mod receipt_verification;
 pub mod saml_service;
+pub mod continuous_operations;
 pub mod webauthn_api;
 
 const ORG_PREFIX: &[u8] = b"org:";
@@ -76,6 +77,17 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
         .route("/api/v1/organizations/{id}/usage", get(usage))
         .route("/api/v1/organizations/{id}/usage/record", post(record_usage))
         .route("/api/v1/organizations/{id}/security/posture", get(operations_api::security_posture))
+        .route("/api/v1/organizations/{id}/security/operations", get(continuous_operations::operations))
+        .route("/api/v1/organizations/{id}/security/executive-report", get(continuous_operations::executive_report))
+        .route("/api/v1/organizations/{id}/security/alerts", get(continuous_operations::alerts).post(continuous_operations::ingest_monitoring_signal))
+        .route("/api/v1/organizations/{id}/security/alerts/{alert_id}", post(continuous_operations::transition_alert))
+        .route("/api/v1/organizations/{id}/security/policy-baseline", post(continuous_operations::baseline_policy))
+        .route("/api/v1/organizations/{id}/security/policy-observations", post(continuous_operations::observe_policy))
+        .route("/api/v1/organizations/{id}/security/policy-drift", get(continuous_operations::policy_drift))
+        .route("/api/v1/organizations/{id}/security/remediations", get(continuous_operations::remediations).post(continuous_operations::propose_remediation))
+        .route("/api/v1/organizations/{id}/security/remediations/{remediation_id}", post(continuous_operations::transition_remediation))
+        .route("/api/v1/organizations/{id}/security/crypto-posture", get(continuous_operations::crypto_posture))
+        .route("/api/v1/organizations/{id}/security/audit", get(continuous_operations::audit))
         .route("/api/v1/organizations/{id}/findings", get(operations_api::findings).post(operations_api::ingest_finding))
         .route("/api/v1/organizations/{id}/incidents", get(operations_api::incidents).post(operations_api::update_incident))
         .route("/api/v1/organizations/{id}/transactions", get(operations_api::transactions).post(operations_api::ingest_transaction))
