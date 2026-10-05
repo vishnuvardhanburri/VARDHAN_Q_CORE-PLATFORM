@@ -54,16 +54,22 @@ impl ScimProvisioner {
             return Err(PlatformError::InvalidState("SCIM identity fields required".into()));
         }
         let existing = self.control_plane.users.lock().unwrap().get(&user.external_id).cloned();
-        if let Some(existing) = existing {
+        if existing.is_some() {
             let elsewhere = self.control_plane.roles.lock().unwrap().keys().any(|(t, uid)| uid == &user.external_id && t != tenant_id);
             if elsewhere { return Err(PlatformError::Forbidden); }
             let mut users = self.control_plane.users.lock().unwrap();
             let stored = users.get_mut(&user.external_id).ok_or_else(|| PlatformError::UserNotFound(user.external_id.clone()))?;
             stored.email = user.user_name.clone();
-            stored.enabled = user.active && existing.enabled;
+            stored.enabled = user.active;
+            if user.active && !self.control_plane.roles.lock().unwrap().keys().any(|(t, uid)| t == tenant_id && uid == &user.external_id) {
+                drop(users);
+                self.control_plane.assign_role(tenant_id, &user.external_id, Role::Viewer)?;
+            }
             return Ok(());
         }
-        self.control_plane.create_user(UserSpec { id: user.external_id.clone(), email: user.user_name.clone(), enabled: user.active })
+        self.control_plane.create_user(UserSpec { id: user.external_id.clone(), email: user.user_name.clone(), enabled: user.active })?;
+        if user.active { self.control_plane.assign_role(tenant_id, &user.external_id, Role::Viewer)?; }
+        Ok(())
     }
 
     pub fn assign_group_role(&self, tenant_id: &str, user_id: &str, group: &str) -> Result<(), PlatformError> {
