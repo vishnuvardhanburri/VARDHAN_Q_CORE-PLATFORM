@@ -1,6 +1,10 @@
-use crate::{is_member, qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState}, ControlPlaneState};
+#[path = "qcore_telemetry.rs"]
+mod qcore_telemetry;
+
+use crate::{is_member, ControlPlaneState};
 use axum::{extract::{Path, State}, response::IntoResponse, Extension, Json};
 use auth_service::middleware::AuthenticatedUser;
+use qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState};
 use serde::Deserialize;
 use serde_json::json;
 
@@ -64,19 +68,30 @@ pub async fn transactions(State(state): State<ControlPlaneState>, Extension(user
     let store = QCoreTelemetryStore::new(state.db.clone());
     let items = store.transactions(&id).unwrap_or_default();
     let receipts = store.receipts(&id).unwrap_or_default();
-    Json(json!({ "organization_id": id, "items": items, "total": items.len(), "receipts": receipts, "data_state": if items.is_empty() { "not_populated" } else { "populated" }, "next_cursor": null, "trust_boundary": "server_enforced", "receipt_authentication": "platform_crypto_path" }))
+    let total = items.len();
+    Json(json!({ "organization_id": id, "items": items, "total": total, "receipts": receipts, "data_state": if total == 0 { "not_populated" } else { "populated" }, "next_cursor": null, "trust_boundary": "server_enforced", "receipt_authentication": "platform_crypto_path" }))
 }
 
-/// Authenticated service-facing transaction telemetry ingestion boundary.
-/// The organization/tenant scope is enforced before durable persistence.
+/// Authenticated transaction telemetry ingestion boundary.
+/// Tenant/organization scope is checked before durable persistence.
 pub async fn ingest_transaction(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>, Json(input): Json<TransactionTelemetryInput>) -> impl IntoResponse {
     if !member(&state, &id, &user) { return denied(); }
     let store = QCoreTelemetryStore::new(state.db.clone());
     let telemetry = QCoreTransactionTelemetry {
-        organization_id: id.clone(), transaction_id: input.transaction_id, tenant_id: input.tenant_id,
-        state: input.state, kind: input.kind, subject_id: input.subject_id, proposed_action: input.proposed_action,
-        policy_id: input.policy_id, policy_version: input.policy_version, correlation_id: input.correlation_id,
-        receipt_id: input.receipt_id, outcome_code: input.outcome_code, created_at_ms: input.created_at_ms, updated_at_ms: input.updated_at_ms,
+        organization_id: id,
+        transaction_id: input.transaction_id,
+        tenant_id: input.tenant_id,
+        state: input.state,
+        kind: input.kind,
+        subject_id: input.subject_id,
+        proposed_action: input.proposed_action,
+        policy_id: input.policy_id,
+        policy_version: input.policy_version,
+        correlation_id: input.correlation_id,
+        receipt_id: input.receipt_id,
+        outcome_code: input.outcome_code,
+        created_at_ms: input.created_at_ms,
+        updated_at_ms: input.updated_at_ms,
     };
     match store.record_transaction(&telemetry) {
         Ok(()) => Json(json!({"status":"accepted","transaction_id":telemetry.transaction_id,"data_state":"populated"})).into_response(),
@@ -84,14 +99,26 @@ pub async fn ingest_transaction(State(state): State<ControlPlaneState>, Extensio
     }
 }
 
+/// Authenticated receipt telemetry ingestion boundary.
+/// `verification` is explicit; this endpoint never upgrades an unverified
+/// receipt to Verified on its own.
 pub async fn ingest_receipt(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>, Json(input): Json<ReceiptTelemetryInput>) -> impl IntoResponse {
     if !member(&state, &id, &user) { return denied(); }
     let store = QCoreTelemetryStore::new(state.db.clone());
     let telemetry = QCoreReceiptTelemetry {
-        organization_id: id.clone(), receipt_id: input.receipt_id, transaction_id: input.transaction_id,
-        tenant_id: input.tenant_id, status: input.status, decision: input.decision, outcome_code: input.outcome_code,
-        policy_id: input.policy_id, policy_version: input.policy_version, ledger_commit_index: input.ledger_commit_index,
-        timestamp_ms: input.timestamp_ms, payload_hash: input.payload_hash, issuer_key_fingerprint: input.issuer_key_fingerprint,
+        organization_id: id,
+        receipt_id: input.receipt_id,
+        transaction_id: input.transaction_id,
+        tenant_id: input.tenant_id,
+        status: input.status,
+        decision: input.decision,
+        outcome_code: input.outcome_code,
+        policy_id: input.policy_id,
+        policy_version: input.policy_version,
+        ledger_commit_index: input.ledger_commit_index,
+        timestamp_ms: input.timestamp_ms,
+        payload_hash: input.payload_hash,
+        issuer_key_fingerprint: input.issuer_key_fingerprint,
         verification: input.verification,
     };
     match store.record_receipt(&telemetry) {
