@@ -24,7 +24,7 @@ const REQUIRED_QCORE_SERVICES: [&str; 8] = [
     "aer_kep_q",
 ];
 
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Clone, Error, PartialEq, Eq)]
 pub enum IndustryContractError {
     #[error("invalid industry contract JSON for {industry}: {message}")]
     InvalidJson { industry: String, message: String },
