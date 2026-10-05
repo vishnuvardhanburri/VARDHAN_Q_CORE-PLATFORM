@@ -26,12 +26,8 @@ jobs:
         run: cargo deny check advisories
       - name: Repository secret scan
         run: |
-          ! grep -RInE 'AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----|' \
-            --exclude-dir=.git \
-            --exclude='package-lock.json' \
-            --exclude-dir=node_modules \
-            --exclude-dir=target \
-            --exclude='zk_engine/.gitleaks.toml' \
-            --exclude='zk_engine/packages/keys/test/keypair.test.ts' \
-            --exclude='zk_engine/packages/keys/test/envelope.test.ts' \
-            .
+          ! git grep -nE 'AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----' -- \
+            . \
+            ':(exclude)zk_engine/.gitleaks.toml' \
+            ':(exclude)zk_engine/packages/keys/test/keypair.test.ts' \
+            ':(exclude)zk_engine/packages/keys/test/envelope.test.ts'
