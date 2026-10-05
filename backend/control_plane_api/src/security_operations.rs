@@ -250,7 +250,7 @@ fn incident_id(org: &str, finding_id: &str) -> String {
     format!("INC-{}", &digest[..24])
 }
 
-fn highest_severity(a: &str, b: &str) -> &str {
+fn highest_severity<'a>(a: &'a str, b: &'a str) -> &'a str {
     fn rank(s: &str) -> u8 {
         match s {
             "critical" => 5,
