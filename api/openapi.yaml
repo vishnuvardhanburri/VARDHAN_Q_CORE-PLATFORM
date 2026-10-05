@@ -166,7 +166,6 @@ paths:
     post:
       tags: [Security]
       parameters:
-        - { $ref: '#/components/parameters/OrganizationId' }
         - { $ref: '#/components/parameters/IdempotencyKey' }
       requestBody:
         required: true
