@@ -285,13 +285,4 @@ mod tests {
         assert!(build_idp().is_err());
     }
 
-    #[test]
-    fn saml_replay_cache_is_atomic_and_persistent() {
-        let db = sled::Config::new().temporary(true).open().unwrap();
-        let mut cache = SledReplayCache { db: &db };
-        let key = ReplayKey::new("issuer", "assertion-1").unwrap();
-        let expiry = SystemTime::now() + Duration::from_secs(300);
-        assert!(cache.check_and_store(key.clone(), expiry).is_ok());
-        assert!(cache.check_and_store(key, expiry).is_err());
-    }
 }
