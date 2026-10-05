@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "industry": "telecom",
+  "name": "Telecommunications",
+  "compliance": ["SOC 2", "ISO 27001", "GDPR", "ePrivacy"],
+  "assets": ["5g_core", "ran", "ss7_gateway", "subscriber_data", "network_management", "interconnect_service"],
+  "threats": ["ss7_exploitation", "5g_core_compromise", "sim_swap", "subscriber_data_exposure", "network_supply_chain", "credential_theft"],
+  "risk": {"factors": ["service_availability", "subscriber_impact", "privacy_impact", "network_integrity", "regulatory_exposure"], "weights": {"service_availability": 5, "subscriber_impact": 5, "privacy_impact": 4, "network_integrity": 5, "regulatory_exposure": 4}},
+  "policies": ["network_integrity", "subscriber_privacy", "interconnect_trust", "privileged_network_access", "key_lifecycle"],
+  "workflows": ["5g_exposure_scan", "ss7_exposure_review", "sim_swap_risk_review", "network_integrity_check", "interconnect_vendor_review"],
+  "controls": ["network_segmentation", "strong_identity", "device_attestation", "immutable_audit", "hsm_key_protection", "change_authorization"],
+  "integrations": ["iam", "siem", "network_management", "fraud_engine", "itsm", "hsm_kms"],
+  "deployment": {"modes": ["managed", "private_cloud", "carrier_core"], "requires_hsm_for_private_keys": true, "telemetry": "tenant_bound_qcore"},
+  "qcore_services": ["trust_boundary", "authority_policy", "transaction_state", "signed_receipt", "audit_ledger", "independent_verification", "pq_crypto", "aer_kep_q"]
+}
