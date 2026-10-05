@@ -1,4 +1,5 @@
 use super::*;
+use std::sync::Arc;
 
 #[test]
 fn control_plane_enforces_tenant_scoped_rbac_and_project_membership() {
@@ -85,7 +86,7 @@ fn role_revocation_removes_effective_permission() {
 
 #[test]
 fn scim_provisioning_is_idempotent_and_deprovisioning_revokes_access() {
-    let cp = ControlPlane::new();
+    let cp = Arc::new(ControlPlane::new());
     cp.create_tenant(TenantSpec::new("t1", "Tenant", SecurityLevel::Enterprise)).unwrap();
     let scim = ScimProvisioner::new(cp.clone());
     let user = ScimUser::new("scim-1", "user@example.com");
@@ -99,7 +100,7 @@ fn scim_provisioning_is_idempotent_and_deprovisioning_revokes_access() {
 
 #[test]
 fn scim_cross_tenant_role_assignment_is_rejected() {
-    let cp = ControlPlane::new();
+    let cp = Arc::new(ControlPlane::new());
     cp.create_tenant(TenantSpec::new("t1", "Tenant 1", SecurityLevel::Enterprise)).unwrap();
     cp.create_tenant(TenantSpec::new("t2", "Tenant 2", SecurityLevel::Enterprise)).unwrap();
     let scim = ScimProvisioner::new(cp.clone());
