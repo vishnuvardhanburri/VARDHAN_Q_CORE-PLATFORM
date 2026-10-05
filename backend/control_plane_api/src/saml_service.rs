@@ -10,8 +10,8 @@ use serde::Deserialize;
 use serde_json::json;
 use std::{time::{Duration, SystemTime, UNIX_EPOCH}};
 use saml_rs::{
-    AcsEndpoint, BrowserInput, CertificatePem, EntityId, FormField, IdpDescriptor,
-    MetadataTrustPolicy, ReplayCache, ReplayKey, ReplayPolicy, Saml, SamlError,
+    AcsEndpoint, AuthnRequestSigningPolicy, BrowserInput, CertificatePem, EntityId, FormField,
+    IdpDescriptor, MetadataTrustPolicy, ReplayCache, ReplayKey, ReplayPolicy, Saml, SamlError,
     SamlValidationContext, Sp, SpConfig, SpValidationPolicy, SsoResponse,
 };
 
@@ -105,10 +105,17 @@ fn build_sp() -> Result<Saml<Sp>, String> {
     let entity = EntityId::try_new(entity_id).map_err(|e| format!("invalid SAML SP entity ID: {e}"))?;
     let acs = AcsEndpoint::post(acs_url).map_err(|e| format!("invalid SAML ACS URL: {e}"))?;
 
+    // This endpoint accepts unsolicited SSO responses, so it has no outbound
+    // AuthnRequest to sign. Keep all inbound strict validation while explicitly
+    // disabling only the outbound-signing requirement that would require a
+    // local signing key/certificate.
+    let mut validation = SpValidationPolicy::strict();
+    validation.authn_requests = AuthnRequestSigningPolicy::DoNotSignForCompatibility;
+
     Saml::sp(
         SpConfig::builder(entity)
             .acs_endpoint(acs)
-            .validation(SpValidationPolicy::strict())
+            .validation(validation)
             .build()
             .map_err(|e| format!("invalid SAML SP configuration: {e}"))?,
     )
@@ -268,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn saml_sp_defaults_to_strict_configuration() {
+    fn saml_sp_uses_strict_inbound_validation_without_outbound_signing() {
         let _guard = env_lock().lock().unwrap();
         std::env::remove_var("VARDHAN_SAML_ENTITY_ID");
         std::env::remove_var("VARDHAN_SAML_ACS_URL");

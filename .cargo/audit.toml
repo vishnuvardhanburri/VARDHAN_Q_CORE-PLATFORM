@@ -13,5 +13,6 @@ ignore = [
     "RUSTSEC-2026-0163",  # pqcrypto-internals unmaintained (PQClean archived) — ML-DSA-87 signing
     "RUSTSEC-2026-0166",  # pqcrypto-mldsa unmaintained (PQClean archived) — ML-DSA-87 signing
     "RUSTSEC-2026-0162",  # pqcrypto-traits unmaintained (PQClean archived) — ML-DSA-87 signing
+    "RUSTSEC-2023-0071",  # rsa Marvin timing advisory — transitive SAML crypto; RSA private-key decryption is disabled
     "RUSTSEC-2026-0187",  # poc_auditor legacy genpdf/LODPF stack — non-production PoC
 ]
