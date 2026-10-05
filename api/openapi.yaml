@@ -190,6 +190,87 @@ paths:
       parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TransactionTelemetryInput' } } } }
       responses: { '200': { description: Transaction telemetry accepted } }
+  /organizations/{id}/security/operations:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses:
+        '200': { description: Authoritative continuous-security operations snapshot, content: { application/json: { schema: { $ref: '#/components/schemas/SecurityOperationsSnapshot' } } } }
+  /organizations/{id}/security/executive-report:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Executive security operations report derived from durable control-plane state, content: { application/json: { schema: { type: object, additionalProperties: true } } } } }
+  /organizations/{id}/security/alerts:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Tenant-scoped operational alerts, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/MonitoringSignalInput' } } } }
+      responses:
+        '202': { description: Monitoring signal observed and alert persisted }
+        '400': { description: Signal rejected }
+        '403': { description: Organization operation permission required }
+  /organizations/{id}/security/alerts/{alert_id}:
+    parameters:
+      - { $ref: '#/components/parameters/OrganizationId' }
+      - { name: alert_id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SecurityLifecycleTransition' } } } }
+      responses: { '200': { description: Alert lifecycle transition accepted } }
+  /organizations/{id}/security/policy-baseline:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PolicyBaselineInput' } } } }
+      responses: { '201': { description: Policy baseline registered } }
+  /organizations/{id}/security/policy-observations:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PolicyObservationInput' } } } }
+      responses: { '202': { description: Policy observation evaluated against the durable baseline } }
+  /organizations/{id}/security/policy-drift:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Policy drift observations, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+  /organizations/{id}/security/remediations:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Governed remediation actions, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RemediationInput' } } } }
+      responses: { '201': { description: Remediation proposal created } }
+  /organizations/{id}/security/remediations/{remediation_id}:
+    parameters:
+      - { $ref: '#/components/parameters/OrganizationId' }
+      - { name: remediation_id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SecurityLifecycleTransition' } } } }
+      responses: { '200': { description: Governed remediation transition accepted } }
+  /organizations/{id}/security/crypto-posture:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Tenant-scoped cryptographic posture, key lifecycle and receipt verification coverage } }
+  /organizations/{id}/security/audit:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Durable security operations audit view, content: { application/json: { schema: { type: object, additionalProperties: true } } } } }
   /organizations/{id}/aer-kep-q/status:
     parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
     get:
@@ -340,6 +421,60 @@ components:
         outcome_code: { type: [string, 'null'] }
         created_at_ms: { type: integer, format: int64 }
         updated_at_ms: { type: integer, format: int64 }
+    SecurityOperationsSnapshot:
+      type: object
+      required: [organization_id, data_state, generated_at_ms, monitoring, risk, alerts, policy_drift, crypto_posture, aer_kep_q, incidents]
+      properties:
+        organization_id: { type: string }
+        data_state: { type: string, enum: [not_populated, populated] }
+        generated_at_ms: { type: integer, format: int64 }
+        monitoring: { type: object, additionalProperties: true }
+        risk: { type: object, additionalProperties: true }
+        alerts: { type: object, additionalProperties: true }
+        policy_drift: { type: object, additionalProperties: true }
+        crypto_posture: { type: object, additionalProperties: true }
+        aer_kep_q: { type: object, additionalProperties: true }
+        incidents: { type: object, additionalProperties: true }
+    MonitoringSignalInput:
+      type: object
+      required: [signal_id, source, severity, title, message, evidence_refs, observed_at_ms]
+      properties:
+        signal_id: { type: string }
+        source: { type: string, enum: [intelligence, q_core, monitoring, operator, system] }
+        severity: { type: string, enum: [critical, high, medium, low, info] }
+        title: { type: string }
+        message: { type: string }
+        evidence_refs: { type: array, minItems: 1, items: { type: string } }
+        correlation_id: { type: [string, 'null'] }
+        observed_at_ms: { type: integer, format: int64 }
+    SecurityLifecycleTransition:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+    PolicyBaselineInput:
+      type: object
+      required: [policy_id, policy_version, policy]
+      properties:
+        policy_id: { type: string }
+        policy_version: { type: string }
+        policy: { type: object, additionalProperties: true }
+    PolicyObservationInput:
+      type: object
+      required: [policy_id, policy_version, policy, observed_at_ms]
+      properties:
+        policy_id: { type: string }
+        policy_version: { type: string }
+        policy: { type: object, additionalProperties: true }
+        observed_at_ms: { type: integer, format: int64 }
+    RemediationInput:
+      type: object
+      required: [action, rationale]
+      properties:
+        action: { type: string, enum: [ACKNOWLEDGE_INCIDENT, REVALIDATE_POLICY] }
+        finding_id: { type: [string, 'null'] }
+        incident_id: { type: [string, 'null'] }
+        rationale: { type: string }
     TransactionCollection:
       type: object
       required: [organization_id, items, total, data_state]

@@ -61,6 +61,29 @@ impl ReceiptKeyRegistry {
         Ok(keys.len())
     }
 
+    /// Return all issuer keys for one organization. Only public verification
+    /// material is returned; no private key material is present in this model.
+    pub fn list(&self, organization_id: &str) -> Result<Vec<ReceiptIssuerKey>, KeyRegistryError> {
+        if organization_id.trim().is_empty() {
+            return Err(KeyRegistryError::Invalid("organization scope is required".into()));
+        }
+        let prefix = format!(
+            "{}{}:",
+            std::str::from_utf8(PREFIX).unwrap(),
+            organization_id
+        );
+        let mut keys = Vec::new();
+        for entry in self.db.scan_prefix(prefix.as_bytes()) {
+            let (_, value) = entry?;
+            keys.push(
+                serde_json::from_slice(&value)
+                    .map_err(|e| KeyRegistryError::Serialization(e.to_string()))?,
+            );
+        }
+        keys.sort_by(|a, b| a.service_id.cmp(&b.service_id));
+        Ok(keys)
+    }
+
     pub fn resolve_active(&self, organization_id: &str, service_id: &str) -> Result<ReceiptIssuerKey, KeyRegistryError> {
         let Some(bytes) = self.db.get(storage_key(organization_id, service_id))? else { return Err(KeyRegistryError::NotFound); };
         let key: ReceiptIssuerKey = serde_json::from_slice(&bytes).map_err(|e| KeyRegistryError::Serialization(e.to_string()))?;
@@ -104,4 +127,5 @@ mod tests {
     #[test] fn bootstrap_is_idempotent() { let r = registry(); let encoded = serde_json::to_string(&vec![key()]).unwrap(); assert_eq!(r.bootstrap_json(&encoded).unwrap(), 1); assert_eq!(r.bootstrap_json(&encoded).unwrap(), 1); }
     #[test] fn tenant_isolation_rejects_unknown_scope() { let r = registry(); r.register(key()).unwrap(); assert!(matches!(r.resolve_active("org-b", "qcore-1"), Err(KeyRegistryError::NotFound))); }
     #[test] fn revoked_key_is_not_resolved_as_active() { let r = registry(); r.register(key()).unwrap(); r.set_state("org-a", "qcore-1", KeyState::Revoked).unwrap(); assert!(matches!(r.resolve_active("org-a", "qcore-1"), Err(KeyRegistryError::NotActive))); }
+    #[test] fn list_is_tenant_scoped_and_public_only() { let r = registry(); r.register(key()).unwrap(); let keys = r.list("org-a").unwrap(); assert_eq!(keys.len(), 1); assert_eq!(keys[0].ed25519_public_key.len(), 32); assert!(r.list("org-b").unwrap().is_empty()); }
 }

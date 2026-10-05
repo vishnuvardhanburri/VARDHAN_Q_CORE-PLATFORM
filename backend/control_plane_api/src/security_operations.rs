@@ -96,6 +96,9 @@ impl SecurityOperationsStore {
         if !matches!(input.status.trim().to_ascii_lowercase().as_str(), "open" | "acknowledged" | "resolved") {
             return Err(SecurityOperationsError::InvalidStatus);
         }
+        if input.risk_score > 100 {
+            return Err(SecurityOperationsError::InvalidRiskScore);
+        }
 
         let telemetry = QCoreTelemetryStore::new(self.db.clone());
         let verified = telemetry
