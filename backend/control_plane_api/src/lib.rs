@@ -17,6 +17,7 @@ use uuid::Uuid;
 pub mod billing;
 pub mod billing_api;
 pub mod enterprise_api;
+pub mod enterprise_sso;
 pub mod operations_api;
 pub mod receipt_key_registry;
 pub mod receipt_transport;
@@ -28,7 +29,7 @@ const SUB_PREFIX: &[u8] = b"sub:";
 const USAGE_PREFIX: &[u8] = b"usage:";
 
 #[derive(Clone)]
-pub struct ControlPlaneState { pub db: Arc<Db>, pub aer_kep_q: Option<Arc<Mutex<AerKepQRuntime>>> }
+pub struct ControlPlaneState { pub db: Arc<Db>, pub aer_kep_q: Option<Arc<Mutex<AerKepQRuntime>>>, pub auth: AuthState }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Plan { pub id: &'static str, pub name: &'static str, pub tier: &'static str, pub contact_sales: bool, pub entitlements: &'static [&'static str] }
@@ -89,12 +90,19 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
         .route("/scim/v2.0/organizations/{id}/Users", get(enterprise_api::scim_list_users))
         .route("/scim/v2.0/organizations/{id}/Users/{external_id}", axum::routing::put(enterprise_api::scim_upsert_user).patch(enterprise_api::scim_upsert_user).delete(enterprise_api::scim_delete_user))
         .with_state(control.clone());
+    let sso = Router::new()
+        .route("/api/v1/auth/oidc/start", get(enterprise_sso::oidc_start))
+        .route("/api/v1/auth/oidc/callback", get(enterprise_sso::oidc_callback))
+        .route("/api/v1/auth/saml/metadata", get(enterprise_sso::saml_metadata))
+        .route("/api/v1/auth/saml/acs", post(enterprise_sso::saml_acs))
+        .with_state(control.clone());
 
     Router::new()
         .merge(auth_router(auth.clone()))
         .merge(billing_public)
         .merge(public_service)
         .merge(scim)
+        .merge(sso)
         .route("/api/v1/platform/health", get(health))
         .route("/api/v1/catalog/plans", get(catalog))
         .merge(protected.with_state(control))
