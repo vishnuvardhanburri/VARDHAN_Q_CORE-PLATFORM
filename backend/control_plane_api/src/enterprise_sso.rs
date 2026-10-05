@@ -77,9 +77,9 @@ pub async fn oidc_callback(State(state): State<ControlPlaneState>, Query(query):
     if header.alg!=algorithm{return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC algorithm mismatch"}))).into_response();}
     let mut validation=Validation::new(algorithm); validation.validate_aud=false; validation.set_required_spec_claims(&["exp","iss","sub"]);
     let claims=match decode::<IdClaims>(&token_response.id_token,&decoding_key,&validation){Ok(v)=>v.claims,Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC ID token signature or claims invalid"}))).into_response()};
-    if claims.iss.trim_end_matches('/')!=record.issuer{return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC token issuer mismatch"}))).into_response();}
-    let audience_ok=match &claims.aud{serde_json::Value::String(v)=>v==&record.client_id,serde_json::Value::Array(v)=>v.iter().any(|x|x.as_str()==Some(record.client_id.as_str())),_=>false};
-    if !audience_ok||claims.exp.saturating_mul(1000)<=now_ms()||claims.nonce.as_deref()!=Some(record.nonce.as_str()){return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC audience, expiry, or nonce validation failed"}))).into_response();}
+    if let Err(error) = validate_id_claims(&claims, &record, now_ms()) {
+        return (StatusCode::UNAUTHORIZED, Json(json!({"error": error}))).into_response();
+    }
     let username=claims.email.clone().or(claims.preferred_username.clone()).unwrap_or_else(||format!("oidc:{}",claims.sub));
     let default_org = match std::env::var("VARDHAN_OIDC_DEFAULT_ORG").ok().filter(|v| !v.trim().is_empty()) {
         Some(value) if state.db.get(crate::key(b"org:", &value)).ok().flatten().is_some() => value,
@@ -105,5 +105,73 @@ pub async fn oidc_callback(State(state): State<ControlPlaneState>, Query(query):
     Json(json!({"status":"authenticated","token":session.as_str(),"expires_in":8*60*60,"subject":claims.sub,"name":claims.name})).into_response()
 }
 
+fn validate_id_claims(claims: &IdClaims, record: &OidcStateRecord, now: u64) -> Result<(), &'static str> {
+    if claims.iss.trim_end_matches('/') != record.issuer { return Err("OIDC token issuer mismatch"); }
+    let audience_ok = match &claims.aud {
+        serde_json::Value::String(v) => v == &record.client_id,
+        serde_json::Value::Array(v) => v.iter().any(|x| x.as_str() == Some(record.client_id.as_str())),
+        _ => false,
+    };
+    if !audience_ok { return Err("OIDC token audience mismatch"); }
+    if claims.exp.saturating_mul(1000) <= now { return Err("OIDC token expired"); }
+    if claims.nonce.as_deref() != Some(record.nonce.as_str()) { return Err("OIDC nonce mismatch"); }
+    Ok(())
+}
+
 pub async fn saml_metadata()->impl IntoResponse{let entity=std::env::var("VARDHAN_SAML_ENTITY_ID").unwrap_or_else(|_|"https://vardhan.example.com/saml/metadata".into());let acs=std::env::var("VARDHAN_SAML_ACS_URL").unwrap_or_else(|_|"https://vardhan.example.com/api/v1/auth/saml/acs".into());let xml=format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"{entity}\"><md:SPSSODescriptor AuthnRequestsSigned=\"false\" WantAssertionsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"{acs}\" index=\"0\" isDefault=\"true\"/></md:SPSSODescriptor></md:EntityDescriptor>");([(axum::http::header::CONTENT_TYPE,"application/samlmetadata+xml")],xml)}
 pub async fn saml_acs(Form(req):Form<SamlRequest>)->impl IntoResponse{if req.saml_response.filter(|v|!v.trim().is_empty()).is_none(){return(StatusCode::BAD_REQUEST,Json(json!({"error":"SAMLResponse is required"}))).into_response();}(StatusCode::NOT_IMPLEMENTED,Json(json!({"error":"SAML ACS is fail-closed until an XMLDSig-capable provider adapter is configured","required":"signed SAML 2.0 assertion verification"}))).into_response()}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn record() -> OidcStateRecord {
+        OidcStateRecord {
+            state: "state".into(),
+            nonce: "nonce-1234567890123456".into(),
+            pkce_verifier: "a".repeat(48),
+            issuer: "https://idp.example.com".into(),
+            client_id: "vardhan-client".into(),
+            redirect_uri: "https://console.example.com/callback".into(),
+            expires_at_ms: 10_000,
+        }
+    }
+
+    fn claims() -> IdClaims {
+        IdClaims {
+            iss: "https://idp.example.com".into(),
+            sub: "subject-1".into(),
+            aud: serde_json::json!("vardhan-client"),
+            exp: 2_000,
+            nonce: Some("nonce-1234567890123456".into()),
+            email: Some("user@example.com".into()),
+            preferred_username: None,
+            name: Some("User".into()),
+        }
+    }
+
+    #[test]
+    fn oidc_claim_binding_accepts_valid_claims() {
+        assert!(validate_id_claims(&claims(), &record(), 1_000).is_ok());
+    }
+
+    #[test]
+    fn oidc_claim_binding_rejects_wrong_issuer_audience_expiry_and_nonce() {
+        let mut c = claims();
+        c.iss = "https://evil.example.com".into();
+        assert_eq!(validate_id_claims(&c, &record(), 1_000), Err("OIDC token issuer mismatch"));
+
+        let mut c = claims();
+        c.aud = serde_json::json!("wrong-client");
+        assert_eq!(validate_id_claims(&c, &record(), 1_000), Err("OIDC token audience mismatch"));
+
+        let mut c = claims();
+        c.exp = 1;
+        assert_eq!(validate_id_claims(&c, &record(), 1_000), Err("OIDC token expired"));
+
+        let mut c = claims();
+        c.nonce = Some("wrong-nonce".into());
+        assert_eq!(validate_id_claims(&c, &record(), 1_000), Err("OIDC nonce mismatch"));
+    }
+}

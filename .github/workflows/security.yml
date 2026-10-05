@@ -1,15 +1,29 @@
-name: Supply Chain Security (F-013)
+name: Supply Chain Security
 
-# Automation intentionally paused during enterprise platform completion.
 on:
-  workflow_dispatch:
+  push:
+    branches: ["main", "phase-p1-p2-completion-20261005"]
+  pull_request:
+    branches: ["main"]
 
 permissions:
   contents: read
 
 jobs:
-  paused:
-    name: Automation paused
+  supply-chain:
+    name: Dependency and supply-chain verification
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Supply-chain workflow is intentionally paused."
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install security tooling
+        run: |
+          cargo install cargo-audit --locked
+          cargo install cargo-deny --locked
+      - name: Rust audit
+        run: cargo audit
+      - name: Cargo deny advisories
+        run: cargo deny check advisories
+      - name: Repository secret scan
+        run: |
+          ! grep -RInE 'AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----|VARDHAN_ADMIN_PASSWORD='             --exclude-dir=.git --exclude='package-lock.json' .

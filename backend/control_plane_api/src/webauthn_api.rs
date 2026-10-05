@@ -98,3 +98,42 @@ pub async fn authentication_finish(State(state): State<ControlPlaneState>, Json(
         Err(e) => (StatusCode::UNAUTHORIZED,Json(json!({"error":e.to_string()}))).into_response()
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Mutex, OnceLock};
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    #[test]
+    fn webauthn_requires_explicit_rp_and_origin() {
+        let _guard = env_lock().lock().unwrap();
+        std::env::remove_var("VARDHAN_WEBAUTHN_RP_ID");
+        std::env::remove_var("VARDHAN_WEBAUTHN_ORIGIN");
+        std::env::remove_var("VARDHAN_WEBAUTHN_ALLOW_INSECURE_DEV");
+        assert!(webauthn().is_err());
+    }
+
+    #[test]
+    fn webauthn_rejects_insecure_origin_without_dev_override() {
+        let _guard = env_lock().lock().unwrap();
+        std::env::set_var("VARDHAN_WEBAUTHN_RP_ID", "localhost");
+        std::env::set_var("VARDHAN_WEBAUTHN_ORIGIN", "http://localhost");
+        std::env::remove_var("VARDHAN_WEBAUTHN_ALLOW_INSECURE_DEV");
+        assert_eq!(webauthn().unwrap_err(), "WebAuthn origin must use HTTPS");
+    }
+
+    #[test]
+    fn webauthn_insecure_origin_requires_explicit_dev_override() {
+        let _guard = env_lock().lock().unwrap();
+        std::env::set_var("VARDHAN_WEBAUTHN_RP_ID", "localhost");
+        std::env::set_var("VARDHAN_WEBAUTHN_ORIGIN", "http://localhost");
+        std::env::set_var("VARDHAN_WEBAUTHN_ALLOW_INSECURE_DEV", "true");
+        assert!(webauthn().is_ok());
+    }
+}

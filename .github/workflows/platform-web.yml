@@ -1,15 +1,26 @@
 name: Platform Web Contract
 
-# Automation intentionally paused during enterprise platform completion.
 on:
-  workflow_dispatch:
+  push:
+    branches: ["main", "phase-p1-p2-completion-20261005"]
+  pull_request:
+    branches: ["main"]
 
 permissions:
   contents: read
 
 jobs:
-  paused:
-    name: Automation paused
+  web-contract:
+    name: Authenticated console contract
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Platform web workflow is intentionally paused."
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Console contract
+        run: node platform_web/test.mjs
+      - name: Frontend source sanity
+        run: |
+          test -f platform_web/index.html
+          test -f platform_web/enterprise-console.html

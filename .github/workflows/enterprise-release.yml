@@ -1,16 +1,36 @@
-name: Vardhan Q-Core Enterprise Release
+name: Vardhan Q-Core Enterprise Release Gate
 
-# CI/release automation intentionally paused while the enterprise platform is completed.
-# Re-enable after the product completion gates are satisfied.
 on:
-  workflow_dispatch:
+  push:
+    branches: ["main", "phase-p1-p2-completion-20261005"]
+  pull_request:
+    branches: ["main"]
 
 permissions:
   contents: read
 
 jobs:
-  paused:
-    name: Automation paused
+  release-gate:
+    name: Enterprise release readiness
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Enterprise release workflow is intentionally paused."
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: System dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev
+      - name: Formatting normalization
+        run: cargo fmt --all
+      - name: Workspace tests
+        run: cargo test --workspace
+      - name: Release build
+        run: cargo build --workspace --release
+      - name: SDK contract gate
+        run: python3 scripts/p1_sdk_contract_check.py
+      - name: SDK model gate
+        run: python3 scripts/p1_model_compatibility.py
+      - name: Industry contract gate
+        run: |
+          python3 scripts/validate_industry_planes.py
+          python3 -m unittest discover -s tests -p 'industry_planes_contract_test.py'
+      - name: Console contract gate
+        run: node platform_web/test.mjs
