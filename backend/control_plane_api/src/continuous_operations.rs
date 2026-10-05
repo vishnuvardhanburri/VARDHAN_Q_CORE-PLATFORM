@@ -753,9 +753,78 @@ pub async fn observe_policy(
     if !can_operate(&state, &id, &user) {
         return denied();
     }
-    match ContinuousOperationsStore::new(state.db.clone()).policy_observation(&id, &input, &user.username) {
-        Ok(observation) => (StatusCode::ACCEPTED, Json(json!({"status":observation.status,"observation":observation}))).into_response(),
-        Err(error) => (StatusCode::BAD_REQUEST, Json(json!({"status":"rejected","error":error.to_string()}))).into_response(),
+
+    let store = ContinuousOperationsStore::new(state.db.clone());
+    match store.policy_observation(&id, &input, &user.username) {
+        Ok(observation) => {
+            let mut alert_created = false;
+            let mut remediation = None;
+            if observation.status == "drifted" {
+                let signal = MonitoringSignalInput {
+                    signal_id: format!("policy-drift:{}", observation.drift_id),
+                    source: "system".into(),
+                    severity: "high".into(),
+                    title: format!("Policy drift detected: {}", observation.policy_id),
+                    message: format!(
+                        "Observed policy hash {} differs from baseline {}.",
+                        observation.observed_hash,
+                        observation.baseline_hash.as_deref().unwrap_or("unknown"),
+                    ),
+                    evidence_refs: vec![
+                        format!("baseline:{}", observation.baseline_hash.as_deref().unwrap_or("unknown")),
+                        format!("observed:{}", observation.observed_hash),
+                    ],
+                    correlation_id: Some(observation.drift_id.clone()),
+                    observed_at_ms: observation.observed_at_ms,
+                };
+                if let Err(error) = store.record_monitoring_signal(&id, &signal) {
+                    return (
+                        StatusCode::SERVICE_UNAVAILABLE,
+                        Json(json!({"status":"unavailable","error":error.to_string()})),
+                    ).into_response();
+                }
+                alert_created = true;
+                remediation = match store.propose_remediation(
+                    &id,
+                    &RemediationInput {
+                        action: "REVALIDATE_POLICY".into(),
+                        finding_id: None,
+                        incident_id: None,
+                        rationale: format!(
+                            "Policy {} drifted from its registered baseline and requires explicit revalidation.",
+                            observation.policy_id
+                        ),
+                    },
+                    &user.username,
+                    observation.observed_at_ms,
+                ) {
+                    Ok(item) => Some(item),
+                    Err(error) => {
+                        return (
+                            StatusCode::SERVICE_UNAVAILABLE,
+                            Json(json!({"status":"unavailable","error":error.to_string()})),
+                        ).into_response();
+                    }
+                };
+            }
+
+            (
+                StatusCode::ACCEPTED,
+                Json(json!({
+                    "status": observation.status,
+                    "observation": observation,
+                    "operations": {
+                        "alert_created": alert_created,
+                        "remediation_proposed": remediation.is_some()
+                    },
+                    "remediation": remediation
+                })),
+            ).into_response()
+        }
+        Err(error) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"status":"rejected","error":error.to_string()})),
+        ).into_response(),
     }
 }
 
