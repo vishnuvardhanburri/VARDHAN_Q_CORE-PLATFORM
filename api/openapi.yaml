@@ -18,72 +18,44 @@ paths:
       security: []
       tags: [Platform]
       responses:
-        '200':
-          description: Control-plane health
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Health' }
+        '200': { description: Control-plane health, content: { application/json: { schema: { $ref: '#/components/schemas/Health' } } } }
   /catalog/plans:
     get:
       security: []
       tags: [Billing]
       responses:
-        '200':
-          description: Available commercial plans
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: '#/components/schemas/Plan' }
+        '200': { description: Available commercial plans, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Plan' } } } } }
+  /billing/webhook:
+    post:
+      security: []
+      tags: [Billing]
+      description: Receives a provider-signed billing event. The control plane validates signature, timestamp and event idempotency before persisting verified subscription state.
+      parameters:
+        - { name: x-vardhan-billing-signature, in: header, required: true, schema: { type: string } }
+        - { name: x-vardhan-billing-timestamp, in: header, required: true, schema: { type: integer, format: int64 } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/BillingEvent' } } }
+      responses:
+        '200': { description: Event accepted or already processed }
+        '400': { description: Invalid event }
+        '401': { description: Signature or timestamp rejected }
+        '503': { description: Billing verification not configured }
   /me:
     get:
       tags: [Platform]
       responses:
-        '200':
-          description: Authenticated principal
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [username, authenticated]
-                properties:
-                  username: { type: string }
-                  authenticated: { type: boolean }
+        '200': { description: Authenticated principal, content: { application/json: { schema: { type: object, required: [username, authenticated], properties: { username: { type: string }, authenticated: { type: boolean } } } } } }
   /organizations:
     get:
       tags: [Organizations]
       responses:
-        '200':
-          description: Organizations visible to the caller
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  organizations:
-                    type: array
-                    items: { $ref: '#/components/schemas/Organization' }
+        '200': { description: Organizations visible to the caller, content: { application/json: { schema: { type: object, properties: { organizations: { type: array, items: { $ref: '#/components/schemas/Organization' } } } } } } }
     post:
       tags: [Organizations]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [name]
-              properties:
-                name: { type: string, minLength: 2, maxLength: 120 }
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, minLength: 2, maxLength: 120 } } } } } }
       responses:
-        '201':
-          description: Organization created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  organization: { $ref: '#/components/schemas/Organization' }
-                  subscription: { $ref: '#/components/schemas/Subscription' }
+        '201': { description: Organization created, content: { application/json: { schema: { type: object, properties: { organization: { $ref: '#/components/schemas/Organization' }, subscription: { $ref: '#/components/schemas/Subscription' } } } } } }
   /organizations/{id}:
     parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
     get:
@@ -98,44 +70,21 @@ paths:
       tags: [Billing]
       responses:
         '200':
-          description: Server-resolved entitlements
+          description: Entitlements resolved only from verified billing state
           content:
             application/json:
               schema:
-                type: object
-                required: [organization_id, plan, subscription_status, entitlements]
-                properties:
-                  organization_id: { type: string, format: uuid }
-                  plan: { $ref: '#/components/schemas/Plan' }
-                  subscription_status: { type: string }
-                  entitlements:
-                    type: array
-                    items: { type: string }
+                $ref: '#/components/schemas/EntitlementResponse'
   /organizations/{id}/subscription:
     parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
     get:
       tags: [Billing]
       responses:
-        '200':
-          description: Subscription state
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  subscription: { $ref: '#/components/schemas/Subscription' }
+        '200': { description: Subscription state, content: { application/json: { schema: { type: object, properties: { subscription: { $ref: '#/components/schemas/Subscription' } } } } } }
     post:
       tags: [Billing]
-      description: Requests a plan change. This never activates paid entitlements; verified billing events are required.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [plan_id]
-              properties:
-                plan_id: { type: string }
+      description: Requests a plan change. This never activates paid entitlements; a verified billing event is required.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [plan_id], properties: { plan_id: { type: string } } } } } }
       responses:
         '202': { description: Billing activation pending }
   /organizations/{id}/usage:
@@ -143,47 +92,21 @@ paths:
     get:
       tags: [Usage]
       responses:
-        '200':
-          description: Current usage
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  usage: { $ref: '#/components/schemas/Usage' }
+        '200': { description: Current usage, content: { application/json: { schema: { type: object, properties: { usage: { $ref: '#/components/schemas/Usage' } } } } } }
   /organizations/{id}/usage/record:
     parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
     post:
       tags: [Usage]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [bytes_processed, transactions]
-              properties:
-                bytes_processed: { type: integer, format: int64, minimum: 0 }
-                transactions: { type: integer, format: int64, minimum: 0 }
-      responses:
-        '200': { description: Usage recorded }
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [bytes_processed, transactions], properties: { bytes_processed: { type: integer, format: int64, minimum: 0 }, transactions: { type: integer, format: int64, minimum: 0 } } } } } }
+      responses: { '200': { description: Usage recorded } }
 components:
   parameters:
-    OrganizationId:
-      name: id
-      in: path
-      required: true
-      schema: { type: string, format: uuid }
+    OrganizationId: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
   securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: session-token
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: session-token }
   responses:
-    Forbidden:
-      description: Organization access denied
-    NotFound:
-      description: Resource not found
+    Forbidden: { description: Organization access denied }
+    NotFound: { description: Resource not found }
   schemas:
     Health:
       type: object
@@ -202,9 +125,7 @@ components:
         name: { type: string }
         tier: { type: string }
         contact_sales: { type: boolean }
-        entitlements:
-          type: array
-          items: { type: string }
+        entitlements: { type: array, items: { type: string } }
     Organization:
       type: object
       required: [id, name, owner, created_at_ms]
@@ -223,6 +144,29 @@ components:
         provider: { type: string }
         external_customer_id: { type: [string, 'null'] }
         external_subscription_id: { type: [string, 'null'] }
+    EntitlementResponse:
+      type: object
+      required: [organization_id, subscription_status, entitlements, activation]
+      properties:
+        organization_id: { type: string, format: uuid }
+        plan: { anyOf: [{ $ref: '#/components/schemas/Plan' }, { type: 'null' }] }
+        subscription_status: { type: string }
+        provider: { type: string }
+        entitlements: { type: array, items: { type: string } }
+        activation: { type: string, enum: [verified, suspended, requires_verified_billing_event] }
+    BillingEvent:
+      type: object
+      required: [event_id, provider, event_type, organization_id, status, timestamp]
+      properties:
+        event_id: { type: string }
+        provider: { type: string }
+        event_type: { type: string }
+        organization_id: { type: string, format: uuid }
+        plan_id: { type: [string, 'null'] }
+        external_customer_id: { type: [string, 'null'] }
+        external_subscription_id: { type: [string, 'null'] }
+        status: { type: string, enum: [Provisioning, AwaitingBillingActivation, Trialing, Active, PastDue, Suspended, Canceled, Expired] }
+        timestamp: { type: integer, format: int64 }
     Usage:
       type: object
       required: [organization_id, transactions, bytes_processed]
