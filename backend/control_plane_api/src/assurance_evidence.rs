@@ -1,4 +1,3 @@
-use blake3::Hasher;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use thiserror::Error;
