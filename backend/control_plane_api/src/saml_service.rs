@@ -3,7 +3,7 @@
 //! The handler uses saml-rs for XML parsing, XMLDSig verification, issuer/audience/
 //! destination/recipient/time validation and structural XML-signature-wrapping
 //! defenses. IdP metadata is pinned to an operator-supplied certificate and SAML
-//! replay keys are persisted in the control-plane sled store.
+//! replay keys are persisted atomically in the control-plane sled store.
 
 use axum::{extract::{Form, State}, http::StatusCode, response::IntoResponse, Json};
 use serde::Deserialize;
@@ -47,28 +47,39 @@ impl<'a> ReplayCache for SledReplayCache<'a> {
             .duration_since(UNIX_EPOCH)
             .map_err(|_| SamlError::Invalid("SAML replay expiry precedes Unix epoch".into()))?
             .as_millis() as u64;
+        let new_value = expiry_ms.to_be_bytes();
         let now_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|_| SamlError::Invalid("system clock precedes Unix epoch".into()))?
             .as_millis() as u64;
 
-        if let Some(existing) = self
-            .db
-            .get(&storage_key)
-            .map_err(|e| SamlError::Invalid(format!("SAML replay cache read failed: {e}")))?
-        {
-            if existing.len() == 8 {
-                let existing_expiry = u64::from_be_bytes(existing.as_ref().try_into().unwrap());
-                if existing_expiry > now_ms {
-                    return Err(SamlError::ReplayDetected { key: cache_key });
+        for _ in 0..8 {
+            let existing = self
+                .db
+                .get(&storage_key)
+                .map_err(|e| SamlError::Invalid(format!("SAML replay cache read failed: {e}")))?;
+
+            if let Some(ref value) = existing {
+                if value.len() == 8 {
+                    let existing_expiry = u64::from_be_bytes(value.as_ref().try_into().unwrap());
+                    if existing_expiry > now_ms {
+                        return Err(SamlError::ReplayDetected { key: cache_key });
+                    }
                 }
+            }
+
+            match self.db.compare_and_swap(
+                &storage_key,
+                existing.as_deref(),
+                Some(new_value.as_slice()),
+            ) {
+                Ok(Ok(())) => return Ok(()),
+                Ok(Err(_)) => continue,
+                Err(e) => return Err(SamlError::Invalid(format!("SAML replay cache CAS failed: {e}"))),
             }
         }
 
-        self.db
-            .insert(&storage_key, expiry_ms.to_be_bytes().to_vec())
-            .map_err(|e| SamlError::Invalid(format!("SAML replay cache write failed: {e}")))?;
-        Ok(())
+        Err(SamlError::Invalid("SAML replay cache contention exceeded retry budget".into()))
     }
 }
 
@@ -163,15 +174,17 @@ pub async fn saml_acs(
     };
 
     let mut replay_cache = SledReplayCache { db: &state.db };
-    let mut validation = SamlValidationContext::new(
+    let validation = SamlValidationContext::new(
         SystemTime::now(),
         ReplayPolicy::RequireCache(&mut replay_cache),
     )
     .with_replay_retention(Duration::from_secs(5 * 60));
 
-    let input = BrowserInput::<SsoResponse>::post(vec![
-        FormField::new("SAMLResponse", saml_response),
-    ]);
+    let mut fields = vec![FormField::new("SAMLResponse", saml_response)];
+    if let Some(relay_state) = req.relay_state.clone() {
+        fields.push(FormField::new("RelayState", relay_state));
+    }
+    let input = BrowserInput::<SsoResponse>::post(fields);
 
     let session = match sp.accept_unsolicited_sso(&idp, input, validation) {
         Ok(value) => value,
