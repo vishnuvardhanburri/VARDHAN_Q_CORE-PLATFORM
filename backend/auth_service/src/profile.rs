@@ -94,6 +94,30 @@ impl CredentialStore {
         k
     }
 
+    /// Materialize the explicitly configured bootstrap administrator profile.
+    /// This is called only during credential-store bootstrap so authorization can
+    /// remain strict and fail closed for every other missing profile.
+    pub fn ensure_bootstrap_profile(&self, username: &str) -> Result<(), ProfileError> {
+        let key = Self::profile_key(username);
+        if self
+            .db
+            .get(&key)
+            .map_err(|e| ProfileError::DbError(e.to_string()))?
+            .is_some()
+        {
+            return Ok(());
+        }
+
+        let profile = AdminProfile {
+            username: username.to_string(),
+            display_name: "CISO Administrator".to_string(),
+            email: format!("{}@vardhan.internal", username),
+            role: "ciso_admin".to_string(),
+            updated_at_ms: now_ms(),
+        };
+        self.save_profile(&profile)
+    }
+
     pub fn get_profile(&self, username: &str) -> Result<AdminProfile, ProfileError> {
         let key = Self::profile_key(username);
         let raw = self
@@ -245,6 +269,17 @@ mod tests {
             updated_at_ms: 1,
         }).unwrap();
         assert_eq!(store.authoritative_role("alice"), Some(crate::authorization::Role::User));
+    }
+
+    #[test]
+    fn bootstrap_profile_is_admin_and_persisted() {
+        let dir = tempdir().unwrap();
+        let store = CredentialStore::open(dir.path()).unwrap();
+        let phc = hash_password("test_pass_12345").unwrap();
+        store.set_phc_sync("admin", &phc).unwrap();
+        store.ensure_bootstrap_profile("admin").unwrap();
+
+        assert_eq!(store.authoritative_role("admin"), Some(crate::authorization::Role::Admin));
     }
 
     #[test]

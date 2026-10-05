@@ -8,9 +8,9 @@
 //! ## Bootstrap
 //!
 //! On first startup with an empty store, reads `VARDHAN_ADMIN_USERNAME` and
-//! `VARDHAN_ADMIN_PASSWORD` env vars, hashes the password with Argon2id, and
-//! persists only the PHC hash. Refuses to start if neither env vars nor
-//! existing credentials are present.
+//! the secure bootstrap password source, hashes the password with Argon2id,
+//! and persists both the credential and an explicit administrator profile.
+//! Refuses to start if neither env vars nor existing credentials are present.
 //!
 //! ## Security
 //!
@@ -70,10 +70,13 @@ impl CredentialStore {
             drop(password);
 
             store.set_phc_sync(&username, &phc)?;
+            store
+                .ensure_bootstrap_profile(&username)
+                .map_err(|e| format!("FATAL: Bootstrap profile creation failed: {e}"))?;
 
             tracing::warn!(
                 username = %username,
-                "Bootstrap credential stored. IMPORTANT: Remove bootstrap secrets from your environment or filesystem and restart."
+                "Bootstrap credential and administrator profile stored. IMPORTANT: Remove bootstrap secrets from your environment or filesystem and restart."
             );
         }
 
