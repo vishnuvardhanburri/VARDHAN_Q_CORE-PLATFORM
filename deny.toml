@@ -29,6 +29,10 @@ ignore = [
     # paste — used transitively by criterion (test-only)
     { id = "RUSTSEC-2024-0436", reason = "Transitive dep via criterion (test-only)" },
 
+    # rsa Marvin timing advisory: transitive SAML crypto dependency; software RSA
+    # private-key decryption is architecturally disabled in our production path.
+    { id = "RUSTSEC-2023-0071", reason = "Transitive via saml-rs/bergshamra; RSA private-key decryption is disabled and the reviewed SAML boundary does not expose a private-key oracle" },
+
     # pqcrypto-* crates: PQClean project being archived. These are our
     # production ML-DSA-87 signers — migration to an alternative PQ library
     # is tracked but no safe upgrade is available. These are NOT in the
