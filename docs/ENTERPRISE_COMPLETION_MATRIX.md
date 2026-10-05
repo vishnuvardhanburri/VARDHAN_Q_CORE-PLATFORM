@@ -9,12 +9,14 @@ This is the implementation gate for the customer-facing platform. CI is delibera
 - [x] Server-authentication boundary in web client
 - [ ] Full authenticated application pages wired to authoritative APIs
 - [ ] Organization onboarding and invitation lifecycle
-- [ ] Enterprise RBAC UI/API enforcement across all resources
+- [x] Enterprise RBAC core/API enforcement
+- [ ] Enterprise RBAC UI enforcement across all resources
 - [ ] SSO: OIDC
 - [ ] SSO: SAML 2.0
 - [ ] MFA: WebAuthn/passkeys
-- [ ] MFA: TOTP/recovery policy
-- [ ] SCIM provisioning/deprovisioning
+- [x] MFA: TOTP/recovery policy
+- [x] SCIM provisioning/deprovisioning core
+- [ ] SCIM HTTP endpoint and enterprise directory integration
 
 ## API / SDK
 
@@ -34,10 +36,10 @@ This is the implementation gate for the customer-facing platform. CI is delibera
 
 ## Commercial platform
 
-- [ ] Billing provider adapter
-- [ ] Verified billing webhooks
-- [ ] Subscription state machine
-- [ ] Entitlement activation only from verified billing state
+- [x] Billing provider adapter boundary
+- [x] Verified billing webhooks
+- [x] Subscription state machine
+- [x] Entitlement activation only from verified billing state
 - [ ] Trials / quotes / enterprise contracts
 - [ ] Invoice/tax metadata
 - [ ] Usage event ledger
