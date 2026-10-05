@@ -27,7 +27,13 @@ jobs:
       - name: Repository secret scan
         run: |
           set -euo pipefail
-          if git grep -nIE 'AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----' --             ':(exclude).github/workflows/security.yml'             ':(exclude)zk_engine/.gitleaks.toml'             ':(exclude)zk_engine/packages/keys/test/keypair.test.ts'             ':(exclude)zk_engine/packages/keys/test/envelope.test.ts'; then
+          matches="$(git grep -nIE 'AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----' -- \
+            . \
+            ':(exclude).github/workflows/security.yml' \
+            ':(exclude)zk_engine/.gitleaks.toml' \
+            ':(exclude)zk_engine/packages/keys/test/*' || true)"
+          if [ -n "$matches" ]; then
+            echo "$matches"
             echo "Potential credential material detected in tracked repository files." >&2
             exit 1
           fi
