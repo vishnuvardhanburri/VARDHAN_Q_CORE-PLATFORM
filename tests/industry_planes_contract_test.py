@@ -1,4 +1,5 @@
 import importlib.util
+import unittest
 from pathlib import Path
 
 
@@ -9,5 +10,10 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 
-def test_all_industry_planes_are_complete_contracts():
-    module.validate()
+class IndustryPlaneContractTest(unittest.TestCase):
+    def test_all_industry_planes_are_complete_contracts(self):
+        module.validate()
+
+
+if __name__ == "__main__":
+    unittest.main()
