@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "industry": "education",
+  "name": "Education and Research",
+  "compliance": ["FERPA", "GDPR", "ISO 27001", "NIST CSF"],
+  "assets": ["student_records", "research_data", "learning_platform", "identity_directory", "research_infrastructure", "third_party_service"],
+  "threats": ["student_data_exposure", "research_data_exfiltration", "ransomware", "credential_theft", "research_integrity_attack", "third_party_compromise"],
+  "risk": {"factors": ["student_impact", "research_impact", "privacy_impact", "availability", "regulatory_exposure"], "weights": {"student_impact": 4, "research_impact": 5, "privacy_impact": 5, "availability": 4, "regulatory_exposure": 4}},
+  "policies": ["student_privacy", "research_integrity", "identity_lifecycle", "third_party_risk", "cryptographic_key_lifecycle"],
+  "workflows": ["student_data_exposure_scan", "research_data_risk_review", "ransomware_exposure_review", "identity_access_review", "research_integrity_review"],
+  "controls": ["strong_identity", "segmentation", "immutable_audit", "hsm_key_protection", "least_privilege", "data_loss_controls"],
+  "integrations": ["iam", "siem", "learning_platform", "research_compute", "itsm", "hsm_kms"],
+  "deployment": {"modes": ["managed", "private_cloud", "campus_on_prem"], "requires_hsm_for_private_keys": true, "telemetry": "tenant_bound_qcore"},
+  "qcore_services": ["trust_boundary", "authority_policy", "transaction_state", "signed_receipt", "audit_ledger", "independent_verification", "pq_crypto", "aer_kep_q"]
+}
