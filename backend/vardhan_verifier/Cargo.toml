@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 ed25519-dalek = { version = "2", features = ["rand_core"] }
+fips204 = "0.4"
 pqcrypto-mldsa = "0.1"
 pqcrypto-traits = "0.3"
 blake3 = "1"
