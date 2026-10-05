@@ -14,7 +14,7 @@ const TTL_MS: u64 = 300_000;
 
 #[derive(Debug, Deserialize)]
 pub struct UsernameRequest { pub username: String }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct StoredRegistration { username: String, state: PasskeyRegistration, expires_at_ms: u64 }
 #[derive(Debug, Serialize, Deserialize)]
 struct StoredAuthentication { username: String, state: PasskeyAuthentication, expires_at_ms: u64 }
@@ -55,7 +55,7 @@ pub async fn registration_finish(State(state): State<ControlPlaneState>, Extensi
     let mut passkeys:Vec<Passkey>=state.db.get(key(PASSKEY_PREFIX,&user.username)).ok().flatten().and_then(|v|serde_json::from_slice(&v).ok()).unwrap_or_default();
     if passkeys.iter().any(|p|p.cred_id()==passkey.cred_id()){return (StatusCode::CONFLICT,Json(json!({"error":"Credential is already registered"}))).into_response()};
     passkeys.push(passkey);
-    let _=state.db.insert(key(PASSKEY_PREFIX,&user.username),serde_json::to_vec(&passkeys).unwrap());
+    if state.db.insert(key(PASSKEY_PREFIX,&user.username),serde_json::to_vec(&passkeys).unwrap()).is_err(){return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({"error":"WebAuthn credential persistence failed"}))).into_response()};
     Json(json!({"status":"registered"})).into_response()
 }
 
@@ -79,5 +79,5 @@ pub async fn authentication_finish(State(state): State<ControlPlaneState>, Json(
     if now_ms()>=stored.expires_at_ms{return (StatusCode::UNAUTHORIZED,Json(json!({"error":"WebAuthn authentication state expired"}))).into_response()};
     let credential:PublicKeyCredential=match serde_json::from_value(credential){Ok(v)=>v,Err(_)=>return (StatusCode::BAD_REQUEST,Json(json!({"error":"Invalid WebAuthn authentication credential"}))).into_response()};
     let webauthn=match webauthn(){Ok(v)=>v,Err(e)=>return (StatusCode::SERVICE_UNAVAILABLE,Json(json!({"error":e}))).into_response()};
-    match webauthn.finish_passkey_authentication(&credential,&stored.state){Ok(result)=>{let token=state.auth.sessions.create_with_node(&stored.username,"0.0.0.0".parse().unwrap(),state.auth.node_id.as_deref().unwrap_or("control-plane")).await;Json(json!({"status":"authenticated","token":token.as_str(),"expires_in":8*60*60,"verified":true,"counter":result.counter})).into_response()},Err(e)=>(StatusCode::UNAUTHORIZED,Json(json!({"error":e.to_string()}))).into_response()}
+    match webauthn.finish_passkey_authentication(&credential,&stored.state){Ok(result)=>{let token=state.auth.sessions.create_with_node(&stored.username,"0.0.0.0".parse().unwrap(),state.auth.node_id.as_deref().unwrap_or("control-plane")).await;Json(json!({"status":"authenticated","token":token.as_str(),"expires_in":8*60*60,"verified":result.user_verified()})).into_response()},Err(e)=>(StatusCode::UNAUTHORIZED,Json(json!({"error":e.to_string()}))).into_response()}
 }
