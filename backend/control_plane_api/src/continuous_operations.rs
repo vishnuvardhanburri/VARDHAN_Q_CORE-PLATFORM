@@ -7,7 +7,7 @@
 
 use crate::{
     qcore_telemetry::QCoreTelemetryStore,
-    receipt_key_registry::{KeyState, ReceiptIssuerKey, ReceiptKeyRegistry},
+    receipt_key_registry::{KeyState, ReceiptKeyRegistry},
     security_operations::{SecurityIncident, SecurityOperationsStore},
     ControlPlaneState,
 };
