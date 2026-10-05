@@ -181,7 +181,14 @@ pub async fn get_settings_handler(State(state): State<AuthState>, headers: axum:
 
 pub async fn update_settings_handler(State(state): State<AuthState>, headers: axum::http::HeaderMap, Json(req): Json<settings::UpdateSettingsRequest>) -> impl IntoResponse { let caller = match extract_authenticated_user(&state, &headers).await { Some(u) => u, None => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Unauthorized" }))) }; if !caller.can(Permission::UpdateSettings) { return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Forbidden" }))); } let node_id = state.node_id.as_deref().unwrap_or("local-node"); let fingerprint = state.identity.as_ref().map(|id| hex::encode(core_crypto::QuantumNodeIdentity::hash_ledger_block(&id.dsa_public_key_bytes()))).unwrap_or_else(|| "0".repeat(64)); match state.credentials.update_settings(req, node_id, &fingerprint) { Ok(s) => (StatusCode::OK, Json(serde_json::to_value(s).unwrap())), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))) } }
 
-pub async fn extract_authenticated_user(state: &AuthState, headers: &axum::http::HeaderMap) -> Option<AuthenticatedUser> { let token = extract_bearer_from_headers(headers)?; let username = state.sessions.validate(&SessionToken::from_str(&token)).await?; Some(AuthenticatedUser::new_admin(username)) }
+/// Validate the session and derive authorization role from the persisted profile.
+/// Missing or malformed profile state fails closed rather than upgrading the caller.
+pub async fn extract_authenticated_user(state: &AuthState, headers: &axum::http::HeaderMap) -> Option<AuthenticatedUser> {
+    let token = extract_bearer_from_headers(headers)?;
+    let username = state.sessions.validate(&SessionToken::from_str(&token)).await?;
+    let role = state.credentials.authoritative_role(&username)?;
+    Some(AuthenticatedUser::new_user(username, role))
+}
 pub fn extract_bearer_from_headers(headers: &axum::http::HeaderMap) -> Option<String> { let value = headers.get(header::AUTHORIZATION)?.to_str().ok()?; let token = value.strip_prefix("Bearer ")?.trim(); (!token.is_empty()).then(|| token.to_string()) }
 pub fn resolve_ip(headers: &axum::http::HeaderMap) -> std::net::IpAddr { headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()).and_then(|v| v.split(',').next()).and_then(|v| v.trim().parse().ok()).unwrap_or_else(|| "127.0.0.1".parse().unwrap()) }
 pub fn extract_request_id(headers: &axum::http::HeaderMap) -> Option<String> { headers.get("x-request-id").and_then(|v| v.to_str().ok()).map(str::to_string) }
