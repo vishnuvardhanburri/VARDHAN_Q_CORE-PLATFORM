@@ -145,6 +145,19 @@ paths:
     get:
       tags: [Security]
       responses: { '200': { description: Security findings, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityFindingInput'
+      responses:
+        '200': { description: Finding accepted and risk/incident state updated }
+        '400': { description: Finding rejected }
+        '403': { description: Organization access denied }
   /organizations/{id}/incidents:
     parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
     get:
@@ -281,6 +294,18 @@ components:
         total: { type: integer, minimum: 0 }
         data_state: { type: string }
         next_cursor: { type: [string, 'null'] }
+    SecurityFindingInput:
+      type: object
+      required: [finding_id, receipt_id, severity, status, evidence_refs, risk_score, created_at_ms, updated_at_ms]
+      properties:
+        finding_id: { type: string }
+        receipt_id: { type: string }
+        severity: { type: string, enum: [critical, high, medium, low, info] }
+        status: { type: string, enum: [open, acknowledged, resolved] }
+        evidence_refs: { type: array, minItems: 1, items: { type: string } }
+        risk_score: { type: integer, minimum: 0, maximum: 100 }
+        created_at_ms: { type: integer, format: int64 }
+        updated_at_ms: { type: integer, format: int64 }
     TransactionTelemetryInput:
       type: object
       required: [transaction_id, tenant_id, state, kind, subject_id, proposed_action, policy_id, policy_version, created_at_ms, updated_at_ms]
