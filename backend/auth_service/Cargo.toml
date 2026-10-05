@@ -17,6 +17,7 @@ axum          = "0.8"
 blake3        = "1"
 tracing       = "0.1"
 audit_ledger  = { path = "../audit_ledger" }
+ledger_persistence = { path = "../ledger_persistence" }
 core_crypto   = { path = "../core_crypto" }
 thiserror     = "1"
 zeroize       = "1.9.0"
