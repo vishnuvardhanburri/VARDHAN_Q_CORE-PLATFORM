@@ -11,7 +11,9 @@ This is the implementation gate for the customer-facing platform. CI is delibera
 - [x] AER-KEP-Q runtime attached to control-plane status API
 - [x] Security posture/findings/incidents/transactions API contracts with explicit unpopulated states
 - [x] Durable Q-Core transaction/receipt telemetry store and authenticated ingestion boundary
-- [ ] Q-Core producer/service-to-service telemetry publishing and cryptographic receipt verification at ingestion
+- [x] Authenticated Q-Core service transport with replay protection
+- [x] Tenant-bound issuer key registry and strict Ed25519 + ML-DSA-87 receipt verification boundary
+- [ ] Q-Core producer/service-to-service telemetry publishing from the canonical receipt producer
 - [ ] Organization onboarding and invitation lifecycle
 - [x] Enterprise RBAC core/API enforcement
 - [ ] Enterprise RBAC UI enforcement across all resources
