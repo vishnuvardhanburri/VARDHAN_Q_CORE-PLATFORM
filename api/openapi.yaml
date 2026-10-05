@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Vardhan Technologies Enterprise Control Plane API
-  version: 1.0.0
+  version: 1.1.0
   description: Canonical versioned API contract for Vardhan Technologies. Authentication, authorization and commercial entitlements are server-enforced.
 servers:
   - url: /api/v1
@@ -12,6 +12,8 @@ tags:
   - name: Organizations
   - name: Billing
   - name: Usage
+  - name: Security
+  - name: Identity
 paths:
   /platform/health:
     get:
@@ -45,7 +47,7 @@ paths:
     get:
       tags: [Platform]
       responses:
-        '200': { description: Authenticated principal, content: { application/json: { schema: { type: object, required: [username, authenticated], properties: { username: { type: string }, authenticated: { type: boolean } } } } } }
+        '200': { description: Authenticated principal, content: { application/json: { schema: { type: object, required: [username, authenticated], properties: { username: { type: string }, authenticated: { type: boolean }, role: { type: string } } } } } }
   /organizations:
     get:
       tags: [Organizations]
@@ -53,6 +55,7 @@ paths:
         '200': { description: Organizations visible to the caller, content: { application/json: { schema: { type: object, properties: { organizations: { type: array, items: { $ref: '#/components/schemas/Organization' } } } } } } }
     post:
       tags: [Organizations]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, minLength: 2, maxLength: 120 } } } } } }
       responses:
         '201': { description: Organization created, content: { application/json: { schema: { type: object, properties: { organization: { $ref: '#/components/schemas/Organization' }, subscription: { $ref: '#/components/schemas/Subscription' } } } } } }
@@ -61,7 +64,7 @@ paths:
     get:
       tags: [Organizations]
       responses:
-        '200': { description: Organization }
+        '200': { description: Organization, content: { application/json: { schema: { type: object, properties: { organization: { $ref: '#/components/schemas/Organization' } } } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
   /organizations/{id}/entitlements:
@@ -69,12 +72,7 @@ paths:
     get:
       tags: [Billing]
       responses:
-        '200':
-          description: Entitlements resolved only from verified billing state
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EntitlementResponse'
+        '200': { description: Entitlements resolved only from verified billing state, content: { application/json: { schema: { $ref: '#/components/schemas/EntitlementResponse' } } } }
   /organizations/{id}/subscription:
     parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
     get:
@@ -83,25 +81,94 @@ paths:
         '200': { description: Subscription state, content: { application/json: { schema: { type: object, properties: { subscription: { $ref: '#/components/schemas/Subscription' } } } } } }
     post:
       tags: [Billing]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
       description: Requests a plan change. This never activates paid entitlements; a verified billing event is required.
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [plan_id], properties: { plan_id: { type: string } } } } } }
-      responses:
-        '202': { description: Billing activation pending }
+      responses: { '202': { description: Billing activation pending } }
   /organizations/{id}/usage:
     parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
     get:
       tags: [Usage]
-      responses:
-        '200': { description: Current usage, content: { application/json: { schema: { type: object, properties: { usage: { $ref: '#/components/schemas/Usage' } } } } } }
+      responses: { '200': { description: Current usage, content: { application/json: { schema: { type: object, properties: { usage: { $ref: '#/components/schemas/Usage' } } } } } } }
   /organizations/{id}/usage/record:
     parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
     post:
       tags: [Usage]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [bytes_processed, transactions], properties: { bytes_processed: { type: integer, format: int64, minimum: 0 }, transactions: { type: integer, format: int64, minimum: 0 } } } } } }
       responses: { '200': { description: Usage recorded } }
+  /organizations/{id}/members:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Identity]
+      responses: { '200': { description: Organization members, content: { application/json: { schema: { $ref: '#/components/schemas/MembersResponse' } } } } }
+  /organizations/{id}/members/{member}/role:
+    parameters:
+      - { $ref: '#/components/parameters/OrganizationId' }
+      - { name: member, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Identity]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [role], properties: { role: { type: string } } } } } }
+      responses: { '200': { description: Member role updated } }
+  /organizations/{id}/invitations:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Identity]
+      responses: { '200': { description: Organization invitations, content: { application/json: { schema: { $ref: '#/components/schemas/InvitationsResponse' } } } } }
+    post:
+      tags: [Identity]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateInvitationRequest' } } } }
+      responses: { '200': { description: Invitation created } }
+  /organizations/{id}/invitations/{invitation_id}:
+    parameters:
+      - { $ref: '#/components/parameters/OrganizationId' }
+      - { name: invitation_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Identity]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      responses: { '200': { description: Invitation revoked } }
+  /invitations/accept:
+    post:
+      tags: [Identity]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [token], properties: { token: { type: string } } } } } }
+      responses: { '200': { description: Invitation accepted } }
+  /organizations/{id}/security/posture:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Security posture, content: { application/json: { schema: { type: object, additionalProperties: true } } } } }
+  /organizations/{id}/findings:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Security findings, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+  /organizations/{id}/incidents:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Security incidents, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+  /organizations/{id}/transactions:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Transaction and receipt telemetry, content: { application/json: { schema: { $ref: '#/components/schemas/TransactionCollection' } } } } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TransactionTelemetryInput' } } } }
+      responses: { '200': { description: Transaction telemetry accepted } }
+  /organizations/{id}/aer-kep-q/status:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: AER-KEP-Q runtime status, content: { application/json: { schema: { type: object, additionalProperties: true } } } } }
 components:
   parameters:
     OrganizationId: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    IdempotencyKey: { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 8, maxLength: 255 } }
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: session-token }
   responses:
@@ -174,3 +241,70 @@ components:
         organization_id: { type: string, format: uuid }
         transactions: { type: integer, format: int64 }
         bytes_processed: { type: integer, format: int64 }
+    MembersResponse:
+      type: object
+      required: [organization_id, members]
+      properties:
+        organization_id: { type: string, format: uuid }
+        members: { type: array, items: { type: object, required: [username, role], properties: { username: { type: string }, role: { type: string } } } }
+    Invitation:
+      type: object
+      required: [id, organization_id, email, role, created_at_ms, expires_at_ms, revoked]
+      properties:
+        id: { type: string, format: uuid }
+        organization_id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { type: string }
+        created_at_ms: { type: integer, format: int64 }
+        expires_at_ms: { type: integer, format: int64 }
+        accepted_at_ms: { type: [integer, 'null'] }
+        revoked: { type: boolean }
+    InvitationsResponse:
+      type: object
+      required: [organization_id, invitations]
+      properties:
+        organization_id: { type: string, format: uuid }
+        invitations: { type: array, items: { $ref: '#/components/schemas/Invitation' } }
+    CreateInvitationRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+        role: { type: string }
+        expires_in_hours: { type: integer, minimum: 1, maximum: 720 }
+    CollectionResponse:
+      type: object
+      required: [organization_id, items, total, data_state]
+      properties:
+        organization_id: { type: string, format: uuid }
+        items: { type: array, items: { type: object, additionalProperties: true } }
+        total: { type: integer, minimum: 0 }
+        data_state: { type: string }
+        next_cursor: { type: [string, 'null'] }
+    TransactionTelemetryInput:
+      type: object
+      required: [transaction_id, tenant_id, state, kind, subject_id, proposed_action, policy_id, policy_version, created_at_ms, updated_at_ms]
+      properties:
+        transaction_id: { type: string }
+        tenant_id: { type: string }
+        state: { type: string }
+        kind: { type: string }
+        subject_id: { type: string }
+        proposed_action: { type: string }
+        policy_id: { type: string }
+        policy_version: { type: string }
+        correlation_id: { type: [string, 'null'] }
+        receipt_id: { type: [string, 'null'] }
+        outcome_code: { type: [string, 'null'] }
+        created_at_ms: { type: integer, format: int64 }
+        updated_at_ms: { type: integer, format: int64 }
+    TransactionCollection:
+      type: object
+      required: [organization_id, items, total, data_state]
+      properties:
+        organization_id: { type: string, format: uuid }
+        items: { type: array, items: { type: object, additionalProperties: true } }
+        total: { type: integer, minimum: 0 }
+        receipts: { type: array, items: { type: object, additionalProperties: true } }
+        data_state: { type: string }
+        next_cursor: { type: [string, 'null'] }
