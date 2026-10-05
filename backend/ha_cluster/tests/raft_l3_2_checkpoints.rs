@@ -1200,10 +1200,15 @@ async fn test_c13_insertion_detection() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
-    for n in &nodes {
+
+    // Stop the background apply loops so checkpoint generation and persistence
+    // use the same deterministic sequence as the C1 checkpoint contract.
+    for n in &mut nodes {
+        n.apply_handle.abort();
+    }
+    for n in &mut nodes {
         n.applier.apply_committed_entries().await.ok();
     }
-    tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
     leader_node
@@ -1215,7 +1220,14 @@ async fn test_c13_insertion_detection() {
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
-    let _ = wait_for_all_nodes_have_checkpoints(&nodes, 1, Duration::from_secs(5)).await;
+    let checkpoint_ready =
+        wait_for_all_nodes_have_checkpoints(&nodes, 1, Duration::from_secs(20)).await;
+    assert!(checkpoint_ready, "checkpoint should become durable on every node");
+
+    // Apply the committed checkpoint entry after the quorum commit.
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.ok();
+    }
 
     let path = &nodes[leader_idx].checkpoint_path;
     let content = std::fs::read_to_string(path).unwrap();
