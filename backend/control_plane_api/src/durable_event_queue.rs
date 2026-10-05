@@ -1,6 +1,6 @@
 use blake3::Hasher;
 use serde::{Deserialize, Serialize};
-use sled::{CompareAndSwapError, Db};
+use sled::Db;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -128,8 +128,12 @@ impl DurableEventQueue {
         for (key, mut event) in candidates {
             event.state = EventState::InFlight;
             event.attempts = event.attempts.saturating_add(1);
+            let previous = match self.db.get(&key)? {
+                Some(value) => value,
+                None => continue,
+            };
             let encoded = serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?;
-            match self.db.compare_and_swap(&key, None::<&[u8]>, Some(encoded.as_slice())) {
+            match self.db.compare_and_swap(&key, Some(previous.as_ref()), Some(encoded.as_slice())) {
                 Ok(Ok(_)) => {
                     self.db.flush()?;
                     return Ok(Some(event));
