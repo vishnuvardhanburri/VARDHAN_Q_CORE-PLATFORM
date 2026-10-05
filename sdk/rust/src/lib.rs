@@ -58,7 +58,7 @@ impl Vardhan {
     pub async fn ingest_transaction(&self, organization_id: &str, body: Value, idempotency_key: &str) -> Result<Value, VardhanError> { self.post(&format!("/api/v1/organizations/{organization_id}/transactions"), body, Some(idempotency_key)).await }
     pub async fn create_organization(&self, body: Value, idempotency_key: &str) -> Result<Value, VardhanError> { self.post("/api/v1/organizations", body, Some(idempotency_key)).await }
     pub async fn create_invitation(&self, organization_id: &str, body: Value, idempotency_key: &str) -> Result<Value, VardhanError> { self.post(&format!("/api/v1/organizations/{organization_id}/invitations"), body, Some(idempotency_key)).await }
-    pub async fn verify_webhook_signature(secret: &str, body: &[u8], signature_hex: &str) -> Result<(), VardhanError> { let expected = hex::decode(signature_hex).map_err(|_| VardhanError::InvalidWebhookSignature)?; let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).map_err(|_| VardhanError::InvalidWebhookSignature)?; mac.update(body); mac.verify_slice(&expected).map_err(|_| VardhanError::InvalidWebhookSignature) }
+    pub fn verify_webhook_signature(secret: &str, body: &[u8], signature_hex: &str) -> Result<(), VardhanError> { let expected = hex::decode(signature_hex).map_err(|_| VardhanError::InvalidWebhookSignature)?; let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).map_err(|_| VardhanError::InvalidWebhookSignature)?; mac.update(body); mac.verify_slice(&expected).map_err(|_| VardhanError::InvalidWebhookSignature) }
 }
 
 #[cfg(test)]
