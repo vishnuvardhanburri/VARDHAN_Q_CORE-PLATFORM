@@ -9,6 +9,8 @@ mod platform;
 pub use platform::*;
 mod rbac_scim;
 pub use rbac_scim::*;
+mod industry_contracts;
+pub use industry_contracts::*;
 
 #[derive(Error, Debug)]
 pub enum TenantError {
