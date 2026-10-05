@@ -163,6 +163,24 @@ paths:
     get:
       tags: [Security]
       responses: { '200': { description: Security incidents, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+    post:
+      tags: [Security]
+      parameters:
+        - { $ref: '#/components/parameters/OrganizationId' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [open, acknowledged, resolved] }
+      responses:
+        '200': { description: Incident transition accepted }
+        '400': { description: Invalid incident transition }
+        '403': { description: Organization access denied }
   /organizations/{id}/transactions:
     parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
     get:
