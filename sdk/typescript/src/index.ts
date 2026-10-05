@@ -11,7 +11,7 @@ export type Plan = { id: string; name: string; tier: string; contact_sales: bool
 export type Organization = { id: string; name: string; owner: string; created_at_ms: number };
 export type Subscription = { organization_id: string; plan_id: string; status: string; provider: string; external_customer_id?: string | null; external_subscription_id?: string | null };
 export type Usage = { organization_id: string; transactions: number; bytes_processed: number };
-export type Entitlements = { organization_id: string; plan?: Plan; subscription_status: string; entitlements: string[]; activation: string; provider?: string };
+export type Entitlements = { organization_id: string; plan?: Plan | null; subscription_status: string; entitlements: string[]; activation: string; provider?: string };
 
 export class VardhanApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string, public readonly requestId?: string) {
@@ -31,6 +31,7 @@ export class VardhanClient {
     if (!this.transport) throw new Error('Fetch API is unavailable; provide config.fetch');
   }
 
+  static idempotencyKey(): string { return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
   private async request<T>(path: string, init: RequestInit = {}, options: RequestOptions = {}): Promise<T> {
     let attempt = 0;
     while (true) {
@@ -40,18 +41,13 @@ export class VardhanClient {
       if (this.token) headers.set('authorization', `Bearer ${this.token}`);
       if (options.idempotencyKey) headers.set('idempotency-key', options.idempotencyKey);
       if (options.correlationId) headers.set('x-correlation-id', options.correlationId);
-      headers.set('x-vardhan-sdk', '@vardhan-technologies/sdk/0.2.0');
+      headers.set('x-vardhan-sdk', '@vardhan-technologies/sdk/0.3.0');
       try {
         const response = await this.transport(joinUrl(this.baseUrl, path), { ...init, headers, signal: controller.signal });
         const requestId = response.headers.get('x-request-id') ?? undefined;
         const retryable = response.status === 429 || response.status >= 500;
-        if (retryable && attempt < this.maxRetries) {
-          const retryAfter = Number(response.headers.get('retry-after') ?? '0');
-          const delay = retryAfter > 0 ? Math.min(retryAfter * 1000, 5_000) : Math.min(250 * 2 ** attempt, 5_000);
-          attempt++; await new Promise(resolve => setTimeout(resolve, delay)); continue;
-        }
-        const text = await response.text(); let body: any = undefined;
-        if (text) { try { body = JSON.parse(text); } catch { body = undefined; } }
+        if (retryable && attempt < this.maxRetries) { const retryAfter = Number(response.headers.get('retry-after') ?? '0'); const delay = retryAfter > 0 ? Math.min(retryAfter * 1000, 5_000) : Math.min(250 * 2 ** attempt, 5_000); attempt++; await new Promise(resolve => setTimeout(resolve, delay)); continue; }
+        const text = await response.text(); let body: any = undefined; if (text) { try { body = JSON.parse(text); } catch { body = undefined; } }
         if (!response.ok) throw new VardhanApiError(response.status, body?.code ?? `HTTP_${response.status}`, body?.error ?? 'Vardhan API request failed', requestId);
         return body as T;
       } catch (error) {
@@ -77,6 +73,25 @@ export class VardhanClient {
     requestPlan: (id: string, planId: string, options?: RequestOptions) => this.post<{ subscription: Subscription; requested_plan: string; activation: string }>(`/api/v1/organizations/${encodeURIComponent(id)}/subscription`, { plan_id: planId }, options),
     usage: (id: string) => this.get<{ usage: Usage }>(`/api/v1/organizations/${encodeURIComponent(id)}/usage`),
     recordUsage: (id: string, transactions: number, bytesProcessed: number, options?: RequestOptions) => this.post<{ usage: Usage }>(`/api/v1/organizations/${encodeURIComponent(id)}/usage/record`, { transactions, bytes_processed: bytesProcessed }, options),
+    members: (id: string) => this.get<any>(`/api/v1/organizations/${encodeURIComponent(id)}/members`),
+    invitations: (id: string) => this.get<any>(`/api/v1/organizations/${encodeURIComponent(id)}/invitations`),
+    createInvitation: (id: string, body: unknown, options?: RequestOptions) => this.post<any>(`/api/v1/organizations/${encodeURIComponent(id)}/invitations`, body, options),
+    securityPosture: (id: string) => this.get<any>(`/api/v1/organizations/${encodeURIComponent(id)}/security/posture`),
+    findings: (id: string) => this.get<any>(`/api/v1/organizations/${encodeURIComponent(id)}/findings`),
+    incidents: (id: string) => this.get<any>(`/api/v1/organizations/${encodeURIComponent(id)}/incidents`),
+    transactions: (id: string) => this.get<any>(`/api/v1/organizations/${encodeURIComponent(id)}/transactions`),
+    ingestTransaction: (id: string, body: unknown, options?: RequestOptions) => this.post<any>(`/api/v1/organizations/${encodeURIComponent(id)}/transactions`, body, options),
+    aerKepQStatus: (id: string) => this.get<any>(`/api/v1/organizations/${encodeURIComponent(id)}/aer-kep-q/status`),
   };
+
+  static async verifyWebhookSignature(secret: string, body: Uint8Array | string, signatureHex: string): Promise<boolean> {
+    try {
+      const bytes = typeof body === 'string' ? new TextEncoder().encode(body) : body;
+      const supplied = signatureHex.match(/.{1,2}/g)?.map(x => Number.parseInt(x, 16));
+      if (!supplied) return false;
+      const key = await globalThis.crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+      return globalThis.crypto.subtle.verify('HMAC', key, new Uint8Array(supplied), bytes);
+    } catch { return false; }
+  }
 }
 export { VardhanClient as Vardhan };
