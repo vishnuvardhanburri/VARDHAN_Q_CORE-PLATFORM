@@ -247,6 +247,8 @@ pub enum ContinuousOperationsError {
     UnsupportedRemediation,
     #[error("remediation not found")]
     RemediationNotFound,
+    #[error("remediation proposer cannot approve their own remediation")]
+    SelfApprovalForbidden,
     #[error("invalid remediation transition")]
     InvalidRemediationTransition,
     #[error("incident is required for this remediation")]
@@ -603,7 +605,12 @@ impl ContinuousOperationsStore {
         let target = target.trim().to_ascii_lowercase();
 
         match (item.status.as_str(), target.as_str()) {
-            ("proposed", "approved") => item.approved_by = Some(actor.to_owned()),
+            ("proposed", "approved") => {
+                if item.proposed_by == actor {
+                    return Err(ContinuousOperationsError::SelfApprovalForbidden);
+                }
+                item.approved_by = Some(actor.to_owned());
+            },
             ("proposed", "rejected") => {}
             ("approved", "completed") => {}
             ("approved", "failed") => {}
@@ -1370,6 +1377,46 @@ mod tests {
         assert!(store.transition_remediation("org-a", &proposed.remediation_id, "proposed", "operator", 3).is_err());
         let completed = store.transition_remediation("org-a", &proposed.remediation_id, "completed", "security_admin", 4).unwrap();
         assert_eq!(completed.status, "completed");
+    }
+
+    #[test]
+    fn remediation_cannot_be_self_approved() {
+        let db = db();
+        let store = ContinuousOperationsStore::new(db);
+        let proposed = store
+            .propose_remediation(
+                "org-a",
+                &RemediationInput {
+                    action: "REVALIDATE_POLICY".into(),
+                    finding_id: Some("f-1".into()),
+                    incident_id: None,
+                    rationale: "Policy observation requires independent approval.".into(),
+                },
+                "operator",
+                1,
+            )
+            .unwrap();
+
+        assert!(store
+            .transition_remediation(
+                "org-a",
+                &proposed.remediation_id,
+                "approved",
+                "operator",
+                2,
+            )
+            .is_err());
+
+        let approved = store
+            .transition_remediation(
+                "org-a",
+                &proposed.remediation_id,
+                "approved",
+                "security_admin",
+                3,
+            )
+            .unwrap();
+        assert_eq!(approved.approved_by.as_deref(), Some("security_admin"));
     }
 
     #[test]
