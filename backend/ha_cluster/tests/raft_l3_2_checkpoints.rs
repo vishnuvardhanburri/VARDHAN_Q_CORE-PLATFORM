@@ -554,6 +554,7 @@ async fn test_c3_entry_count_triggered_checkpoint() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
+    tokio::time::sleep(Duration::from_millis(300)).await;
 
     // Stop background apply loops so checkpoint persistence is driven by this
     // test, not by scheduler timing on a busy CI runner.
