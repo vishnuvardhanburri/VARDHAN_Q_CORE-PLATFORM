@@ -1,0 +1,119 @@
+//! Enterprise SSO boundary.
+//!
+//! OIDC is implemented as a standards-based authorization-code + PKCE flow with
+//! durable state, nonce binding, discovery, JWKS verification and tenant mapping.
+//! SAML is deliberately fail-closed until an XMLDSig-capable provider adapter is
+//! configured; the ACS never accepts an unsigned assertion as identity.
+
+use axum::{extract::{Query, State}, http::{HeaderMap, StatusCode}, response::{IntoResponse, Redirect}, Form, Json};
+use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
+use rand::{rngs::OsRng, RngCore};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use sha2::{Digest, Sha256};
+use std::time::{SystemTime, UNIX_EPOCH};
+use crate::{is_member, ControlPlaneState};
+
+const OIDC_STATE_PREFIX: &[u8] = b"oidc:state:";
+const FLOW_TTL_MS: u64 = 300_000;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct OidcStateRecord { state: String, nonce: String, pkce_verifier: String, issuer: String, client_id: String, redirect_uri: String, expires_at_ms: u64 }
+
+#[derive(Debug, Deserialize)]
+pub struct OidcCallback { pub code: String, pub state: String, pub iss: Option<String> }
+
+#[derive(Debug, Deserialize)]
+struct Discovery { authorization_endpoint: String, token_endpoint: String, jwks_uri: String, issuer: String }
+
+#[derive(Debug, Deserialize)]
+struct TokenResponse { id_token: String, access_token: Option<String>, token_type: Option<String> }
+
+#[derive(Debug, Deserialize)]
+struct Jwks { keys: Vec<Jwk> }
+
+#[derive(Debug, Deserialize)]
+struct Jwk { kid: Option<String>, kty: String, alg: Option<String>, n: Option<String>, e: Option<String>, crv: Option<String>, x: Option<String>, y: Option<String> }
+
+#[derive(Debug, Deserialize)]
+struct IdClaims { iss: String, sub: String, aud: serde_json::Value, exp: u64, iat: Option<u64>, nonce: Option<String>, email: Option<String>, preferred_username: Option<String>, name: Option<String> }
+
+#[derive(Debug, Deserialize)]
+pub struct SamlRequest { #[serde(rename = "SAMLResponse")] pub saml_response: Option<String> }
+
+fn now_ms() -> u64 { SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or_default() }
+fn random_bytes(len: usize) -> Vec<u8> { let mut bytes = vec![0u8; len]; OsRng.fill_bytes(&mut bytes); bytes }
+fn random_url_token(bytes: usize) -> String { URL_SAFE_NO_PAD.encode(random_bytes(bytes)) }
+fn state_key(state: &str) -> Vec<u8> { let mut k = OIDC_STATE_PREFIX.to_vec(); k.extend_from_slice(state.as_bytes()); k }
+fn pkce_challenge(verifier: &str) -> String { URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes())) }
+fn configured(name: &str) -> Result<String, (StatusCode, Json<serde_json::Value>)> { std::env::var(name).ok().filter(|v| !v.trim().is_empty()).ok_or((StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error":format!("{name} is not configured")})))) }
+
+pub async fn oidc_start(State(state): State<ControlPlaneState>) -> impl IntoResponse {
+    let issuer = match configured("VARDHAN_OIDC_ISSUER") { Ok(v) => v.trim_end_matches('/').to_string(), Err(e) => return e.into_response() };
+    let client_id = match configured("VARDHAN_OIDC_CLIENT_ID") { Ok(v) => v, Err(e) => return e.into_response() };
+    let redirect_uri = match configured("VARDHAN_OIDC_REDIRECT_URI") { Ok(v) => v, Err(e) => return e.into_response() };
+    if !issuer.starts_with("https://") || !redirect_uri.starts_with("https://") { return (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error":"OIDC issuer and redirect URI must use HTTPS"}))).into_response(); }
+    let state_value = random_url_token(32);
+    let nonce = random_url_token(32);
+    let verifier = random_url_token(48);
+    let record = OidcStateRecord { state: state_value.clone(), nonce, pkce_verifier: verifier.clone(), issuer: issuer.clone(), client_id: client_id.clone(), redirect_uri: redirect_uri.clone(), expires_at_ms: now_ms() + FLOW_TTL_MS };
+    if let Ok(bytes) = serde_json::to_vec(&record) { if state.db.insert(state_key(&state_value), bytes).is_err() { return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error":"OIDC flow state persistence failed"}))).into_response(); } }
+    let discovery_url = format!("{issuer}/.well-known/openid-configuration");
+    let discovery: Discovery = match reqwest::Client::new().get(&discovery_url).send().await.and_then(|r| async { r.error_for_status()?.json::<Discovery>().await }.await) {
+        Ok(v) => v,
+        Err(_) => return (StatusCode::BAD_GATEWAY, Json(json!({"error":"OIDC provider discovery failed"}))).into_response(),
+    };
+    if discovery.issuer.trim_end_matches('/') != issuer { return (StatusCode::BAD_GATEWAY, Json(json!({"error":"OIDC discovery issuer mismatch"}))).into_response(); }
+    let url = format!("{}?response_type=code&client_id={}&redirect_uri={}&scope=openid%20profile%20email&state={}&nonce={}&code_challenge={}&code_challenge_method=S256", discovery.authorization_endpoint, urlencoding::encode(&client_id), urlencoding::encode(&redirect_uri), urlencoding::encode(&state_value), urlencoding::encode(&record.nonce), urlencoding::encode(&pkce_challenge(&verifier)));
+    Redirect::temporary(&url).into_response()
+}
+
+pub async fn oidc_callback(State(state): State<ControlPlaneState>, Query(query): Query<OidcCallback>, headers: HeaderMap) -> impl IntoResponse {
+    let key = state_key(&query.state);
+    let Some(bytes) = state.db.get(&key).ok().flatten() else { return (StatusCode::BAD_REQUEST, Json(json!({"error":"OIDC state is unknown or already consumed"}))).into_response(); };
+    let record: OidcStateRecord = match serde_json::from_slice(&bytes) { Ok(v) => v, Err(_) => return (StatusCode::BAD_REQUEST, Json(json!({"error":"OIDC state is corrupt"}))).into_response() };
+    if now_ms() >= record.expires_at_ms || record.state != query.state { let _ = state.db.remove(key); return (StatusCode::BAD_REQUEST, Json(json!({"error":"OIDC state expired or mismatched"}))).into_response(); }
+    if let Some(iss) = &query.iss { if iss.trim_end_matches('/') != record.issuer { let _ = state.db.remove(key); return (StatusCode::UNAUTHORIZED, Json(json!({"error":"OIDC issuer mismatch"}))).into_response(); } }
+    let _ = state.db.remove(key);
+    let client_secret = match configured("VARDHAN_OIDC_CLIENT_SECRET") { Ok(v) => v, Err(e) => return e.into_response() };
+    let discovery_url = format!("{}/.well-known/openid-configuration", record.issuer);
+    let discovery: Discovery = match reqwest::Client::new().get(&discovery_url).send().await.and_then(|r| async { r.error_for_status()?.json::<Discovery>().await }.await) { Ok(v) => v, Err(_) => return (StatusCode::BAD_GATEWAY, Json(json!({"error":"OIDC provider discovery failed"}))).into_response() };
+    let form = [
+        ("grant_type", "authorization_code"),
+        ("code", query.code.as_str()),
+        ("redirect_uri", record.redirect_uri.as_str()),
+        ("client_id", record.client_id.as_str()),
+        ("client_secret", client_secret.as_str()),
+        ("code_verifier", record.pkce_verifier.as_str()),
+    ];
+    let token_response: TokenResponse = match reqwest::Client::new().post(&discovery.token_endpoint).form(&form).send().await.and_then(|r| async { r.error_for_status()?.json::<TokenResponse>().await }.await) { Ok(v) => v, Err(_) => return (StatusCode::BAD_GATEWAY, Json(json!({"error":"OIDC code exchange failed"}))).into_response() };
+    let header = match decode_header(&token_response.id_token) { Ok(v) => v, Err(_) => return (StatusCode::UNAUTHORIZED, Json(json!({"error":"Invalid OIDC ID token header"}))).into_response() };
+    let jwks: Jwks = match reqwest::Client::new().get(&discovery.jwks_uri).send().await.and_then(|r| async { r.error_for_status()?.json::<Jwks>().await }.await) { Ok(v) => v, Err(_) => return (StatusCode::BAD_GATEWAY, Json(json!({"error":"OIDC JWKS retrieval failed"}))).into_response() };
+    let jwk = match jwks.keys.iter().find(|k| k.kid.as_deref() == header.kid.as_deref() && k.alg.as_deref().map(|a| a == "RS256" || a == "ES256").unwrap_or(true)) { Some(v) => v, None => return (StatusCode::UNAUTHORIZED, Json(json!({"error":"OIDC signing key not found"}))).into_response() };
+    let (algorithm, key) = match jwk.kty.as_str() { "RSA" => match (jwk.n.as_deref(), jwk.e.as_deref()) { (Some(n),Some(e)) => match DecodingKey::from_rsa_components(n,e) { Ok(k)=>(Algorithm::RS256,k), Err(_)=>(Algorithm::RS256,DecodingKey::from_secret(b"invalid")) }, _ => return (StatusCode::UNAUTHORIZED, Json(json!({"error":"OIDC RSA key is incomplete"}))).into_response() }, "EC" if jwk.crv.as_deref()==Some("P-256") => match (jwk.x.as_deref(),jwk.y.as_deref()) { (Some(x),Some(y)) => match DecodingKey::from_ec_components(x,y) { Ok(k)=>(Algorithm::ES256,k), Err(_)=>(Algorithm::ES256,DecodingKey::from_secret(b"invalid")) }, _ => return (StatusCode::UNAUTHORIZED, Json(json!({"error":"OIDC EC key is incomplete"}))).into_response() }, _ => return (StatusCode::UNAUTHORIZED, Json(json!({"error":"Unsupported OIDC signing algorithm"}))).into_response() };
+    if header.alg != algorithm { return (StatusCode::UNAUTHORIZED, Json(json!({"error":"OIDC algorithm mismatch"}))).into_response(); }
+    let mut validation = Validation::new(algorithm); validation.validate_aud = false; validation.set_required_spec_claims(&["exp","iss","sub"]);
+    let claims = match decode::<IdClaims>(&token_response.id_token, &key, &validation) { Ok(v) => v.claims, Err(_) => return (StatusCode::UNAUTHORIZED, Json(json!({"error":"OIDC ID token signature or claims invalid"}))).into_response() };
+    if claims.iss.trim_end_matches('/') != record.issuer { return (StatusCode::UNAUTHORIZED, Json(json!({"error":"OIDC token issuer mismatch"}))).into_response(); }
+    let audience_ok = match claims.aud { serde_json::Value::String(v) => v == record.client_id, serde_json::Value::Array(v) => v.iter().any(|x| x.as_str()==Some(record.client_id.as_str())), _ => false };
+    if !audience_ok || claims.exp.saturating_mul(1000) <= now_ms() || claims.nonce.as_deref() != Some(record.nonce.as_str()) { return (StatusCode::UNAUTHORIZED, Json(json!({"error":"OIDC audience, expiry, or nonce validation failed"}))).into_response(); }
+    let username = claims.email.or(claims.preferred_username).unwrap_or_else(|| format!("oidc:{}", claims.sub));
+    if let Ok(default_org) = std::env::var("VARDHAN_OIDC_DEFAULT_ORG") { if std::env::var("VARDHAN_OIDC_AUTO_PROVISION").map(|v| v == "true").unwrap_or(false) && !is_member(&state.db, &default_org, &username).unwrap_or(false) { let _ = state.db.insert(crate::key(crate::MEMBER_PREFIX, &format!("{default_org}:{username}")), b"viewer"); } }
+    let ip = headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()).and_then(|v| v.split(',').next()).unwrap_or("0.0.0.0").parse().unwrap_or(std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED));
+    let token = state.auth.sessions.create_with_node(&username, ip, state.auth.node_id.as_deref().unwrap_or("control-plane")).await;
+    Json(json!({"status":"authenticated","token":token.as_str(),"expires_in":8*60*60,"subject":claims.sub,"name":claims.name})).into_response()
+}
+
+pub async fn saml_metadata() -> impl IntoResponse {
+    let entity = std::env::var("VARDHAN_SAML_ENTITY_ID").unwrap_or_else(|_| "https://vardhan.example.com/saml/metadata".into());
+    let acs = std::env::var("VARDHAN_SAML_ACS_URL").unwrap_or_else(|_| "https://vardhan.example.com/api/v1/auth/saml/acs".into());
+    let xml = format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"{entity}\"><md:SPSSODescriptor AuthnRequestsSigned=\"false\" WantAssertionsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"{acs}\" index=\"0\" isDefault=\"true\"/></md:SPSSODescriptor></md:EntityDescriptor>");
+    ([(axum::http::header::CONTENT_TYPE, "application/samlmetadata+xml")], xml)
+}
+
+pub async fn saml_acs(Form(req): Form<SamlRequest>) -> impl IntoResponse {
+    let Some(response) = req.saml_response.filter(|v| !v.trim().is_empty()) else { return (StatusCode::BAD_REQUEST, Json(json!({"error":"SAMLResponse is required"}))).into_response(); };
+    let _ = response;
+    (StatusCode::NOT_IMPLEMENTED, Json(json!({"error":"SAML ACS is fail-closed until an XMLDSig-capable provider adapter is configured","required":"signed SAML 2.0 assertion verification"}))).into_response()
+}
