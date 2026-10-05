@@ -16,6 +16,10 @@ pub mod enterprise_api;
 pub mod enterprise_sso;
 pub mod operations_api;
 pub mod qcore_telemetry;
+pub mod durable_event_queue;
+pub mod enterprise_integrations;
+pub mod assurance_evidence;
+pub mod resilience_contract;
 pub mod security_operations;
 pub mod receipt_key_registry;
 pub mod receipt_transport;
@@ -73,7 +77,7 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
         .route("/api/v1/organizations/{id}/usage/record", post(record_usage))
         .route("/api/v1/organizations/{id}/security/posture", get(operations_api::security_posture))
         .route("/api/v1/organizations/{id}/findings", get(operations_api::findings).post(operations_api::ingest_finding))
-        .route("/api/v1/organizations/{id}/incidents", get(operations_api::incidents))
+        .route("/api/v1/organizations/{id}/incidents", get(operations_api::incidents).post(operations_api::update_incident))
         .route("/api/v1/organizations/{id}/transactions", get(operations_api::transactions).post(operations_api::ingest_transaction))
         .route("/api/v1/organizations/{id}/aer-kep-q/status", get(operations_api::aer_kep_q_status))
         .route("/api/v1/organizations/{id}/members", get(enterprise_api::list_members))
