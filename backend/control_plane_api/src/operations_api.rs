@@ -1,4 +1,4 @@
-use crate::{is_member, member_role, qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState}, ControlPlaneState};
+use crate::{is_member, member_role, qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState}, security_operations::{SecurityFindingInput, SecurityOperationsStore}, ControlPlaneState};
 use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Extension, Json};
 use auth_service::AuthenticatedUser;
 use serde::Deserialize;
@@ -46,20 +46,46 @@ pub struct ReceiptTelemetryInput {
 
 pub async fn security_posture(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
-    let store = QCoreTelemetryStore::new(state.db.clone());
-    let transactions = store.transactions(&id).unwrap_or_default();
-    let receipts = store.receipts(&id).unwrap_or_default();
-    Json(json!({ "organization_id": id, "status": "operational", "data_state": if transactions.is_empty() && receipts.is_empty() { "not_populated" } else { "populated" }, "findings": {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0}, "incidents": {"open": 0}, "crypto_posture": {"status": "available", "source": "control-plane"}, "q_core": {"transactions": transactions.len(), "receipts": receipts.len()}, "note": "Security findings remain empty until Intelligence ingestion populates them." })).into_response()
+    let security = SecurityOperationsStore::new(state.db.clone());
+    let findings = security.findings(&id).unwrap_or_default();
+    let incidents = security.incidents(&id).unwrap_or_default();
+    let telemetry = QCoreTelemetryStore::new(state.db.clone());
+    let transactions = telemetry.transactions(&id).unwrap_or_default();
+    let receipts = telemetry.receipts(&id).unwrap_or_default();
+    let mut by_severity = serde_json::Map::new();
+    for level in ["critical", "high", "medium", "low", "info"] {
+        by_severity.insert(level.to_string(), json!(findings.iter().filter(|f| f.severity == level).count()));
+    }
+    Json(json!({
+        "organization_id": id,
+        "status": "operational",
+        "data_state": if findings.is_empty() && incidents.is_empty() && transactions.is_empty() && receipts.is_empty() { "not_populated" } else { "populated" },
+        "findings": {"total": findings.len(), "by_severity": by_severity},
+        "risk": {"critical": findings.iter().filter(|f| f.risk_band == "critical").count(), "high": findings.iter().filter(|f| f.risk_band == "high").count(), "medium": findings.iter().filter(|f| f.risk_band == "medium").count(), "low": findings.iter().filter(|f| f.risk_band == "low").count(), "info": findings.iter().filter(|f| f.risk_band == "info").count()},
+        "incidents": {"open": incidents.iter().filter(|i| i.status == "open").count(), "total": incidents.len()},
+        "crypto_posture": {"status": "available", "source": "control-plane"},
+        "q_core": {"transactions": transactions.len(), "receipts": receipts.len()}
+    })).into_response()
 }
 
 pub async fn findings(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
-    Json(json!({ "organization_id": id, "items": [], "total": 0, "data_state": "not_populated", "next_cursor": null })).into_response()
+    let items = SecurityOperationsStore::new(state.db.clone()).findings(&id).unwrap_or_default();
+    Json(json!({"organization_id": id, "items": items, "total": items.len(), "data_state": if items.is_empty() { "not_populated" } else { "populated" }, "next_cursor": null})).into_response()
+}
+
+pub async fn ingest_finding(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>, Json(input): Json<SecurityFindingInput>) -> Response {
+    if !can_operate(&state, &id, &user) { return denied(); }
+    match SecurityOperationsStore::new(state.db.clone()).record_finding(&id, &input) {
+        Ok(finding) => (axum::http::StatusCode::OK, Json(json!({"status":"accepted","finding":finding}))).into_response(),
+        Err(err) => (axum::http::StatusCode::BAD_REQUEST, Json(json!({"status":"rejected","error":err.to_string()}))).into_response(),
+    }
 }
 
 pub async fn incidents(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
-    Json(json!({ "organization_id": id, "items": [], "total": 0, "data_state": "not_populated", "next_cursor": null })).into_response()
+    let items = SecurityOperationsStore::new(state.db.clone()).incidents(&id).unwrap_or_default();
+    Json(json!({"organization_id": id, "items": items, "total": items.len(), "data_state": if items.is_empty() { "not_populated" } else { "populated" }, "next_cursor": null})).into_response()
 }
 
 pub async fn transactions(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
