@@ -1058,7 +1058,7 @@ fn build_crypto_posture(state: &ControlPlaneState, organization_id: &str) -> Res
     let mut deprecated = 0;
     let mut retired = 0;
     let mut revoked = 0;
-    for key in keys {
+    for key in &keys {
         match key.state {
             KeyState::Active => active += 1,
             KeyState::Rotating => rotating += 1,
@@ -1067,11 +1067,11 @@ fn build_crypto_posture(state: &ControlPlaneState, organization_id: &str) -> Res
             KeyState::Revoked => revoked += 1,
         }
         issuers.push(KeyLifecycleView {
-            service_id: key.service_id,
-            ed25519_key_id: key.ed25519_key_id,
-            ml_dsa_87_key_id: key.ml_dsa_87_key_id,
-            issuer_key_fingerprint: key.issuer_key_fingerprint,
-            state: key.state,
+            service_id: key.service_id.clone(),
+            ed25519_key_id: key.ed25519_key_id.clone(),
+            ml_dsa_87_key_id: key.ml_dsa_87_key_id.clone(),
+            issuer_key_fingerprint: key.issuer_key_fingerprint.clone(),
+            state: key.state.clone(),
         });
     }
     let receipts = QCoreTelemetryStore::new(state.db.clone())
