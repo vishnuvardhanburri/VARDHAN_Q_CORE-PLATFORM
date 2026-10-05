@@ -19,6 +19,7 @@ pub mod qcore_telemetry;
 pub mod durable_event_queue;
 pub mod enterprise_integrations;
 pub mod assurance_evidence;
+pub mod resilience_contract;
 pub mod security_operations;
 pub mod receipt_key_registry;
 pub mod receipt_transport;
