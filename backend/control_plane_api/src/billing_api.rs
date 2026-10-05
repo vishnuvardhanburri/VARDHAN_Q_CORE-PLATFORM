@@ -1,9 +1,10 @@
 use crate::{is_member, key, plan, ControlPlaneState, Subscription};
-use crate::billing::{accept_event_once, now_secs, verify_timestamp, BillingEvent, BillingProviderAdapter, HmacBillingProvider, SubscriptionState};
+use crate::billing::{event_key, now_secs, verify_timestamp, BillingEvent, BillingProviderAdapter, HmacBillingProvider, SubscriptionState};
 use axum::{body::Bytes, extract::{Path, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, Extension, Json};
 use auth_service::middleware::AuthenticatedUser;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sled::transaction::Transactional;
 
 const VERIFIED_PREFIX: &[u8] = b"billing:verified:";
 
@@ -61,28 +62,43 @@ pub async fn billing_webhook(State(state): State<ControlPlaneState>, headers: He
     if event.timestamp != timestamp || !verify_timestamp(event.timestamp, now_secs()) { return json_error(StatusCode::UNAUTHORIZED, "Billing event timestamp mismatch."); }
     if plan(event.plan_id.as_deref().unwrap_or("foundation")).is_none() { return json_error(StatusCode::BAD_REQUEST, "Billing event references an unknown plan."); }
     if event.provider.trim().is_empty() || event.event_id.trim().is_empty() { return json_error(StatusCode::BAD_REQUEST, "Billing provider and event_id are required."); }
-    match accept_event_once(&state.db, &event.event_id, event.timestamp) {
-        Ok(false) => return (StatusCode::OK, Json(json!({ "accepted": true, "duplicate": true, "event_id": event.event_id }))),
-        Ok(true) => {}
-        Err(_) => return json_error(StatusCode::INTERNAL_SERVER_ERROR, "Billing event idempotency store failed."),
-    }
+
     let current = state.db.get(key(b"sub:", &event.organization_id)).ok().flatten().and_then(|v| serde_json::from_slice::<Subscription>(&v).ok());
     if current.is_none() { return json_error(StatusCode::NOT_FOUND, "Organization subscription not found."); }
+
+    let effective_plan_id = event.plan_id.clone().unwrap_or_else(|| "foundation".into());
     let verified = VerifiedBillingState {
         organization_id: event.organization_id.clone(),
-        effective_plan_id: event.plan_id.unwrap_or_else(|| "foundation".into()),
+        effective_plan_id,
         status: event.status.clone(),
-        provider: event.provider,
-        external_customer_id: event.external_customer_id,
-        external_subscription_id: event.external_subscription_id,
+        provider: event.provider.clone(),
+        external_customer_id: event.external_customer_id.clone(),
+        external_subscription_id: event.external_subscription_id.clone(),
         updated_at: now_secs(),
     };
-    let bytes = match serde_json::to_vec(&verified) {
+    let verified_bytes = match serde_json::to_vec(&verified) {
         Ok(v) => v,
         Err(_) => return json_error(StatusCode::INTERNAL_SERVER_ERROR, "Billing state serialization failed."),
     };
-    if state.db.insert(verified_key(&event.organization_id), bytes).is_err() || state.db.flush().is_err() { return json_error(StatusCode::INTERNAL_SERVER_ERROR, "Billing state persistence failed."); }
-    (StatusCode::OK, Json(json!({ "accepted": true, "duplicate": false, "event_id": event.event_id })))
+    let event_key = event_key(&event.event_id);
+    let timestamp_bytes = event.timestamp.to_be_bytes();
+    let verified_key = verified_key(&event.organization_id);
+    let transaction = state.db.transaction(|tx| {
+        if tx.get(&event_key)?.is_some() {
+            return Ok(false);
+        }
+        tx.insert(&event_key, timestamp_bytes.as_slice())?;
+        tx.insert(&verified_key, verified_bytes.as_slice())?;
+        Ok(true)
+    });
+    match transaction {
+        Ok(false) => (StatusCode::OK, Json(json!({ "accepted": true, "duplicate": true, "event_id": event.event_id }))),
+        Ok(true) => {
+            let _ = state.db.flush();
+            (StatusCode::OK, Json(json!({ "accepted": true, "duplicate": false, "event_id": event.event_id })))
+        }
+        Err(_) => json_error(StatusCode::INTERNAL_SERVER_ERROR, "Billing state transaction failed."),
+    }
 }
 
 #[cfg(test)]
