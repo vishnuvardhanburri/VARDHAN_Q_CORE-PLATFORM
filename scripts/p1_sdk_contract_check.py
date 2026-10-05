@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Static P1 contract gate for all first-party SDKs.
-
-The check deliberately uses only the Python standard library so it can run in CI
-without an additional dependency. It extracts canonical OpenAPI path keys and
-verifies that each SDK exposes the corresponding resource family, plus common
-idempotency and webhook-signature primitives.
-"""
+"""Static P1 contract gate for all first-party SDKs."""
 from pathlib import Path
 import re
 import sys
@@ -19,19 +13,12 @@ SDK_ROOTS = {
     "rust": ROOT / "sdk/rust",
     "java": ROOT / "sdk/java",
 }
-
 REQUIRED_RESOURCE_SUFFIXES = [
-    "/organizations",
-    "/organizations/{id}",
-    "/organizations/{id}/entitlements",
-    "/organizations/{id}/subscription",
-    "/organizations/{id}/usage",
-    "/organizations/{id}/members",
-    "/organizations/{id}/invitations",
-    "/organizations/{id}/security/posture",
-    "/organizations/{id}/findings",
-    "/organizations/{id}/incidents",
-    "/organizations/{id}/transactions",
+    "/organizations", "/organizations/{id}", "/organizations/{id}/entitlements",
+    "/organizations/{id}/subscription", "/organizations/{id}/usage",
+    "/organizations/{id}/members", "/organizations/{id}/invitations",
+    "/organizations/{id}/security/posture", "/organizations/{id}/findings",
+    "/organizations/{id}/incidents", "/organizations/{id}/transactions",
     "/organizations/{id}/aer-kep-q/status",
 ]
 
@@ -44,13 +31,13 @@ def source_text(root: Path) -> str:
     )
 
 
-def path_variants(path: str) -> list[str]:
-    return [
-        path,
-        path.replace("{id}", "id"),
-        path.replace("{id}", "${id}"),
-        path.split("/organizations/{id}", 1)[-1] if "/organizations/{id}" in path else path,
-    ]
+def has_resource(text: str, path: str) -> bool:
+    if path in text:
+        return True
+    if path == "/organizations/{id}":
+        return "/organizations/" in text
+    suffix = path.split("/organizations/{id}", 1)[-1]
+    return bool(suffix) and suffix in text
 
 
 def main() -> int:
@@ -64,18 +51,17 @@ def main() -> int:
     failed = False
     for name, root in SDK_ROOTS.items():
         text = source_text(root)
-        if "Idempotency-Key" not in text and "idempotency-key" not in text:
+        lowered = text.lower()
+        if "idempotency-key" not in lowered:
             print(f"{name}: missing Idempotency-Key helper")
             failed = True
-        if "verifyWebhookSignature" not in text and "verify_webhook_signature" not in text and "Hmac<Sha256>" not in text and "HMAC" not in text:
+        if not any(marker in lowered for marker in ("verifywebhooksignature", "verify_webhook_signature", "hmacsha256", "hmac<sha256>")):
             print(f"{name}: missing webhook signature verification helper")
             failed = True
         for path in REQUIRED_RESOURCE_SUFFIXES:
-            if not any(v in text for v in path_variants(path)):
-                suffix = path.split("/organizations/{id}", 1)[-1] if "/organizations/{id}" in path else path
-                if suffix not in text:
-                    print(f"{name}: missing SDK resource coverage for {path}")
-                    failed = True
+            if not has_resource(text, path):
+                print(f"{name}: missing SDK resource coverage for {path}")
+                failed = True
     if failed:
         return 1
     print(f"P1 SDK contract gate passed for {len(SDK_ROOTS)} SDKs and {len(REQUIRED_RESOURCE_SUFFIXES)} enterprise resource families.")
