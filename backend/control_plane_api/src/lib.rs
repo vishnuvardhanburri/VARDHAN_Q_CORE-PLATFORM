@@ -15,6 +15,7 @@ pub mod billing_api;
 pub mod enterprise_api;
 pub mod enterprise_sso;
 pub mod operations_api;
+pub mod qcore_telemetry;
 pub mod receipt_key_registry;
 pub mod receipt_transport;
 pub mod receipt_verification;
