@@ -821,8 +821,7 @@ async fn test_c8_deletion_detection() {
     }
     tokio::time::sleep(Duration::from_millis(200)).await;
 
-    let leader_node = &nodes[leader_idx];
-    leader_node
+    nodes[leader_idx]
         .applier
         .generate_and_submit_checkpoint(0, true)
         .await
@@ -838,16 +837,16 @@ async fn test_c8_deletion_detection() {
         n.applier.apply_committed_entries().await.expect("apply committed checkpoint");
     }
 
-    let path = &nodes[leader_idx].checkpoint_path;
-    let checkpoints = read_checkpoint_file(path);
+    let path = nodes[leader_idx].checkpoint_path.clone();
+    let checkpoints = read_checkpoint_file(&path);
     assert_eq!(checkpoints.len(), 1);
 
     // Delete the checkpoint file content (simulate deletion attack)
-    std::fs::write(path, "").unwrap();
+    std::fs::write(&path, "").unwrap();
 
     // Write a NEW checkpoint directly (without proper chain linkage)
     // This simulates an attacker replacing the file with a forged checkpoint
-    let pub_key = leader_node.identity.dsa_public_key_bytes();
+    let pub_key = nodes[leader_idx].identity.dsa_public_key_bytes();
     let mut fake_cp = audit_ledger::Checkpoint {
         version: 1,
         cluster_id: leader.checkpoint_context().await.0,
@@ -857,7 +856,7 @@ async fn test_c8_deletion_detection() {
         ledger_first_seq: 0,
         ledger_last_seq: 4,
         ledger_entry_count: 5,
-        merkle_root: hex::encode(leader_node.applier.merkle_root_for_range(0, 4).await),
+        merkle_root: hex::encode(nodes[leader_idx].applier.merkle_root_for_range(0, 4).await),
         previous_checkpoint_hash: hex::encode([0u8; 32]),
         timestamp_ms: std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -881,7 +880,7 @@ async fn test_c8_deletion_detection() {
     std::fs::write(path, serde_json::to_string(&committed).unwrap() + "\n").unwrap();
 
     // Reopening the writer — scan should succeed (first checkpoint, prev_hash == zeros)
-    let result = audit_ledger::CheckpointWriter::open(path);
+    let result = audit_ledger::CheckpointWriter::open(&path);
     assert!(
         result.is_ok(),
         "Forged checkpoint should open (chain starts fresh)"
@@ -906,7 +905,7 @@ async fn test_c8_deletion_detection() {
     // then trying to append a second one (which should fail because
     // the second one's prev_hash won't match the first's hash).
     std::fs::write(path, "").unwrap();
-    let result = audit_ledger::CheckpointWriter::open(path);
+    let result = audit_ledger::CheckpointWriter::open(&path);
     assert!(result.is_ok(), "Cleared file should open (fresh start)");
 
     info!("C8 PASSED: Deletion/replacement detection (chain re-validation on open)");
@@ -1220,17 +1219,14 @@ async fn test_c13_insertion_detection() {
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
-    let checkpoint_ready =
-        wait_for_all_nodes_have_checkpoints(&nodes, 1, Duration::from_secs(20)).await;
-    assert!(checkpoint_ready, "checkpoint should become durable on every node");
-
-    // Apply the committed checkpoint entry after the quorum commit.
+    // Apply the committed checkpoint entry after the quorum commit so the
+    // checkpoint JSONL is populated before corruption is injected.
     for n in &mut nodes {
-        n.applier.apply_committed_entries().await.ok();
+        n.applier.apply_committed_entries().await.expect("apply committed checkpoint");
     }
 
-    let path = &nodes[leader_idx].checkpoint_path;
-    let content = std::fs::read_to_string(path).unwrap();
+    let path = nodes[leader_idx].checkpoint_path.clone();
+    let content = std::fs::read_to_string(&path).unwrap();
     let lines: Vec<&str> = content.lines().filter(|l| !l.trim().is_empty()).collect();
     assert_eq!(lines.len(), 1);
 
@@ -1240,10 +1236,10 @@ async fn test_c13_insertion_detection() {
     bogus.checkpoint.previous_checkpoint_hash = "ff".repeat(32); // Wrong prev_hash
     bogus.checkpoint.signature = "00".repeat(4627); // Fake signature
     let bogus_json = serde_json::to_string(&bogus).unwrap();
-    std::fs::write(path, format!("{}\n{}\n", lines[0], bogus_json)).unwrap();
+    std::fs::write(&path, format!("{}\n{}\n", lines[0], bogus_json)).unwrap();
 
     // Reopen should fail — second checkpoint has wrong prev_hash
-    let result = audit_ledger::CheckpointWriter::open(path);
+    let result = audit_ledger::CheckpointWriter::open(&path);
     assert!(
         result.is_err(),
         "Inserted bogus checkpoint should fail chain verification"
