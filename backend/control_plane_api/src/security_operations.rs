@@ -165,6 +165,36 @@ impl SecurityOperationsStore {
         Ok(items)
     }
 
+    pub fn transition_incident(
+        &self,
+        organization_id: &str,
+        incident_id: &str,
+        requested_status: &str,
+        now_ms: u64,
+    ) -> Result<SecurityIncident, SecurityOperationsError> {
+        let key = incident_key(organization_id, incident_id);
+        let Some(value) = self.db.get(&key)? else {
+            return Err(SecurityOperationsError::FindingConflict);
+        };
+        let mut incident: SecurityIncident = serde_json::from_slice(&value)
+            .map_err(|e| SecurityOperationsError::Serialization(e.to_string()))?;
+        let current = incident.status.as_str();
+        let target = requested_status.trim().to_ascii_lowercase();
+        let valid_target = matches!(target.as_str(), "open" | "acknowledged" | "resolved");
+        if !valid_target || status_rank(&target) < status_rank(current) {
+            return Err(SecurityOperationsError::InvalidStatus);
+        }
+        incident.status = target;
+        incident.updated_at_ms = now_ms;
+        self.db.insert(
+            key,
+            serde_json::to_vec(&incident)
+                .map_err(|e| SecurityOperationsError::Serialization(e.to_string()))?,
+        )?;
+        self.db.flush()?;
+        Ok(incident)
+    }
+
     fn ensure_incident(&self, finding: &SecurityFinding) -> Result<(), SecurityOperationsError> {
         let incident_id = incident_id(&finding.organization_id, &finding.finding_id);
         let key = incident_key(&finding.organization_id, &incident_id);
@@ -231,6 +261,15 @@ fn highest_severity(a: &str, b: &str) -> &str {
         }
     }
     if rank(a) >= rank(b) { a } else { b }
+}
+
+fn status_rank(status: &str) -> u8 {
+    match status {
+        "open" => 10,
+        "acknowledged" => 20,
+        "resolved" => 30,
+        _ => 0,
+    }
 }
 
 fn risk_band(score: u8) -> &'static str {
@@ -302,6 +341,20 @@ mod tests {
         let mut cross = input();
         cross.receipt_id = "VQR-2".into();
         assert!(matches!(store.record_finding("org-b", &cross), Err(SecurityOperationsError::MissingVerifiedReceipt)));
+    }
+
+    #[test]
+    fn incident_state_transitions_are_monotonic() {
+        let db = db();
+        verified_receipt(&QCoreTelemetryStore::new(db.clone()));
+        let store = SecurityOperationsStore::new(db);
+        store.record_finding("org-a", &input()).unwrap();
+        let incident_id = store.incidents("org-a").unwrap()[0].incident_id.clone();
+        let acknowledged = store.transition_incident("org-a", &incident_id, "acknowledged", 3).unwrap();
+        assert_eq!(acknowledged.status, "acknowledged");
+        let resolved = store.transition_incident("org-a", &incident_id, "resolved", 4).unwrap();
+        assert_eq!(resolved.status, "resolved");
+        assert!(store.transition_incident("org-a", &incident_id, "open", 5).is_err());
     }
 
     #[test]
