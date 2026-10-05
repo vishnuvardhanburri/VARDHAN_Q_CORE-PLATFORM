@@ -3,6 +3,7 @@ use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Extension
 use auth_service::AuthenticatedUser;
 use serde::Deserialize;
 use serde_json::json;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 fn denied() -> Response { (axum::http::StatusCode::FORBIDDEN, Json(json!({"error":"Organization access denied."}))).into_response() }
 fn member(state: &ControlPlaneState, org_id: &str, user: &AuthenticatedUser) -> bool { is_member(&state.db, org_id, &user.username).unwrap_or(false) }
@@ -90,7 +91,7 @@ pub async fn update_incident(
 ) -> Response {
     if !can_operate(&state, &id, &user) { return denied(); }
     let status = input.get("status").and_then(|value| value.as_str()).unwrap_or("");
-    match SecurityOperationsStore::new(state.db.clone()).transition_incident(&id, &incident_id, status, crate::now_ms()) {
+    match SecurityOperationsStore::new(state.db.clone()).transition_incident(&id, &incident_id, status, SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or_default()) {
         Ok(incident) => (axum::http::StatusCode::OK, Json(json!({"status":"updated","incident":incident}))).into_response(),
         Err(error) => (axum::http::StatusCode::BAD_REQUEST, Json(json!({"status":"rejected","error":error.to_string()}))).into_response(),
     }
