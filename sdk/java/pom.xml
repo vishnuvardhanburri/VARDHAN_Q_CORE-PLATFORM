@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.vardhan.technologies</groupId><artifactId>vardhan-sdk</artifactId><version>0.1.0</version>
+  <groupId>com.vardhan.technologies</groupId><artifactId>vardhan-sdk</artifactId><version>0.2.0</version>
   <properties><maven.compiler.release>21</maven.compiler.release><jackson.version>2.17.3</jackson.version></properties>
   <dependencies><dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>${jackson.version}</version></dependency></dependencies>
 </project>
