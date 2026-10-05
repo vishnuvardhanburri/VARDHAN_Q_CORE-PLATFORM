@@ -29,6 +29,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify OpenAPI SDK coverage
         run: python3 scripts/p1_sdk_contract_check.py
+      - name: Verify generated-model compatibility
+        run: python3 scripts/p1_model_compatibility.py
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Test Rust SDK
