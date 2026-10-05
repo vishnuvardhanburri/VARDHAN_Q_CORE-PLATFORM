@@ -255,3 +255,43 @@ pub async fn saml_acs(
     }))
     .into_response()
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Mutex, OnceLock};
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    #[test]
+    fn saml_sp_defaults_to_strict_configuration() {
+        let _guard = env_lock().lock().unwrap();
+        std::env::remove_var("VARDHAN_SAML_ENTITY_ID");
+        std::env::remove_var("VARDHAN_SAML_ACS_URL");
+        assert!(build_sp().is_ok());
+    }
+
+    #[test]
+    fn saml_idp_configuration_fails_closed_when_missing() {
+        let _guard = env_lock().lock().unwrap();
+        std::env::remove_var("VARDHAN_SAML_IDP_ENTITY_ID");
+        std::env::remove_var("VARDHAN_SAML_IDP_METADATA_XML");
+        std::env::remove_var("VARDHAN_SAML_IDP_METADATA_PATH");
+        std::env::remove_var("VARDHAN_SAML_IDP_METADATA_CERT_PEM");
+        assert!(build_idp().is_err());
+    }
+
+    #[test]
+    fn saml_replay_cache_is_atomic_and_persistent() {
+        let db = sled::Config::new().temporary(true).open().unwrap();
+        let mut cache = SledReplayCache { db: &db };
+        let key = ReplayKey::new("issuer", "assertion-1").unwrap();
+        let expiry = SystemTime::now() + Duration::from_secs(300);
+        assert!(cache.check_and_store(key.clone(), expiry).is_ok());
+        assert!(cache.check_and_store(key, expiry).is_err());
+    }
+}
