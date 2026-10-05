@@ -8,6 +8,9 @@ This is the implementation gate for the customer-facing platform. CI is delibera
 - [x] Enterprise command-center shell
 - [x] Server-authentication boundary in web client
 - [ ] Full authenticated application pages wired to authoritative APIs
+- [x] AER-KEP-Q runtime attached to control-plane status API
+- [x] Security posture/findings/incidents/transactions API contracts with explicit unpopulated states
+- [ ] Live Q-Core transaction/receipt telemetry wired into the control plane
 - [ ] Organization onboarding and invitation lifecycle
 - [x] Enterprise RBAC core/API enforcement
 - [ ] Enterprise RBAC UI enforcement across all resources
