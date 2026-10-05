@@ -31,7 +31,7 @@ This is the implementation gate for the customer-facing platform. CI is delibera
 - [ ] SDK generated-model compatibility tests
 - [ ] Idempotency helpers in every SDK
 - [ ] Webhook signature verification in every applicable SDK
-- [ ] Official API versioning/deprecation policy
+- [x] Official API versioning/deprecation policy (`docs/API_VERSIONING_POLICY.md`)
 - [ ] API contract integration tests against running control plane
 
 ## Commercial platform
