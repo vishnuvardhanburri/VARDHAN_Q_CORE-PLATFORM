@@ -1,1 +1,0 @@
-Temporary trigger for the HA checkpoint reference repair. This file is removed by the same repair workflow.
