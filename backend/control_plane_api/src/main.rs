@@ -1,5 +1,5 @@
 use auth_service::{AuthState, CredentialStore, MfaChallengeStore, MfaService, MfaStore, RateLimiter, SessionStore};
-use control_plane_api::{serve, ControlPlaneState};
+use control_plane_api::{receipt_key_registry::ReceiptKeyRegistry, serve, ControlPlaneState};
 use core_crypto::{aer_kep_q_runtime::{AerKepQRuntime, RuntimeStateStore}, QuantumNodeIdentity};
 use ledger_persistence::HardenedLocalKeyProtector;
 use std::{env, net::SocketAddr, path::PathBuf, sync::{Arc, Mutex}};
@@ -24,11 +24,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => { tracing::warn!("MFA service not configured: set VARDHAN_MFA_VAULT_PASS through the deployment secret boundary"); None }
     };
 
-    let auth = AuthState {
-        credentials: Arc::new(credential_store), sessions, rate_limiter: Arc::new(RateLimiter::new()),
-        mfa, ledger: None, identity: None,
-        node_id: Some(env::var("VARDHAN_NODE_ID").unwrap_or_else(|_| "control-plane".to_string())), admin_token: None,
-    };
+    let auth = AuthState { credentials: Arc::new(credential_store), sessions, rate_limiter: Arc::new(RateLimiter::new()), mfa, ledger: None, identity: None, node_id: Some(env::var("VARDHAN_NODE_ID").unwrap_or_else(|_| "control-plane".to_string())), admin_token: None };
+
+    let registry = ReceiptKeyRegistry::new(db.clone());
+    if let Ok(value) = env::var("VARDHAN_QCORE_ISSUER_REGISTRY_JSON") {
+        let count = registry.bootstrap_json(&value).map_err(|e| format!("Q-Core issuer registry bootstrap failed: {e}"))?;
+        tracing::info!(issuer_keys = count, "Q-Core issuer key registry bootstrapped");
+    } else {
+        tracing::warn!("Q-Core issuer registry not bootstrapped: set VARDHAN_QCORE_ISSUER_REGISTRY_JSON through deployment configuration");
+    }
+    if env::var("VARDHAN_QCORE_SERVICE_SECRET").map(|v| v.is_empty()).unwrap_or(true) {
+        tracing::warn!("Q-Core service transport disabled until VARDHAN_QCORE_SERVICE_SECRET is provided through the deployment secret boundary");
+    }
 
     let aer_kep_q = match env::var("VARDHAN_AER_KEP_Q_VAULT_PASS") {
         Ok(vault_pass) if !vault_pass.is_empty() => {
@@ -44,10 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => { tracing::warn!("AER-KEP-Q runtime not attached: set VARDHAN_AER_KEP_Q_VAULT_PASS through the deployment secret boundary"); None }
     };
 
-    let cors = if let Ok(origins) = env::var("VARDHAN_ALLOWED_ORIGINS") {
-        let origins: Vec<_> = origins.split(',').filter_map(|v| v.trim().parse().ok()).collect();
-        CorsLayer::new().allow_origins(origins)
-    } else { CorsLayer::new() };
+    let cors = if let Ok(origins) = env::var("VARDHAN_ALLOWED_ORIGINS") { let origins: Vec<_> = origins.split(',').filter_map(|v| v.trim().parse().ok()).collect(); CorsLayer::new().allow_origins(origins) } else { CorsLayer::new() };
     let addr: SocketAddr = env::var("VARDHAN_CONTROL_PLANE_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_string()).parse()?;
     serve(ControlPlaneState { db, aer_kep_q }, auth, addr, cors).await?;
     Ok(())
