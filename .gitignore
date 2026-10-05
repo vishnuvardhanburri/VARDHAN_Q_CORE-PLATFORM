@@ -33,3 +33,10 @@ zk_engine/node_modules/
 zk_engine/.next/
 # Generated JS artifacts
 intelligence_plane/src/**/*.js
+
+# SDK build artifacts
+sdk/rust/target/
+sdk/rust/Cargo.lock
+sdk/java/target/
+sdk/typescript/package-lock.json
+sdk/typescript/node_modules/
