@@ -47,7 +47,13 @@ pub struct ReceiptTelemetryInput {
 
 pub async fn security_posture(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
-    Json(crate::continuous_operations::build_snapshot(&state, &id)).into_response()
+    match crate::continuous_operations::build_snapshot(&state, &id) {
+        Ok(snapshot) => Json(snapshot).into_response(),
+        Err(error) => (
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"status":"unavailable","error":error.to_string()})),
+        ).into_response(),
+    }
 }
 
 pub async fn findings(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
