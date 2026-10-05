@@ -47,26 +47,7 @@ pub struct ReceiptTelemetryInput {
 
 pub async fn security_posture(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
-    let security = SecurityOperationsStore::new(state.db.clone());
-    let findings = security.findings(&id).unwrap_or_default();
-    let incidents = security.incidents(&id).unwrap_or_default();
-    let telemetry = QCoreTelemetryStore::new(state.db.clone());
-    let transactions = telemetry.transactions(&id).unwrap_or_default();
-    let receipts = telemetry.receipts(&id).unwrap_or_default();
-    let mut by_severity = serde_json::Map::new();
-    for level in ["critical", "high", "medium", "low", "info"] {
-        by_severity.insert(level.to_string(), json!(findings.iter().filter(|f| f.severity == level).count()));
-    }
-    Json(json!({
-        "organization_id": id,
-        "status": "operational",
-        "data_state": if findings.is_empty() && incidents.is_empty() && transactions.is_empty() && receipts.is_empty() { "not_populated" } else { "populated" },
-        "findings": {"total": findings.len(), "by_severity": by_severity},
-        "risk": {"critical": findings.iter().filter(|f| f.risk_band == "critical").count(), "high": findings.iter().filter(|f| f.risk_band == "high").count(), "medium": findings.iter().filter(|f| f.risk_band == "medium").count(), "low": findings.iter().filter(|f| f.risk_band == "low").count(), "info": findings.iter().filter(|f| f.risk_band == "info").count()},
-        "incidents": {"open": incidents.iter().filter(|i| i.status == "open").count(), "total": incidents.len()},
-        "crypto_posture": {"status": "available", "source": "control-plane"},
-        "q_core": {"transactions": transactions.len(), "receipts": receipts.len()}
-    })).into_response()
+    Json(crate::continuous_operations::build_snapshot(&state, &id)).into_response()
 }
 
 pub async fn findings(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
