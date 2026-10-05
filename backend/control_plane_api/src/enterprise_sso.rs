@@ -1,8 +1,4 @@
 //! Enterprise SSO boundary.
-//!
-//! OIDC is implemented as authorization-code + PKCE with durable state,
-//! nonce binding, discovery and JWKS-backed ID-token verification. SAML is
-//! intentionally fail-closed until an XMLDSig-capable provider adapter exists.
 
 use axum::{extract::{Form, Query, State}, http::{HeaderMap, StatusCode}, response::{IntoResponse, Redirect}, Json};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
@@ -73,15 +69,15 @@ pub async fn oidc_callback(State(state): State<ControlPlaneState>, Query(query):
     let jwks=match get_json::<Jwks>(&discovery.jwks_uri).await{Ok(v)=>v,Err(_)=>return (StatusCode::BAD_GATEWAY,Json(json!({"error":"OIDC JWKS retrieval failed"}))).into_response()};
     let jwk=match jwks.keys.iter().find(|k|k.kid.as_deref()==header.kid.as_deref()){Some(v)=>v,None=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC signing key not found"}))).into_response()};
     let (algorithm,key)=match jwk.kty.as_str(){
-        "RSA"=>{let(n,e)=match(jwk.n.as_deref(),jwk.e.as_deref()){(Some(n),Some(e))=>(n,e),_= >return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC RSA key is incomplete"}))).into_response()};match DecodingKey::from_rsa_components(n,e){Ok(k)=>(Algorithm::RS256,k),Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC RSA key is invalid"}))).into_response()}},
-        "EC" if jwk.crv.as_deref()==Some("P-256")=>{let(x,y)=match(jwk.x.as_deref(),jwk.y.as_deref()){(Some(x),Some(y))=>(x,y),_= >return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC EC key is incomplete"}))).into_response()};match DecodingKey::from_ec_components(x,y){Ok(k)=>(Algorithm::ES256,k),Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC EC key is invalid"}))).into_response()}},
+        "RSA"=>{let(n,e)=match(jwk.n.as_deref(),jwk.e.as_deref()){(Some(n),Some(e))=>(n,e),_=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC RSA key is incomplete"}))).into_response()};match DecodingKey::from_rsa_components(n,e){Ok(k)=>(Algorithm::RS256,k),Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC RSA key is invalid"}))).into_response()}},
+        "EC" if jwk.crv.as_deref()==Some("P-256")=>{let(x,y)=match(jwk.x.as_deref(),jwk.y.as_deref()){(Some(x),Some(y))=>(x,y),_=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC EC key is incomplete"}))).into_response()};match DecodingKey::from_ec_components(x,y){Ok(k)=>(Algorithm::ES256,k),Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC EC key is invalid"}))).into_response()}},
         _=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"Unsupported OIDC signing key type"}))).into_response()
     };
     if header.alg!=algorithm{return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC algorithm mismatch"}))).into_response();}
     let mut validation=Validation::new(algorithm); validation.validate_aud=false; validation.set_required_spec_claims(&["exp","iss","sub"]);
     let claims=match decode::<IdClaims>(&token_response.id_token,&key,&validation){Ok(v)=>v.claims,Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC ID token signature or claims invalid"}))).into_response()};
     if claims.iss.trim_end_matches('/')!=record.issuer{return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC token issuer mismatch"}))).into_response();}
-    let audience_ok=match &claims.aud{serde_json::Value::String(v)=>v==&record.client_id,serde_json::Value::Array(v)=>v.iter().any(|x|x.as_str()==Some(record.client_id.as_str())),_= >false};
+    let audience_ok=match &claims.aud{serde_json::Value::String(v)=>v==&record.client_id,serde_json::Value::Array(v)=>v.iter().any(|x|x.as_str()==Some(record.client_id.as_str())),_=>false};
     if !audience_ok||claims.exp.saturating_mul(1000)<=now_ms()||claims.nonce.as_deref()!=Some(record.nonce.as_str()){return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC audience, expiry, or nonce validation failed"}))).into_response();}
     let username=claims.email.clone().or(claims.preferred_username.clone()).unwrap_or_else(||format!("oidc:{}",claims.sub));
     if let Ok(default_org)=std::env::var("VARDHAN_OIDC_DEFAULT_ORG"){if std::env::var("VARDHAN_OIDC_AUTO_PROVISION").map(|v|v=="true").unwrap_or(false)&&!is_member(&state.db,&default_org,&username).unwrap_or(false){let _=state.db.insert(crate::key(crate::MEMBER_PREFIX,&format!("{default_org}:{username}")),b"viewer");}}
