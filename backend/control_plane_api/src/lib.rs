@@ -18,6 +18,7 @@ pub mod operations_api;
 pub mod receipt_key_registry;
 pub mod receipt_transport;
 pub mod receipt_verification;
+pub mod saml_service;
 pub mod webauthn_api;
 
 const ORG_PREFIX: &[u8] = b"org:";
@@ -87,7 +88,7 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
         .route("/api/v1/auth/oidc/start", get(enterprise_sso::oidc_start))
         .route("/api/v1/auth/oidc/callback", get(enterprise_sso::oidc_callback))
         .route("/api/v1/auth/saml/metadata", get(enterprise_sso::saml_metadata))
-        .route("/api/v1/auth/saml/acs", post(enterprise_sso::saml_acs))
+        .route("/api/v1/auth/saml/acs", post(saml_service::saml_acs))
         .route("/api/v1/auth/webauthn/auth/start", post(webauthn_api::authentication_start))
         .route("/api/v1/auth/webauthn/auth/finish", post(webauthn_api::authentication_finish))
         .with_state(control.clone());
