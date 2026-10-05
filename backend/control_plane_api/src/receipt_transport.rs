@@ -1,4 +1,4 @@
-use crate::{is_member, ControlPlaneState};
+use crate::{is_member, durable_event_queue::DurableEventQueue, ControlPlaneState};
 use crate::qcore_telemetry::{QCoreReceiptTelemetry, QCoreTransactionTelemetry, ReceiptVerificationState, QCoreTelemetryStore};
 use crate::receipt_key_registry::ReceiptKeyRegistry;
 use crate::receipt_verification::verify_receipt;
@@ -71,7 +71,29 @@ pub async fn ingest_receipt(
     if let Err(error) = store.record_transaction(&transaction).and_then(|_| store.record_receipt(&telemetry)) {
         return (StatusCode::CONFLICT, Json(json!({"status":"rejected","error":error.to_string()}))).into_response();
     }
-    Json(json!({"status":"accepted","receipt_id":receipt.receipt_id,"transaction_id":receipt.transaction_id,"verification":verification,"telemetry":"durably_recorded"})).into_response()
+    let queue = DurableEventQueue::new(state.db.clone());
+    let event_payload = serde_json::to_vec(&serde_json::json!({
+        "organization_id": id,
+        "receipt_id": receipt.receipt_id,
+        "transaction_id": receipt.transaction_id,
+        "verification": verification,
+    })).map_err(|e| e.to_string());
+    let event_payload = match event_payload {
+        Ok(payload) => payload,
+        Err(error) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"status":"accepted","telemetry":"durably_recorded","event_queue":"serialization_failed","error":error}))).into_response(),
+    };
+    if let Err(error) = queue.enqueue(&id, "qcore.receipt.verified", event_payload, now) {
+        return (StatusCode::SERVICE_UNAVAILABLE, Json(json!({
+            "status":"accepted",
+            "receipt_id":receipt.receipt_id,
+            "transaction_id":receipt.transaction_id,
+            "verification":verification,
+            "telemetry":"durably_recorded",
+            "event_queue":"unavailable",
+            "error":error.to_string()
+        }))).into_response();
+    }
+    Json(json!({"status":"accepted","receipt_id":receipt.receipt_id,"transaction_id":receipt.transaction_id,"verification":verification,"telemetry":"durably_recorded","event_queue":"durably_queued"})).into_response()
 }
 
 fn header_text(headers: &HeaderMap, name: &str) -> Option<String> { headers.get(name).and_then(|v| v.to_str().ok()).map(str::to_owned) }
