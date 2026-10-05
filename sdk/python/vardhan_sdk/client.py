@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
+import secrets
 import time
 import urllib.error
 import urllib.request
@@ -20,9 +23,21 @@ class Vardhan:
     timeout: float = 15.0
     max_retries: int = 2
 
+    @staticmethod
+    def idempotency_key() -> str:
+        return secrets.token_hex(16)
+
+    @staticmethod
+    def verify_webhook_signature(secret: str, body: bytes, signature_hex: str) -> bool:
+        try:
+            expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+            return hmac.compare_digest(expected, signature_hex.strip().lower())
+        except Exception:
+            return False
+
     def _request(self, path: str, method: str = "GET", body: dict[str, Any] | None = None,
                  idempotency_key: str | None = None, correlation_id: str | None = None) -> Any:
-        headers = {"Accept": "application/json", "X-Vardhan-SDK": "python/0.2.0"}
+        headers = {"Accept": "application/json", "X-Vardhan-SDK": "python/0.3.0"}
         if self.token: headers["Authorization"] = f"Bearer {self.token}"
         if idempotency_key: headers["Idempotency-Key"] = idempotency_key
         if correlation_id: headers["X-Correlation-ID"] = correlation_id
@@ -38,7 +53,7 @@ class Vardhan:
                 if exc.code == 429 or exc.code >= 500:
                     if attempt < self.max_retries:
                         retry_after = exc.headers.get("retry-after")
-                        delay = min(float(retry_after), 5.0) if retry_after and retry_after.isdigit() else min(0.25 * (2 ** attempt), 5.0)
+                        delay = min(float(retry_after), 5.0) if retry_after and retry_after.replace('.', '', 1).isdigit() else min(0.25 * (2 ** attempt), 5.0)
                         attempt += 1; time.sleep(delay); continue
                 try: payload = json.loads(exc.read().decode())
                 except Exception: payload = {}
@@ -56,3 +71,12 @@ class Vardhan:
     def usage(self, organization_id: str): return self._request(f"/api/v1/organizations/{organization_id}/usage")
     def record_usage(self, organization_id: str, transactions: int, bytes_processed: int, **kwargs):
         return self._request(f"/api/v1/organizations/{organization_id}/usage/record", "POST", {"transactions": transactions, "bytes_processed": bytes_processed}, **kwargs)
+    def members(self, organization_id: str): return self._request(f"/api/v1/organizations/{organization_id}/members")
+    def invitations(self, organization_id: str): return self._request(f"/api/v1/organizations/{organization_id}/invitations")
+    def create_invitation(self, organization_id: str, body: dict[str, Any], **kwargs): return self._request(f"/api/v1/organizations/{organization_id}/invitations", "POST", body, **kwargs)
+    def security_posture(self, organization_id: str): return self._request(f"/api/v1/organizations/{organization_id}/security/posture")
+    def findings(self, organization_id: str): return self._request(f"/api/v1/organizations/{organization_id}/findings")
+    def incidents(self, organization_id: str): return self._request(f"/api/v1/organizations/{organization_id}/incidents")
+    def transactions(self, organization_id: str): return self._request(f"/api/v1/organizations/{organization_id}/transactions")
+    def ingest_transaction(self, organization_id: str, body: dict[str, Any], **kwargs): return self._request(f"/api/v1/organizations/{organization_id}/transactions", "POST", body, **kwargs)
+    def aer_kep_q_status(self, organization_id: str): return self._request(f"/api/v1/organizations/{organization_id}/aer-kep-q/status")
