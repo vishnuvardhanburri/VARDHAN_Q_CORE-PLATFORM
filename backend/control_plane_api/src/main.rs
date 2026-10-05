@@ -51,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ => { tracing::warn!("AER-KEP-Q runtime not attached: set VARDHAN_AER_KEP_Q_VAULT_PASS through the deployment secret boundary"); None }
     };
 
-    let cors = if let Ok(origins) = env::var("VARDHAN_ALLOWED_ORIGINS") { let origins: Vec<_> = origins.split(',').filter_map(|v| v.trim().parse().ok()).collect(); CorsLayer::new().allow_origins(origins) } else { CorsLayer::new() };
+    let cors = if let Ok(origins) = env::var("VARDHAN_ALLOWED_ORIGINS") { let origins: Vec<_> = origins.split(',').filter_map(|v| v.trim().parse().ok()).collect(); CorsLayer::new().allow_origin(origins) } else { CorsLayer::new() };
     let addr: SocketAddr = env::var("VARDHAN_CONTROL_PLANE_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_string()).parse()?;
     serve(ControlPlaneState { db, aer_kep_q, auth: auth.clone() }, auth, addr, cors).await?;
     Ok(())

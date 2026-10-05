@@ -26,7 +26,7 @@ use std::sync::Arc;
 use axum::{extract::{Path, State}, http::{header, StatusCode}, response::IntoResponse, routing::{delete, get, post}, Json, Router};
 use serde::Deserialize;
 
-use crate::{rate_limit::RateLimiter, store::CredentialStore};
+pub use crate::{rate_limit::RateLimiter, store::CredentialStore};
 
 pub use api_key::{ApiKeyView, CreateApiKeyRequest, CreateApiKeyResponse};
 pub use audit::emit_admin_audit;
