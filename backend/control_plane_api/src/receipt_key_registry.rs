@@ -22,8 +22,6 @@ pub struct ReceiptIssuerKey {
 
 #[derive(Debug, Error)]
 pub enum KeyRegistryError {
-    #[error("issuer key scope mismatch")]
-    ScopeMismatch,
     #[error("issuer key not found")]
     NotFound,
     #[error("issuer key is not active")]
@@ -57,6 +55,12 @@ impl ReceiptKeyRegistry {
         Ok(())
     }
 
+    pub fn bootstrap_json(&self, json: &str) -> Result<usize, KeyRegistryError> {
+        let keys: Vec<ReceiptIssuerKey> = serde_json::from_str(json).map_err(|e| KeyRegistryError::Serialization(e.to_string()))?;
+        for key in &keys { self.register(key.clone())?; }
+        Ok(keys.len())
+    }
+
     pub fn resolve_active(&self, organization_id: &str, service_id: &str) -> Result<ReceiptIssuerKey, KeyRegistryError> {
         let Some(bytes) = self.db.get(storage_key(organization_id, service_id))? else { return Err(KeyRegistryError::NotFound); };
         let key: ReceiptIssuerKey = serde_json::from_slice(&bytes).map_err(|e| KeyRegistryError::Serialization(e.to_string()))?;
@@ -80,21 +84,14 @@ impl ReceiptKeyRegistry {
 }
 
 fn storage_key(organization_id: &str, service_id: &str) -> Vec<u8> {
-    let mut out = PREFIX.to_vec();
-    out.extend_from_slice(organization_id.as_bytes());
-    out.push(b':');
-    out.extend_from_slice(service_id.as_bytes());
-    out
+    let mut out = PREFIX.to_vec(); out.extend_from_slice(organization_id.as_bytes()); out.push(b':'); out.extend_from_slice(service_id.as_bytes()); out
 }
 
 fn validate(key: &ReceiptIssuerKey) -> Result<(), KeyRegistryError> {
-    if key.organization_id.is_empty() || key.service_id.is_empty() || key.ed25519_key_id.is_empty() || key.ml_dsa_87_key_id.is_empty() {
-        return Err(KeyRegistryError::Invalid("scope and key identifiers are required".into()));
-    }
+    if key.organization_id.is_empty() || key.service_id.is_empty() || key.ed25519_key_id.is_empty() || key.ml_dsa_87_key_id.is_empty() { return Err(KeyRegistryError::Invalid("scope and key identifiers are required".into())); }
     if key.ed25519_public_key.len() != 32 { return Err(KeyRegistryError::Invalid("Ed25519 public key must be 32 bytes".into())); }
     if key.ml_dsa_87_public_key.len() != 2592 { return Err(KeyRegistryError::Invalid("ML-DSA-87 public key must be 2592 bytes".into())); }
-    let expected = blake3::hash(&key.ed25519_public_key).to_string();
-    if expected != key.issuer_key_fingerprint { return Err(KeyRegistryError::Invalid("issuer fingerprint does not match Ed25519 public key".into())); }
+    if blake3::hash(&key.ed25519_public_key).to_string() != key.issuer_key_fingerprint { return Err(KeyRegistryError::Invalid("issuer fingerprint does not match Ed25519 public key".into())); }
     Ok(())
 }
 
@@ -102,11 +99,9 @@ fn validate(key: &ReceiptIssuerKey) -> Result<(), KeyRegistryError> {
 mod tests {
     use super::*;
     fn registry() -> ReceiptKeyRegistry { ReceiptKeyRegistry::new(std::sync::Arc::new(sled::Config::new().temporary(true).open().unwrap())) }
-    fn key() -> ReceiptIssuerKey {
-        let ed = vec![7u8; 32];
-        ReceiptIssuerKey { organization_id: "org-a".into(), service_id: "qcore-1".into(), ed25519_key_id: "ed-1".into(), ed25519_public_key: ed.clone(), ml_dsa_87_key_id: "pq-1".into(), ml_dsa_87_public_key: vec![9u8; 2592], issuer_key_fingerprint: blake3::hash(&ed).to_string(), state: KeyState::Active }
-    }
+    fn key() -> ReceiptIssuerKey { let ed = vec![7u8; 32]; ReceiptIssuerKey { organization_id: "org-a".into(), service_id: "qcore-1".into(), ed25519_key_id: "ed-1".into(), ed25519_public_key: ed.clone(), ml_dsa_87_key_id: "pq-1".into(), ml_dsa_87_public_key: vec![9u8; 2592], issuer_key_fingerprint: blake3::hash(&ed).to_string(), state: KeyState::Active } }
     #[test] fn active_key_resolves() { let r = registry(); r.register(key()).unwrap(); assert_eq!(r.resolve_active("org-a", "qcore-1").unwrap().state, KeyState::Active); }
+    #[test] fn bootstrap_is_idempotent() { let r = registry(); let encoded = serde_json::to_string(&vec![key()]).unwrap(); assert_eq!(r.bootstrap_json(&encoded).unwrap(), 1); assert_eq!(r.bootstrap_json(&encoded).unwrap(), 1); }
     #[test] fn tenant_isolation_rejects_unknown_scope() { let r = registry(); r.register(key()).unwrap(); assert!(matches!(r.resolve_active("org-b", "qcore-1"), Err(KeyRegistryError::NotFound))); }
     #[test] fn revoked_key_is_not_resolved_as_active() { let r = registry(); r.register(key()).unwrap(); r.set_state("org-a", "qcore-1", KeyState::Revoked).unwrap(); assert!(matches!(r.resolve_active("org-a", "qcore-1"), Err(KeyRegistryError::NotActive))); }
 }
