@@ -99,48 +99,24 @@ async fn auth_middleware(
         None => return Err(StatusCode::UNAUTHORIZED),
     };
 
-    // 1. Check active session in SessionStore (validated & sliding activity updated)
-    let session_tok = auth_service::session::SessionToken::from_str(&token_str);
-    if let Some(username) = state.auth_state.sessions.validate(&session_tok).await {
-        let role = state
-            .auth_state
-            .credentials
-            .get_profile(&username)
-            .map(|p| auth_service::authorization::Role::from_str(&p.role))
-            .unwrap_or(auth_service::authorization::Role::Admin);
+    // Persisted session/API-key identity must resolve an authoritative role.
+    if let Some(user) = auth_service::extract_authenticated_user(&state.auth_state, &req.headers()).await {
         let mut req = req;
-        req.extensions_mut()
-            .insert(auth_service::authorization::AuthenticatedUser { username, role });
+        req.extensions_mut().insert(user);
         return Ok(next.run(req).await);
     }
 
-    // 2. Fallback: constant-time check against bootstrap admin token
+    // Explicit bootstrap administrator token remains a separate operator-controlled
+    // emergency path and is never inferred from a normal session or API key.
     if !state.admin_token.is_empty()
-        && token_str
-            .as_bytes()
-            .ct_eq(state.admin_token.as_bytes())
-            .into()
+        && token_str.as_bytes().ct_eq(state.admin_token.as_bytes()).into()
     {
         let mut req = req;
-        req.extensions_mut()
-            .insert(auth_service::authorization::AuthenticatedUser {
-                username: "bootstrap-admin".to_string(),
-                role: auth_service::authorization::Role::Admin,
-            });
+        req.extensions_mut().insert(auth_service::authorization::AuthenticatedUser {
+            username: "bootstrap-admin".to_string(),
+            role: auth_service::authorization::Role::Admin,
+        });
         return Ok(next.run(req).await);
-    }
-
-    // 3. Check API key (starts with vq_live_)
-    if token_str.starts_with("vq_live_") {
-        if let Ok(Some(key_view)) = state.auth_state.credentials.verify_api_key(&token_str) {
-            let mut req = req;
-            req.extensions_mut()
-                .insert(auth_service::authorization::AuthenticatedUser {
-                    username: key_view.created_by,
-                    role: auth_service::authorization::Role::Admin,
-                });
-            return Ok(next.run(req).await);
-        }
     }
 
     // Authentication failed - record failure for rate limiting
