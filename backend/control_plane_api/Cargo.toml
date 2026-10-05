@@ -8,6 +8,7 @@ axum = "0.8"
 auth_service = { path = "../auth_service" }
 enterprise_tenant = { path = "../enterprise_tenant" }
 saas_metering = { path = "../saas_metering" }
+ledger_persistence = { path = "../ledger_persistence" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sled = "0.34"
