@@ -127,7 +127,11 @@ pub struct VerifierConfig {
 impl Default for VerifierConfig {
     fn default() -> Self {
         Self {
-            supported_schema_versions: vec!["1.0".to_string()],
+            // Receipt schema 1.1 binds every externally meaningful receipt
+            // attribute (including lineage) into the signed payload.  The
+            // control-plane must not silently accept the legacy 1.0 format,
+            // whose canonical payload did not bind lineage metadata.
+            supported_schema_versions: vec!["1.1".to_string()],
             max_future_skew_ms: 60_000, // 1 minute of clock skew tolerance
             expected_tenant_id: None,
         }
@@ -256,19 +260,8 @@ impl VardhanVerifier {
 
         // ── Check 6: Payload hash recomputation ──────────────────────────
         // The canonical payload string must match what the issuer computed.
-        let expected_payload = canonical_payload(
-            &receipt.tenant_id,
-            &receipt.transaction_id,
-            &receipt.proposed_action,
-            &receipt.policy_id,
-            &receipt.policy_version,
-            &receipt.state_hash_at_decision.clone().unwrap_or_default(),
-            &receipt.evidence_commitments,
-            &receipt.authority_reference,
-            &receipt.decision,
-            &receipt.outcome_code,
-        );
-        let expected_hash = blake3::hash(expected_payload.as_bytes()).to_string();
+        let expected_payload = canonical_receipt_payload(receipt);
+        let expected_hash = blake3::hash(&expected_payload).to_string();
         if expected_hash == receipt.payload_hash {
             passed.push("payload_hash_valid".to_string());
         } else {
@@ -405,6 +398,31 @@ pub fn canonical_payload(
     )
 }
 
+/// Canonical payload used by the 1.1 receipt protocol.  Unlike the legacy
+/// helper above, this covers every value that is persisted, routed, or used to
+/// establish receipt lineage.  Delimiter-separated values are length-prefixed
+/// so attacker-controlled fields cannot create ambiguous encodings.
+pub fn canonical_receipt_payload(receipt: &VerifiableReceipt) -> Vec<u8> {
+    let evidence = receipt.evidence_commitments.iter().map(|item| {
+        format!("{}:{}:{}", item.evidence_id, item.content_hash, item.category)
+    }).collect::<Vec<_>>().join(";");
+    let fields = [
+        receipt.schema_version.as_str(), receipt.receipt_id.as_str(), receipt.transaction_id.as_str(),
+        receipt.tenant_id.as_str(), receipt.subject_id.as_str(), receipt.actor_identity.as_str(),
+        receipt.proposed_action.as_str(), receipt.policy_id.as_str(), receipt.policy_version.as_str(),
+        receipt.state_hash_at_decision.as_deref().unwrap_or(""), evidence.as_str(),
+        receipt.authority_reference.as_str(), receipt.decision.as_str(), receipt.outcome_code.as_str(),
+        &receipt.timestamp_ms.to_string(), &receipt.ledger_commit_index.to_string(),
+        receipt.parent_receipt_id.as_deref().unwrap_or(""), receipt.correlation_id.as_deref().unwrap_or(""),
+    ];
+    fields.iter().flat_map(|field| {
+        let mut encoded = format!("{}:", field.len()).into_bytes();
+        encoded.extend_from_slice(field.as_bytes());
+        encoded.push(b'|');
+        encoded
+    }).collect()
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -431,23 +449,9 @@ mod tests {
         let policy_id = "POL-NET-01".to_string();
         let policy_version = "1.0".to_string();
 
-        let payload = canonical_payload(
-            &tenant_id,
-            &transaction_id,
-            &proposed_action,
-            &policy_id,
-            &policy_version,
-            "",
-            &vec![],
-            "gate:VardhanGate",
-            "AUTHORIZED",
-            "QUARANTINE_OK",
-        );
-        let payload_hash = blake3::hash(payload.as_bytes()).to_string();
-
-        VerifiableReceipt {
+        let mut receipt = VerifiableReceipt {
             receipt_id: format!("VQR-{}", uuid::Uuid::new_v4()),
-            schema_version: "1.0".to_string(),
+            schema_version: "1.1".to_string(),
             transaction_id,
             tenant_id,
             subject_id: "subject:ip-10.0.0.1".to_string(),
@@ -464,7 +468,7 @@ mod tests {
             ledger_commit_index: 42,
             parent_receipt_id: None,
             correlation_id: None,
-            payload_hash,
+            payload_hash: String::new(),
             issuer_key_fingerprint:
                 "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890".to_string(),
             signatures: VerifiableDualSignature {
@@ -473,7 +477,9 @@ mod tests {
                 ml_dsa_87_sig: "b".repeat(128),
                 ml_dsa_87_key_id: uuid::Uuid::new_v4().to_string(),
             },
-        }
+        };
+        receipt.payload_hash = blake3::hash(&canonical_receipt_payload(&receipt)).to_string();
+        receipt
     }
 
     #[test]

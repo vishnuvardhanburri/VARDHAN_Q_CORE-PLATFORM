@@ -90,11 +90,9 @@ async fn test_receipt_trust_boundary_rejections() {
     registry.register(issuer.clone()).unwrap();
 
     let make_receipt = |modifier: Box<dyn Fn(&mut vardhan_verifier::VerifiableReceipt, &SigningKey, &ml_dsa_87::PrivateKey)>| {
-        let payload = vardhan_verifier::canonical_payload(org_id, "tx-1", "SEAL", "p1", "1.0", "", &[], "gate", "AUTHORIZED", "SUCCESS");
-        let payload_hash = blake3::hash(payload.as_bytes()).to_string();
         let mut r = vardhan_verifier::VerifiableReceipt {
             receipt_id: format!("VQR-{}", Uuid::new_v4()),
-            schema_version: "1.0".into(),
+            schema_version: "1.1".into(),
             transaction_id: "tx-1".into(),
             tenant_id: org_id.to_string(),
             subject_id: "s".into(),
@@ -111,7 +109,7 @@ async fn test_receipt_trust_boundary_rejections() {
             ledger_commit_index: 1,
             parent_receipt_id: None,
             correlation_id: None,
-            payload_hash: payload_hash.clone(),
+            payload_hash: String::new(),
             issuer_key_fingerprint: issuer.issuer_key_fingerprint.clone(),
             signatures: vardhan_verifier::VerifiableDualSignature {
                 ed25519_sig: String::new(),
@@ -122,6 +120,8 @@ async fn test_receipt_trust_boundary_rejections() {
         };
         
         modifier(&mut r, &ed_sk, &pq_sk);
+
+        r.payload_hash = blake3::hash(&vardhan_verifier::canonical_receipt_payload(&r)).to_string();
         
         // Auto-sign if not tampered in modifier
         if r.signatures.ed25519_sig.is_empty() {
@@ -164,11 +164,7 @@ async fn test_receipt_trust_boundary_rejections() {
     let mut conflict = valid.clone();
     conflict.decision = "REJECTED".into();
     // Resign so signature passes but payload differs from recorded telemetry
-    conflict.payload_hash = blake3::hash(vardhan_verifier::canonical_payload(
-        &conflict.tenant_id, &conflict.transaction_id, &conflict.proposed_action, 
-        &conflict.policy_id, &conflict.policy_version, "", &[], 
-        &conflict.authority_reference, &conflict.decision, &conflict.outcome_code
-    ).as_bytes()).to_string();
+    conflict.payload_hash = blake3::hash(&vardhan_verifier::canonical_receipt_payload(&conflict)).to_string();
     conflict.signatures.ed25519_sig = hex::encode(ed_sk.sign(conflict.payload_hash.as_bytes()).to_bytes());
     conflict.signatures.ml_dsa_87_sig = hex::encode(pq_sk.try_sign(conflict.payload_hash.as_bytes(), &[]).unwrap());
     
@@ -179,11 +175,7 @@ async fn test_receipt_trust_boundary_rejections() {
     let mut wrong_tenant = make_receipt(Box::new(|_, _, _| {}));
     wrong_tenant.tenant_id = "org-2".into();
     // Re-sign to avoid verification failure obscuring the tenant check
-    wrong_tenant.payload_hash = blake3::hash(vardhan_verifier::canonical_payload(
-        &wrong_tenant.tenant_id, &wrong_tenant.transaction_id, &wrong_tenant.proposed_action, 
-        &wrong_tenant.policy_id, &wrong_tenant.policy_version, "", &[], 
-        &wrong_tenant.authority_reference, &wrong_tenant.decision, &wrong_tenant.outcome_code
-    ).as_bytes()).to_string();
+    wrong_tenant.payload_hash = blake3::hash(&vardhan_verifier::canonical_receipt_payload(&wrong_tenant)).to_string();
     wrong_tenant.signatures.ed25519_sig = hex::encode(ed_sk.sign(wrong_tenant.payload_hash.as_bytes()).to_bytes());
     wrong_tenant.signatures.ml_dsa_87_sig = hex::encode(pq_sk.try_sign(wrong_tenant.payload_hash.as_bytes(), &[]).unwrap());
     
@@ -233,5 +225,14 @@ async fn test_receipt_trust_boundary_rejections() {
         r.decision = "REJECTED".into();
     }));
     let res = send(bad_payload.clone(), org_id.to_string(), service_id.to_string()).await;
+    assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    // 11. Lineage fields are part of the signed payload.  A valid signature over
+    // an otherwise identical receipt must not let an attacker attach it to a
+    // different parent/correlation chain.
+    let mut tampered_lineage = make_receipt(Box::new(|_, _, _| {}));
+    tampered_lineage.parent_receipt_id = Some("VQR-missing-parent".into());
+    tampered_lineage.correlation_id = Some("corr-attacker".into());
+    let res = send(tampered_lineage, org_id.to_string(), service_id.to_string()).await;
     assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }

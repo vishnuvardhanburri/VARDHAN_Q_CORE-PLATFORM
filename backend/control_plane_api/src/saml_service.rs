@@ -16,6 +16,7 @@ use saml_rs::{
 };
 
 use crate::{is_member, ControlPlaneState};
+use auth_service::AdminProfile;
 
 const REPLAY_PREFIX: &[u8] = b"saml:replay:";
 
@@ -215,6 +216,16 @@ pub async fn saml_acs(
                 )
                     .into_response();
             }
+            let profile = AdminProfile {
+                username: username.clone(),
+                display_name: username.clone(),
+                email: username.clone(),
+                role: "user".into(),
+                updated_at_ms: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or_default(),
+            };
+            if state.auth.credentials.save_profile(&profile).is_err() {
+                return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "SAML authorization profile provisioning failed"}))).into_response();
+            }
         } else {
             return (
                 StatusCode::FORBIDDEN,
@@ -222,6 +233,9 @@ pub async fn saml_acs(
             )
                 .into_response();
         }
+    }
+    if state.auth.credentials.authoritative_role(&username).is_none() {
+        return (StatusCode::FORBIDDEN, Json(json!({"error": "SAML identity has no authoritative authorization profile"}))).into_response();
     }
 
     let ip = std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED);
@@ -241,4 +255,3 @@ pub async fn saml_acs(
     }))
     .into_response()
 }
-

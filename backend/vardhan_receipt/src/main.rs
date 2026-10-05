@@ -93,7 +93,7 @@ pub struct DualSignature {
 pub struct VardhanSealedReceipt {
     // Identity
     pub receipt_id: String,     // "VQR-{uuid4}"
-    pub schema_version: String, // "1.0" — for algorithm agility
+    pub schema_version: String, // "1.1" — canonical receipt protocol
     pub transaction_id: String, // links back to VardhanTransaction
     pub status: String,
     pub tenant_id: String,
@@ -146,7 +146,7 @@ impl VardhanSealedReceipt {
         use uuid::Uuid;
         Self {
             receipt_id: format!("VQR-{}", Uuid::new_v4()),
-            schema_version: "1.0".to_string(),
+            schema_version: "1.1".to_string(),
             transaction_id,
             status,
             tenant_id,
@@ -212,6 +212,30 @@ impl VardhanSealedReceipt {
             decision,
             outcome_code,
         )
+    }
+
+    /// Canonical bytes used by the control-plane verifier. Every persisted and
+    /// routed receipt field that establishes identity or lineage is length
+    /// prefixed to prevent delimiter ambiguity.
+    pub fn canonical_receipt_payload(&self) -> Vec<u8> {
+        let evidence = self.evidence_commitments.iter().map(|item| {
+            format!("{}:{}:{}", item.evidence_id, item.content_hash, item.category)
+        }).collect::<Vec<_>>().join(";");
+        let fields = [
+            self.schema_version.as_str(), self.receipt_id.as_str(), self.transaction_id.as_str(),
+            self.tenant_id.as_str(), self.subject_id.as_str(), self.actor_identity.as_str(),
+            self.proposed_action.as_str(), self.policy_id.as_str(), self.policy_version.as_str(),
+            self.state_hash_at_decision.as_deref().unwrap_or(""), evidence.as_str(),
+            self.authority_reference.as_str(), self.decision.as_str(), self.outcome_code.as_str(),
+            &self.timestamp_ms.to_string(), &self.ledger_commit_index.to_string(),
+            self.parent_receipt_id.as_deref().unwrap_or(""), self.correlation_id.as_deref().unwrap_or(""),
+        ];
+        fields.iter().flat_map(|field| {
+            let mut encoded = format!("{}:", field.len()).into_bytes();
+            encoded.extend_from_slice(field.as_bytes());
+            encoded.push(b'|');
+            encoded
+        }).collect()
     }
 }
 
@@ -493,40 +517,8 @@ pub fn process_transaction(
         })
         .collect::<Vec<_>>();
 
-    // F-014: canonical_payload now covers ALL signed fields including
-    // evidence_commitments, decision, outcome_code, authority_reference,
-    // and state_hash_at_decision.
-    let canonical_payload = VardhanSealedReceipt::canonical_payload(
-        &request.contract.organization.organization_id,
-        &tx.transaction_id,
-        &request.contract.decision_candidate,
-        &request.contract.policy_reference,
-        "1.0",
-        "", // state_hash_at_decision — not yet populated in v1.0 contract
-        &evidence_commitments,
-        "gate:VardhanGate",
-        "AUTHORIZED",
-        "SEALING_OK",
-    );
-    let payload_hash = blake3::hash(canonical_payload.as_bytes()).to_string();
-
     let keystore = keystore_manager::get_keystore();
-    let ed25519_sig_result = keystore.sign_ed25519(payload_hash.as_bytes());
-    let mldsa_sig_result = keystore.sign_mldsa87(payload_hash.as_bytes());
-
-    let issuer_key_fingerprint = ed25519_sig_result
-        .key_identity
-        .public_key_fingerprint
-        .clone();
-
-    let signatures = DualSignature {
-        ed25519_sig: ed25519_sig_result.signature_hex,
-        ed25519_key_id: ed25519_sig_result.key_identity.key_id,
-        ml_dsa_87_sig: mldsa_sig_result.signature_hex,
-        ml_dsa_87_key_id: mldsa_sig_result.key_identity.key_id,
-    };
-
-    let receipt = VardhanSealedReceipt::build(
+    let mut receipt = VardhanSealedReceipt::build(
         tx.transaction_id.clone(),
         "SEALED".to_string(),
         request.contract.organization.organization_id,
@@ -546,10 +538,22 @@ pub fn process_transaction(
             .as_secs(),
         None,
         None,
-        payload_hash,
-        issuer_key_fingerprint,
-        signatures,
+        String::new(),
+        String::new(),
+        DualSignature { ed25519_sig: String::new(), ed25519_key_id: String::new(), ml_dsa_87_sig: String::new(), ml_dsa_87_key_id: String::new() },
     );
+
+    let payload_hash = blake3::hash(&receipt.canonical_receipt_payload()).to_string();
+    let ed25519_sig_result = keystore.sign_ed25519(payload_hash.as_bytes());
+    let mldsa_sig_result = keystore.sign_mldsa87(payload_hash.as_bytes());
+    receipt.payload_hash = payload_hash;
+    receipt.issuer_key_fingerprint = ed25519_sig_result.key_identity.public_key_fingerprint.clone();
+    receipt.signatures = DualSignature {
+        ed25519_sig: ed25519_sig_result.signature_hex,
+        ed25519_key_id: ed25519_sig_result.key_identity.key_id,
+        ml_dsa_87_sig: mldsa_sig_result.signature_hex,
+        ml_dsa_87_key_id: mldsa_sig_result.key_identity.key_id,
+    };
 
     let outcome = TransactionOutcome {
         result_code: "SEALING_OK".to_string(),

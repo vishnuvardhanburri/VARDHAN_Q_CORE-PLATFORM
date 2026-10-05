@@ -1,4 +1,4 @@
-use crate::{is_member, qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState}, ControlPlaneState};
+use crate::{is_member, member_role, qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState}, ControlPlaneState};
 use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Extension, Json};
 use auth_service::AuthenticatedUser;
 use serde::Deserialize;
@@ -6,6 +6,9 @@ use serde_json::json;
 
 fn denied() -> Response { (axum::http::StatusCode::FORBIDDEN, Json(json!({"error":"Organization access denied."}))).into_response() }
 fn member(state: &ControlPlaneState, org_id: &str, user: &AuthenticatedUser) -> bool { is_member(&state.db, org_id, &user.username).unwrap_or(false) }
+fn can_operate(state: &ControlPlaneState, org_id: &str, user: &AuthenticatedUser) -> bool {
+    matches!(member_role(&state.db, org_id, &user.username).ok().flatten().as_deref(), Some("owner" | "security_admin" | "operator"))
+}
 
 #[derive(Debug, Deserialize)]
 pub struct TransactionTelemetryInput {
@@ -71,7 +74,7 @@ pub async fn transactions(State(state): State<ControlPlaneState>, Extension(user
 /// Authenticated transaction telemetry ingestion boundary.
 /// Tenant/organization scope is checked before durable persistence.
 pub async fn ingest_transaction(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>, Json(input): Json<TransactionTelemetryInput>) -> impl IntoResponse {
-    if !member(&state, &id, &user) { return denied(); }
+    if !can_operate(&state, &id, &user) { return denied(); }
     let store = QCoreTelemetryStore::new(state.db.clone());
     let telemetry = QCoreTransactionTelemetry {
         organization_id: id,
@@ -99,7 +102,7 @@ pub async fn ingest_transaction(State(state): State<ControlPlaneState>, Extensio
 /// `verification` is explicit; this endpoint never upgrades an unverified
 /// receipt to Verified on its own.
 pub async fn ingest_receipt(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>, Json(input): Json<ReceiptTelemetryInput>) -> impl IntoResponse {
-    if !member(&state, &id, &user) { return denied(); }
+    if !can_operate(&state, &id, &user) { return denied(); }
     let store = QCoreTelemetryStore::new(state.db.clone());
     let telemetry = QCoreReceiptTelemetry {
         organization_id: id,

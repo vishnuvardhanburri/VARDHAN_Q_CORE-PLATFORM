@@ -170,8 +170,6 @@ impl AuthConfigLoader {
 mod tests {
     use super::*;
 
-    // F-003: Shared mutex to prevent env-var races in auth_config tests
-    static AUTH_TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
     use std::io::Write;
 
     #[test]
@@ -214,7 +212,7 @@ mod tests {
 
     #[test]
     fn test_load_from_env_var() {
-        let _guard = AUTH_TEST_MUTEX.lock().unwrap();
+        let _guard = crate::TEST_ENV_MUTEX.lock().unwrap();
         let dir = tempfile::tempdir().unwrap();
         let config_path = dir.path().join("auth_config.json");
         let contents = r#"{"tenants":["org-x"],"policies":[]}"#;
@@ -234,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_load_from_base_dir() {
-        let _guard = AUTH_TEST_MUTEX.lock().unwrap();
+        let _guard = crate::TEST_ENV_MUTEX.lock().unwrap();
         let dir = tempfile::tempdir().unwrap();
         let config_path = dir.path().join("auth_config.json");
         let contents = r#"{"tenants":["org-y"],"policies":[]}"#;
@@ -247,7 +245,7 @@ mod tests {
 
     #[test]
     fn test_production_fails_closed_without_config() {
-        let _guard = AUTH_TEST_MUTEX.lock().unwrap();
+        let _guard = crate::TEST_ENV_MUTEX.lock().unwrap();
         let dir = tempfile::tempdir().unwrap();
         // Ensure no config is found
         unsafe {
@@ -266,7 +264,7 @@ mod tests {
 
     #[test]
     fn test_production_succeeds_with_config() {
-        let _guard = AUTH_TEST_MUTEX.lock().unwrap();
+        let _guard = crate::TEST_ENV_MUTEX.lock().unwrap();
         let dir = tempfile::tempdir().unwrap();
         let config_path = dir.path().join("auth_config.json");
         let contents = r#"{"tenants":["org-a"],"policies":[]}"#;
@@ -287,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_development_uses_default_without_config() {
-        let _guard = AUTH_TEST_MUTEX.lock().unwrap();
+        let _guard = crate::TEST_ENV_MUTEX.lock().unwrap();
         let dir = tempfile::tempdir().unwrap();
         unsafe {
             std::env::remove_var("VARDHAN_AUTH_CONFIG_PATH");

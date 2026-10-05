@@ -1280,6 +1280,7 @@ mod tests {
             credentials: Arc::new(cred_store),
             sessions: Arc::new(auth_service::session::SessionStore::new()),
             rate_limiter: Arc::new(auth_service::rate_limit::RateLimiter::new()),
+            mfa: None,
             ledger: Some(ledger_writer),
             identity: Some(identity.clone()),
             node_id: Some("test-node-1".to_string()),

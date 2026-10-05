@@ -1116,10 +1116,23 @@ async fn test_c12_tail_truncation_detected() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 10, run_id).await;
-    for n in &nodes {
-        n.applier.apply_committed_entries().await.ok();
+    // Commit visibility and state-machine application are separate events. A
+    // single apply pass can race the final replication acknowledgement and
+    // leave the leader's local ledger one entry short, making the checkpoint
+    // assertion flaky. Drain committed entries until the ledger is complete.
+    let apply_deadline = tokio::time::Instant::now() + Duration::from_secs(5);
+    loop {
+        for n in &nodes {
+            n.applier.apply_committed_entries().await.ok();
+        }
+        if nodes[leader_idx].ledger.len().await >= 10 {
+            break;
+        }
+        if tokio::time::Instant::now() >= apply_deadline {
+            panic!("leader ledger did not apply all 10 committed entries");
+        }
+        tokio::time::sleep(Duration::from_millis(25)).await;
     }
-    tokio::time::sleep(Duration::from_millis(200)).await;
 
     let leader_node = &nodes[leader_idx];
     let cp = leader_node

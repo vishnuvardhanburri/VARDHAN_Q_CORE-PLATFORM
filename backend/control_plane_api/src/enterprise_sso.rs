@@ -9,6 +9,7 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::{is_member, ControlPlaneState};
+use auth_service::AdminProfile;
 
 const OIDC_STATE_PREFIX: &[u8] = b"oidc:state:";
 const FLOW_TTL_MS: u64 = 300_000;
@@ -68,19 +69,37 @@ pub async fn oidc_callback(State(state): State<ControlPlaneState>, Query(query):
     let header=match decode_header(&token_response.id_token){Ok(v)=>v,Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"Invalid OIDC ID token header"}))).into_response()};
     let jwks=match get_json::<Jwks>(&discovery.jwks_uri).await{Ok(v)=>v,Err(_)=>return (StatusCode::BAD_GATEWAY,Json(json!({"error":"OIDC JWKS retrieval failed"}))).into_response()};
     let jwk=match jwks.keys.iter().find(|k|k.kid.as_deref()==header.kid.as_deref()){Some(v)=>v,None=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC signing key not found"}))).into_response()};
-    let (algorithm,key)=match jwk.kty.as_str(){
+    let (algorithm,decoding_key)=match jwk.kty.as_str(){
         "RSA"=>{let(n,e)=match(jwk.n.as_deref(),jwk.e.as_deref()){(Some(n),Some(e))=>(n,e),_=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC RSA key is incomplete"}))).into_response()};match DecodingKey::from_rsa_components(n,e){Ok(k)=>(Algorithm::RS256,k),Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC RSA key is invalid"}))).into_response()}},
         "EC" if jwk.crv.as_deref()==Some("P-256")=>{let(x,y)=match(jwk.x.as_deref(),jwk.y.as_deref()){(Some(x),Some(y))=>(x,y),_=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC EC key is incomplete"}))).into_response()};match DecodingKey::from_ec_components(x,y){Ok(k)=>(Algorithm::ES256,k),Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC EC key is invalid"}))).into_response()}},
         _=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"Unsupported OIDC signing key type"}))).into_response()
     };
     if header.alg!=algorithm{return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC algorithm mismatch"}))).into_response();}
     let mut validation=Validation::new(algorithm); validation.validate_aud=false; validation.set_required_spec_claims(&["exp","iss","sub"]);
-    let claims=match decode::<IdClaims>(&token_response.id_token,&key,&validation){Ok(v)=>v.claims,Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC ID token signature or claims invalid"}))).into_response()};
+    let claims=match decode::<IdClaims>(&token_response.id_token,&decoding_key,&validation){Ok(v)=>v.claims,Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC ID token signature or claims invalid"}))).into_response()};
     if claims.iss.trim_end_matches('/')!=record.issuer{return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC token issuer mismatch"}))).into_response();}
     let audience_ok=match &claims.aud{serde_json::Value::String(v)=>v==&record.client_id,serde_json::Value::Array(v)=>v.iter().any(|x|x.as_str()==Some(record.client_id.as_str())),_=>false};
     if !audience_ok||claims.exp.saturating_mul(1000)<=now_ms()||claims.nonce.as_deref()!=Some(record.nonce.as_str()){return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC audience, expiry, or nonce validation failed"}))).into_response();}
     let username=claims.email.clone().or(claims.preferred_username.clone()).unwrap_or_else(||format!("oidc:{}",claims.sub));
-    if let Ok(default_org)=std::env::var("VARDHAN_OIDC_DEFAULT_ORG"){if std::env::var("VARDHAN_OIDC_AUTO_PROVISION").map(|v|v=="true").unwrap_or(false)&&!is_member(&state.db,&default_org,&username).unwrap_or(false){let _=state.db.insert(crate::key(crate::MEMBER_PREFIX,&format!("{default_org}:{username}")),b"viewer");}}
+    let default_org = match std::env::var("VARDHAN_OIDC_DEFAULT_ORG").ok().filter(|v| !v.trim().is_empty()) {
+        Some(value) if state.db.get(crate::key(b"org:", &value)).ok().flatten().is_some() => value,
+        _ => return (StatusCode::FORBIDDEN,Json(json!({"error":"OIDC tenant mapping is not configured or does not exist"}))).into_response(),
+    };
+    if !is_member(&state.db,&default_org,&username).unwrap_or(false) {
+        if !std::env::var("VARDHAN_OIDC_AUTO_PROVISION").map(|v|v=="true").unwrap_or(false) {
+            return (StatusCode::FORBIDDEN,Json(json!({"error":"OIDC identity is not authorized for the mapped organization"}))).into_response();
+        }
+        if state.db.insert(crate::key(crate::MEMBER_PREFIX,&format!("{default_org}:{username}")),b"viewer").is_err() {
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({"error":"OIDC membership provisioning failed"}))).into_response();
+        }
+        let profile = AdminProfile { username: username.clone(), display_name: claims.name.clone().unwrap_or_else(|| username.clone()), email: username.clone(), role: "user".into(), updated_at_ms: now_ms() as u128 };
+        if state.auth.credentials.save_profile(&profile).is_err() {
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({"error":"OIDC authorization profile provisioning failed"}))).into_response();
+        }
+    }
+    if state.auth.credentials.authoritative_role(&username).is_none() {
+        return (StatusCode::FORBIDDEN,Json(json!({"error":"OIDC identity has no authoritative authorization profile"}))).into_response();
+    }
     let ip=headers.get("x-forwarded-for").and_then(|v|v.to_str().ok()).and_then(|v|v.split(',').next()).and_then(|v|v.parse().ok()).unwrap_or(std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED));
     let session=state.auth.sessions.create_with_node(&username,ip,state.auth.node_id.as_deref().unwrap_or("control-plane")).await;
     Json(json!({"status":"authenticated","token":session.as_str(),"expires_in":8*60*60,"subject":claims.sub,"name":claims.name})).into_response()

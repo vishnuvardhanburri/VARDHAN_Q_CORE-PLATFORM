@@ -8,7 +8,7 @@
 ---
 
 > [!CAUTION]
-> This document represents the FINAL self-audit for Phase 1. No item is marked PASS unless a reproducible test or code reference is provided. No speculative features are claimed.
+> This is a historical self-audit snapshot. It is not the current closure gate: `docs/P1_SECURITY_READINESS_EVIDENCE.md` is authoritative and records adversarial tests, tenant-isolation evidence, UI integration, and provenance gaps that remain open.
 
 ---
 

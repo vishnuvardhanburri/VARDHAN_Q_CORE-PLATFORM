@@ -179,13 +179,17 @@ pub async fn change_password_handler(State(state): State<AuthState>, Extension(c
 
 pub async fn get_settings_handler(State(state): State<AuthState>, headers: axum::http::HeaderMap) -> impl IntoResponse { if extract_authenticated_user(&state, &headers).await.is_none() { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Unauthorized" }))); } let node_id = state.node_id.as_deref().unwrap_or("local-node"); let fingerprint = state.identity.as_ref().map(|id| hex::encode(core_crypto::QuantumNodeIdentity::hash_ledger_block(&id.dsa_public_key_bytes()))).unwrap_or_else(|| "0".repeat(64)); match state.credentials.get_settings(node_id, &fingerprint) { Ok(s) => (StatusCode::OK, Json(serde_json::to_value(s).unwrap())), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))) } }
 
-pub async fn update_settings_handler(State(state): State<AuthState>, headers: axum::http::HeaderMap, Json(req): Json<settings::UpdateSettingsRequest>) -> impl IntoResponse { let caller = match extract_authenticated_user(&state, &headers).await { Some(u) => u, None => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Unauthorized" }))) }; if !caller.can(Permission::UpdateSettings) { return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Forbidden" }))); } let node_id = state.node_id.as_deref().unwrap_or("local-node"); let fingerprint = state.identity.as_ref().map(|id| hex::encode(core_crypto::QuantumNodeIdentity::hash_ledger_block(&id.dsa_public_key_bytes()))).unwrap_or_else(|| "0".repeat(64)); match state.credentials.update_settings(req, node_id, &fingerprint) { Ok(s) => (StatusCode::OK, Json(serde_json::to_value(s).unwrap())), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))) } }
+pub async fn update_settings_handler(State(state): State<AuthState>, headers: axum::http::HeaderMap, Json(req): Json<settings::UpdateSettingsRequest>) -> impl IntoResponse { let caller = match extract_authenticated_user(&state, &headers).await { Some(u) => u, None => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Unauthorized" }))) }; if !caller.can(Permission::UpdateSettings) { return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Forbidden" }))); } let node_id = state.node_id.as_deref().unwrap_or("local-node"); let fingerprint = state.identity.as_ref().map(|id| hex::encode(core_crypto::QuantumNodeIdentity::hash_ledger_block(&id.dsa_public_key_bytes()))).unwrap_or_else(|| "0".repeat(64)); match state.credentials.update_settings(req, node_id, &fingerprint) { Ok(s) => (StatusCode::OK, Json(serde_json::to_value(s).unwrap())), Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e.to_string() }))) } }
 
 /// Validate the session and derive authorization role from the persisted profile.
 /// Missing or malformed profile state fails closed rather than upgrading the caller.
 pub async fn extract_authenticated_user(state: &AuthState, headers: &axum::http::HeaderMap) -> Option<AuthenticatedUser> {
     let token = extract_bearer_from_headers(headers)?;
-    let username = state.sessions.validate(&SessionToken::from_str(&token)).await?;
+    let username = if token.starts_with("vq_live_") {
+        state.credentials.verify_api_key(&token).ok().flatten()?.created_by
+    } else {
+        state.sessions.validate(&SessionToken::from_str(&token)).await?
+    };
     let role = state.credentials.authoritative_role(&username)?;
     Some(AuthenticatedUser::new_user(username, role))
 }
@@ -193,14 +197,14 @@ pub fn extract_bearer_from_headers(headers: &axum::http::HeaderMap) -> Option<St
 pub fn resolve_ip(headers: &axum::http::HeaderMap) -> std::net::IpAddr { headers.get("x-forwarded-for").and_then(|v| v.to_str().ok()).and_then(|v| v.split(',').next()).and_then(|v| v.trim().parse().ok()).unwrap_or_else(|| "127.0.0.1".parse().unwrap()) }
 pub fn extract_request_id(headers: &axum::http::HeaderMap) -> Option<String> { headers.get("x-request-id").and_then(|v| v.to_str().ok()).map(str::to_string) }
 
-pub async fn list_sessions_handler(State(state): State<AuthState>, headers: axum::http::HeaderMap) -> impl IntoResponse { if extract_authenticated_user(&state, &headers).await.is_none() { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Unauthorized" }))); } (StatusCode::OK, Json(serde_json::json!({ "sessions": state.sessions.list_sessions().await }))) }
-pub async fn revoke_session_handler(State(state): State<AuthState>, Path(id): Path<String>, headers: axum::http::HeaderMap) -> impl IntoResponse { let caller = match extract_authenticated_user(&state, &headers).await { Some(u) => u, None => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Unauthorized" }))) }; if !caller.can(Permission::RevokeSession) { return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Forbidden" }))); } match state.sessions.revoke_by_id(&id).await { Some(v) => (StatusCode::OK, Json(serde_json::json!({ "session": v }))), None => (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Session not found" }))) } }
-pub async fn flush_sessions_handler(State(state): State<AuthState>, headers: axum::http::HeaderMap, body: Option<Json<FlushSessionsRequest>>) -> impl IntoResponse { let caller = match extract_authenticated_user(&state, &headers).await { Some(u) => u, None => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Unauthorized" }))) }; let req = body.map(|Json(req)| req).unwrap_or_default(); if !caller.can(Permission::RevokeSession) || !req.confirm { return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Admin confirmation required" }))); } let count = state.sessions.flush_except(extract_bearer_from_headers(&headers).as_deref()).await; (StatusCode::OK, Json(serde_json::json!({ "revoked": count }))) }
-pub async fn list_api_keys_handler(State(state): State<AuthState>, Extension(caller): Extension<crate::authorization::AuthenticatedUser>) -> impl IntoResponse {
+pub async fn list_sessions_handler(State(state): State<AuthState>, headers: axum::http::HeaderMap) -> axum::response::Response { if extract_authenticated_user(&state, &headers).await.is_none() { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Unauthorized" }))).into_response(); } (StatusCode::OK, Json(state.sessions.list_sessions().await)).into_response() }
+pub async fn revoke_session_handler(State(state): State<AuthState>, Path(id): Path<String>, headers: axum::http::HeaderMap) -> impl IntoResponse { let caller = match extract_authenticated_user(&state, &headers).await { Some(u) => u, None => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Unauthorized" }))) }; if !caller.can(Permission::RevokeSession) { return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Forbidden" }))); } match state.sessions.revoke_by_id(&id).await { Some(v) => (StatusCode::OK, Json(serde_json::json!({ "status": "revoked", "session": v }))), None => (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Session not found" }))) } }
+pub async fn flush_sessions_handler(State(state): State<AuthState>, headers: axum::http::HeaderMap, body: Option<Json<FlushSessionsRequest>>) -> impl IntoResponse { let caller = match extract_authenticated_user(&state, &headers).await { Some(u) => u, None => return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "error": "Unauthorized" }))) }; let req = body.map(|Json(req)| req).unwrap_or_default(); if !caller.can(Permission::RevokeSession) { return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Forbidden" }))); } if !req.confirm { return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": "Admin confirmation required" }))); } let count = state.sessions.flush_except(extract_bearer_from_headers(&headers).as_deref()).await; (StatusCode::OK, Json(serde_json::json!({ "status": "flushed", "revoked": count }))) }
+pub async fn list_api_keys_handler(State(state): State<AuthState>, Extension(caller): Extension<crate::authorization::AuthenticatedUser>) -> axum::response::Response {
     if !caller.can(crate::authorization::Permission::ManageApiKeys) {
-        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Forbidden" })));
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Forbidden" }))).into_response();
     }
-    match state.credentials.list_api_keys(&caller.username) { Ok(k) => (StatusCode::OK, Json(serde_json::json!({ "keys": k }))), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))) }
+    match state.credentials.list_api_keys(&caller.username) { Ok(k) => (StatusCode::OK, Json(k)).into_response(), Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))).into_response() }
 }
 pub async fn create_api_key_handler(State(state): State<AuthState>, Extension(caller): Extension<crate::authorization::AuthenticatedUser>, Json(req): Json<CreateApiKeyRequest>) -> impl IntoResponse {
     if !caller.can(crate::authorization::Permission::ManageApiKeys) {
@@ -208,9 +212,9 @@ pub async fn create_api_key_handler(State(state): State<AuthState>, Extension(ca
     }
     match state.credentials.create_api_key(&req.name, req.expires_in_days, &caller.username) { Ok(k) => (StatusCode::CREATED, Json(serde_json::to_value(k).unwrap())), Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e.to_string() }))) }
 }
-pub async fn revoke_api_key_handler(State(state): State<AuthState>, Path(id): Path<String>, Extension(caller): Extension<crate::authorization::AuthenticatedUser>) -> impl IntoResponse {
+pub async fn revoke_api_key_handler(State(state): State<AuthState>, Path(id): Path<String>, Extension(caller): Extension<crate::authorization::AuthenticatedUser>) -> axum::response::Response {
     if !caller.can(crate::authorization::Permission::ManageApiKeys) {
-        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Forbidden" })));
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "error": "Forbidden" }))).into_response();
     }
-    match state.credentials.revoke_api_key(&id, &caller.username) { Ok(view) => (StatusCode::OK, Json(serde_json::json!({ "status": "revoked", "key": view }))), Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e.to_string() }))) }
+    match state.credentials.revoke_api_key(&id, &caller.username) { Ok(view) => (StatusCode::OK, Json(view)).into_response(), Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e.to_string() }))).into_response() }
 }

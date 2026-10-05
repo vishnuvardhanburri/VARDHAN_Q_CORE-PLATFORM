@@ -19,6 +19,7 @@ async fn spawn_test_server() -> (
     let cred_store = CredentialStore::open(&db_path).unwrap();
     let phc = credentials::hash_password("super_secret_admin_pass_123").unwrap();
     cred_store.set_phc_sync("admin", &phc).unwrap();
+    cred_store.ensure_bootstrap_profile("admin").unwrap();
 
     let sessions = Arc::new(SessionStore::new());
     let rate_limiter = Arc::new(RateLimiter::new());

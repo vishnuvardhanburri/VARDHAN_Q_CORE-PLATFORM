@@ -377,7 +377,9 @@ mod tests {
     use super::*;
     use std::collections::HashSet;
     use std::sync::{Arc, Mutex};
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::thread;
+    use rand::Rng;
 
     /// SEC-010: request_id uniqueness and collision resistance model.
     ///
