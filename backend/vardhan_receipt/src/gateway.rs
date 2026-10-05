@@ -2,7 +2,10 @@ use axum::{http::StatusCode, response::IntoResponse, routing::post, Json, Router
 use serde_json::json;
 use std::net::SocketAddr;
 
-use crate::{process_transaction, qcore_transport, QCoreValidationRequest};
+use crate::{process_transaction, QCoreValidationRequest};
+
+#[path = "qcore_transport.rs"]
+mod qcore_transport;
 
 pub async fn start_server(port: u16) {
     let app = Router::new()
