@@ -75,3 +75,36 @@ pub fn build_event(
         payload,
     })
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn envelope() -> EnterpriseEventEnvelope {
+        build_event("org-a", "receipt.verified", "corr-1", serde_json::json!({"receipt_id":"VQR-1"})).unwrap()
+    }
+
+    #[test]
+    fn signed_event_round_trip_verifies() {
+        let event = envelope();
+        let sig = SignedWebhook::sign(b"secret", &event).unwrap();
+        assert!(SignedWebhook::verify(b"secret", &event, &sig).is_ok());
+    }
+
+    #[test]
+    fn wrong_secret_and_tampered_payload_are_rejected() {
+        let mut event = envelope();
+        let sig = SignedWebhook::sign(b"secret", &event).unwrap();
+        assert!(matches!(SignedWebhook::verify(b"other", &event, &sig), Err(IntegrationError::SignatureRejected)));
+        event.payload = serde_json::json!({"receipt_id":"forged"});
+        assert!(matches!(SignedWebhook::verify(b"secret", &event, &sig), Err(IntegrationError::SignatureRejected)));
+    }
+
+    #[test]
+    fn tenant_is_part_of_deterministic_event_identity() {
+        let a = build_event("org-a", "receipt.verified", "corr", serde_json::json!({"x":1})).unwrap();
+        let b = build_event("org-b", "receipt.verified", "corr", serde_json::json!({"x":1})).unwrap();
+        assert_ne!(a.event_id, b.event_id);
+    }
+}
