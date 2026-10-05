@@ -8,7 +8,7 @@
 use crate::{
     qcore_telemetry::QCoreTelemetryStore,
     receipt_key_registry::{KeyState, ReceiptKeyRegistry},
-    security_operations::{SecurityIncident, SecurityOperationsStore},
+    security_operations::SecurityOperationsStore,
     ControlPlaneState,
 };
 use auth_service::AuthenticatedUser;
@@ -843,7 +843,10 @@ pub async fn crypto_posture(
     if !crate::is_member(&state.db, &id, &user.username).unwrap_or(false) {
         return denied();
     }
-    Json(build_crypto_posture(&state, &id)).into_response()
+    match build_crypto_posture(&state, &id) {
+        Ok(posture) => Json(posture).into_response(),
+        Err(error) => (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+    }
 }
 
 pub async fn audit(
