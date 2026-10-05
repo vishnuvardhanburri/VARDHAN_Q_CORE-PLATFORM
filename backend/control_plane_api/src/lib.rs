@@ -4,14 +4,7 @@
 //! as authentication, tenant membership is server-side, and commercial entitlements
 //! are resolved from verified billing state.
 
-use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    middleware,
-    response::IntoResponse,
-    routing::{get, post},
-    Extension, Json, Router,
-};
+use axum::{extract::{Path, State}, http::StatusCode, middleware, response::IntoResponse, routing::{get, post}, Extension, Json, Router};
 use auth_service::{auth_router, middleware::AuthenticatedUser, AuthState};
 use core_crypto::aer_kep_q_runtime::AerKepQRuntime;
 use serde::{Deserialize, Serialize};
@@ -24,6 +17,9 @@ use uuid::Uuid;
 pub mod billing;
 pub mod billing_api;
 pub mod operations_api;
+pub mod receipt_key_registry;
+pub mod receipt_transport;
+pub mod receipt_verification;
 
 const ORG_PREFIX: &[u8] = b"org:";
 const MEMBER_PREFIX: &[u8] = b"member:";
@@ -31,10 +27,7 @@ const SUB_PREFIX: &[u8] = b"sub:";
 const USAGE_PREFIX: &[u8] = b"usage:";
 
 #[derive(Clone)]
-pub struct ControlPlaneState {
-    pub db: Arc<Db>,
-    pub aer_kep_q: Option<Arc<Mutex<AerKepQRuntime>>>,
-}
+pub struct ControlPlaneState { pub db: Arc<Db>, pub aer_kep_q: Option<Arc<Mutex<AerKepQRuntime>>> }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Plan { pub id: &'static str, pub name: &'static str, pub tier: &'static str, pub contact_sales: bool, pub entitlements: &'static [&'static str] }
@@ -48,13 +41,10 @@ pub const PLANS: &[Plan] = &[
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Organization { pub id: String, pub name: String, pub owner: String, pub created_at_ms: u128 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Subscription { pub organization_id: String, pub plan_id: String, pub status: String, pub provider: String, pub external_customer_id: Option<String>, pub external_subscription_id: Option<String> }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Usage { pub organization_id: String, pub transactions: u64, pub bytes_processed: u64 }
-
 #[derive(Debug, Deserialize)]
 pub struct CreateOrganizationRequest { pub name: String }
 #[derive(Debug, Deserialize)]
@@ -81,17 +71,18 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
         .route("/api/v1/organizations/{id}/findings", get(operations_api::findings))
         .route("/api/v1/organizations/{id}/incidents", get(operations_api::incidents))
         .route("/api/v1/organizations/{id}/transactions", get(operations_api::transactions).post(operations_api::ingest_transaction))
-        .route("/api/v1/organizations/{id}/transactions/receipts", post(operations_api::ingest_receipt))
         .route("/api/v1/organizations/{id}/aer-kep-q/status", get(operations_api::aer_kep_q_status))
         .layer(middleware::from_fn_with_state(auth.sessions.clone(), auth_service::require_session));
 
-    let billing_public = Router::new()
-        .route("/api/v1/billing/webhook", post(billing_api::billing_webhook))
+    let public_service = Router::new()
+        .route("/api/v1/organizations/{id}/qcore/receipts", post(receipt_transport::ingest_receipt))
         .with_state(control.clone());
+    let billing_public = Router::new().route("/api/v1/billing/webhook", post(billing_api::billing_webhook)).with_state(control.clone());
 
     Router::new()
         .merge(auth_router(auth.clone()))
         .merge(billing_public)
+        .merge(public_service)
         .route("/api/v1/platform/health", get(health))
         .route("/api/v1/catalog/plans", get(catalog))
         .merge(protected.with_state(control))
