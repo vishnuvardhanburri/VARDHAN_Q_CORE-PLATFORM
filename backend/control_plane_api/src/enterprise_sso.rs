@@ -77,9 +77,9 @@ pub async fn oidc_callback(State(state): State<ControlPlaneState>, Query(query):
     if header.alg!=algorithm{return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC algorithm mismatch"}))).into_response();}
     let mut validation=Validation::new(algorithm); validation.validate_aud=false; validation.set_required_spec_claims(&["exp","iss","sub"]);
     let claims=match decode::<IdClaims>(&token_response.id_token,&decoding_key,&validation){Ok(v)=>v.claims,Err(_)=>return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC ID token signature or claims invalid"}))).into_response()};
-    if claims.iss.trim_end_matches('/')!=record.issuer{return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC token issuer mismatch"}))).into_response();}
-    let audience_ok=match &claims.aud{serde_json::Value::String(v)=>v==&record.client_id,serde_json::Value::Array(v)=>v.iter().any(|x|x.as_str()==Some(record.client_id.as_str())),_=>false};
-    if !audience_ok||claims.exp.saturating_mul(1000)<=now_ms()||claims.nonce.as_deref()!=Some(record.nonce.as_str()){return (StatusCode::UNAUTHORIZED,Json(json!({"error":"OIDC audience, expiry, or nonce validation failed"}))).into_response();}
+    if let Err(error) = validate_id_claims(&claims, &record, now_ms()) {
+        return (StatusCode::UNAUTHORIZED, Json(json!({"error": error}))).into_response();
+    }
     let username=claims.email.clone().or(claims.preferred_username.clone()).unwrap_or_else(||format!("oidc:{}",claims.sub));
     let default_org = match std::env::var("VARDHAN_OIDC_DEFAULT_ORG").ok().filter(|v| !v.trim().is_empty()) {
         Some(value) if state.db.get(crate::key(b"org:", &value)).ok().flatten().is_some() => value,
