@@ -255,6 +255,12 @@ pub enum ContinuousOperationsError {
     Incident(String),
     #[error("storage failed: {0}")]
     Storage(#[from] sled::Error),
+    #[error("telemetry read failed: {0}")]
+    Telemetry(String),
+    #[error("security operations read failed: {0}")]
+    Security(String),
+    #[error("key registry read failed: {0}")]
+    KeyRegistry(String),
     #[error("serialization failed: {0}")]
     Serialization(String),
 }
@@ -639,8 +645,13 @@ pub async fn operations(
     if !crate::is_member(&state.db, &id, &user.username).unwrap_or(false) {
         return denied();
     }
-    let snapshot = build_snapshot(&state, &id);
-    Json(snapshot).into_response()
+    match build_snapshot(&state, &id) {
+        Ok(snapshot) => Json(snapshot).into_response(),
+        Err(error) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"status":"unavailable","error":error.to_string()})),
+        ).into_response(),
+    }
 }
 
 pub async fn executive_report(
@@ -654,7 +665,13 @@ pub async fn executive_report(
     Json(json!({
         "report_type": "executive_security_operations",
         "source": "durable_control_plane_state",
-        "snapshot": build_snapshot(&state, &id),
+        "snapshot": match build_snapshot(&state, &id) {
+            Ok(snapshot) => snapshot,
+            Err(error) => return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({"status":"unavailable","error":error.to_string()})),
+            ).into_response(),
+        },
     }))
     .into_response()
 }
@@ -667,16 +684,15 @@ pub async fn alerts(
     if !crate::is_member(&state.db, &id, &user.username).unwrap_or(false) {
         return denied();
     }
-    let items = ContinuousOperationsStore::new(state.db.clone())
-        .alerts(&id)
-        .unwrap_or_default();
-    Json(json!({
-        "organization_id": id,
-        "items": items,
-        "total": items.len(),
-        "data_state": if items.is_empty() { "not_populated" } else { "populated" },
-    }))
-    .into_response()
+    match ContinuousOperationsStore::new(state.db.clone()).alerts(&id) {
+        Ok(items) => Json(json!({
+            "organization_id": id,
+            "items": items,
+            "total": items.len(),
+            "data_state": if items.is_empty() { "not_populated" } else { "populated" },
+        })).into_response(),
+        Err(error) => (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+    }
 }
 
 pub async fn ingest_monitoring_signal(
@@ -751,16 +767,15 @@ pub async fn policy_drift(
     if !crate::is_member(&state.db, &id, &user.username).unwrap_or(false) {
         return denied();
     }
-    let items = ContinuousOperationsStore::new(state.db.clone())
-        .policy_drift(&id)
-        .unwrap_or_default();
-    Json(json!({
-        "organization_id": id,
-        "items": items,
-        "total": items.len(),
-        "data_state": if items.is_empty() { "not_populated" } else { "populated" },
-    }))
-    .into_response()
+    match ContinuousOperationsStore::new(state.db.clone()).policy_drift(&id) {
+        Ok(items) => Json(json!({
+            "organization_id": id,
+            "items": items,
+            "total": items.len(),
+            "data_state": if items.is_empty() { "not_populated" } else { "populated" },
+        })).into_response(),
+        Err(error) => (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+    }
 }
 
 pub async fn remediations(
@@ -771,16 +786,15 @@ pub async fn remediations(
     if !crate::is_member(&state.db, &id, &user.username).unwrap_or(false) {
         return denied();
     }
-    let items = ContinuousOperationsStore::new(state.db.clone())
-        .remediations(&id)
-        .unwrap_or_default();
-    Json(json!({
-        "organization_id": id,
-        "items": items,
-        "total": items.len(),
-        "data_state": if items.is_empty() { "not_populated" } else { "populated" },
-    }))
-    .into_response()
+    match ContinuousOperationsStore::new(state.db.clone()).remediations(&id) {
+        Ok(items) => Json(json!({
+            "organization_id": id,
+            "items": items,
+            "total": items.len(),
+            "data_state": if items.is_empty() { "not_populated" } else { "populated" },
+        })).into_response(),
+        Err(error) => (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+    }
 }
 
 pub async fn propose_remediation(
@@ -841,9 +855,18 @@ pub async fn audit(
         return denied();
     }
     let operations = ContinuousOperationsStore::new(state.db.clone());
-    let alerts = operations.alerts(&id).unwrap_or_default();
-    let drift = operations.policy_drift(&id).unwrap_or_default();
-    let remediations = operations.remediations(&id).unwrap_or_default();
+    let alerts = match operations.alerts(&id) {
+        Ok(value) => value,
+        Err(error) => return (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+    };
+    let drift = match operations.policy_drift(&id) {
+        Ok(value) => value,
+        Err(error) => return (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+    };
+    let remediations = match operations.remediations(&id) {
+        Ok(value) => value,
+        Err(error) => return (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+    };
     Json(json!({
         "organization_id": id,
         "source": "durable_control_plane_state",
@@ -854,20 +877,28 @@ pub async fn audit(
     .into_response()
 }
 
-pub fn build_snapshot(state: &ControlPlaneState, organization_id: &str) -> ContinuousOperationsSnapshot {
+pub fn build_snapshot(
+    state: &ControlPlaneState,
+    organization_id: &str,
+) -> Result<ContinuousOperationsSnapshot, ContinuousOperationsError> {
     let operations = ContinuousOperationsStore::new(state.db.clone());
-    let alerts = operations.alerts(organization_id).unwrap_or_default();
-    let drift = operations.policy_drift(organization_id).unwrap_or_default();
-    let findings = SecurityOperationsStore::new(state.db.clone())
+    let alerts = operations.alerts(organization_id)?;
+    let drift = operations.policy_drift(organization_id)?;
+    let security = SecurityOperationsStore::new(state.db.clone());
+    let findings = security
         .findings(organization_id)
-        .unwrap_or_default();
-    let incidents = SecurityOperationsStore::new(state.db.clone())
+        .map_err(|e| ContinuousOperationsError::Security(e.to_string()))?;
+    let incidents = security
         .incidents(organization_id)
-        .unwrap_or_default();
+        .map_err(|e| ContinuousOperationsError::Security(e.to_string()))?;
     let telemetry = QCoreTelemetryStore::new(state.db.clone());
-    let transactions = telemetry.transactions(organization_id).unwrap_or_default();
-    let receipts = telemetry.receipts(organization_id).unwrap_or_default();
-    let crypto = build_crypto_posture(state, organization_id);
+    let transactions = telemetry
+        .transactions(organization_id)
+        .map_err(|e| ContinuousOperationsError::Telemetry(e.to_string()))?;
+    let receipts = telemetry
+        .receipts(organization_id)
+        .map_err(|e| ContinuousOperationsError::Telemetry(e.to_string()))?;
+    let crypto = build_crypto_posture(state, organization_id)?;
     let aer = build_aer_posture(state, organization_id);
     let latest_observation = transactions
         .iter()
@@ -875,16 +906,36 @@ pub fn build_snapshot(state: &ControlPlaneState, organization_id: &str) -> Conti
         .chain(receipts.iter().map(|item| item.timestamp_ms))
         .chain(alerts.iter().map(|item| item.updated_at_ms))
         .max();
-    let high_or_critical = findings.iter().filter(|f| matches!(f.risk_band.as_str(), "high" | "critical")).count();
+    let high_or_critical = findings
+        .iter()
+        .filter(|f| matches!(f.risk_band.as_str(), "high" | "critical"))
+        .count();
     let open_incidents = incidents.iter().filter(|i| i.status == "open").count();
     let highest_risk_band = highest_risk(
-        findings.iter().map(|f| f.risk_band.as_str()).chain(alerts.iter().map(|a| a.severity.as_str()))
+        findings
+            .iter()
+            .map(|f| f.risk_band.as_str())
+            .chain(alerts.iter().map(|a| a.severity.as_str())),
     );
-    let monitoring_status = if latest_observation.is_some() { "active" } else { "not_populated" };
-    let total_data = transactions.len() + receipts.len() + findings.len() + incidents.len() + alerts.len() + drift.len();
-    ContinuousOperationsSnapshot {
+    let monitoring_status = if latest_observation.is_some() {
+        "active"
+    } else {
+        "not_populated"
+    };
+    let total_data = transactions.len()
+        + receipts.len()
+        + findings.len()
+        + incidents.len()
+        + alerts.len()
+        + drift.len();
+    Ok(ContinuousOperationsSnapshot {
         organization_id: organization_id.to_owned(),
-        data_state: if total_data == 0 { "not_populated" } else { "populated" }.into(),
+        data_state: if total_data == 0 {
+            "not_populated"
+        } else {
+            "populated"
+        }
+        .into(),
         generated_at_ms: now_ms(),
         monitoring: MonitoringPosture {
             status: monitoring_status.into(),
@@ -923,12 +974,12 @@ pub fn build_snapshot(state: &ControlPlaneState, organization_id: &str) -> Conti
             acknowledged: incidents.iter().filter(|i| i.status == "acknowledged").count(),
             resolved: incidents.iter().filter(|i| i.status == "resolved").count(),
         },
-    }
+    })
 }
 
-fn build_crypto_posture(state: &ControlPlaneState, organization_id: &str) -> CryptoPosture {
+fn build_crypto_posture(state: &ControlPlaneState, organization_id: &str) -> Result<CryptoPosture, ContinuousOperationsError> {
     let registry = ReceiptKeyRegistry::new(state.db.clone());
-    let keys = registry.list(organization_id).unwrap_or_default();
+    let keys = registry.list(organization_id).map_err(|e| ContinuousOperationsError::KeyRegistry(e.to_string()))?;
     let mut issuers = Vec::with_capacity(keys.len());
     let mut active = 0;
     let mut rotating = 0;
@@ -953,11 +1004,11 @@ fn build_crypto_posture(state: &ControlPlaneState, organization_id: &str) -> Cry
     }
     let receipts = QCoreTelemetryStore::new(state.db.clone())
         .receipts(organization_id)
-        .unwrap_or_default();
+        .map_err(|e| ContinuousOperationsError::Telemetry(e.to_string()))?;
     let verified = receipts.iter().filter(|r| matches!(r.verification, crate::qcore_telemetry::ReceiptVerificationState::Verified)).count();
     let pending = receipts.iter().filter(|r| matches!(r.verification, crate::qcore_telemetry::ReceiptVerificationState::PendingVerification)).count();
     let rejected = receipts.iter().filter(|r| matches!(r.verification, crate::qcore_telemetry::ReceiptVerificationState::Rejected)).count();
-    CryptoPosture {
+    Ok(CryptoPosture {
         status: if keys.is_empty() && receipts.is_empty() { "not_populated".into() } else { "available".into() },
         key_registry: KeyRegistryPosture {
             status: if keys.is_empty() { "not_populated".into() } else { "available".into() },
@@ -976,7 +1027,7 @@ fn build_crypto_posture(state: &ControlPlaneState, organization_id: &str) -> Cry
             pending_verification: pending,
             rejected,
         },
-    }
+    })
 }
 
 fn build_aer_posture(state: &ControlPlaneState, organization_id: &str) -> AerPosture {
