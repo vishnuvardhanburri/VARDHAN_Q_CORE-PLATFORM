@@ -82,6 +82,20 @@ pub async fn ingest_finding(State(state): State<ControlPlaneState>, Extension(us
     }
 }
 
+pub async fn update_incident(
+    State(state): State<ControlPlaneState>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path((id, incident_id)): Path<(String, String)>,
+    Json(input): Json<serde_json::Value>,
+) -> Response {
+    if !can_operate(&state, &id, &user) { return denied(); }
+    let status = input.get("status").and_then(|value| value.as_str()).unwrap_or("");
+    match SecurityOperationsStore::new(state.db.clone()).transition_incident(&id, &incident_id, status, crate::now_ms()) {
+        Ok(incident) => (axum::http::StatusCode::OK, Json(json!({"status":"updated","incident":incident}))).into_response(),
+        Err(error) => (axum::http::StatusCode::BAD_REQUEST, Json(json!({"status":"rejected","error":error.to_string()}))).into_response(),
+    }
+}
+
 pub async fn incidents(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
     let items = SecurityOperationsStore::new(state.db.clone()).incidents(&id).unwrap_or_default();
