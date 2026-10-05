@@ -72,7 +72,7 @@ impl ReceiptKeyRegistry {
             std::str::from_utf8(PREFIX).unwrap(),
             organization_id
         );
-        let mut keys = Vec::new();
+        let mut keys: Vec<ReceiptIssuerKey> = Vec::new();
         for entry in self.db.scan_prefix(prefix.as_bytes()) {
             let (_, value) = entry?;
             keys.push(
