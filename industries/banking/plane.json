@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "industry": "banking",
+  "name": "Banking and Financial Services",
+  "compliance": ["PCI DSS 4.0", "SOX", "FFIEC", "BCBS 239", "ISO 20022", "Basel III"],
+  "assets": ["payment_system", "core_banking", "banking_application", "customer_financial_data", "third_party_processor"],
+  "threats": ["payment_skimming", "atm_malware", "swift_gateway_compromise", "account_takeover", "business_email_compromise", "supply_chain_compromise", "insider_fraud"],
+  "risk": {"factors": ["financial_impact", "regulatory_exposure", "reputation_impact", "data_sensitivity", "recovery_cost"], "weights": {"financial_impact": 5, "regulatory_exposure": 5, "reputation_impact": 4, "data_sensitivity": 5, "recovery_cost": 3}},
+  "policies": ["payment_integrity", "privileged_access", "third_party_risk", "customer_data_protection", "cryptographic_key_lifecycle"],
+  "workflows": ["payment_exposure_scan", "third_party_risk_review", "endpoint_integrity_check", "compliance_validation", "high_risk_transaction_review"],
+  "controls": ["transaction_monitoring", "fraud_detection", "network_segmentation", "pam", "hsm_key_protection", "dual_authorization"],
+  "integrations": ["siem", "iam", "fraud_engine", "payment_gateway", "hsm_kms", "itsm"],
+  "deployment": {"modes": ["managed", "private_cloud", "regulated_on_prem"], "requires_hsm_for_private_keys": true, "telemetry": "tenant_bound_qcore"},
+  "qcore_services": ["trust_boundary", "authority_policy", "transaction_state", "signed_receipt", "audit_ledger", "independent_verification", "pq_crypto", "aer_kep_q"]
+}
