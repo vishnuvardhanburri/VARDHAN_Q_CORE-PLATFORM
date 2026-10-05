@@ -854,7 +854,7 @@ pub async fn audit(
     .into_response()
 }
 
-fn build_snapshot(state: &ControlPlaneState, organization_id: &str) -> ContinuousOperationsSnapshot {
+pub fn build_snapshot(state: &ControlPlaneState, organization_id: &str) -> ContinuousOperationsSnapshot {
     let operations = ContinuousOperationsStore::new(state.db.clone());
     let alerts = operations.alerts(organization_id).unwrap_or_default();
     let drift = operations.policy_drift(organization_id).unwrap_or_default();
