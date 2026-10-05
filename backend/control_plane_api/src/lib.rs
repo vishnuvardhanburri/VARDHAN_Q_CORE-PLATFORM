@@ -17,6 +17,7 @@ pub mod enterprise_sso;
 pub mod operations_api;
 pub mod qcore_telemetry;
 pub mod durable_event_queue;
+pub mod enterprise_integrations;
 pub mod security_operations;
 pub mod receipt_key_registry;
 pub mod receipt_transport;
