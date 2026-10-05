@@ -12,9 +12,9 @@ for (const marker of requiredMarkers) {
 }
 for (const endpoint of [
   '/api/v1/auth/login', '/api/v1/auth/mfa/verify', '/api/v1/auth/logout', '/api/v1/me',
-  '/api/v1/organizations', '/api/v1/catalog/plans', '/api/v1/organizations/${encodeURIComponent(selectedOrg.id)}/subscription',
-  '/api/v1/organizations/${encodeURIComponent(selectedOrg.id)}/entitlements', '/api/v1/organizations/${encodeURIComponent(selectedOrg.id)}/usage',
-  '/security/posture', '/findings', '/incidents', '/transactions', '/aer-kep-q/status', '/members', '/invitations'
+  '/api/v1/organizations', '/api/v1/catalog/plans', "org('/subscription')", "org('/entitlements')", "org('/usage')",
+  "org('/security/posture')", "org('/findings')", "org('/incidents')", "org('/transactions')", "org('/aer-kep-q/status')",
+  "org('/members')", "org('/invitations')"
 ]) {
   if (!html.includes(endpoint)) throw new Error(`enterprise console missing API integration: ${endpoint}`);
 }
@@ -22,4 +22,4 @@ for (const marker of ['demoLogin', 'demo@example.com', 'password123', 'super_sec
   if (html.includes(marker)) throw new Error(`demo or test credential artifact must not exist: ${marker}`);
 }
 if (!html.includes('await loadOrganizations()')) throw new Error('console must load organization state from API');
-console.log(`enterprise console contract: ${requiredMarkers.length} surfaces + token rotation + ${15} API integration checks`);
+console.log(`enterprise console contract: ${requiredMarkers.length} surfaces + token rotation + ${17} API integration checks`);
