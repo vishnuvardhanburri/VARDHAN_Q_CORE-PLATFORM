@@ -1,14 +1,10 @@
-#[path = "qcore_telemetry.rs"]
-mod qcore_telemetry;
-
-use crate::{is_member, ControlPlaneState};
-use axum::{extract::{Path, State}, response::IntoResponse, Extension, Json};
+use crate::{is_member, qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState}, ControlPlaneState};
+use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Extension, Json};
 use auth_service::middleware::AuthenticatedUser;
-use qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState};
 use serde::Deserialize;
 use serde_json::json;
 
-fn denied() -> axum::response::Response { (axum::http::StatusCode::FORBIDDEN, Json(json!({"error":"Organization access denied."}))).into_response() }
+fn denied() -> Response { (axum::http::StatusCode::FORBIDDEN, Json(json!({"error":"Organization access denied."}))).into_response() }
 fn member(state: &ControlPlaneState, org_id: &str, user: &AuthenticatedUser) -> bool { is_member(&state.db, org_id, &user.username).unwrap_or(false) }
 
 #[derive(Debug, Deserialize)]
@@ -45,31 +41,31 @@ pub struct ReceiptTelemetryInput {
     pub verification: ReceiptVerificationState,
 }
 
-pub async fn security_posture(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn security_posture(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
     let store = QCoreTelemetryStore::new(state.db.clone());
     let transactions = store.transactions(&id).unwrap_or_default();
     let receipts = store.receipts(&id).unwrap_or_default();
-    Json(json!({ "organization_id": id, "status": "operational", "data_state": if transactions.is_empty() && receipts.is_empty() { "not_populated" } else { "populated" }, "findings": {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0}, "incidents": {"open": 0}, "crypto_posture": {"status": "available", "source": "control-plane"}, "q_core": {"transactions": transactions.len(), "receipts": receipts.len()}, "note": "Security findings remain empty until Intelligence ingestion populates them." }))
+    Json(json!({ "organization_id": id, "status": "operational", "data_state": if transactions.is_empty() && receipts.is_empty() { "not_populated" } else { "populated" }, "findings": {"total": 0, "critical": 0, "high": 0, "medium": 0, "low": 0}, "incidents": {"open": 0}, "crypto_posture": {"status": "available", "source": "control-plane"}, "q_core": {"transactions": transactions.len(), "receipts": receipts.len()}, "note": "Security findings remain empty until Intelligence ingestion populates them." })).into_response()
 }
 
-pub async fn findings(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn findings(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
-    Json(json!({ "organization_id": id, "items": [], "total": 0, "data_state": "not_populated", "next_cursor": null }))
+    Json(json!({ "organization_id": id, "items": [], "total": 0, "data_state": "not_populated", "next_cursor": null })).into_response()
 }
 
-pub async fn incidents(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn incidents(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
-    Json(json!({ "organization_id": id, "items": [], "total": 0, "data_state": "not_populated", "next_cursor": null }))
+    Json(json!({ "organization_id": id, "items": [], "total": 0, "data_state": "not_populated", "next_cursor": null })).into_response()
 }
 
-pub async fn transactions(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn transactions(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
     let store = QCoreTelemetryStore::new(state.db.clone());
     let items = store.transactions(&id).unwrap_or_default();
     let receipts = store.receipts(&id).unwrap_or_default();
     let total = items.len();
-    Json(json!({ "organization_id": id, "items": items, "total": total, "receipts": receipts, "data_state": if total == 0 { "not_populated" } else { "populated" }, "next_cursor": null, "trust_boundary": "server_enforced", "receipt_authentication": "platform_crypto_path" }))
+    Json(json!({ "organization_id": id, "items": items, "total": total, "receipts": receipts, "data_state": if total == 0 { "not_populated" } else { "populated" }, "next_cursor": null, "trust_boundary": "server_enforced", "receipt_authentication": "platform_crypto_path" })).into_response()
 }
 
 /// Authenticated transaction telemetry ingestion boundary.
@@ -127,13 +123,13 @@ pub async fn ingest_receipt(State(state): State<ControlPlaneState>, Extension(us
     }
 }
 
-pub async fn aer_kep_q_status(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn aer_kep_q_status(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
     if !member(&state, &id, &user) { return denied(); }
     let Some(runtime) = &state.aer_kep_q else {
-        return Json(json!({ "organization_id": id, "status": "unavailable", "runtime_attachment": "not_configured", "security_model": "quarantine_reissue", "cipher_suite": "ML-KEM-1024", "epoch_visibility": "runtime_only", "pending_messages": null, "exposure": {"status": "runtime_only", "quarantine": "enabled"}, "note": "AER-KEP-Q requires the control-plane deployment crypto identity and vault boundary." }));
+        return Json(json!({ "organization_id": id, "status": "unavailable", "runtime_attachment": "not_configured", "security_model": "quarantine_reissue", "cipher_suite": "ML-KEM-1024", "epoch_visibility": "runtime_only", "pending_messages": null, "exposure": {"status": "runtime_only", "quarantine": "enabled"}, "note": "AER-KEP-Q requires the control-plane deployment crypto identity and vault boundary." })).into_response();
     };
     let Ok(runtime) = runtime.lock() else {
-        return Json(json!({ "organization_id": id, "status": "degraded", "runtime_attachment": "attached", "error": "runtime_lock_unavailable" }));
+        return Json(json!({ "organization_id": id, "status": "degraded", "runtime_attachment": "attached", "error": "runtime_lock_unavailable" })).into_response();
     };
     let descriptor = runtime.descriptor().ok();
     Json(json!({
@@ -148,5 +144,5 @@ pub async fn aer_kep_q_status(State(state): State<ControlPlaneState>, Extension(
         "pending_messages": runtime.pending_for_epoch(runtime.active_epoch()).len(),
         "descriptor": descriptor.map(|d| json!({"epoch": d.epoch, "domain_id": d.domain_id})),
         "exposure": {"status": "monitored", "quarantine": "enabled"}
-    }))
+    })).into_response()
 }
