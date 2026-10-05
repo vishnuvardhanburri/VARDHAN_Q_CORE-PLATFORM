@@ -28,7 +28,10 @@ class Vardhan:
         return secrets.token_hex(16)
 
     @staticmethod
-    def verify_webhook_signature(secret: str, body: bytes, signature_hex: str) -> bool:
+    def verify_webhook_signature(secret: str, body: bytes, signature_hex: str, timestamp: int | None = None, tolerance_secs: int = 300) -> bool:
+        if timestamp is not None:
+            now = int(time.time())
+            if abs(now - timestamp) > tolerance_secs: return False
         try:
             expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
             return hmac.compare_digest(expected, signature_hex.strip().lower())
@@ -40,6 +43,7 @@ class Vardhan:
         headers = {"Accept": "application/json", "X-Vardhan-SDK": "python/0.3.0"}
         if self.token: headers["Authorization"] = f"Bearer {self.token}"
         if idempotency_key: headers["Idempotency-Key"] = idempotency_key
+        elif method == "POST": headers["Idempotency-Key"] = self.idempotency_key()
         if correlation_id: headers["X-Correlation-ID"] = correlation_id
         data = json.dumps(body).encode() if body is not None else None
         if data: headers["Content-Type"] = "application/json"
@@ -80,3 +84,6 @@ class Vardhan:
     def transactions(self, organization_id: str): return self._request(f"/api/v1/organizations/{organization_id}/transactions")
     def ingest_transaction(self, organization_id: str, body: dict[str, Any], **kwargs): return self._request(f"/api/v1/organizations/{organization_id}/transactions", "POST", body, **kwargs)
     def aer_kep_q_status(self, organization_id: str): return self._request(f"/api/v1/organizations/{organization_id}/aer-kep-q/status")
+    def update_member_role(self, organization_id: str, member: str, role: str, **kwargs): return self._request(f"/api/v1/organizations/{organization_id}/members/{member}/role", "POST", {"role": role}, **kwargs)
+    def revoke_invitation(self, organization_id: str, invitation_id: str, **kwargs): return self._request(f"/api/v1/organizations/{organization_id}/invitations/{invitation_id}", "POST", {}, **kwargs)
+    def accept_invitation(self, token: str, **kwargs): return self._request("/api/v1/invitations/accept", "POST", {"token": token}, **kwargs)

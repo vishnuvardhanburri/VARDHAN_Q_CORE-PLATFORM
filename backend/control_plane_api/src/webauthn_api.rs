@@ -5,7 +5,7 @@ use url::Url;
 use uuid::Uuid;
 use webauthn_rs::prelude::*;
 use crate::ControlPlaneState;
-use auth_service::middleware::AuthenticatedUser;
+use auth_service::AuthenticatedUser;
 
 const REG_PREFIX: &[u8] = b"webauthn:registration:";
 const AUTH_PREFIX: &[u8] = b"webauthn:authentication:";
@@ -79,5 +79,22 @@ pub async fn authentication_finish(State(state): State<ControlPlaneState>, Json(
     if now_ms()>=stored.expires_at_ms{return (StatusCode::UNAUTHORIZED,Json(json!({"error":"WebAuthn authentication state expired"}))).into_response()};
     let credential:PublicKeyCredential=match serde_json::from_value(credential){Ok(v)=>v,Err(_)=>return (StatusCode::BAD_REQUEST,Json(json!({"error":"Invalid WebAuthn authentication credential"}))).into_response()};
     let webauthn=match webauthn(){Ok(v)=>v,Err(e)=>return (StatusCode::SERVICE_UNAVAILABLE,Json(json!({"error":e}))).into_response()};
-    match webauthn.finish_passkey_authentication(&credential,&stored.state){Ok(result)=>{let token=state.auth.sessions.create_with_node(&stored.username,"0.0.0.0".parse().unwrap(),state.auth.node_id.as_deref().unwrap_or("control-plane")).await;Json(json!({"status":"authenticated","token":token.as_str(),"expires_in":8*60*60,"verified":result.user_verified()})).into_response()},Err(e)=>(StatusCode::UNAUTHORIZED,Json(json!({"error":e.to_string()}))).into_response()}
+    match webauthn.finish_passkey_authentication(&credential,&stored.state) {
+        Ok(result) => {
+            if result.needs_update() {
+                let mut passkeys: Vec<Passkey> = state.db.get(key(PASSKEY_PREFIX, &stored.username)).ok().flatten().and_then(|v| serde_json::from_slice(&v).ok()).unwrap_or_default();
+                for pk in passkeys.iter_mut() {
+                    if pk.cred_id() == result.cred_id() {
+                        pk.update_credential(&result);
+                    }
+                }
+                if state.db.insert(key(PASSKEY_PREFIX, &stored.username), serde_json::to_vec(&passkeys).unwrap()).is_err() {
+                    return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "WebAuthn credential update failed"}))).into_response();
+                }
+            }
+            let token = state.auth.sessions.create_with_node(&stored.username,"0.0.0.0".parse().unwrap(),state.auth.node_id.as_deref().unwrap_or("control-plane")).await;
+            Json(json!({"status":"authenticated","token":token.as_str(),"expires_in":8*60*60,"verified":result.user_verified()})).into_response()
+        },
+        Err(e) => (StatusCode::UNAUTHORIZED,Json(json!({"error":e.to_string()}))).into_response()
+    }
 }

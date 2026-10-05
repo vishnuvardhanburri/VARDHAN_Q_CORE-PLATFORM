@@ -1,7 +1,7 @@
 use crate::{is_member, key, plan, ControlPlaneState, Subscription};
 use crate::billing::{event_key, now_secs, verify_timestamp, BillingEvent, BillingProviderAdapter, HmacBillingProvider, SubscriptionState};
 use axum::{body::Bytes, extract::{Path, State}, http::{HeaderMap, StatusCode}, response::{IntoResponse, Response}, Extension, Json};
-use auth_service::middleware::AuthenticatedUser;
+use auth_service::AuthenticatedUser;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 

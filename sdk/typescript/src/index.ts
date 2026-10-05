@@ -40,6 +40,7 @@ export class VardhanClient {
       if (init.body && !headers.has('content-type')) headers.set('content-type', 'application/json');
       if (this.token) headers.set('authorization', `Bearer ${this.token}`);
       if (options.idempotencyKey) headers.set('idempotency-key', options.idempotencyKey);
+      else if (init.method === 'POST') headers.set('idempotency-key', VardhanClient.idempotencyKey());
       if (options.correlationId) headers.set('x-correlation-id', options.correlationId);
       headers.set('x-vardhan-sdk', '@vardhan-technologies/sdk/0.3.0');
       try {
@@ -81,10 +82,17 @@ export class VardhanClient {
     incidents: (id: string) => this.get<any>(`/api/v1/organizations/${encodeURIComponent(id)}/incidents`),
     transactions: (id: string) => this.get<any>(`/api/v1/organizations/${encodeURIComponent(id)}/transactions`),
     ingestTransaction: (id: string, body: unknown, options?: RequestOptions) => this.post<any>(`/api/v1/organizations/${encodeURIComponent(id)}/transactions`, body, options),
-    aerKepQStatus: (id: string) => this.get<any>(`/api/v1/organizations/${encodeURIComponent(id)}/aer-kep-q/status`),
+        aerKepQStatus: (id: string) => this.get<any>(`/api/v1/organizations/${encodeURIComponent(id)}/aer-kep-q/status`),
+    updateMemberRole: (id: string, member: string, role: string, options?: RequestOptions) => this.post<any>(`/api/v1/organizations/${encodeURIComponent(id)}/members/${encodeURIComponent(member)}/role`, { role }, options),
+    revokeInvitation: (id: string, invitationId: string, options?: RequestOptions) => this.post<any>(`/api/v1/organizations/${encodeURIComponent(id)}/invitations/${encodeURIComponent(invitationId)}`, {}, options),
   };
+  acceptInvitation(token: string, options?: RequestOptions) { return this.post<any>('/api/v1/invitations/accept', { token }, options); }
 
-  static async verifyWebhookSignature(secret: string, body: Uint8Array | string, signatureHex: string): Promise<boolean> {
+  static async verifyWebhookSignature(secret: string, body: Uint8Array | string, signatureHex: string, timestamp?: number, toleranceSecs: number = 300): Promise<boolean> {
+    if (timestamp) {
+      const now = Math.floor(Date.now() / 1000);
+      if (Math.abs(now - timestamp) > toleranceSecs) return false;
+    }
     try {
       const bytes = typeof body === 'string' ? new TextEncoder().encode(body) : body;
       const supplied = signatureHex.match(/.{1,2}/g)?.map(x => Number.parseInt(x, 16));

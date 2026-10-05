@@ -1,6 +1,6 @@
 use crate::{is_member, qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState}, ControlPlaneState};
 use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Extension, Json};
-use auth_service::middleware::AuthenticatedUser;
+use auth_service::AuthenticatedUser;
 use serde::Deserialize;
 use serde_json::json;
 

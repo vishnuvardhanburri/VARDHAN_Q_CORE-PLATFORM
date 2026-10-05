@@ -59,13 +59,8 @@ impl<'a> ReplayCache for SledReplayCache<'a> {
                 .get(&storage_key)
                 .map_err(|e| SamlError::Invalid(format!("SAML replay cache read failed: {e}")))?;
 
-            if let Some(ref value) = existing {
-                if value.len() == 8 {
-                    let existing_expiry = u64::from_be_bytes(value.as_ref().try_into().unwrap());
-                    if existing_expiry > now_ms {
-                        return Err(SamlError::ReplayDetected { key: cache_key });
-                    }
-                }
+            if existing.is_some() {
+                return Err(SamlError::ReplayDetected { key: cache_key });
             }
 
             match self.db.compare_and_swap(
@@ -246,3 +241,4 @@ pub async fn saml_acs(
     }))
     .into_response()
 }
+

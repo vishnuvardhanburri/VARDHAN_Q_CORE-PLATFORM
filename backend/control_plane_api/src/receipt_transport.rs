@@ -3,7 +3,7 @@ use crate::qcore_telemetry::{QCoreReceiptTelemetry, QCoreTransactionTelemetry, R
 use crate::receipt_key_registry::ReceiptKeyRegistry;
 use crate::receipt_verification::verify_receipt;
 use axum::{body::Bytes, extract::{Path, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, Extension, Json};
-use auth_service::middleware::AuthenticatedUser;
+use auth_service::AuthenticatedUser;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use serde_json::json;

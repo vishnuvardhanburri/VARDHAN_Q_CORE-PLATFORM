@@ -1,0 +1,10 @@
+/Users/vishnuvardhanburri/.gemini/antigravity/scratch/VARDHAN_Q_CORE-PLATFORM/sdk/rust/target/debug/deps/untrusted-705e9ed9402153f1.d: /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/lib.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/input.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/no_panic.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/reader.rs
+
+/Users/vishnuvardhanburri/.gemini/antigravity/scratch/VARDHAN_Q_CORE-PLATFORM/sdk/rust/target/debug/deps/libuntrusted-705e9ed9402153f1.rlib: /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/lib.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/input.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/no_panic.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/reader.rs
+
+/Users/vishnuvardhanburri/.gemini/antigravity/scratch/VARDHAN_Q_CORE-PLATFORM/sdk/rust/target/debug/deps/libuntrusted-705e9ed9402153f1.rmeta: /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/lib.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/input.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/no_panic.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/reader.rs
+
+/Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/lib.rs:
+/Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/input.rs:
+/Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/no_panic.rs:
+/Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0/src/reader.rs:

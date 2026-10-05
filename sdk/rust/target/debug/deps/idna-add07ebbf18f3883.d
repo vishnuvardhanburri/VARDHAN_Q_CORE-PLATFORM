@@ -1,0 +1,10 @@
+/Users/vishnuvardhanburri/.gemini/antigravity/scratch/VARDHAN_Q_CORE-PLATFORM/sdk/rust/target/debug/deps/idna-add07ebbf18f3883.d: /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/lib.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/deprecated.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/punycode.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/uts46.rs
+
+/Users/vishnuvardhanburri/.gemini/antigravity/scratch/VARDHAN_Q_CORE-PLATFORM/sdk/rust/target/debug/deps/libidna-add07ebbf18f3883.rlib: /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/lib.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/deprecated.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/punycode.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/uts46.rs
+
+/Users/vishnuvardhanburri/.gemini/antigravity/scratch/VARDHAN_Q_CORE-PLATFORM/sdk/rust/target/debug/deps/libidna-add07ebbf18f3883.rmeta: /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/lib.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/deprecated.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/punycode.rs /Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/uts46.rs
+
+/Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/lib.rs:
+/Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/deprecated.rs:
+/Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/punycode.rs:
+/Users/vishnuvardhanburri/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/idna-1.1.0/src/uts46.rs:

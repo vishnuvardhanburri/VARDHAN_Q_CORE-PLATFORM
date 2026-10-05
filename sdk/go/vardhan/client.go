@@ -22,7 +22,7 @@ type RequestOptions struct { IdempotencyKey, CorrelationID string }
 
 func New(baseURL, token string) *Client { return &Client{BaseURL: strings.TrimRight(baseURL, "/"), Token: token, HTTPClient: &http.Client{Timeout: 15*time.Second}, MaxRetries: 2} }
 func NewIdempotencyKey() string { var b [16]byte; if _, err := rand.Read(b[:]); err != nil { panic("secure random source unavailable") }; return hex.EncodeToString(b[:]) }
-func VerifyWebhookSignature(secret string, body []byte, signatureHex string) bool { supplied, err := hex.DecodeString(strings.TrimSpace(signatureHex)); if err != nil { return false }; mac := hmac.New(sha256.New, []byte(secret)); _, _ = mac.Write(body); return hmac.Equal(mac.Sum(nil), supplied) }
+func VerifyWebhookSignature(secret string, body []byte, signatureHex string, timestamp int64, toleranceSecs int64) bool { if timestamp > 0 { now := time.Now().Unix(); if now-timestamp > toleranceSecs || timestamp-now > toleranceSecs { return false } }; supplied, err := hex.DecodeString(strings.TrimSpace(signatureHex)); if err != nil { return false }; mac := hmac.New(sha256.New, []byte(secret)); _, _ = mac.Write(body); return hmac.Equal(mac.Sum(nil), supplied) }
 
 func (c *Client) do(ctx context.Context, method, path string, body any, out any, opts RequestOptions) error {
   var data []byte; var err error
@@ -31,7 +31,7 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any,
     req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, bytes.NewReader(data)); if err != nil { return err }
     req.Header.Set("Accept", "application/json"); req.Header.Set("X-Vardhan-SDK", "go/0.3.0")
     if data != nil { req.Header.Set("Content-Type", "application/json") }; if c.Token != "" { req.Header.Set("Authorization", "Bearer "+c.Token) }
-    if opts.IdempotencyKey != "" { req.Header.Set("Idempotency-Key", opts.IdempotencyKey) }; if opts.CorrelationID != "" { req.Header.Set("X-Correlation-ID", opts.CorrelationID) }
+    if opts.IdempotencyKey != "" { req.Header.Set("Idempotency-Key", opts.IdempotencyKey) } else if method == http.MethodPost { req.Header.Set("Idempotency-Key", NewIdempotencyKey()) }; if opts.CorrelationID != "" { req.Header.Set("X-Correlation-ID", opts.CorrelationID) }
     res, err := c.HTTPClient.Do(req); if err != nil { if attempt < c.MaxRetries { time.Sleep(time.Duration(250*(1<<attempt))*time.Millisecond); continue }; return err }
     raw, readErr := io.ReadAll(res.Body); res.Body.Close(); if readErr != nil { return readErr }
     if (res.StatusCode == http.StatusTooManyRequests || res.StatusCode >= 500) && attempt < c.MaxRetries { delay := 250 * (1 << attempt); if v := res.Header.Get("Retry-After"); v != "" { if d, e := time.ParseDuration(v+"s"); e == nil { delay = int(d / time.Millisecond) } }; if delay > 5000 { delay = 5000 }; time.Sleep(time.Duration(delay)*time.Millisecond); continue }
@@ -59,3 +59,6 @@ func (c *Client) Incidents(ctx context.Context,id string) (map[string]any,error)
 func (c *Client) Transactions(ctx context.Context,id string) (map[string]any,error) { var out map[string]any; return out,c.do(ctx,http.MethodGet,"/api/v1/organizations/"+id+"/transactions",nil,&out,RequestOptions{}) }
 func (c *Client) IngestTransaction(ctx context.Context,id string,body map[string]any,opts RequestOptions) (map[string]any,error) { var out map[string]any; return out,c.do(ctx,http.MethodPost,"/api/v1/organizations/"+id+"/transactions",body,&out,opts) }
 func (c *Client) AERKEPQStatus(ctx context.Context,id string) (map[string]any,error) { var out map[string]any; return out,c.do(ctx,http.MethodGet,"/api/v1/organizations/"+id+"/aer-kep-q/status",nil,&out,RequestOptions{}) }
+func (c *Client) UpdateMemberRole(ctx context.Context,id, member, role string, opts RequestOptions) (map[string]any,error) { var out map[string]any; return out,c.do(ctx,http.MethodPost,"/api/v1/organizations/"+id+"/members/"+member+"/role",map[string]string{"role":role},&out,opts) }
+func (c *Client) RevokeInvitation(ctx context.Context,id, invitationID string, opts RequestOptions) (map[string]any,error) { var out map[string]any; return out,c.do(ctx,http.MethodPost,"/api/v1/organizations/"+id+"/invitations/"+invitationID,map[string]string{},&out,opts) }
+func (c *Client) AcceptInvitation(ctx context.Context,token string, opts RequestOptions) (map[string]any,error) { var out map[string]any; return out,c.do(ctx,http.MethodPost,"/api/v1/invitations/accept",map[string]string{"token":token},&out,opts) }

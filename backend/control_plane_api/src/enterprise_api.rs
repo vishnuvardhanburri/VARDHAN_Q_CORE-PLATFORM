@@ -1,6 +1,6 @@
 use crate::{is_member, key, load_json, save_json, ControlPlaneState};
 use axum::{extract::{Path, State}, http::{HeaderMap, StatusCode}, response::IntoResponse, Extension, Json};
-use auth_service::middleware::AuthenticatedUser;
+use auth_service::AuthenticatedUser;
 use blake3::Hasher;
 use serde::{Deserialize, Serialize};
 use serde_json::json;

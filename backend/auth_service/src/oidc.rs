@@ -62,7 +62,13 @@ impl OidcFlowState {
     pub fn validate_callback(&self, returned_state: &str, now_ms: u64) -> Result<(), &'static str> {
         if now_ms >= self.expires_at_ms { return Err("OIDC authorization state expired"); }
         if !constant_time_equal(self.state.as_bytes(), returned_state.as_bytes()) { return Err("OIDC state mismatch"); }
-        if self.nonce.len() < 16 || self.pkce_verifier.len() < 43 { return Err("OIDC flow binding is invalid"); }
+        let nonce_len = self.nonce.len();
+        if nonce_len < 16 || nonce_len > 128 { return Err("OIDC flow binding is invalid"); }
+        let pkce_len = self.pkce_verifier.len();
+        if pkce_len < 43 || pkce_len > 128 { return Err("OIDC flow binding is invalid"); }
+        if !self.pkce_verifier.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.' || c == '_' || c == '~') {
+            return Err("OIDC flow binding is invalid");
+        }
         Ok(())
     }
 
@@ -126,5 +132,37 @@ mod tests {
         assert!(flow.validate_callback(&flow.state, 1_000).is_ok());
         assert!(flow.validate_callback(&flow.state, 2_000).is_err());
         assert!(!flow.pkce_s256_challenge().is_empty());
+    }
+
+    #[test]
+    fn validate_pkce_length_and_chars() {
+        let mut flow = OidcFlowState {
+            state: "server-generated-state".into(),
+            nonce: "server-generated-nonce-123456".into(),
+            pkce_verifier: "a".repeat(43),
+            issuer: "https://idp.example.com".into(),
+            client_id: "vardhan".into(),
+            expires_at_ms: 2_000,
+        };
+        
+        // Positive test
+        assert!(flow.validate_callback(&flow.state, 1_000).is_ok());
+        
+        // Negative tests
+        flow.pkce_verifier = "a".repeat(42); // Too short
+        assert!(flow.validate_callback(&flow.state, 1_000).is_err());
+        
+        flow.pkce_verifier = "a".repeat(129); // Too long
+        assert!(flow.validate_callback(&flow.state, 1_000).is_err());
+        
+        flow.pkce_verifier = "a".repeat(42) + "!"; // Invalid char
+        assert!(flow.validate_callback(&flow.state, 1_000).is_err());
+        
+        flow.pkce_verifier = "a".repeat(43);
+        flow.nonce = "a".repeat(15); // nonce too short
+        assert!(flow.validate_callback(&flow.state, 1_000).is_err());
+        
+        flow.nonce = "a".repeat(129); // nonce too long
+        assert!(flow.validate_callback(&flow.state, 1_000).is_err());
     }
 }

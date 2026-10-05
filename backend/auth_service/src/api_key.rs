@@ -17,6 +17,8 @@ const API_KEY_HASH_PREFIX: &[u8] = b"apikey_hash:";
 pub enum ApiKeyError {
     #[error("API key not found")]
     NotFound,
+    #[error("Unauthorized: API key belongs to another user")]
+    Unauthorized,
     #[error("Invalid key name: {0}")]
     InvalidName(String),
     #[error("API key is already revoked")]
@@ -183,12 +185,14 @@ impl CredentialStore {
     }
 
     /// List all API keys as safe views.
-    pub fn list_api_keys(&self) -> Result<Vec<ApiKeyView>, ApiKeyError> {
+    pub fn list_api_keys(&self, caller_username: &str) -> Result<Vec<ApiKeyView>, ApiKeyError> {
         let mut list = Vec::new();
         for item in self.db.scan_prefix(API_KEY_PREFIX) {
             let (_, val) = item.map_err(|e| ApiKeyError::DbError(e.to_string()))?;
             if let Ok(record) = serde_json::from_slice::<ApiKeyRecord>(&val) {
-                list.push(record.to_view());
+                if record.created_by == caller_username {
+                    list.push(record.to_view());
+                }
             }
         }
         list.sort_by(|a, b| b.created_at.cmp(&a.created_at));
@@ -196,7 +200,7 @@ impl CredentialStore {
     }
 
     /// Revoke an API key by ID.
-    pub fn revoke_api_key(&self, id: &str) -> Result<ApiKeyView, ApiKeyError> {
+    pub fn revoke_api_key(&self, id: &str, caller_username: &str) -> Result<ApiKeyView, ApiKeyError> {
         let key = Self::apikey_key(id);
         let raw = self
             .db
@@ -206,6 +210,10 @@ impl CredentialStore {
 
         let mut record: ApiKeyRecord =
             serde_json::from_slice(&raw).map_err(|e| ApiKeyError::DbError(e.to_string()))?;
+
+        if record.created_by != caller_username {
+            return Err(ApiKeyError::Unauthorized);
+        }
 
         record.revoked = true;
         let view = record.to_view();
@@ -302,7 +310,7 @@ mod tests {
         assert_eq!(res.name, "CI Runner");
 
         // 2. List API keys — secret is NOT in the view
-        let keys = store.list_api_keys().unwrap();
+        let keys = store.list_api_keys("admin").unwrap();
         assert_eq!(keys.len(), 1);
         assert_eq!(keys[0].id, res.id);
         assert_eq!(keys[0].name, "CI Runner");
@@ -318,7 +326,7 @@ mod tests {
         assert!(invalid.is_none());
 
         // 5. Revoke key
-        let revoked = store.revoke_api_key(&res.id).unwrap();
+        let revoked = store.revoke_api_key(&res.id, "admin").unwrap();
         assert!(revoked.revoked);
 
         // 6. Verification now fails for revoked key

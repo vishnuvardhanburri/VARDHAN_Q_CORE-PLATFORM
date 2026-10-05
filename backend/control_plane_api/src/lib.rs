@@ -1,7 +1,7 @@
 //! Enterprise control-plane API for Vardhan Technologies.
 
 use axum::{extract::{Path, State}, http::StatusCode, middleware, response::{IntoResponse, Response}, routing::{get, post}, Extension, Json, Router};
-use auth_service::{auth_router, middleware::AuthenticatedUser, AuthState};
+use auth_service::{auth_router, AuthenticatedUser, AuthState};
 use core_crypto::aer_kep_q_runtime::AerKepQRuntime;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -77,7 +77,7 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
         .route("/api/v1/invitations/accept", post(enterprise_api::accept_invitation))
         .route("/api/v1/auth/webauthn/register/start", post(webauthn_api::registration_start))
         .route("/api/v1/auth/webauthn/register/finish", post(webauthn_api::registration_finish))
-        .layer(middleware::from_fn_with_state(auth.sessions.clone(), auth_service::require_session));
+        .layer(middleware::from_fn_with_state(auth.clone(), auth_service::require_session));
     let public_service = Router::new().route("/api/v1/organizations/{id}/qcore/receipts", post(receipt_transport::ingest_receipt)).with_state(control.clone());
     let billing_public = Router::new().route("/api/v1/billing/webhook", post(billing_api::billing_webhook)).with_state(control.clone());
     let scim = Router::new()

@@ -25,21 +25,18 @@ use axum::{
 
 use crate::session::{SessionStore, SessionToken};
 
-/// The authenticated user injected into the request by `require_session`.
-#[derive(Clone, Debug)]
-pub struct AuthenticatedUser {
-    pub username: String,
-}
+use crate::authorization::{AuthenticatedUser, Role};
+use crate::store::CredentialStore;
 
 /// Axum middleware that validates the `Authorization: Bearer <token>` header
-/// against the session store.
+/// against the session store and loads the user's role.
 ///
 /// - Returns `401` if the header is missing, malformed, or the token is invalid/expired.
 /// - Updates `last_activity` on the session (sliding expiry).
 /// - Injects `AuthenticatedUser` extension for downstream handlers.
 /// - Passes OPTIONS through without auth (CORS preflight).
 pub async fn require_session(
-    State(sessions): State<Arc<SessionStore>>,
+    State(state): State<crate::AuthState>,
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, (StatusCode, Json<serde_json::Value>)> {
@@ -58,15 +55,22 @@ pub async fn require_session(
     let token = SessionToken::from_str(token_str);
 
     // VALIDATE AND ROTATE token to prevent theft
-    let (username, new_token) = sessions.validate_and_rotate(&token).await.ok_or_else(|| {
+    let (username, new_token) = state.sessions.validate_and_rotate(&token).await.ok_or_else(|| {
         (
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({ "error": "Invalid or expired session" })),
         )
     })?;
 
+    // Load role
+    let role = match state.credentials.get_profile(&username) {
+        Ok(profile) => Role::from_str(&profile.role),
+        Err(_) => Role::User,
+    };
+
     // Inject authenticated user for downstream handlers
-    req.extensions_mut().insert(AuthenticatedUser { username });
+    req.extensions_mut().insert(AuthenticatedUser::new_user(username, role));
+    req.extensions_mut().insert(new_token.clone());
 
     let mut response = next.run(req).await;
 

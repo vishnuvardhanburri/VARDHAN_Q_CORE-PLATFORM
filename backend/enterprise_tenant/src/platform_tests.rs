@@ -107,3 +107,30 @@ fn scim_cross_tenant_role_assignment_is_rejected() {
     scim.upsert_user("t1", &ScimUser::new("u1", "u1@example.com")).unwrap();
     assert!(scim.assign_group_role("t2", "u1", "owner").is_err());
 }
+
+#[test]
+fn scim_deprovision_tenant_isolation() {
+    let cp = Arc::new(ControlPlane::new());
+    cp.create_tenant(TenantSpec::new("t1", "Tenant 1", SecurityLevel::Enterprise)).unwrap();
+    cp.create_tenant(TenantSpec::new("t2", "Tenant 2", SecurityLevel::Enterprise)).unwrap();
+    
+    cp.create_user(UserSpec::new("u1", "u1@example.com")).unwrap();
+    cp.assign_role("t1", "u1", Role::SecurityAdmin).unwrap();
+    cp.assign_role("t2", "u1", Role::SecurityAdmin).unwrap();
+
+    let scim = ScimProvisioner::new(cp.clone());
+    
+    // Deprovision from t1
+    scim.deprovision_user("t1", "u1").unwrap();
+    
+    // Should be removed from t1 but active in t2
+    assert!(!cp.authorize("t1", "u1", Permission::ManagePolicy, "*").unwrap());
+    assert!(cp.authorize("t2", "u1", Permission::ManagePolicy, "*").unwrap());
+    
+    // Deprovision from t2
+    scim.deprovision_user("t2", "u1").unwrap();
+    
+    // Now disabled globally
+    assert!(!cp.authorize("t2", "u1", Permission::ManagePolicy, "*").unwrap());
+    assert!(!cp.users.lock().unwrap().get("u1").unwrap().enabled);
+}

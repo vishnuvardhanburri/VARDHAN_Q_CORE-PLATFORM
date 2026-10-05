@@ -27,9 +27,9 @@ impl Vardhan {
     pub fn new(base_url: impl Into<String>, token: Option<String>) -> Self { Self { base_url: base_url.into().trim_end_matches('/').to_string(), token, client: Client::new() } }
     pub fn idempotency_key() -> String { Uuid::new_v4().to_string() }
     async fn request<T: DeserializeOwned>(&self, method: Method, path: &str, body: Option<Value>, idempotency_key: Option<&str>) -> Result<T, VardhanError> {
-        let mut req = self.client.request(method, format!("{}{}", self.base_url, path)).header("accept", "application/json").header("x-vardhan-sdk", "rust/0.3.0");
+        let mut req = self.client.request(method.clone(), format!("{}{}", self.base_url, path)).header("accept", "application/json").header("x-vardhan-sdk", "rust/0.3.0");
         if let Some(token) = &self.token { req = req.bearer_auth(token); }
-        if let Some(key) = idempotency_key { req = req.header("Idempotency-Key", key); }
+        if let Some(key) = idempotency_key { req = req.header("Idempotency-Key", key); } else if method == Method::POST { req = req.header("Idempotency-Key", Self::idempotency_key()); }
         if let Some(body) = body { req = req.json(&body); }
         let response = req.send().await?;
         let status = response.status();
@@ -57,13 +57,18 @@ impl Vardhan {
     pub async fn aer_kep_q_status(&self, organization_id: &str) -> Result<Value, VardhanError> { self.get(&format!("/api/v1/organizations/{organization_id}/aer-kep-q/status")).await }
     pub async fn ingest_transaction(&self, organization_id: &str, body: Value, idempotency_key: &str) -> Result<Value, VardhanError> { self.post(&format!("/api/v1/organizations/{organization_id}/transactions"), body, Some(idempotency_key)).await }
     pub async fn create_organization(&self, body: Value, idempotency_key: &str) -> Result<Value, VardhanError> { self.post("/api/v1/organizations", body, Some(idempotency_key)).await }
-    pub async fn create_invitation(&self, organization_id: &str, body: Value, idempotency_key: &str) -> Result<Value, VardhanError> { self.post(&format!("/api/v1/organizations/{organization_id}/invitations"), body, Some(idempotency_key)).await }
-    pub fn verify_webhook_signature(secret: &str, body: &[u8], signature_hex: &str) -> Result<(), VardhanError> { let expected = hex::decode(signature_hex).map_err(|_| VardhanError::InvalidWebhookSignature)?; let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).map_err(|_| VardhanError::InvalidWebhookSignature)?; mac.update(body); mac.verify_slice(&expected).map_err(|_| VardhanError::InvalidWebhookSignature) }
+        pub async fn create_invitation(&self, organization_id: &str, body: Value, idempotency_key: &str) -> Result<Value, VardhanError> { self.post(&format!("/api/v1/organizations/{organization_id}/invitations"), body, Some(idempotency_key)).await }
+    pub async fn request_plan(&self, organization_id: &str, body: Value, idempotency_key: &str) -> Result<Value, VardhanError> { self.post(&format!("/api/v1/organizations/{organization_id}/subscription"), body, Some(idempotency_key)).await }
+    pub async fn record_usage(&self, organization_id: &str, body: Value, idempotency_key: &str) -> Result<Value, VardhanError> { self.post(&format!("/api/v1/organizations/{organization_id}/usage/record"), body, Some(idempotency_key)).await }
+    pub async fn update_member_role(&self, organization_id: &str, member: &str, body: Value, idempotency_key: &str) -> Result<Value, VardhanError> { self.post(&format!("/api/v1/organizations/{organization_id}/members/{member}/role"), body, Some(idempotency_key)).await }
+    pub async fn revoke_invitation(&self, organization_id: &str, invitation_id: &str, idempotency_key: &str) -> Result<Value, VardhanError> { self.post(&format!("/api/v1/organizations/{organization_id}/invitations/{invitation_id}"), serde_json::json!({}), Some(idempotency_key)).await }
+    pub async fn accept_invitation(&self, body: Value, idempotency_key: &str) -> Result<Value, VardhanError> { self.post("/api/v1/invitations/accept", body, Some(idempotency_key)).await }
+    pub fn verify_webhook_signature(secret: &str, body: &[u8], signature_hex: &str, timestamp: Option<u64>, tolerance_secs: u64) -> Result<(), VardhanError> { if let Some(ts) = timestamp { let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs(); if now.saturating_sub(ts) > tolerance_secs || ts.saturating_sub(now) > tolerance_secs { return Err(VardhanError::InvalidWebhookSignature); } } let expected = hex::decode(signature_hex).map_err(|_| VardhanError::InvalidWebhookSignature)?; let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).map_err(|_| VardhanError::InvalidWebhookSignature)?; mac.update(body); mac.verify_slice(&expected).map_err(|_| VardhanError::InvalidWebhookSignature) }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test] fn idempotency_key_is_unique_uuid() { let a = Vardhan::idempotency_key(); let b = Vardhan::idempotency_key(); assert_ne!(a, b); assert!(Uuid::parse_str(&a).is_ok()); }
-    #[test] fn webhook_signature_rejects_tampering() { let secret = "enterprise-secret"; let body = br#"{\"event\":\"subscription.updated\"}"#; let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap(); mac.update(body); let signature = hex::encode(mac.finalize().into_bytes()); assert!(Vardhan::verify_webhook_signature(secret, body, &signature).is_ok()); assert!(Vardhan::verify_webhook_signature(secret, br#"{\"event\":\"tampered\"}"#, &signature).is_err()); }
+    #[test] fn webhook_signature_rejects_tampering() { let secret = "enterprise-secret"; let body = br#"{\"event\":\"subscription.updated\"}"#; let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap(); mac.update(body); let signature = hex::encode(mac.finalize().into_bytes()); assert!(Vardhan::verify_webhook_signature(secret, body, &signature, None, 300).is_ok()); assert!(Vardhan::verify_webhook_signature(secret, br#"{\"event\":\"tampered\"}"#, &signature, None, 300).is_err()); }
 }

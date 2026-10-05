@@ -84,8 +84,18 @@ impl ScimProvisioner {
     pub fn deprovision_user(&self, tenant_id: &str, user_id: &str) -> Result<(), PlatformError> {
         self.control_plane.require_tenant(tenant_id)?;
         self.control_plane.require_user(user_id)?;
-        let here = self.control_plane.roles.lock().unwrap().keys().any(|(t, uid)| t == tenant_id && uid == user_id);
-        if !here { return Err(PlatformError::Forbidden); }
-        self.control_plane.disable_user(user_id)
+        
+        let mut roles = self.control_plane.roles.lock().unwrap();
+        let key = (tenant_id.to_owned(), user_id.to_owned());
+        if roles.remove(&key).is_none() {
+            return Err(PlatformError::Forbidden);
+        }
+        let elsewhere = roles.keys().any(|(_, uid)| uid == user_id);
+        drop(roles);
+        
+        if !elsewhere {
+            self.control_plane.disable_user(user_id)?;
+        }
+        Ok(())
     }
 }
