@@ -72,13 +72,14 @@ jobs:
           VARDHAN_CONTROL_PLANE_DATA_DIR: /tmp/vardhan-control-plane-contract
           VARDHAN_CONTROL_PLANE_ADDR: 127.0.0.1:18080
           VARDHAN_ADMIN_USERNAME: contract@example.com
-          VARDHAN_ADMIN_PASSWORD: contract-test-password-1234
+          VARDHAN_ADMIN_PASSWORD_FILE: /tmp/vardhan-admin-password
         run: |
           rm -rf /tmp/vardhan-control-plane-contract
+          echo -n "contract-test-password-1234" > /tmp/vardhan-admin-password
           VARDHAN_CONTROL_PLANE_DATA_DIR=/tmp/vardhan-control-plane-contract \
           VARDHAN_CONTROL_PLANE_ADDR=127.0.0.1:18080 \
           VARDHAN_ADMIN_USERNAME=contract@example.com \
-          VARDHAN_ADMIN_PASSWORD=contract-test-password-1234 \
+          VARDHAN_ADMIN_PASSWORD_FILE=/tmp/vardhan-admin-password \
           ./target/debug/control_plane_api > /tmp/control-plane.log 2>&1 &
           echo $! > /tmp/control-plane.pid
           for i in $(seq 1 30); do
