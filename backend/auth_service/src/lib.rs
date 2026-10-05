@@ -10,6 +10,8 @@ pub mod credentials;
 pub mod mfa;
 pub mod mfa_policy;
 pub mod mfa_store;
+pub mod mfa_challenge_store;
+pub mod mfa_service;
 pub mod oidc;
 pub mod middleware;
 pub mod profile;
@@ -36,6 +38,8 @@ pub use settings::{SettingsConfig, UpdateSettingsRequest};
 pub use mfa::{normalize_secret, verify_totp, MfaError};
 pub use mfa_policy::{MfaChallenge, MfaPolicy};
 pub use mfa_store::MfaStore;
+pub use mfa_challenge_store::{MfaChallengeStore, StoredMfaChallenge};
+pub use mfa_service::MfaService;
 pub use oidc::{OidcConfig, OidcConfigError};
 
 #[derive(Clone)]
