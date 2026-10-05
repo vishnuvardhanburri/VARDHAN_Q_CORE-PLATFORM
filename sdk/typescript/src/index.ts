@@ -89,8 +89,12 @@ export class VardhanClient {
       const bytes = typeof body === 'string' ? new TextEncoder().encode(body) : body;
       const supplied = signatureHex.match(/.{1,2}/g)?.map(x => Number.parseInt(x, 16));
       if (!supplied) return false;
+      const message: Uint8Array<ArrayBuffer> = new Uint8Array(new ArrayBuffer(bytes.byteLength));
+      message.set(bytes);
+      const signature: Uint8Array<ArrayBuffer> = new Uint8Array(new ArrayBuffer(supplied.length));
+      signature.set(supplied);
       const key = await globalThis.crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
-      return globalThis.crypto.subtle.verify('HMAC', key, new Uint8Array(supplied), bytes);
+      return globalThis.crypto.subtle.verify('HMAC', key, signature, message);
     } catch { return false; }
   }
 }
