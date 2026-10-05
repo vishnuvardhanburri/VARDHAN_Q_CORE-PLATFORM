@@ -247,6 +247,8 @@ pub enum ContinuousOperationsError {
     UnsupportedRemediation,
     #[error("remediation not found")]
     RemediationNotFound,
+    #[error("remediation proposer cannot approve their own remediation")]
+    SelfApprovalForbidden,
     #[error("invalid remediation transition")]
     InvalidRemediationTransition,
     #[error("incident is required for this remediation")]
@@ -603,7 +605,12 @@ impl ContinuousOperationsStore {
         let target = target.trim().to_ascii_lowercase();
 
         match (item.status.as_str(), target.as_str()) {
-            ("proposed", "approved") => item.approved_by = Some(actor.to_owned()),
+            ("proposed", "approved") => {
+                if item.proposed_by == actor {
+                    return Err(ContinuousOperationsError::SelfApprovalForbidden);
+                }
+                item.approved_by = Some(actor.to_owned());
+            },
             ("proposed", "rejected") => {}
             ("approved", "completed") => {}
             ("approved", "failed") => {}
