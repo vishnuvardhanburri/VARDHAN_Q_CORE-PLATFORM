@@ -16,13 +16,14 @@ use uuid::Uuid;
 
 pub mod billing;
 pub mod billing_api;
+pub mod enterprise_api;
 pub mod operations_api;
 pub mod receipt_key_registry;
 pub mod receipt_transport;
 pub mod receipt_verification;
 
 const ORG_PREFIX: &[u8] = b"org:";
-const MEMBER_PREFIX: &[u8] = b"member:";
+pub(crate) const MEMBER_PREFIX: &[u8] = b"member:";
 const SUB_PREFIX: &[u8] = b"sub:";
 const USAGE_PREFIX: &[u8] = b"usage:";
 
@@ -52,9 +53,9 @@ pub struct SetPlanRequest { pub plan_id: String }
 
 pub(crate) fn key(prefix: &[u8], value: &str) -> Vec<u8> { let mut out = prefix.to_vec(); out.extend_from_slice(value.as_bytes()); out }
 fn member_key(org_id: &str, username: &str) -> Vec<u8> { key(MEMBER_PREFIX, &format!("{org_id}:{username}")) }
-fn json_error(status: StatusCode, message: &str) -> Response { (status, Json(json!({ "error": message }))).into_response() }
-fn load_json<T: for<'de> Deserialize<'de>>(db: &Db, k: &[u8]) -> Result<Option<T>, String> { let value = db.get(k).map_err(|e| format!("control-plane store read failed: {e}"))?; value.map(|bytes| serde_json::from_slice(&bytes).map_err(|e| format!("invalid stored state: {e}"))).transpose() }
-fn save_json<T: Serialize>(db: &Db, k: &[u8], value: &T) -> Result<(), String> { let bytes = serde_json::to_vec(value).map_err(|e| format!("state serialization failed: {e}"))?; db.insert(k, bytes).map(|_| ()).map_err(|e| format!("control-plane store write failed: {e}")) }
+pub(crate) fn json_error(status: StatusCode, message: &str) -> Response { (status, Json(json!({ "error": message }))).into_response() }
+pub(crate) fn load_json<T: for<'de> Deserialize<'de>>(db: &Db, k: &[u8]) -> Result<Option<T>, String> { let value = db.get(k).map_err(|e| format!("control-plane store read failed: {e}"))?; value.map(|bytes| serde_json::from_slice(&bytes).map_err(|e| format!("invalid stored state: {e}"))).transpose() }
+pub(crate) fn save_json<T: Serialize>(db: &Db, k: &[u8], value: &T) -> Result<(), String> { let bytes = serde_json::to_vec(value).map_err(|e| format!("state serialization failed: {e}"))?; db.insert(k, bytes).map(|_| ()).map_err(|e| format!("control-plane store write failed: {e}")) }
 pub(crate) fn is_member(db: &Db, org_id: &str, username: &str) -> Result<bool, String> { Ok(db.get(member_key(org_id, username)).map_err(|e| format!("membership read failed: {e}"))?.is_some()) }
 pub(crate) fn plan(plan_id: &str) -> Option<&'static Plan> { PLANS.iter().find(|p| p.id == plan_id) }
 
@@ -72,17 +73,28 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
         .route("/api/v1/organizations/{id}/incidents", get(operations_api::incidents))
         .route("/api/v1/organizations/{id}/transactions", get(operations_api::transactions).post(operations_api::ingest_transaction))
         .route("/api/v1/organizations/{id}/aer-kep-q/status", get(operations_api::aer_kep_q_status))
+        .route("/api/v1/organizations/{id}/members", get(enterprise_api::list_members))
+        .route("/api/v1/organizations/{id}/members/{member}/role", post(enterprise_api::set_member_role))
+        .route("/api/v1/organizations/{id}/invitations", get(enterprise_api::list_invitations).post(enterprise_api::create_invitation))
+        .route("/api/v1/organizations/{id}/invitations/{invitation_id}", post(enterprise_api::revoke_invitation))
+        .route("/api/v1/invitations/accept", post(enterprise_api::accept_invitation))
         .layer(middleware::from_fn_with_state(auth.sessions.clone(), auth_service::require_session));
 
     let public_service = Router::new()
         .route("/api/v1/organizations/{id}/qcore/receipts", post(receipt_transport::ingest_receipt))
         .with_state(control.clone());
     let billing_public = Router::new().route("/api/v1/billing/webhook", post(billing_api::billing_webhook)).with_state(control.clone());
+    let scim = Router::new()
+        .route("/scim/v2.0/ServiceProviderConfig", get(enterprise_api::scim_service_provider_config))
+        .route("/scim/v2.0/organizations/{id}/Users", get(enterprise_api::scim_list_users))
+        .route("/scim/v2.0/organizations/{id}/Users/{external_id}", axum::routing::put(enterprise_api::scim_upsert_user).patch(enterprise_api::scim_upsert_user).delete(enterprise_api::scim_delete_user))
+        .with_state(control.clone());
 
     Router::new()
         .merge(auth_router(auth.clone()))
         .merge(billing_public)
         .merge(public_service)
+        .merge(scim)
         .route("/api/v1/platform/health", get(health))
         .route("/api/v1/catalog/plans", get(catalog))
         .merge(protected.with_state(control))
@@ -93,7 +105,7 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
 
 async fn health() -> Json<Value> { Json(json!({ "service": "vardhan-control-plane", "status": "operational", "mode": "enterprise", "authentication": "server_enforced", "demo_authentication": false })) }
 async fn catalog() -> Json<&'static [Plan]> { Json(PLANS) }
-async fn me(Extension(user): Extension<AuthenticatedUser>) -> Json<Value> { Json(json!({ "username": user.username, "authenticated": true })) }
+async fn me(Extension(user): Extension<AuthenticatedUser>) -> Json<Value> { Json(json!({ "username": user.username, "authenticated": true, "role": user.role.as_str() })) }
 
 async fn create_organization(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Json(req): Json<CreateOrganizationRequest>) -> Response {
     let name = req.name.trim();
