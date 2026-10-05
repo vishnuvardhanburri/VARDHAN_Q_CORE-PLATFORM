@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 axum = "0.8"
 auth_service = { path = "../auth_service" }
+core_crypto = { path = "../core_crypto" }
 enterprise_tenant = { path = "../enterprise_tenant" }
 saas_metering = { path = "../saas_metering" }
 ledger_persistence = { path = "../ledger_persistence" }
