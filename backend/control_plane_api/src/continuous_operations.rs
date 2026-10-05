@@ -1373,6 +1373,46 @@ mod tests {
     }
 
     #[test]
+    fn remediation_cannot_be_self_approved() {
+        let db = db();
+        let store = ContinuousOperationsStore::new(db);
+        let proposed = store
+            .propose_remediation(
+                "org-a",
+                &RemediationInput {
+                    action: "REVALIDATE_POLICY".into(),
+                    finding_id: Some("f-1".into()),
+                    incident_id: None,
+                    rationale: "Policy observation requires independent approval.".into(),
+                },
+                "operator",
+                1,
+            )
+            .unwrap();
+
+        assert!(store
+            .transition_remediation(
+                "org-a",
+                &proposed.remediation_id,
+                "approved",
+                "operator",
+                2,
+            )
+            .is_err());
+
+        let approved = store
+            .transition_remediation(
+                "org-a",
+                &proposed.remediation_id,
+                "approved",
+                "security_admin",
+                3,
+            )
+            .unwrap();
+        assert_eq!(approved.approved_by.as_deref(), Some("security_admin"));
+    }
+
+    #[test]
     fn acknowledge_incident_remediation_moves_incident_to_acknowledged() {
         let db = db();
         let telemetry = QCoreTelemetryStore::new(db.clone());
