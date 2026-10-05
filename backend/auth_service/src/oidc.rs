@@ -4,6 +4,7 @@
 //! this module owns the pre-token invariants so an unbound authorization code
 //! cannot be promoted to a local session.
 
+use base64::Engine;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
