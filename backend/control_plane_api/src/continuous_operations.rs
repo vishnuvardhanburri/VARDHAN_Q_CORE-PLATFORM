@@ -1262,7 +1262,10 @@ fn can_operate(state: &ControlPlaneState, org_id: &str, user: &AuthenticatedUser
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{qcore_telemetry::{QCoreReceiptTelemetry, ReceiptVerificationState}, SecurityOperationsStore};
+    use crate::{
+        qcore_telemetry::{QCoreReceiptTelemetry, ReceiptVerificationState},
+        security_operations::{SecurityIncident, SecurityOperationsStore},
+    };
 
     fn db() -> Arc<Db> {
         Arc::new(sled::Config::new().temporary(true).open().unwrap())
