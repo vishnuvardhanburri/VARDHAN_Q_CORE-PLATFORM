@@ -126,6 +126,15 @@ impl CredentialStore {
         }
     }
 
+    /// Resolve the role used for authorization without creating or mutating a profile.
+    /// Missing profiles fail closed and return `None`; this is intentionally stricter
+    /// than `get_profile`, whose legacy bootstrap behavior may materialize an admin profile.
+    pub fn authoritative_role(&self, username: &str) -> Option<crate::authorization::Role> {
+        let raw = self.db.get(Self::profile_key(username)).ok().flatten()?;
+        let profile: AdminProfile = serde_json::from_slice(&raw).ok()?;
+        Some(crate::authorization::Role::from_str(&profile.role))
+    }
+
     pub fn save_profile(&self, profile: &AdminProfile) -> Result<(), ProfileError> {
         let key = Self::profile_key(&profile.username);
         let val = serde_json::to_vec(profile).map_err(|e| ProfileError::DbError(e.to_string()))?;
@@ -199,12 +208,10 @@ mod tests {
         let phc = hash_password("test_pass_12345").unwrap();
         store.set_phc_sync("alice", &phc).unwrap();
 
-        // 1. Initial profile is auto-bootstrapped
         let initial = store.get_profile("alice").unwrap();
         assert_eq!(initial.username, "alice");
         assert_eq!(initial.role, "ciso_admin");
 
-        // 2. Update display name and email
         let updated = store
             .update_profile(
                 "alice",
@@ -214,14 +221,30 @@ mod tests {
             .unwrap();
         assert_eq!(updated.display_name, "Alice Security Lead");
         assert_eq!(updated.email, "alice@corp.com");
-
-        // Role cannot be escalated
         assert_eq!(updated.role, "ciso_admin");
 
-        // Verify persistence
         let reloaded = store.get_profile("alice").unwrap();
         assert_eq!(reloaded.display_name, "Alice Security Lead");
         assert_eq!(reloaded.email, "alice@corp.com");
+    }
+
+    #[test]
+    fn authoritative_role_is_strict_and_non_mutating() {
+        let dir = tempdir().unwrap();
+        let store = CredentialStore::open(dir.path()).unwrap();
+        let phc = hash_password("test_pass_12345").unwrap();
+        store.set_phc_sync("alice", &phc).unwrap();
+
+        assert_eq!(store.authoritative_role("alice"), None);
+
+        store.save_profile(&AdminProfile {
+            username: "alice".to_string(),
+            display_name: "Alice".to_string(),
+            email: "alice@example.com".to_string(),
+            role: "user".to_string(),
+            updated_at_ms: 1,
+        }).unwrap();
+        assert_eq!(store.authoritative_role("alice"), Some(crate::authorization::Role::User));
     }
 
     #[test]
@@ -231,7 +254,6 @@ mod tests {
         let phc = hash_password("original_password_12").unwrap();
         store.set_phc_sync("bob", &phc).unwrap();
 
-        // Mismatched confirmation
         assert!(store
             .change_user_password(
                 "bob",
@@ -240,13 +262,9 @@ mod tests {
                 "different_confirmation"
             )
             .is_err());
-
-        // Password too short (<12 chars)
         assert!(store
             .change_user_password("bob", "original_password_12", "short", "short")
             .is_err());
-
-        // Wrong current password
         assert!(store
             .change_user_password(
                 "bob",
@@ -255,8 +273,6 @@ mod tests {
                 "new_secure_password_12"
             )
             .is_err());
-
-        // Success
         assert!(store
             .change_user_password(
                 "bob",
@@ -266,7 +282,6 @@ mod tests {
             )
             .is_ok());
 
-        // Verify old password no longer works
         let bob_phc = store.get_phc_sync("bob").unwrap();
         assert!(!verify_password("original_password_12", &bob_phc));
         assert!(verify_password("new_secure_password_12", &bob_phc));
