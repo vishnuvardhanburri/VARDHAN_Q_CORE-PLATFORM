@@ -26,4 +26,14 @@ jobs:
         run: cargo deny check advisories
       - name: Repository secret scan
         run: |
-          ! git grep -nE 'AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----' -- .
+          set -euo pipefail
+          matches="$(git grep -nIE 'AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----' -- \
+            . \
+            ':(exclude).github/workflows/security.yml' \
+            ':(exclude)zk_engine/.gitleaks.toml' \
+            ':(exclude)zk_engine/packages/keys/test/*' || true)"
+          if [ -n "$matches" ]; then
+            echo "$matches"
+            echo "Potential credential material detected in tracked repository files." >&2
+            exit 1
+          fi
