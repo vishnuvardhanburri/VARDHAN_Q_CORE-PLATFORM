@@ -1,0 +1,38 @@
+name: Temporary HA checkpoint ref fix
+
+on:
+  push:
+    branches:
+      - fix/ha-checkpoint-leader-ref-20261005
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, 'fix: correct checkpoint leader references') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Correct undefined leader references
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('backend/ha_cluster/tests/raft_l3_2_checkpoints.rs')
+          s = p.read_text()
+          old = s
+          s = s.replace('let sig = leader_node.identity.sign_payload(&canonical).unwrap();', 'let sig = nodes[leader_idx].identity.sign_payload(&canonical).unwrap();', 1)
+          s = s.replace('let pub_key = leader_node.identity.dsa_public_key_bytes();', 'let pub_key = nodes[leader_idx].identity.dsa_public_key_bytes();', 1)
+          if s == old:
+              raise SystemExit('expected undefined leader_node references were not found')
+          p.write_text(s)
+          PY
+          git diff --check
+          git diff -- backend/ha_cluster/tests/raft_l3_2_checkpoints.rs
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add backend/ha_cluster/tests/raft_l3_2_checkpoints.rs
+          git commit -m 'fix: correct checkpoint leader references'
+          git push
