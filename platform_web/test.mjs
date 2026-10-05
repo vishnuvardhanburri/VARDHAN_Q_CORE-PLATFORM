@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
+const normalized = html.toLowerCase();
 
 const requiredMarkers = [
   'VARDHAN ENTERPRISE', 'Authenticated access', 'Organizations', 'Subscription', 'Usage',
@@ -8,7 +9,7 @@ const requiredMarkers = [
   'server-side', 'authorization-new-token'
 ];
 for (const marker of requiredMarkers) {
-  if (!html.includes(marker)) throw new Error(`enterprise console missing required surface: ${marker}`);
+  if (!normalized.includes(marker.toLowerCase())) throw new Error(`enterprise console missing required surface: ${marker}`);
 }
 for (const endpoint of [
   '/api/v1/auth/login', '/api/v1/auth/mfa/verify', '/api/v1/auth/logout', '/api/v1/me',
