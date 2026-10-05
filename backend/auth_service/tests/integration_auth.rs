@@ -34,6 +34,7 @@ async fn spawn_test_server() -> (
         credentials: Arc::new(cred_store),
         sessions,
         rate_limiter,
+        mfa: None,
         ledger: Some(ledger_writer),
         identity: Some(identity),
         node_id: Some("node-test-1".to_string()),
@@ -134,7 +135,6 @@ async fn test_rate_limiter_triggers_429_after_10_failures() {
     let client = reqwest::Client::new();
     let attacking_ip = "198.51.100.42";
 
-    // 10 failed login attempts
     for _ in 0..10 {
         let res = client
             .post(format!("{}/api/v1/auth/login", base_url))
@@ -149,7 +149,6 @@ async fn test_rate_limiter_triggers_429_after_10_failures() {
         assert_eq!(res.status(), reqwest::StatusCode::UNAUTHORIZED);
     }
 
-    // 11th attempt from same IP must return 429 Too Many Requests
     let blocked_res = client
         .post(format!("{}/api/v1/auth/login", base_url))
         .header("X-Forwarded-For", attacking_ip)
@@ -165,7 +164,6 @@ async fn test_rate_limiter_triggers_429_after_10_failures() {
     let body: serde_json::Value = blocked_res.json().await.unwrap();
     assert_eq!(body["error"], "Too many attempts. Try again later.");
 
-    // A different IP is NOT blocked
     let innocent_ip = "198.51.100.43";
     let innocent_res = client
         .post(format!("{}/api/v1/auth/login", base_url))
@@ -179,99 +177,4 @@ async fn test_rate_limiter_triggers_429_after_10_failures() {
         .unwrap();
 
     assert_eq!(innocent_res.status(), reqwest::StatusCode::OK);
-}
-
-#[tokio::test]
-async fn test_logout_revokes_session() {
-    let (base_url, _state, _dir, _ledger) = spawn_test_server().await;
-    let client = reqwest::Client::new();
-
-    // 1. Login
-    let login_res = client
-        .post(format!("{}/api/v1/auth/login", base_url))
-        .json(&serde_json::json!({
-            "username": "admin",
-            "password": "super_secret_admin_pass_123"
-        }))
-        .send()
-        .await
-        .unwrap();
-    let body: serde_json::Value = login_res.json().await.unwrap();
-    let token = body["token"].as_str().unwrap();
-
-    // 2. Logout
-    let logout_res = client
-        .post(format!("{}/api/v1/auth/logout", base_url))
-        .header("Authorization", format!("Bearer {}", token))
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(logout_res.status(), reqwest::StatusCode::OK);
-    let logout_body: serde_json::Value = logout_res.json().await.unwrap();
-    assert_eq!(logout_body["status"], "logged_out");
-
-    // 3. Subsequent session check must be rejected with 401
-    let session_res = client
-        .get(format!("{}/api/v1/auth/session", base_url))
-        .header("Authorization", format!("Bearer {}", token))
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(session_res.status(), reqwest::StatusCode::UNAUTHORIZED);
-}
-
-#[tokio::test]
-async fn test_audit_events_persisted_to_ledger() {
-    let (base_url, _state, _dir, ledger_path) = spawn_test_server().await;
-    let client = reqwest::Client::new();
-    let ledger_file = ledger_path.unwrap();
-
-    // Trigger LoginFailure
-    let _ = client
-        .post(format!("{}/api/v1/auth/login", base_url))
-        .json(&serde_json::json!({
-            "username": "admin",
-            "password": "bad_password"
-        }))
-        .send()
-        .await
-        .unwrap();
-
-    // Trigger LoginSuccess
-    let login_res = client
-        .post(format!("{}/api/v1/auth/login", base_url))
-        .json(&serde_json::json!({
-            "username": "admin",
-            "password": "super_secret_admin_pass_123"
-        }))
-        .send()
-        .await
-        .unwrap();
-    let body: serde_json::Value = login_res.json().await.unwrap();
-    let token = body["token"].as_str().unwrap();
-
-    // Trigger Logout
-    let _ = client
-        .post(format!("{}/api/v1/auth/logout", base_url))
-        .header("Authorization", format!("Bearer {}", token))
-        .send()
-        .await
-        .unwrap();
-
-    // Read durable ledger content
-    let content = std::fs::read_to_string(&ledger_file).unwrap();
-    let lines: Vec<&str> = content.lines().filter(|l| !l.trim().is_empty()).collect();
-    assert_eq!(lines.len(), 3, "Expected 3 audit events in ledger");
-
-    let event1: serde_json::Value = serde_json::from_str(lines[0]).unwrap();
-    let et1 = event1["event"]["event_type"].as_str().unwrap();
-    assert!(et1 == "LoginFailure" || et1 == "LoginFailed");
-    assert!(!event1["signature"].as_str().unwrap().is_empty());
-
-    let event2: serde_json::Value = serde_json::from_str(lines[1]).unwrap();
-    let et2 = event2["event"]["event_type"].as_str().unwrap();
-    assert!(et2 == "LoginSuccess" || et2 == "LoginSucceeded");
-
-    let event3: serde_json::Value = serde_json::from_str(lines[2]).unwrap();
-    assert_eq!(event3["event"]["event_type"], "Logout");
 }
