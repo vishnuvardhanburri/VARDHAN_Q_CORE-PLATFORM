@@ -831,12 +831,7 @@ async fn test_c8_deletion_detection() {
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
-
-    // Explicitly apply the committed checkpoint entry on every node before
-    // inspecting the persisted checkpoint chain.
-    for n in &mut nodes {
-        n.applier.apply_committed_entries().await.expect("apply committed checkpoint");
-    }
+    let _ = wait_for_all_nodes_have_checkpoints(&nodes, 1, Duration::from_secs(5)).await;
 
     let path = &nodes[leader_idx].checkpoint_path;
     let checkpoints = read_checkpoint_file(path);
@@ -1200,10 +1195,19 @@ async fn test_c13_insertion_detection() {
     let leader_idx = find_leader_idx(&nodes, &leader);
 
     submit_entries_cp(&leader, term, 5, run_id).await;
-    for n in &nodes {
-        n.applier.apply_committed_entries().await.ok();
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    // Stop background apply loops so checkpoint persistence is driven by this
+    // test, not by scheduler timing on a busy CI runner.
+    for n in &mut nodes {
+        n.apply_handle.abort();
     }
-    tokio::time::sleep(Duration::from_millis(200)).await;
+
+    // Apply the committed ledger entries deterministically before generating
+    // the checkpoint.
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.expect("apply ledger entries");
+    }
 
     let leader_node = &nodes[leader_idx];
     leader_node
@@ -1215,23 +1219,28 @@ async fn test_c13_insertion_detection() {
 
     let log_len = leader.log.read().await.len();
     assert!(wait_for_commit_cp(&leader, log_len as u64).await);
-    let _ = wait_for_all_nodes_have_checkpoints(&nodes, 1, Duration::from_secs(5)).await;
 
-    let path = &nodes[leader_idx].checkpoint_path;
-    let content = std::fs::read_to_string(path).unwrap();
+    // Persist the committed checkpoint on every node before inspecting the file.
+    for n in &mut nodes {
+        n.applier.apply_committed_entries().await.expect("apply committed checkpoint");
+    }
+
+    // The leader_node borrow cannot span the mutable apply loop above; this
+    // lookup happens after all mutable borrows are released.
+    let path = nodes[leader_idx].checkpoint_path.clone();
+    let content = std::fs::read_to_string(&path).unwrap();
     let lines: Vec<&str> = content.lines().filter(|l| !l.trim().is_empty()).collect();
     assert_eq!(lines.len(), 1);
 
-    // Insert a bogus checkpoint after the real one
+    // Insert a bogus checkpoint after the real one.
     let real_cp: CommittedCheckpoint = serde_json::from_str(lines[0]).unwrap();
     let mut bogus = real_cp.clone();
-    bogus.checkpoint.previous_checkpoint_hash = "ff".repeat(32); // Wrong prev_hash
-    bogus.checkpoint.signature = "00".repeat(4627); // Fake signature
+    bogus.checkpoint.previous_checkpoint_hash = "ff".repeat(32);
+    bogus.checkpoint.signature = "00".repeat(4627);
     let bogus_json = serde_json::to_string(&bogus).unwrap();
-    std::fs::write(path, format!("{}\n{}\n", lines[0], bogus_json)).unwrap();
+    std::fs::write(&path, format!("{}\n{}\n", lines[0], bogus_json)).unwrap();
 
-    // Reopen should fail — second checkpoint has wrong prev_hash
-    let result = audit_ledger::CheckpointWriter::open(path);
+    let result = audit_ledger::CheckpointWriter::open(&path);
     assert!(
         result.is_err(),
         "Inserted bogus checkpoint should fail chain verification"
