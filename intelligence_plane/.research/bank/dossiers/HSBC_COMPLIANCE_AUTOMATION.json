@@ -3,7 +3,7 @@
   "institution": "HSBC",
   "businessArea": "UK / Global banking operations",
   "problemType": "COMPLIANCE_AUTOMATION",
-  "generatedAt": "2026-10-13T19:22:12.073Z",
+  "generatedAt": "2026-10-13T19:59:42.659Z",
   "gitHead": "unknown",
   "classification": "AUTHORIZATION_REQUIRED — Internal Vardhan Intelligence Use Only",
   "section1_institution": {
@@ -32,7 +32,7 @@
   },
   "section4_confidence": {
     "level": "MEDIUM",
-    "rationale": "Signals from the bank's own technical/engineering blog (authoritative source). Evidence gaps remain: No specific regulator or framework is named; No timeline for supervisory framework changes is provided. Aggregate qualification score: 61/100 (P2 tier).",
+    "rationale": "Signals from the bank's own technical/engineering blog (authoritative source). Evidence gaps remain: No specific regulator or framework is named; No timeline for supervisory framework changes is provided. Internal prioritization score: 56/100 (P2 tier). Commercial readiness: NOT_ASSESSED (30/100) — NOT ASSESSED unless buying-process evidence exists.",
     "unresolvedQuestions": [
       "What regulatory guidance or supervisory expectations exist for quantum-safe readiness in the jurisdictions HSBC operates?"
     ],
@@ -43,13 +43,23 @@
     "scoreBreakdown": {
       "evidenceQuality": 6,
       "capabilityRelevance": 20,
-      "activeInitiative": 1,
+      "disclosedInitiative": 0,
+      "unmetProblemEvidence": 0,
       "technicalSponsor": 15,
-      "boundedEvaluation": 8,
-      "measurableCriteria": 11,
-      "total": 61
+      "evaluationFeasibility": 8,
+      "measurableCriteria": 7,
+      "total": 56
     },
-    "totalScore": 61
+    "totalScore": 56,
+    "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
+    "scoreNote": "This score measures evidence of a disclosed initiative with a technically-addressable problem. It does NOT indicate commercial readiness or buying intent. See commercialReadiness below.",
+    "commercialReadiness": {
+      "total": 30,
+      "label": "NOT_ASSESSED",
+      "buyingProcessEvidence": 0,
+      "sponsorAccess": 30,
+      "problemSpecificity": 0
+    }
   },
   "section5_vardhanCapability": [
     {
@@ -151,7 +161,7 @@
   ],
   "section10_nextAction": {
     "action": "Hold for human approval — do not initiate outbound contact.",
-    "rationale": "Opportunity scored 61/100 (P2). Meets qualification threshold but requires human review before any external outreach.",
+    "rationale": "Opportunity scored 56/100 (P2). Meets qualification threshold but requires human review before any external outreach.",
     "gate": "HUMAN_APPROVAL_REQUIRED",
     "estimatedTimeline": "Within 2 business days of human approval"
   }

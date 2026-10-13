@@ -91,6 +91,7 @@ async function runEvaluation(): Promise<EvaluationResult[]> {
   for (const opp of results.qualified) {
     console.log(`   │ ${opp.institution.padEnd(20)} | ${opp.problemType.padEnd(25)} | Score: ${String(opp.totalScore).padStart(3)} | ${opp.priority} │`);
     console.log(`   │   Sources: ${opp.sourceCount} | Signals: ${opp.evidenceCount} | Confidence: ${opp.confidence.padEnd(6)} │`);
+    console.log(`   │   Commercial readiness: ${opp.commercialReadiness.label} (${opp.commercialReadiness.total}/100) │`);
     console.log(`   │   Status: ${opp.status.padEnd(24)} │`);
     console.log('   ├────────────────────────────────────────────────────────────┤');
   }
@@ -152,9 +153,11 @@ async function runEvaluation(): Promise<EvaluationResult[]> {
       businessArea: opp.businessArea,
       problemType: opp.problemType,
       score: opp.totalScore,
+      scoreLabel: opp.scoreLabel,
       priority: opp.priority,
       confidence: opp.confidence,
       status: opp.status,
+      commercialReadiness: opp.commercialReadiness,
       evidenceGaps: opp.evidenceGaps,
       scoreBreakdown: opp.scoreBreakdown,
     })),
@@ -231,7 +234,7 @@ class BankDossierReport {
     // Executive Summary
     lines.push('## 1. Executive Summary');
     lines.push('');
-    lines.push(`This report identifies evidence-backed bank problem opportunities from publicly verifiable sources. ${qualified.length} opportunities met the qualification threshold (score ≥ 50/100), and ${shortlist.length} are prioritised as P0/P1 shortlist candidates. All opportunities require human review and approval before any external contact.`);
+    lines.push(`This report identifies evidence-backed bank problem opportunities from publicly verifiable sources. ${qualified.length} opportunities met the qualification threshold (score ≥ 50/100), and ${shortlist.length} are prioritised as P0/P1 shortlist candidates. All scores are INTERNAL PRIORITIZATION SCOREs (not commercial readiness). All opportunities require human review and approval before any external contact.`);
     lines.push('');
 
     // Shortlist
@@ -243,7 +246,8 @@ class BankDossierReport {
     for (const opp of shortlist) {
       lines.push(`### ${opp.institution} — ${opp.problemType}`);
       lines.push('');
-      lines.push(`- **Score:** ${opp.totalScore}/100 (${opp.priority})`);
+      lines.push(`- **Score:** ${opp.totalScore}/100 (${opp.priority}) — ${opp.scoreLabel}`);
+      lines.push(`- **Commercial readiness:** ${opp.commercialReadiness.label} (${opp.commercialReadiness.total}/100)`);
       lines.push(`- **Confidence:** ${opp.confidence}`);
       lines.push(`- **Sources:** ${opp.sourceUrls.join(', ')}`);
       lines.push(`- **Vardhan capability:** ${opp.vardhanCapabilities.join(', ')}`);
@@ -332,7 +336,10 @@ class BankDossierReport {
 
     lines.push('---');
     lines.push('');
-    lines.push('> ⚠️ All opportunities are in `READY_FOR_HUMAN_APPROVAL` status. No outreach has been initiated.');
+    lines.push('> ⚠️ All scores are INTERNAL PRIORITIZATION scores, not commercial-readiness indicators.');
+    lines.push('> Commercial readiness is NOT_ASSESSED for all opportunities — no public evidence of procurement,');
+    lines.push('> budget, RFP, or vendor-evaluation processes exists. No outreach has been initiated.');
+    lines.push('> All opportunities are in `READY_FOR_HUMAN_APPROVAL` status.');
 
     return lines.join('\n');
   }

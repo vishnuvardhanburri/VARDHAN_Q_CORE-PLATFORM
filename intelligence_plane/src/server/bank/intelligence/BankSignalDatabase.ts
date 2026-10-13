@@ -281,7 +281,7 @@ export const BANK_SIGNAL_DATABASE: BankSignal[] = [
     evidenceExcerpt: 'What we\'ve demonstrated here is the ability to do something with a quantum computer in a hybrid workflow that we just cannot replicate using classical computing alone. ... up to 34 per cent improvement in predicting whether an order will be fulfilled.',
     evidenceQuote: 'What we\'ve demonstrated here is the ability to do something with a quantum computer in a hybrid workflow that we just cannot replicate using classical computing alone. ... up to 34 per cent improvement in predicting whether an order will be fulfilled.',
     observedFact: 'HSBC demonstrated a 34% improvement in order-fulfilment prediction using a quantum/hybrid workflow with IBM Quantum, described by HSBC\'s Group Head of Quantum Technologies Philip Intallura as "the single most important achievement of the HSBC quantum programme to date".',
-    inferredImplication: 'VARDHAN_INFERENCE: HSBC has an active, resourced quantum computing programme with real-world production data applications — establishing quantum technology as a strategic priority with dedicated budget and personnel.',
+    inferredImplication: 'VARDHAN_INFERENCE: HSBC has an active quantum computing programme with real-world production data applications — establishing quantum technology as a strategic organisational priority with dedicated technical personnel and resources.',
     problemType: 'CRYPTOGRAPHIC_AGILITY',
     relevanceToSponsor: 'Group Head of Quantum Technologies or CTO would need to validate the quantum programme\'s scope beyond algo-trading.',
     confidence: 'HIGH',
@@ -364,7 +364,7 @@ export const BANK_SIGNAL_DATABASE: BankSignal[] = [
       'No specific regulator or framework is named',
       'No timeline for supervisory framework changes is provided',
     ],
-    vardhanCapabilities: ['AUDIT_LEDGER', 'SIGNED_RECEIPT', 'COMPLIANCE_AUTOMATION'],
+    vardhanCapabilities: ['AUDIT_LEDGER', 'SIGNED_RECEIPT', 'VERIFICATION_INFRASTRUCTURE'],
     recommendedValidationQuestion: 'What regulatory guidance or supervisory expectations exist for quantum-safe readiness in the jurisdictions HSBC operates?',
     isBankSpecific: false, // Industry-regulatory context, not bank-specific
   },
@@ -406,7 +406,7 @@ export const BANK_SIGNAL_GROUPS: BankSignalGroup[] = [
     problemType: 'CRYPTOGRAPHIC_AGILITY',
     hypothesis: 'JPMorganChase has an active post-quantum cryptography research programme spanning quantum computing, quantum-safe cryptography, and quantum-resistant blockchain, indicating a need for cryptographic agility tooling and migration planning.',
     signals: BANK_SIGNAL_DATABASE.filter(s => s.institution === 'JPMorgan Chase' && s.problemType === 'CRYPTOGRAPHIC_AGILITY'),
-    sourceCount: 3,
+    sourceCount: 1,
     confidence: 'HIGH',
   },
   {
@@ -433,7 +433,7 @@ export const BANK_SIGNAL_GROUPS: BankSignalGroup[] = [
     problemType: 'CRYPTOGRAPHIC_AGILITY',
     hypothesis: 'HSBC has an active quantum technology programme with quantum defences, PQC pilot work with Quantinuum, and strategic urgency around quantum-safe migration, indicating a need for post-quantum cryptographic tooling and migration verification.',
     signals: BANK_SIGNAL_DATABASE.filter(s => s.institution === 'HSBC' && s.problemType === 'CRYPTOGRAPHIC_AGILITY'),
-    sourceCount: 5,
+    sourceCount: 3,
     confidence: 'HIGH',
   },
   {

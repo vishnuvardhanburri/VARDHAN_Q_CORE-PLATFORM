@@ -4,20 +4,47 @@
  *
  * Evidence-based qualification scoring for bank opportunities.
  *
- * Scoring criteria (0-100 total):
+ * ── IMPORTANT ───────────────────────────────────────────────────────────────
+ *
+ * The `totalScore` is an INTERNAL PRIORITIZATION SCORE (0–100). It measures
+ * how much evidence exists that a bank has a relevant, disclosed initiative
+ * and a technically-addressable problem. It does NOT measure commercial
+ * readiness, buying intent, or procurement likelihood.
+ *
+ * Commercial readiness is scored separately as `commercialReadinessScore`
+ * (0–100) and labelled with `commercialReadiness` (NOT_ASSESSED / LOW / MEDIUM / HIGH).
+ * This dimension is driven by evidence of a buying process, budget, procurement
+ * timeline, or explicit vendor evaluation — NONE of which are present in the
+ * current public signal set. All current opportunities are therefore
+ * commercialReadiness = NOT_ASSESSED.
+ *
+ * Scoring criteria for the internal prioritization score (0–100 total):
  *   1. Evidence quality and recency            (max 20)
  *   2. Relevance to Vardhan capability         (max 20)
- *   3. Evidence of active initiative           (max 15)
- *   4. Identifiable technical sponsor role     (max 15)
- *   5. Plausible bounded evaluation            (max 15)
- *   6. Measurable acceptance criteria          (max 15)
+ *   3. Evidence of disclosed initiative        (max 10) — research, program,
+ *      pilot, exploring keywords in public signals.
+ *   4. Evidence of unmet problem             (max 10) — risk, threat, challenge,
+ *      gap, vulnerability, disruption, "breaking encryption" language.
+ *   5. Identifiable technical sponsor role     (max 15)
+ *   6. Bounded evaluation feasibility          (max 15) — can a synthetic-data
+ *      evaluation be run? (feasibility, not willingness)
+ *   7. Measurable acceptance criteria           (max 10) — can success metrics
+ *      be defined?
+ *
+ * Scoring criteria for commercial readiness (0–100, SEPARATE):
+ *   A. Evidence of buying process / willingness (max 50) — procurement, RFP,
+ *      budget, vendor selection, "evaluating solutions", etc.
+ *   B. Sponsor access & initiative maturity     (max 30) — named sponsor roles,
+ *      program described as operational vs exploratory.
+ *   C. Problem specificity                      (max 20) — concrete problem stated.
  *
  * Rules:
  *   - Missing evidence MUST lower confidence.
  *   - No inflated percentages or urgency labels without evidence.
- *   - Score < 50 → BLOCKED (insufficient evidence).
+ *   - Score < 50 → BLOCKED (insufficient evidence for internal prioritisation).
  *   - Score >= 50 → READY_FOR_HUMAN_APPROVAL (requires human sign-off before outreach).
  *   - Multiple signals from multiple sources → confidence bonus.
+ *   - commercialReadiness = NOT_ASSESSED unless buying-process evidence exists.
  *
  * Discovery, qualification, and outreach approval are separate stages.
  * NO automated outreach is ever triggered by this engine.
@@ -37,13 +64,22 @@ export type QualificationStatus =
 export type PriorityTier = 'P0' | 'P1' | 'P2' | 'P3';
 
 export interface QualificationScoreBreakdown {
-  evidenceQuality: number;          // 0–20
-  capabilityRelevance: number;      // 0–20
-  activeInitiative: number;         // 0–15
-  technicalSponsor: number;        // 0–15
-  boundedEvaluation: number;        // 0–15
-  measurableCriteria: number;       // 0–15
-  total: number;                   // 0–100
+  evidenceQuality: number;              // 0–20
+  capabilityRelevance: number;          // 0–20
+  disclosedInitiative: number;        // 0–10  (renamed from activeInitiative)
+  unmetProblemEvidence: number;         // 0–10  (NEW — separates initiative from problem)
+  technicalSponsor: number;             // 0–15
+  evaluationFeasibility: number;        // 0–15  (renamed from boundedEvaluation)
+  measurableCriteria: number;           // 0–10  (max reduced from 15)
+  total: number;                        // 0–100
+}
+
+export interface CommercialReadinessScore {
+  buyingProcessEvidence: number;       // 0–50 — procurement, RFP, budget, vendor eval
+  sponsorAccess: number;               // 0–30 — named sponsor roles, program maturity
+  problemSpecificity: number;          // 0–20 — concrete problem stated
+  total: number;                       // 0–100
+  label: 'NOT_ASSESSED' | 'LOW' | 'MEDIUM' | 'HIGH';
 }
 
 export interface QualifiedBankOpportunity {
@@ -60,6 +96,10 @@ export interface QualifiedBankOpportunity {
   signalAgeDays: number;
   scoreBreakdown: QualificationScoreBreakdown;
   totalScore: number;
+  /** Label for the total score — always 'INTERNAL PRIORITIZATION SCORE'. */
+  scoreLabel: 'INTERNAL PRIORITIZATION SCORE';
+  /** Separate commercial-readiness dimension (NOT part of totalScore). */
+  commercialReadiness: CommercialReadinessScore;
   priority: PriorityTier;
   status: QualificationStatus;
   blockReason: string;
@@ -73,10 +113,11 @@ export interface QualifiedBankOpportunity {
 
 const EVIDENCE_MAX = 20;
 const CAPABILITY_MAX = 20;
-const INITIATIVE_MAX = 15;
+const INITIATIVE_MAX = 10;        // reduced from 15 — initiative is one dimension
+const PROBLEM_EVIDENCE_MAX = 10;  // NEW — unmet problem evidence
 const SPONSOR_MAX = 15;
 const EVALUATION_MAX = 15;
-const CRITERIA_MAX = 15;
+const CRITERIA_MAX = 10;           // reduced from 15
 const SCORE_THRESHOLD = 50;
 
 // Problem types that are most directly addressable by Vardhan capabilities
@@ -102,6 +143,37 @@ function ageDays(publishedDate: string): number {
 function confidenceToScore(conf: 'HIGH' | 'MEDIUM' | 'LOW'): number {
   return conf === 'HIGH' ? 1.0 : conf === 'MEDIUM' ? 0.6 : 0.3;
 }
+
+// ── Keyword lists for initiative / problem / commercial signals ──────────────
+
+/** Keywords indicating the bank has publicly disclosed a research program, pilot,
+ *  or exploration initiative. These show *awareness* and *activity*, NOT buying intent. */
+const INITIATIVE_KEYWORDS = [
+  'research', 'programme', 'program', 'initiative', 'pilot', 'developing',
+  'investing', 'engaging', 'exploring', 'transition', 'migration', 'adoption',
+  'upskilling', 'training', 'assessment', 'evaluation',
+];
+
+/** Keywords indicating the bank has publicly described an unmet problem, risk,
+ *  or technical challenge. These show *problem awareness*, NOT a buying process. */
+const PROBLEM_KEYWORDS = [
+  'risk', 'threat', 'challenge', 'gap', 'vulnerability', 'difficulty', 'burden',
+  'disruption', 'breaking', 'must', 'required', 'needed', 'require', 'pain',
+  'inevitable', 'future risk', 'must address', 'must prepare', 'must migrate',
+  'cannot', 'unable', 'lacks', 'missing', 'without',
+];
+
+/** Keywords indicating a buying process, procurement, budget, or willingness
+ *  to evaluate commercial solutions. Presence of these raises commercial readiness
+ *  from NOT_ASSESSED. Absence keeps it NOT_ASSESSED (no invented intent). */
+const COMMERCIAL_KEYWORDS = [
+  'procurement', 'rfp', 'tender', 'budget', 'vendor selection',
+  'evaluating solutions', 'evaluating vendors', 'looking to procure',
+  'seeking to procure', 'need to procure', 'proof of value', 'poc',
+  'request for proposal', 'vendor evaluation', 'commercial',
+  'contracting', 'purchase decision', 'investment decision',
+  'allocated budget', 'budget allocation', 'procurement process',
+];
 
 // ── Main qualifier ──────────────────────────────────────────────────────────
 
@@ -179,26 +251,55 @@ export class BankQualificationEngine {
       capabilityRelevance = Math.min(CAPABILITY_MAX, capabilityRelevance + 4);
     }
 
-    // ── 3. Evidence of active initiative (0–15) ─────────────────────── ──
-    let activeInitiative = 0;
-    const initiativeKeywords = [
-      'research', 'programme', 'program', 'initiative', 'pilot', 'developing',
-      'investing', 'engaging', 'exploring', 'transition', 'migration', 'adoption',
-      'upskilling', 'training', 'assessment', 'evaluation',
-    ];
+    // ── 3. Evidence of disclosed initiative (0–10) ───────────────────── ──
+    // Measures whether the bank has publicly disclosed a research program,
+    // pilot, or exploration initiative. This shows *awareness*, NOT buying
+    // intent. Does not imply a problem exists or that the bank will purchase.
+    let disclosedInitiative = 0;
     for (const sig of signals) {
       const text = (sig.observedFact + ' ' + sig.evidenceExcerpt).toLowerCase();
-      const matches = initiativeKeywords.filter(k => text.includes(k));
-      if (matches.length >= 3) activeInitiative += 5;
-      else if (matches.length >= 1) activeInitiative += 3;
+      const matches = INITIATIVE_KEYWORDS.filter(k => text.includes(k));
+      if (matches.length >= 3) disclosedInitiative += 4;
+      else if (matches.length >= 1) disclosedInitiative += 2;
     }
     // Multiple signals = stronger initiative evidence
-    if (signals.length >= 3) activeInitiative += 3;
-    else if (signals.length >= 2) activeInitiative += 2;
-    else activeInitiative += 1;
-    activeInitiative = Math.max(0, Math.min(INITIATIVE_MAX, activeInitiative));
+    if (signals.length >= 3) disclosedInitiative += 2;
+    else if (signals.length >= 2) disclosedInitiative += 1;
+    disclosedInitiative = Math.max(0, Math.min(INITIATIVE_MAX, disclosedInitiative));
 
-    // ── 4. Identifiable technical sponsor role (0–15) ───────────────── ──
+    // ── 4. Evidence of unmet problem (0–10) ─────────────────────────── ──
+    // Measures whether the bank has publicly described a problem, risk, or
+    // technical challenge (e.g., "breaking encryption", "future threats").
+    // This is SEPARATE from initiative — a bank can research a topic without
+    // describing a problem, and can describe a problem without active research.
+    let unmetProblemEvidence = 0;
+    for (const sig of signals) {
+      const text = (sig.observedFact + ' ' + sig.evidenceExcerpt).toLowerCase();
+      const matches = PROBLEM_KEYWORDS.filter(k => text.includes(k));
+      if (matches.length >= 3) unmetProblemEvidence += 4;
+      else if (matches.length >= 1) unmetProblemEvidence += 3;
+    }
+    // High-confidence signals strengthen problem evidence
+    if (signals.some(s => s.confidence === 'HIGH')) unmetProblemEvidence += 1;
+    unmetProblemEvidence = Math.max(0, Math.min(PROBLEM_EVIDENCE_MAX, unmetProblemEvidence));
+
+    // ── 5. Evidence of commercial buying process (0–50, SEPARATE) ──── ──
+    // Measures whether the bank has publicly disclosed a procurement process,
+    // budget, RFP, or willingness to evaluate commercial solutions.
+    // THIS SCORE IS NOT PART OF totalScore — it feeds commercialReadiness only.
+    // No commercial intent is EVER invented: if no keywords match, score = 0.
+    let buyingProcessEvidence = 0;
+    for (const sig of signals) {
+      // Only scan PUBLIC SOURCE TEXT — never the inferredImplication, which is
+      // Vardhan's own analysis and would invent commercial intent.
+      const text = (sig.observedFact + ' ' + sig.evidenceExcerpt).toLowerCase();
+      const matches = COMMERCIAL_KEYWORDS.filter(k => text.includes(k));
+      if (matches.length >= 2) buyingProcessEvidence += 20;
+      else if (matches.length >= 1) buyingProcessEvidence += 10;
+    }
+    buyingProcessEvidence = Math.max(0, Math.min(50, buyingProcessEvidence));
+
+    // ── 6. Identifiable technical sponsor role (0–15) ───────────────── ──
     let technicalSponsor = 0;
     const sponsorRoles = sponsorMap?.sponsorRoles || [];
     const relevantSponsors = sponsorRoles.filter(s => {
@@ -224,42 +325,47 @@ export class BankQualificationEngine {
     }
     technicalSponsor = Math.max(0, Math.min(SPONSOR_MAX, technicalSponsor));
 
-    // ── 5. Plausible bounded evaluation (0–15) ─────────────────────── ──
-    let boundedEvaluation = 0;
-    // A bounded evaluation is plausible if: there's a specific problem type,
-    // a relevant Vardhan capability, and at least one real signal
+    // ── 7. Bounded evaluation feasibility (0–15) ───────────────────── ──
+    // Measures whether a synthetic-data evaluation CAN be run — i.e., there is
+    // a specific problem type, a relevant Vardhan capability, and real signals.
+    // This is about FEASIBILITY, not the bank's willingness to pay.
+    let evaluationFeasibility = 0;
     if (signals.length >= 1 && relevantCaps.length > 0) {
-      boundedEvaluation = 8;
-      if (signals.length >= 2) boundedEvaluation += 3;
-      if (signals.some(s => s.confidence === 'HIGH')) boundedEvaluation += 4;
+      evaluationFeasibility = 8;
+      if (signals.length >= 2) evaluationFeasibility += 3;
+      if (signals.some(s => s.confidence === 'HIGH')) evaluationFeasibility += 4;
     }
-    boundedEvaluation = Math.max(0, Math.min(EVALUATION_MAX, boundedEvaluation));
+    evaluationFeasibility = Math.max(0, Math.min(EVALUATION_MAX, evaluationFeasibility));
 
-    // ── 6. Measurable acceptance criteria (0–15) ───────────────────── ──
+    // ── 8. Measurable acceptance criteria (0–10) ─────────────────────── ──
     let measurableCriteria = 0;
     // Measurable criteria are possible if the problem type is concrete (not GENERAL_SECURITY_POSTURE)
     if (problemType !== 'GENERAL_SECURITY_POSTURE') {
-      measurableCriteria = 6;
-      if (relevantCaps.length > 0) measurableCriteria += 5;
-      if (signals.some(s => s.confidence === 'HIGH')) measurableCriteria += 4;
+      measurableCriteria = 4;
+      if (relevantCaps.length > 0) measurableCriteria += 3;
+      if (signals.some(s => s.confidence === 'HIGH')) measurableCriteria += 3;
     }
     measurableCriteria = Math.max(0, Math.min(CRITERIA_MAX, measurableCriteria));
 
-    // ── Total ────────────────────────────────────────────────────────── ──
+    // ── Total (INTERNAL PRIORITIZATION SCORE) ─────────────────────── ──
     const scoreBreakdown: QualificationScoreBreakdown = {
       evidenceQuality,
       capabilityRelevance,
-      activeInitiative,
+      disclosedInitiative,
+      unmetProblemEvidence,
       technicalSponsor,
-      boundedEvaluation,
+      evaluationFeasibility,
       measurableCriteria,
       total: Math.round(
-        evidenceQuality + capabilityRelevance + activeInitiative +
-        technicalSponsor + boundedEvaluation + measurableCriteria
+        evidenceQuality + capabilityRelevance + disclosedInitiative +
+        unmetProblemEvidence + technicalSponsor +
+        evaluationFeasibility + measurableCriteria
       ),
     };
 
-    // ── Priority determination ──────────────────────────────────────── ──
+    // ── Priority determination (INTERNAL — not commercial readiness) ── ──
+    // Thresholds lowered because max score is still 100 but factors were
+    // redistributed (initiative 15→10, criteria 15→10, new problem factor 10).
     const rawScore = scoreBreakdown.total;
     let priority: PriorityTier = rawScore >= 85 ? 'P0' :
                                    rawScore >= 65 ? 'P1' :
@@ -273,10 +379,8 @@ export class BankQualificationEngine {
       status = 'BLOCKED';
       blockReason = `Signal score (${rawScore}/100) below qualification threshold (${SCORE_THRESHOLD}). Evidence gaps: ${[...new Set(allGaps)].slice(0, 3).join('; ') || 'insufficient signal strength'}.`;
       priority = 'P3';
-    } else if (priority === 'P0') {
-      // P0 requires human approval (never automated outreach)
-      status = 'READY_FOR_HUMAN_APPROVAL';
     } else {
+      // Score >= 50 → READY_FOR_HUMAN_APPROVAL (never automated outreach)
       status = 'READY_FOR_HUMAN_APPROVAL';
     }
 
@@ -295,6 +399,25 @@ export class BankQualificationEngine {
     // ── Oldest signal age for the group ──────────────────────────────── ──
     const maxAge = Math.max(...signals.map(s => ageDays(s.publishedDate)));
 
+    // ── Commercial readiness (SEPARATE from internal prioritization) ── ──
+    // Computed from buying-process evidence (0 if no commercial keywords),
+    // sponsor access, and problem specificity. This is NOT part of totalScore.
+    const sponsorAccessScore = Math.min(30, sponsorMap ? (sponsorRoles.length * 5 + (relevantSponsors.some(s => s.confidence === 'HIGH') ? 10 : 0)) : 0);
+    const problemSpecificityBase = unmetProblemEvidence > 0 ? 10 : 0;
+    const problemSpecificityScore = Math.min(20, problemSpecificityBase + (signals.length >= 2 && unmetProblemEvidence > 0 ? 10 : 0));
+    const commercialTotalScore = buyingProcessEvidence + sponsorAccessScore + Math.min(20, problemSpecificityScore);
+
+    let commercialLabel: 'NOT_ASSESSED' | 'LOW' | 'MEDIUM' | 'HIGH';
+    if (buyingProcessEvidence === 0) {
+      commercialLabel = 'NOT_ASSESSED';
+    } else if (commercialTotalScore >= 70) {
+      commercialLabel = 'HIGH';
+    } else if (commercialTotalScore >= 40) {
+      commercialLabel = 'MEDIUM';
+    } else {
+      commercialLabel = 'LOW';
+    }
+
     return {
       institution,
       businessArea: sponsorMap ? `${sponsorMap.jurisdiction} banking operations` : 'Banking operations',
@@ -309,6 +432,14 @@ export class BankQualificationEngine {
       signalAgeDays: maxAge,
       scoreBreakdown,
       totalScore: rawScore,
+      scoreLabel: 'INTERNAL PRIORITIZATION SCORE',
+      commercialReadiness: {
+        buyingProcessEvidence,
+        sponsorAccess: sponsorAccessScore,
+        problemSpecificity: problemSpecificityScore,
+        total: commercialTotalScore,
+        label: commercialLabel,
+      },
       priority,
       status,
       blockReason,
@@ -368,6 +499,9 @@ export class BankQualificationEngine {
         p3: blocked.length,
         avgScore: qualified.length > 0
           ? Math.round(qualified.reduce((sum, q) => sum + q.totalScore, 0) / qualified.length)
+          : 0,
+        avgCommercialReadiness: qualified.length > 0
+          ? Math.round(qualified.reduce((sum, q) => sum + q.commercialReadiness.total, 0) / qualified.length)
           : 0,
       },
     };

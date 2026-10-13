@@ -3,7 +3,7 @@
   "institution": "HSBC",
   "businessArea": "UK / Global banking operations",
   "problemType": "CRYPTOGRAPHIC_AGILITY",
-  "generatedAt": "2026-10-13T19:22:12.072Z",
+  "generatedAt": "2026-10-13T19:59:42.658Z",
   "gitHead": "unknown",
   "classification": "AUTHORIZATION_REQUIRED — Internal Vardhan Intelligence Use Only",
   "section1_institution": {
@@ -86,11 +86,11 @@
     "observedFact": "HSBC has a Quantum Technologies team within Emerging Technology, Innovation and Ventures that believes quantum computing will have a significant impact on financial services, and is building quantum defences to protect against future cyber threats.",
     "technicalInference": "VARDHAN_INFERENCE: HSBC has an established quantum technology programme with explicit focus on defensive (post-quantum) cryptography, indicating active assessment of quantum-safe migration paths.",
     "problemType": "CRYPTOGRAPHIC_AGILITY",
-    "supportingReasoning": "Observed facts:\n  1. HSBC has a Quantum Technologies team within Emerging Technology, Innovation and Ventures that believes quantum computing will have a significant impact on financial services, and is building quantum defences to protect against future cyber threats.\n  2. HSBC is working with Quantinuum to apply post-quantum cryptography to financial innovation, including tokenised physical gold.\n  3. HSBC demonstrated a 34% improvement in order-fulfilment prediction using a quantum/hybrid workflow with IBM Quantum, described by HSBC's Group Head of Quantum Technologies Philip Intallura as \"the single most important achievement of the HSBC quantum programme to date\".\n  4. HSBC reports that nearly 80% of major global banks are already engaging with quantum technologies, making quantum literacy \"a competitive necessity\".\n  5. Philip Intallura, Group Head of Quantum Technologies at HSBC, states that quantum computers will break current encryption standards and the time to act is now.\n\nTechnical inferences (VARDHAN_INFERENCE — not observed facts):\n  1. VARDHAN_INFERENCE: HSBC has an established quantum technology programme with explicit focus on defensive (post-quantum) cryptography, indicating active assessment of quantum-safe migration paths.\n  2. VARDHAN_INFERENCE: HSBC has an active proof-of-concept or pilot programme applying post-quantum cryptography with a quantum-technology partner (Quantinuum), suggesting a live evaluation of quantum-safe protocols in a financial context.\n  3. VARDHAN_INFERENCE: HSBC has an active, resourced quantum computing programme with real-world production data applications — establishing quantum technology as a strategic priority with dedicated budget and personnel.\n  4. VARDHAN_INFERENCE: Quantum technology adoption is widespread across major banks — HSBC operates in a competitive context where quantum-safe migration is industry-wide, making early adoption a differentiator.\n  5. VARDHAN_INFERENCE: HSBC's quantum leadership actively identifies quantum-decryption threat timelines as urgent, signalling an active migration-planning process for quantum-safe cryptography.\n\nThese facts and inferences converge on the hypothesis that the institution has an active initiative in the relevant problem domain."
+    "supportingReasoning": "Observed facts:\n  1. HSBC has a Quantum Technologies team within Emerging Technology, Innovation and Ventures that believes quantum computing will have a significant impact on financial services, and is building quantum defences to protect against future cyber threats.\n  2. HSBC is working with Quantinuum to apply post-quantum cryptography to financial innovation, including tokenised physical gold.\n  3. HSBC demonstrated a 34% improvement in order-fulfilment prediction using a quantum/hybrid workflow with IBM Quantum, described by HSBC's Group Head of Quantum Technologies Philip Intallura as \"the single most important achievement of the HSBC quantum programme to date\".\n  4. HSBC reports that nearly 80% of major global banks are already engaging with quantum technologies, making quantum literacy \"a competitive necessity\".\n  5. Philip Intallura, Group Head of Quantum Technologies at HSBC, states that quantum computers will break current encryption standards and the time to act is now.\n\nTechnical inferences (VARDHAN_INFERENCE — not observed facts):\n  1. VARDHAN_INFERENCE: HSBC has an established quantum technology programme with explicit focus on defensive (post-quantum) cryptography, indicating active assessment of quantum-safe migration paths.\n  2. VARDHAN_INFERENCE: HSBC has an active proof-of-concept or pilot programme applying post-quantum cryptography with a quantum-technology partner (Quantinuum), suggesting a live evaluation of quantum-safe protocols in a financial context.\n  3. VARDHAN_INFERENCE: HSBC has an active quantum computing programme with real-world production data applications — establishing quantum technology as a strategic organisational priority with dedicated technical personnel and resources.\n  4. VARDHAN_INFERENCE: Quantum technology adoption is widespread across major banks — HSBC operates in a competitive context where quantum-safe migration is industry-wide, making early adoption a differentiator.\n  5. VARDHAN_INFERENCE: HSBC's quantum leadership actively identifies quantum-decryption threat timelines as urgent, signalling an active migration-planning process for quantum-safe cryptography.\n\nThese facts and inferences converge on the hypothesis that the institution has an active initiative in the relevant problem domain."
   },
   "section4_confidence": {
     "level": "HIGH",
-    "rationale": "Multiple credible signals (5) from 3 distinct public sources. Signals from the bank's own corporate website (institution-specific). Signals from the bank's own technical/engineering blog (authoritative source). Evidence gaps remain: Specific quantum-safe algorithms or protocols in use are not disclosed; Timeline for quantum-defence deployment is not published; Specific PQC algorithms being tested are not named. Aggregate qualification score: 94/100 (P0 tier).",
+    "rationale": "Multiple credible signals (5) from 3 distinct public sources. Signals from the bank's own corporate website (institution-specific). Signals from the bank's own technical/engineering blog (authoritative source). Evidence gaps remain: Specific quantum-safe algorithms or protocols in use are not disclosed; Timeline for quantum-defence deployment is not published; Specific PQC algorithms being tested are not named. Internal prioritization score: 96/100 (P0 tier). Commercial readiness: NOT_ASSESSED (50/100) — NOT ASSESSED unless buying-process evidence exists.",
     "unresolvedQuestions": [
       "What quantum-safe cryptography strategies and protocols is HSBC evaluating for post-quantum migration?",
       "What post-quantum cryptographic algorithms and protocols are being tested in the Quantinuum collaboration?",
@@ -113,13 +113,23 @@
     "scoreBreakdown": {
       "evidenceQuality": 20,
       "capabilityRelevance": 20,
-      "activeInitiative": 9,
+      "disclosedInitiative": 6,
+      "unmetProblemEvidence": 10,
       "technicalSponsor": 15,
-      "boundedEvaluation": 15,
-      "measurableCriteria": 15,
-      "total": 94
+      "evaluationFeasibility": 15,
+      "measurableCriteria": 10,
+      "total": 96
     },
-    "totalScore": 94
+    "totalScore": 96,
+    "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
+    "scoreNote": "This score measures evidence of a disclosed initiative with a technically-addressable problem. It does NOT indicate commercial readiness or buying intent. See commercialReadiness below.",
+    "commercialReadiness": {
+      "total": 50,
+      "label": "NOT_ASSESSED",
+      "buyingProcessEvidence": 0,
+      "sponsorAccess": 30,
+      "problemSpecificity": 20
+    }
   },
   "section5_vardhanCapability": [
     {
@@ -239,7 +249,7 @@
   ],
   "section10_nextAction": {
     "action": "Hold for human approval — do not initiate outbound contact.",
-    "rationale": "Opportunity scored 94/100 (P0). Meets qualification threshold but requires human review before any external outreach.",
+    "rationale": "Opportunity scored 96/100 (P0). Meets qualification threshold but requires human review before any external outreach.",
     "gate": "HUMAN_APPROVAL_REQUIRED",
     "estimatedTimeline": "Within 2 business days of human approval"
   }

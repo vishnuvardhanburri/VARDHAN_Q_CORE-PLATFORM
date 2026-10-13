@@ -65,6 +65,15 @@ export interface BankProblemDossier {
     evidenceGaps: string[];
     scoreBreakdown: Record<string, number>;
     totalScore: number;
+    scoreLabel: 'INTERNAL PRIORITIZATION SCORE';
+    scoreNote: string;
+    commercialReadiness: {
+      total: number;
+      label: string;
+      buyingProcessEvidence: number;
+      sponsorAccess: number;
+      problemSpecificity: number;
+    };
   };
 
   // Section 5
@@ -539,6 +548,15 @@ export class BankProblemDossierGenerator {
         evidenceGaps: opportunity.evidenceGaps,
         scoreBreakdown: opportunity.scoreBreakdown,
         totalScore: opportunity.totalScore,
+        scoreLabel: 'INTERNAL PRIORITIZATION SCORE',
+        scoreNote: `This score measures evidence of a disclosed initiative with a technically-addressable problem. It does NOT indicate commercial readiness or buying intent. See commercialReadiness below.`,
+        commercialReadiness: {
+          total: opportunity.commercialReadiness.total,
+          label: opportunity.commercialReadiness.label,
+          buyingProcessEvidence: opportunity.commercialReadiness.buyingProcessEvidence,
+          sponsorAccess: opportunity.commercialReadiness.sponsorAccess,
+          problemSpecificity: opportunity.commercialReadiness.problemSpecificity,
+        },
       },
 
       // Section 5: Vardhan capability that may address the problem
@@ -612,7 +630,8 @@ export class BankProblemDossierGenerator {
     if (gaps.length > 0) {
       parts.push(`Evidence gaps remain: ${gaps.slice(0, 3).join('; ')}.`);
     }
-    parts.push(`Aggregate qualification score: ${opp.totalScore}/100 (${opp.priority} tier).`);
+    parts.push(`Internal prioritization score: ${opp.totalScore}/100 (${opp.priority} tier).`);
+    parts.push(`Commercial readiness: ${opp.commercialReadiness.label} (${opp.commercialReadiness.total}/100) — NOT ASSESSED unless buying-process evidence exists.`);
     return parts.join(' ');
   }
 }

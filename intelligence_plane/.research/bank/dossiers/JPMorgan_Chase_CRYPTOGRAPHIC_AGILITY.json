@@ -3,7 +3,7 @@
   "institution": "JPMorgan Chase",
   "businessArea": "USA (Global) banking operations",
   "problemType": "CRYPTOGRAPHIC_AGILITY",
-  "generatedAt": "2026-10-13T19:22:12.072Z",
+  "generatedAt": "2026-10-13T19:59:42.659Z",
   "gitHead": "unknown",
   "classification": "AUTHORIZATION_REQUIRED — Internal Vardhan Intelligence Use Only",
   "section1_institution": {
@@ -51,7 +51,7 @@
   },
   "section4_confidence": {
     "level": "HIGH",
-    "rationale": "Multiple credible signals (2) from 1 distinct public sources. Signals from the bank's own corporate website (institution-specific). Evidence gaps remain: No specific migration timeline or deadline disclosed publicly; No deployed algorithm stack is specified; Specific blockchain platforms affected are not named. Aggregate qualification score: 93/100 (P0 tier).",
+    "rationale": "Multiple credible signals (2) from 1 distinct public sources. Signals from the bank's own corporate website (institution-specific). Evidence gaps remain: No specific migration timeline or deadline disclosed publicly; No deployed algorithm stack is specified; Specific blockchain platforms affected are not named. Internal prioritization score: 89/100 (P0 tier). Commercial readiness: NOT_ASSESSED (50/100) — NOT ASSESSED unless buying-process evidence exists.",
     "unresolvedQuestions": [
       "What post-quantum algorithms and key-establishment protocols is the firm's quantum-safe cryptography research evaluating?",
       "Which blockchain or distributed-ledger systems are being assessed for quantum-resistant adaptation, and what migration approach is being evaluated?"
@@ -65,13 +65,23 @@
     "scoreBreakdown": {
       "evidenceQuality": 20,
       "capabilityRelevance": 20,
-      "activeInitiative": 8,
+      "disclosedInitiative": 5,
+      "unmetProblemEvidence": 4,
       "technicalSponsor": 15,
-      "boundedEvaluation": 15,
-      "measurableCriteria": 15,
-      "total": 93
+      "evaluationFeasibility": 15,
+      "measurableCriteria": 10,
+      "total": 89
     },
-    "totalScore": 93
+    "totalScore": 89,
+    "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
+    "scoreNote": "This score measures evidence of a disclosed initiative with a technically-addressable problem. It does NOT indicate commercial readiness or buying intent. See commercialReadiness below.",
+    "commercialReadiness": {
+      "total": 50,
+      "label": "NOT_ASSESSED",
+      "buyingProcessEvidence": 0,
+      "sponsorAccess": 30,
+      "problemSpecificity": 20
+    }
   },
   "section5_vardhanCapability": [
     {
@@ -191,7 +201,7 @@
   ],
   "section10_nextAction": {
     "action": "Hold for human approval — do not initiate outbound contact.",
-    "rationale": "Opportunity scored 93/100 (P0). Meets qualification threshold but requires human review before any external outreach.",
+    "rationale": "Opportunity scored 89/100 (P0). Meets qualification threshold but requires human review before any external outreach.",
     "gate": "HUMAN_APPROVAL_REQUIRED",
     "estimatedTimeline": "Within 2 business days of human approval"
   }

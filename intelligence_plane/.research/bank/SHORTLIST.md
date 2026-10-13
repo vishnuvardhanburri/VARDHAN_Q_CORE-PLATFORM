@@ -8,13 +8,14 @@
 
 ## 1. Executive Summary
 
-This report identifies evidence-backed bank problem opportunities from publicly verifiable sources. 5 opportunities met the qualification threshold (score ≥ 50/100), and 4 are prioritised as P0/P1 shortlist candidates. All opportunities require human review and approval before any external contact.
+This report identifies evidence-backed bank problem opportunities from publicly verifiable sources. 5 opportunities met the qualification threshold (score ≥ 50/100), and 4 are prioritised as P0/P1 shortlist candidates. All scores are INTERNAL PRIORITIZATION SCOREs (not commercial readiness). All opportunities require human review and approval before any external contact.
 
 ## 2. Prioritized Shortlist (P0/P1)
 
 ### HSBC — CRYPTOGRAPHIC_AGILITY
 
-- **Score:** 94/100 (P0)
+- **Score:** 96/100 (P0) — INTERNAL PRIORITIZATION SCORE
+- **Commercial readiness:** NOT_ASSESSED (50/100)
 - **Confidence:** HIGH
 - **Sources:** https://www.hsbc.com/who-we-are/hsbc-and-digital/hsbc-and-quantum, https://www.hsbc.com/-/files/hsbc/who-we-are/pdf/250923-hsbc-x-ibm-quantum-algo-trading-transcript.pdf, https://www.hsbc.com/news-and-views/views/hsbc-views/upskilling-everyone-is-vital-for-the-quantum-era
 - **Vardhan capability:** AER-KEP-Q, PQ_SHIELD, KEY_LIFECYCLE, EXPOSURE_ALERT
@@ -26,7 +27,8 @@ This report identifies evidence-backed bank problem opportunities from publicly 
 
 ### JPMorgan Chase — CRYPTOGRAPHIC_AGILITY
 
-- **Score:** 93/100 (P0)
+- **Score:** 89/100 (P0) — INTERNAL PRIORITIZATION SCORE
+- **Commercial readiness:** NOT_ASSESSED (50/100)
 - **Confidence:** HIGH
 - **Sources:** https://www.jpmorganchase.com/about/technology/research/applied-research
 - **Vardhan capability:** AER-KEP-Q, PQ_SHIELD, KEY_LIFECYCLE, EXPOSURE_ALERT
@@ -38,7 +40,8 @@ This report identifies evidence-backed bank problem opportunities from publicly 
 
 ### JPMorgan Chase — THIRD_PARTY_RISK
 
-- **Score:** 72/100 (P1)
+- **Score:** 70/100 (P1) — INTERNAL PRIORITIZATION SCORE
+- **Commercial readiness:** NOT_ASSESSED (40/100)
 - **Confidence:** HIGH
 - **Sources:** https://www.jpmorganchase.com/about/technology/blog/fortifying-the-enterprise-10-actions-to-take-now-for-ai-ready-cyber-resilience
 - **Vardhan capability:** AUDIT_LEDGER, SIGNED_RECEIPT, VERIFICATION_INFRASTRUCTURE
@@ -50,7 +53,8 @@ This report identifies evidence-backed bank problem opportunities from publicly 
 
 ### JPMorgan Chase — AUDIT_LIFECYCLE
 
-- **Score:** 72/100 (P1)
+- **Score:** 67/100 (P1) — INTERNAL PRIORITIZATION SCORE
+- **Commercial readiness:** NOT_ASSESSED (40/100)
 - **Confidence:** HIGH
 - **Sources:** https://www.jpmorganchase.com/about/technology/blog/fortifying-the-enterprise-10-actions-to-take-now-for-ai-ready-cyber-resilience
 - **Vardhan capability:** AUDIT_LEDGER, SIGNED_RECEIPT, VERIFICATION_INFRASTRUCTURE
@@ -64,7 +68,7 @@ This report identifies evidence-backed bank problem opportunities from publicly 
 
 ### HSBC — COMPLIANCE_AUTOMATION
 
-- **Score:** 61/100 (P2)
+- **Score:** 56/100 (P2)
 - **Confidence:** MEDIUM
 - **Hypothesis:** HSBC observes emerging regulatory supervisory expectations around quantum-safe readiness, indicating a need for audit-ready compliance automation for PQC migration.
 
@@ -130,4 +134,7 @@ No opportunities were blocked.
 
 ---
 
-> ⚠️ All opportunities are in `READY_FOR_HUMAN_APPROVAL` status. No outreach has been initiated.
+> ⚠️ All scores are INTERNAL PRIORITIZATION scores, not commercial-readiness indicators.
+> Commercial readiness is NOT_ASSESSED for all opportunities — no public evidence of procurement,
+> budget, RFP, or vendor-evaluation processes exists. No outreach has been initiated.
+> All opportunities are in `READY_FOR_HUMAN_APPROVAL` status.

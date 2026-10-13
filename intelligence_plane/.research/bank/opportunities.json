@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-13T19:22:12.073Z",
+  "generatedAt": "2026-10-13T19:59:42.660Z",
   "gitHead": "unknown",
   "summary": {
     "total": 5,
@@ -9,7 +9,8 @@
     "p1": 2,
     "p2": 1,
     "p3": 0,
-    "avgScore": 78
+    "avgScore": 76,
+    "avgCommercialReadiness": 42
   },
   "shortlist": [
     {
@@ -17,7 +18,7 @@
       "businessArea": "UK / Global banking operations",
       "problemType": "CRYPTOGRAPHIC_AGILITY",
       "hypothesis": "HSBC has an active quantum technology programme with quantum defences, PQC pilot work with Quantinuum, and strategic urgency around quantum-safe migration, indicating a need for post-quantum cryptographic tooling and migration verification.",
-      "score": 94,
+      "score": 96,
       "priority": "P0",
       "confidence": "HIGH",
       "sourceUrls": [
@@ -40,7 +41,7 @@
       "businessArea": "USA (Global) banking operations",
       "problemType": "CRYPTOGRAPHIC_AGILITY",
       "hypothesis": "JPMorganChase has an active post-quantum cryptography research programme spanning quantum computing, quantum-safe cryptography, and quantum-resistant blockchain, indicating a need for cryptographic agility tooling and migration planning.",
-      "score": 93,
+      "score": 89,
       "priority": "P0",
       "confidence": "HIGH",
       "sourceUrls": [
@@ -61,7 +62,7 @@
       "businessArea": "USA (Global) banking operations",
       "problemType": "THIRD_PARTY_RISK",
       "hypothesis": "JPMorganChase requires independently-verifiable third-party security audit commitments and real-time verification, not just documented compliance.",
-      "score": 72,
+      "score": 70,
       "priority": "P1",
       "confidence": "HIGH",
       "sourceUrls": [
@@ -81,7 +82,7 @@
       "businessArea": "USA (Global) banking operations",
       "problemType": "AUDIT_LIFECYCLE",
       "hypothesis": "JPMorganChase requires end-to-end auditability of security-patch deployment pipelines, with every handoff and approval gate recorded and verifiable.",
-      "score": 72,
+      "score": 67,
       "priority": "P1",
       "confidence": "HIGH",
       "sourceUrls": [
@@ -102,10 +103,18 @@
       "institution": "HSBC",
       "businessArea": "UK / Global banking operations",
       "problemType": "CRYPTOGRAPHIC_AGILITY",
-      "score": 94,
+      "score": 96,
+      "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
       "priority": "P0",
       "confidence": "HIGH",
       "status": "READY_FOR_HUMAN_APPROVAL",
+      "commercialReadiness": {
+        "buyingProcessEvidence": 0,
+        "sponsorAccess": 30,
+        "problemSpecificity": 20,
+        "total": 50,
+        "label": "NOT_ASSESSED"
+      },
       "evidenceGaps": [
         "Specific quantum-safe algorithms or protocols in use are not disclosed",
         "Timeline for quantum-defence deployment is not published",
@@ -121,21 +130,30 @@
       "scoreBreakdown": {
         "evidenceQuality": 20,
         "capabilityRelevance": 20,
-        "activeInitiative": 9,
+        "disclosedInitiative": 6,
+        "unmetProblemEvidence": 10,
         "technicalSponsor": 15,
-        "boundedEvaluation": 15,
-        "measurableCriteria": 15,
-        "total": 94
+        "evaluationFeasibility": 15,
+        "measurableCriteria": 10,
+        "total": 96
       }
     },
     {
       "institution": "JPMorgan Chase",
       "businessArea": "USA (Global) banking operations",
       "problemType": "CRYPTOGRAPHIC_AGILITY",
-      "score": 93,
+      "score": 89,
+      "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
       "priority": "P0",
       "confidence": "HIGH",
       "status": "READY_FOR_HUMAN_APPROVAL",
+      "commercialReadiness": {
+        "buyingProcessEvidence": 0,
+        "sponsorAccess": 30,
+        "problemSpecificity": 20,
+        "total": 50,
+        "label": "NOT_ASSESSED"
+      },
       "evidenceGaps": [
         "No specific migration timeline or deadline disclosed publicly",
         "No deployed algorithm stack is specified",
@@ -145,63 +163,90 @@
       "scoreBreakdown": {
         "evidenceQuality": 20,
         "capabilityRelevance": 20,
-        "activeInitiative": 8,
+        "disclosedInitiative": 5,
+        "unmetProblemEvidence": 4,
         "technicalSponsor": 15,
-        "boundedEvaluation": 15,
-        "measurableCriteria": 15,
-        "total": 93
+        "evaluationFeasibility": 15,
+        "measurableCriteria": 10,
+        "total": 89
       }
     },
     {
       "institution": "JPMorgan Chase",
       "businessArea": "USA (Global) banking operations",
       "problemType": "THIRD_PARTY_RISK",
-      "score": 72,
+      "score": 70,
+      "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
       "priority": "P1",
       "confidence": "HIGH",
       "status": "READY_FOR_HUMAN_APPROVAL",
+      "commercialReadiness": {
+        "buyingProcessEvidence": 0,
+        "sponsorAccess": 30,
+        "problemSpecificity": 10,
+        "total": 40,
+        "label": "NOT_ASSESSED"
+      },
       "evidenceGaps": [
         "No information on specific third-party vendors or procurement processes"
       ],
       "scoreBreakdown": {
         "evidenceQuality": 9,
         "capabilityRelevance": 20,
-        "activeInitiative": 1,
+        "disclosedInitiative": 0,
+        "unmetProblemEvidence": 4,
         "technicalSponsor": 15,
-        "boundedEvaluation": 12,
-        "measurableCriteria": 15,
-        "total": 72
+        "evaluationFeasibility": 12,
+        "measurableCriteria": 10,
+        "total": 70
       }
     },
     {
       "institution": "JPMorgan Chase",
       "businessArea": "USA (Global) banking operations",
       "problemType": "AUDIT_LIFECYCLE",
-      "score": 72,
+      "score": 67,
+      "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
       "priority": "P1",
       "confidence": "HIGH",
       "status": "READY_FOR_HUMAN_APPROVAL",
+      "commercialReadiness": {
+        "buyingProcessEvidence": 0,
+        "sponsorAccess": 30,
+        "problemSpecificity": 10,
+        "total": 40,
+        "label": "NOT_ASSESSED"
+      },
       "evidenceGaps": [
         "No information on current audit-logging coverage or toolchain"
       ],
       "scoreBreakdown": {
         "evidenceQuality": 9,
         "capabilityRelevance": 20,
-        "activeInitiative": 1,
+        "disclosedInitiative": 0,
+        "unmetProblemEvidence": 1,
         "technicalSponsor": 15,
-        "boundedEvaluation": 12,
-        "measurableCriteria": 15,
-        "total": 72
+        "evaluationFeasibility": 12,
+        "measurableCriteria": 10,
+        "total": 67
       }
     },
     {
       "institution": "HSBC",
       "businessArea": "UK / Global banking operations",
       "problemType": "COMPLIANCE_AUTOMATION",
-      "score": 61,
+      "score": 56,
+      "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
       "priority": "P2",
       "confidence": "MEDIUM",
       "status": "READY_FOR_HUMAN_APPROVAL",
+      "commercialReadiness": {
+        "buyingProcessEvidence": 0,
+        "sponsorAccess": 30,
+        "problemSpecificity": 0,
+        "total": 30,
+        "label": "NOT_ASSESSED"
+      },
       "evidenceGaps": [
         "No specific regulator or framework is named",
         "No timeline for supervisory framework changes is provided"
@@ -209,11 +254,12 @@
       "scoreBreakdown": {
         "evidenceQuality": 6,
         "capabilityRelevance": 20,
-        "activeInitiative": 1,
+        "disclosedInitiative": 0,
+        "unmetProblemEvidence": 0,
         "technicalSponsor": 15,
-        "boundedEvaluation": 8,
-        "measurableCriteria": 11,
-        "total": 61
+        "evaluationFeasibility": 8,
+        "measurableCriteria": 7,
+        "total": 56
       }
     }
   ],
