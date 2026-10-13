@@ -112,6 +112,6 @@ mod tests {
         let db = Config::new().temporary(true).open().unwrap();
         db.insert(key(b"org:", "o1"), serde_json::to_vec(&Organization { id: "o1".into(), name: "O".into(), owner: "u".into(), created_at_ms: 0 }).unwrap()).unwrap();
         assert!(db.get(verified_key("o1")).unwrap().is_none());
-        assert_eq!(PLANS.len(), 4);
+        assert_eq!(PLANS.len(), 6);
     }
 }
