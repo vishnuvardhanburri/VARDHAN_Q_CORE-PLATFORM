@@ -1237,6 +1237,7 @@ mod tests {
         let cred_store = auth_service::store::CredentialStore::open(&db_path).unwrap();
         let phc = auth_service::credentials::hash_password("admin_pass_12345").unwrap();
         cred_store.set_phc_sync("admin", &phc).unwrap();
+        cred_store.ensure_bootstrap_profile("admin").unwrap();
 
         let identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
         let prometheus = Arc::new(crate::prometheus_metrics::PrometheusMetrics::new().unwrap());

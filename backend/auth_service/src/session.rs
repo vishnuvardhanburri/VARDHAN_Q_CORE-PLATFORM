@@ -37,7 +37,7 @@ impl SessionStore{
  pub async fn flush_except(&self,preserve:Option<&str>)->usize{let pd=preserve.map(digest);let ids=self.inner.iter().filter(|e|pd.as_ref().map(|d|d==&e.current_token_digest||e.previous_token_digest.as_ref()==Some(d)).unwrap_or(false)==false).map(|e|e.key().clone()).collect::<Vec<_>>();let mut n=0;for id in ids{if self.revoke_by_id(&id).await.is_some(){n+=1}}n}
  pub fn active_count(&self)->usize{self.inner.iter().filter(|e|!e.expired()).count()}
 }
-#[cfg(test)]mod tests{use super::*;use tempfile::tempdir;#[tokio::test]async fn restart_restores_index(){let d=tempdir().unwrap();let t={let s=SessionStore::open(d.path()).unwrap();s.create("a","127.0.0.1".parse().unwrap()).await};let s=SessionStore::open(d.path()).unwrap();assert_eq!(s.validate(&t).await.as_deref(),Some("a"));}#[tokio::test]async fn invalid(){let s=SessionStore::new();assert!(s.validate(&SessionToken::from_str(&"0".repeat(64))).await.is_none());}
+#[cfg(test)]mod tests{use super::*;use tempfile::tempdir;#[tokio::test]async fn restart_restores_index(){let d=tempdir().unwrap();let t={let s=SessionStore::open(d.path()).unwrap();let tk=s.create("a","127.0.0.1".parse().unwrap()).await;drop(s);tk};tokio::time::sleep(std::time::Duration::from_millis(50)).await;let s=SessionStore::open(d.path()).unwrap();assert_eq!(s.validate(&t).await.as_deref(),Some("a"));}#[tokio::test]async fn invalid(){let s=SessionStore::new();assert!(s.validate(&SessionToken::from_str(&"0".repeat(64))).await.is_none());}
 
 #[tokio::test]
 async fn replaying_a_rotated_token_revokes_the_session() {
