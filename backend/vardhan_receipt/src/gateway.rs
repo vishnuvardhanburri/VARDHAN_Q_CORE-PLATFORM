@@ -24,6 +24,18 @@ pub async fn start_server(port: u16) {
 
 async fn handle_seal(Json(payload): Json<QCoreValidationRequest>) -> impl IntoResponse {
     let organization_id = payload.contract.organization.organization_id.clone();
+    // Enforce idempotent replay protection at the API gateway boundary.
+    // This mirrors the CLI ValidateCanonical path — durable lifecycle enforcement.
+    if crate::is_finding_already_sealed(&payload.contract.finding_id) {
+        let error_response = json!({
+            "status": "REJECTED",
+            "code": "REJECTED_REPLAY",
+            "message": format!("Finding '{}' has already been sealed", payload.contract.finding_id),
+            "receipt_id": "NONE",
+            "transaction_id": "NONE"
+        });
+        return (StatusCode::BAD_REQUEST, Json(error_response)).into_response();
+    }
     match process_transaction(payload) {
         Ok(receipt) => {
             match qcore_transport::publish_receipt(&organization_id, &receipt).await {
