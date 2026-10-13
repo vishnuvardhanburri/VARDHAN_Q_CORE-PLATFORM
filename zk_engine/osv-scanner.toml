@@ -1,0 +1,39 @@
+[[IgnoredVulns]]
+id = "CVE-2026-27601"
+reason = "Transitive dependency of snarkjs via jsonpath. Upgrade breaks cryptographic compatibility. ACCEPTED RISK."
+
+[[IgnoredVulns]]
+id = "GHSA-qpx9-hpmf-5gmw"
+reason = "Transitive dependency of snarkjs via jsonpath. Upgrade breaks cryptographic compatibility. ACCEPTED RISK."
+
+[[IgnoredVulns]]
+id = "CVE-2026-48779"
+reason = "Transitive dependency of ethers@5.x via providers. Upgrade forces breaking migration to ethers@6.x. ACCEPTED RISK."
+
+[[IgnoredVulns]]
+id = "GHSA-96hv-2xvq-fx4p"
+reason = "Transitive dependency of ethers@5.x via providers. Upgrade forces breaking migration to ethers@6.x. ACCEPTED RISK."
+
+[[IgnoredVulns]]
+id = "CVE-2026-45736"
+reason = "Transitive dependency of ethers@5.x via providers. Upgrade forces breaking migration to ethers@6.x. ACCEPTED RISK."
+
+[[IgnoredVulns]]
+id = "GHSA-58qx-3vcg-4xpx"
+reason = "Transitive dependency of ethers@5.x via providers. Upgrade forces breaking migration to ethers@6.x. ACCEPTED RISK."
+
+[[IgnoredVulns]]
+id = "CVE-2025-14505"
+reason = "Transitive dependency of ethers@5.x (elliptic). Upgrade forces breaking migration to ethers@6.x. ACCEPTED RISK."
+
+[[IgnoredVulns]]
+id = "GHSA-848j-6mx2-7j84"
+reason = "Transitive dependency of ethers@5.x (elliptic). Upgrade forces breaking migration to ethers@6.x. ACCEPTED RISK."
+
+[[IgnoredVulns]]
+id = "GHSA-8988-4f7v-96qf"
+reason = "OpenTelemetry Core: Unbounded memory allocation. Upgrade to 2.x breaks TypeScript compilation (API mismatch with Resource and BasicTracerProvider). ACCEPTED RISK."
+
+[[IgnoredVulns]]
+id = "CVE-2026-54285"
+reason = "OpenTelemetry Core: Unbounded memory allocation. Upgrade to 2.x breaks TypeScript compilation (API mismatch with Resource and BasicTracerProvider). ACCEPTED RISK."

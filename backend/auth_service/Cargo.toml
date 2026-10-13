@@ -1,0 +1,33 @@
+[package]
+name = "auth_service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+argon2        = "0.5"
+sled          = "0.34"
+dashmap       = "6"
+rand          = { version = "0.8", features = ["getrandom"] }
+subtle        = "2.6"
+hex           = "0.4"
+serde         = { version = "1", features = ["derive"] }
+serde_json    = "1"
+tokio         = { version = "1", features = ["full"] }
+axum          = "0.8"
+blake3        = "1"
+tracing       = "0.1"
+audit_ledger  = { path = "../audit_ledger" }
+ledger_persistence = { path = "../ledger_persistence" }
+core_crypto   = { path = "../core_crypto" }
+thiserror     = "1"
+zeroize       = "1.9.0"
+base32        = "0.5"
+base64        = "0.22"
+hmac          = "0.12"
+sha1          = "0.10"
+sha2          = "0.10"
+
+[dev-dependencies]
+tokio    = { version = "1", features = ["full"] }
+tempfile = "3"
+reqwest  = { version = "0.13", features = ["json"] }

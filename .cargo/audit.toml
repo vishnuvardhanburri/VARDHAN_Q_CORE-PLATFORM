@@ -1,0 +1,18 @@
+[advisories]
+# F-013: Supply chain advisory allowlist.
+# All entries below are explicitly documented with rationale.
+ignore = [
+    "RUSTSEC-2021-0127",  # serde_cbor unmaintained — non-production poc_auditor only
+    "RUSTSEC-2026-0258",  # h2 unbounded DATA frames — transitive via aws-sdk-kms
+    "RUSTSEC-2026-0104",  # rustls-webpki CRL panic — transitive via aws-sdk-kms
+    "RUSTSEC-2026-0098",  # rustls-webpki URI name constraints — transitive via aws-sdk-kms
+    "RUSTSEC-2026-0099",  # rustls-webpki wildcard constraints — transitive via aws-sdk-kms
+    "RUSTSEC-2025-0057",  # fxhash unmaintained — transitive via criterion (test-only)
+    "RUSTSEC-2024-0384",  # instant unmaintained — transitive via criterion (test-only)
+    "RUSTSEC-2024-0436",  # paste unmaintained — transitive via criterion (test-only)
+    "RUSTSEC-2026-0163",  # pqcrypto-internals unmaintained (PQClean archived) — ML-DSA-87 signing
+    "RUSTSEC-2026-0166",  # pqcrypto-mldsa unmaintained (PQClean archived) — ML-DSA-87 signing
+    "RUSTSEC-2026-0162",  # pqcrypto-traits unmaintained (PQClean archived) — ML-DSA-87 signing
+    "RUSTSEC-2023-0071",  # rsa Marvin timing advisory — transitive SAML crypto; RSA private-key decryption is disabled
+    "RUSTSEC-2026-0187",  # poc_auditor legacy genpdf/LODPF stack — non-production PoC
+]

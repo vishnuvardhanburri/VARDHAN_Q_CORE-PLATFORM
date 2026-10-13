@@ -1,0 +1,22 @@
+name: Platform Web Contract
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  platform-web-contract:
+    name: Validate authenticated enterprise console
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run console contract test
+        run: node platform_web/test.mjs

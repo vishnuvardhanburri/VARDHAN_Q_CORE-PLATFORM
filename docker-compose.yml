@@ -1,0 +1,64 @@
+services:
+  # 1. Rust Quantum Core
+  quantum-core:
+    image: rust:1.80
+    container_name: vardhan_quantum_core
+    working_dir: /app/backend
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - rust-target:/app/target
+    command: >
+      bash -c "apt-get update && apt-get install -y cmake pkg-config libssl-dev && cargo run --release -p vardhan_receipt"
+    ports:
+      - "50051:50051"
+    environment:
+      - RUST_LOG=info
+    restart: unless-stopped
+
+  # 2. Zero-Knowledge Engine
+  zk-engine:
+    image: node:22
+    container_name: vardhan_zk_engine
+    working_dir: /app/zk_engine
+    volumes:
+      - .:/app
+      - node-modules-zk:/app/zk_engine/node_modules
+    command: >
+      bash -c "npm install && npm run build && tail -f /dev/null"
+    depends_on:
+      - quantum-core
+
+  # 3. Intelligence Plane (React Dashboard)
+  intelligence-plane:
+    image: node:22
+    container_name: vardhan_intelligence_dashboard
+    working_dir: /app/intelligence_plane
+    volumes:
+      - .:/app
+      - node-modules-ui:/app/intelligence_plane/node_modules
+    command: >
+      bash -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - quantum-core
+      - zk-engine
+
+  # 4. eBPF Shield
+  ebpf-shield:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.ebpf
+    privileged: true
+    network_mode: host
+    profiles:
+      - linux
+
+volumes:
+  cargo-cache:
+  rust-target:
+  node-modules-zk:
+  node-modules-ui:

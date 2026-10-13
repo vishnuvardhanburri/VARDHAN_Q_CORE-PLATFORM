@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "industry": "insurance",
+  "name": "Insurance",
+  "compliance": ["PCI DSS", "SOX", "GDPR", "Solvency II"],
+  "assets": ["policy_system", "claims_platform", "customer_data", "underwriting_model", "payment_service", "third_party_provider"],
+  "threats": ["claims_fraud", "customer_data_exposure", "credential_theft", "underwriting_model_tampering", "third_party_compromise", "payment_fraud"],
+  "risk": {"factors": ["financial_impact", "customer_impact", "regulatory_exposure", "data_sensitivity", "model_integrity"], "weights": {"financial_impact": 5, "customer_impact": 4, "regulatory_exposure": 5, "data_sensitivity": 5, "model_integrity": 4}},
+  "policies": ["claims_integrity", "customer_data_protection", "underwriting_integrity", "third_party_risk", "key_lifecycle"],
+  "workflows": ["claims_fraud_review", "customer_data_exposure_scan", "underwriting_integrity_check", "vendor_risk_review", "high_value_payment_review"],
+  "controls": ["transaction_monitoring", "strong_identity", "model_integrity", "immutable_audit", "hsm_key_protection", "segmentation"],
+  "integrations": ["siem", "iam", "claims_engine", "fraud_engine", "itsm", "hsm_kms"],
+  "deployment": {"modes": ["managed", "private_cloud", "regulated_on_prem"], "requires_hsm_for_private_keys": true, "telemetry": "tenant_bound_qcore"},
+  "qcore_services": ["trust_boundary", "authority_policy", "transaction_state", "signed_receipt", "audit_ledger", "independent_verification", "pq_crypto", "aer_kep_q"]
+}

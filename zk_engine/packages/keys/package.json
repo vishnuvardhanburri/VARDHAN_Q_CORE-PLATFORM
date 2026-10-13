@@ -1,0 +1,38 @@
+{
+  "name": "@zkpe/keys",
+  "version": "0.1.0",
+  "description": "ZKPE key management: Ed25519 key generation, export/import, rotation, validation, and signed proof envelopes (ADR-0009)",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint src test --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "bench": "node bench/keys-bench.mjs"
+  },
+  "dependencies": {
+    "@zkpe/proof-format": "0.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.10"
+  }
+}

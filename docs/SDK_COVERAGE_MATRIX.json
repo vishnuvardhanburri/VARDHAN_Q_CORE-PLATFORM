@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-10-05",
+  "source_of_truth": "api/openapi.yaml",
+  "coverage_gate": "scripts/p1_sdk_contract_check.py",
+  "sdk_count": 5,
+  "resource_family_count": 12,
+  "resource_families": [
+    "organizations", "organization", "entitlements", "subscription", "usage",
+    "members", "invitations", "security_posture", "findings", "incidents",
+    "transactions", "aer_kep_q_status"
+  ],
+  "sdks": [
+    {"name": "rust", "path": "sdk/rust", "idempotency": true, "webhook_signature_verification": true, "model_compatibility": true},
+    {"name": "go", "path": "sdk/go", "idempotency": true, "webhook_signature_verification": true, "model_compatibility": true},
+    {"name": "typescript", "path": "sdk/typescript", "idempotency": true, "webhook_signature_verification": true, "model_compatibility": true},
+    {"name": "python", "path": "sdk/python", "idempotency": true, "webhook_signature_verification": true, "model_compatibility": true},
+    {"name": "java", "path": "sdk/java", "idempotency": true, "webhook_signature_verification": true, "model_compatibility": true}
+  ],
+  "verification": {
+    "contract_command": "python3 scripts/p1_sdk_contract_check.py",
+    "model_command": "python3 scripts/p1_model_compatibility.py",
+    "typescript_command": "cd sdk/typescript && npm ci && npm run build && npm test",
+    "status": "passed locally on 2026-10-05"
+  },
+  "limitations": [
+    "This matrix proves static source coverage and generated-model compatibility; live interoperability against a running control plane remains a separate gate."
+  ]
+}

@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Certified circuit artifacts ARE committed (deterministic dev build; see
+# docs/12 §artifacts). Only the 72MB dev PTau stays out — regenerate it with
+# `npm run build:ptau -w @zkpe/circuit-lib`.
+!packages/circuit-lib/build/
+!packages/circuit-lib/build/**
+packages/circuit-lib/build/ptau16_dev.ptau
+
+# Test / coverage
+coverage/
+.turbo/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Circuit artifacts (large, regenerated; hashes committed instead)
+circuits/**/*.zkey
+circuits/**/ptau/*.ptau
+
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/artifacts-vkey/
+contracts/broadcast/
+
+# Vercel / deploy local
+.vercel/
+
+# Gatekeeper local scratch (trusted gate envelope + public key are committed;
+# tmp/ and any private keys stay out).
+.gitgate/
+!.gitgate/
+!.gitgate/gate-envelope.json
+!.gitgate/gate-key.pub.jwk
+.gitgate/tmp/

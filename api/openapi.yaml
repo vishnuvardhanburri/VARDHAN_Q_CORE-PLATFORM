@@ -1,0 +1,487 @@
+openapi: 3.1.0
+info:
+  title: Vardhan Technologies Enterprise Control Plane API
+  version: 1.1.0
+  description: Canonical versioned API contract for Vardhan Technologies. Authentication, authorization and commercial entitlements are server-enforced.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Platform
+  - name: Organizations
+  - name: Billing
+  - name: Usage
+  - name: Security
+  - name: Identity
+paths:
+  /platform/health:
+    get:
+      security: []
+      tags: [Platform]
+      responses:
+        '200': { description: Control-plane health, content: { application/json: { schema: { $ref: '#/components/schemas/Health' } } } }
+  /catalog/plans:
+    get:
+      security: []
+      tags: [Billing]
+      responses:
+        '200': { description: Available commercial plans, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Plan' } } } } }
+  /billing/webhook:
+    post:
+      security: []
+      tags: [Billing]
+      description: Receives a provider-signed billing event. The control plane validates signature, timestamp and event idempotency before persisting verified subscription state.
+      parameters:
+        - { name: x-vardhan-billing-signature, in: header, required: true, schema: { type: string } }
+        - { name: x-vardhan-billing-timestamp, in: header, required: true, schema: { type: integer, format: int64 } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/BillingEvent' } } }
+      responses:
+        '200': { description: Event accepted or already processed }
+        '400': { description: Invalid event }
+        '401': { description: Signature or timestamp rejected }
+        '503': { description: Billing verification not configured }
+  /me:
+    get:
+      tags: [Platform]
+      responses:
+        '200': { description: Authenticated principal, content: { application/json: { schema: { type: object, required: [username, authenticated], properties: { username: { type: string }, authenticated: { type: boolean }, role: { type: string } } } } } }
+  /organizations:
+    get:
+      tags: [Organizations]
+      responses:
+        '200': { description: Organizations visible to the caller, content: { application/json: { schema: { type: object, properties: { organizations: { type: array, items: { $ref: '#/components/schemas/Organization' } } } } } } }
+    post:
+      tags: [Organizations]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name], properties: { name: { type: string, minLength: 2, maxLength: 120 } } } } } }
+      responses:
+        '201': { description: Organization created, content: { application/json: { schema: { type: object, properties: { organization: { $ref: '#/components/schemas/Organization' }, subscription: { $ref: '#/components/schemas/Subscription' } } } } } }
+  /organizations/{id}:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Organizations]
+      responses:
+        '200': { description: Organization, content: { application/json: { schema: { type: object, properties: { organization: { $ref: '#/components/schemas/Organization' } } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /organizations/{id}/entitlements:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Billing]
+      responses:
+        '200': { description: Entitlements resolved only from verified billing state, content: { application/json: { schema: { $ref: '#/components/schemas/EntitlementResponse' } } } }
+  /organizations/{id}/subscription:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Billing]
+      responses:
+        '200': { description: Subscription state, content: { application/json: { schema: { type: object, properties: { subscription: { $ref: '#/components/schemas/Subscription' } } } } } }
+    post:
+      tags: [Billing]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      description: Requests a plan change. This never activates paid entitlements; a verified billing event is required.
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [plan_id], properties: { plan_id: { type: string } } } } } }
+      responses: { '202': { description: Billing activation pending } }
+  /organizations/{id}/usage:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Usage]
+      responses: { '200': { description: Current usage, content: { application/json: { schema: { type: object, properties: { usage: { $ref: '#/components/schemas/Usage' } } } } } } }
+  /organizations/{id}/usage/record:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    post:
+      tags: [Usage]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [bytes_processed, transactions], properties: { bytes_processed: { type: integer, format: int64, minimum: 0 }, transactions: { type: integer, format: int64, minimum: 0 } } } } } }
+      responses: { '200': { description: Usage recorded } }
+  /organizations/{id}/members:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Identity]
+      responses: { '200': { description: Organization members, content: { application/json: { schema: { $ref: '#/components/schemas/MembersResponse' } } } } }
+  /organizations/{id}/members/{member}/role:
+    parameters:
+      - { $ref: '#/components/parameters/OrganizationId' }
+      - { name: member, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Identity]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [role], properties: { role: { type: string } } } } } }
+      responses: { '200': { description: Member role updated } }
+  /organizations/{id}/invitations:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Identity]
+      responses: { '200': { description: Organization invitations, content: { application/json: { schema: { $ref: '#/components/schemas/InvitationsResponse' } } } } }
+    post:
+      tags: [Identity]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CreateInvitationRequest' } } } }
+      responses: { '200': { description: Invitation created } }
+  /organizations/{id}/invitations/{invitation_id}:
+    parameters:
+      - { $ref: '#/components/parameters/OrganizationId' }
+      - { name: invitation_id, in: path, required: true, schema: { type: string, format: uuid } }
+    post:
+      tags: [Identity]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      responses: { '200': { description: Invitation revoked } }
+  /invitations/accept:
+    post:
+      tags: [Identity]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [token], properties: { token: { type: string } } } } } }
+      responses: { '200': { description: Invitation accepted } }
+  /organizations/{id}/security/posture:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Security posture, content: { application/json: { schema: { type: object, additionalProperties: true } } } } }
+  /organizations/{id}/findings:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Security findings, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecurityFindingInput'
+      responses:
+        '200': { description: Finding accepted and risk/incident state updated }
+        '400': { description: Finding rejected }
+        '403': { description: Organization access denied }
+  /organizations/{id}/incidents:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Security incidents, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+    post:
+      tags: [Security]
+      parameters:
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [open, acknowledged, resolved] }
+      responses:
+        '200': { description: Incident transition accepted }
+        '400': { description: Invalid incident transition }
+        '403': { description: Organization access denied }
+  /organizations/{id}/transactions:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Transaction and receipt telemetry, content: { application/json: { schema: { $ref: '#/components/schemas/TransactionCollection' } } } } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TransactionTelemetryInput' } } } }
+      responses: { '200': { description: Transaction telemetry accepted } }
+  /organizations/{id}/security/operations:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses:
+        '200': { description: Authoritative continuous-security operations snapshot, content: { application/json: { schema: { $ref: '#/components/schemas/SecurityOperationsSnapshot' } } } }
+  /organizations/{id}/security/executive-report:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Executive security operations report derived from durable control-plane state, content: { application/json: { schema: { type: object, additionalProperties: true } } } } }
+  /organizations/{id}/security/alerts:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Tenant-scoped operational alerts, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/MonitoringSignalInput' } } } }
+      responses:
+        '202': { description: Monitoring signal observed and alert persisted }
+        '400': { description: Signal rejected }
+        '403': { description: Organization operation permission required }
+  /organizations/{id}/security/alerts/{alert_id}:
+    parameters:
+      - { $ref: '#/components/parameters/OrganizationId' }
+      - { name: alert_id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SecurityLifecycleTransition' } } } }
+      responses: { '200': { description: Alert lifecycle transition accepted } }
+  /organizations/{id}/security/policy-baseline:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PolicyBaselineInput' } } } }
+      responses: { '201': { description: Policy baseline registered } }
+  /organizations/{id}/security/policy-observations:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PolicyObservationInput' } } } }
+      responses: { '202': { description: Policy observation evaluated against the durable baseline } }
+  /organizations/{id}/security/policy-drift:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Policy drift observations, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+  /organizations/{id}/security/remediations:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Governed remediation actions, content: { application/json: { schema: { $ref: '#/components/schemas/CollectionResponse' } } } } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RemediationInput' } } } }
+      responses: { '201': { description: Remediation proposal created } }
+  /organizations/{id}/security/remediations/{remediation_id}:
+    parameters:
+      - { $ref: '#/components/parameters/OrganizationId' }
+      - { name: remediation_id, in: path, required: true, schema: { type: string } }
+    post:
+      tags: [Security]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SecurityLifecycleTransition' } } } }
+      responses: { '200': { description: Governed remediation transition accepted } }
+  /organizations/{id}/security/crypto-posture:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Tenant-scoped cryptographic posture, key lifecycle and receipt verification coverage } }
+  /organizations/{id}/security/audit:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: Durable security operations audit view, content: { application/json: { schema: { type: object, additionalProperties: true } } } } }
+  /organizations/{id}/aer-kep-q/status:
+    parameters: [{ $ref: '#/components/parameters/OrganizationId' }]
+    get:
+      tags: [Security]
+      responses: { '200': { description: AER-KEP-Q runtime status, content: { application/json: { schema: { type: object, additionalProperties: true } } } } }
+components:
+  parameters:
+    OrganizationId: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    IdempotencyKey: { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 8, maxLength: 255 } }
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: session-token }
+  responses:
+    Forbidden: { description: Organization access denied }
+    NotFound: { description: Resource not found }
+  schemas:
+    Health:
+      type: object
+      required: [service, status, mode, authentication, demo_authentication]
+      properties:
+        service: { type: string }
+        status: { type: string }
+        mode: { type: string }
+        authentication: { type: string }
+        demo_authentication: { type: boolean }
+    Plan:
+      type: object
+      required: [id, name, tier, contact_sales, entitlements]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        tier: { type: string }
+        contact_sales: { type: boolean }
+        entitlements: { type: array, items: { type: string } }
+    Organization:
+      type: object
+      required: [id, name, owner, created_at_ms]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        owner: { type: string }
+        created_at_ms: { type: integer, format: int64 }
+    Subscription:
+      type: object
+      required: [organization_id, plan_id, status, provider]
+      properties:
+        organization_id: { type: string, format: uuid }
+        plan_id: { type: string }
+        status: { type: string }
+        provider: { type: string }
+        external_customer_id: { type: [string, 'null'] }
+        external_subscription_id: { type: [string, 'null'] }
+    EntitlementResponse:
+      type: object
+      required: [organization_id, subscription_status, entitlements, activation]
+      properties:
+        organization_id: { type: string, format: uuid }
+        plan: { anyOf: [{ $ref: '#/components/schemas/Plan' }, { type: 'null' }] }
+        subscription_status: { type: string }
+        provider: { type: string }
+        entitlements: { type: array, items: { type: string } }
+        activation: { type: string, enum: [verified, suspended, requires_verified_billing_event] }
+    BillingEvent:
+      type: object
+      required: [event_id, provider, event_type, organization_id, status, timestamp]
+      properties:
+        event_id: { type: string }
+        provider: { type: string }
+        event_type: { type: string }
+        organization_id: { type: string, format: uuid }
+        plan_id: { type: [string, 'null'] }
+        external_customer_id: { type: [string, 'null'] }
+        external_subscription_id: { type: [string, 'null'] }
+        status: { type: string, enum: [Provisioning, AwaitingBillingActivation, Trialing, Active, PastDue, Suspended, Canceled, Expired] }
+        timestamp: { type: integer, format: int64 }
+    Usage:
+      type: object
+      required: [organization_id, transactions, bytes_processed]
+      properties:
+        organization_id: { type: string, format: uuid }
+        transactions: { type: integer, format: int64 }
+        bytes_processed: { type: integer, format: int64 }
+    MembersResponse:
+      type: object
+      required: [organization_id, members]
+      properties:
+        organization_id: { type: string, format: uuid }
+        members: { type: array, items: { type: object, required: [username, role], properties: { username: { type: string }, role: { type: string } } } }
+    Invitation:
+      type: object
+      required: [id, organization_id, email, role, created_at_ms, expires_at_ms, revoked]
+      properties:
+        id: { type: string, format: uuid }
+        organization_id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { type: string }
+        created_at_ms: { type: integer, format: int64 }
+        expires_at_ms: { type: integer, format: int64 }
+        accepted_at_ms: { type: [integer, 'null'] }
+        revoked: { type: boolean }
+    InvitationsResponse:
+      type: object
+      required: [organization_id, invitations]
+      properties:
+        organization_id: { type: string, format: uuid }
+        invitations: { type: array, items: { $ref: '#/components/schemas/Invitation' } }
+    CreateInvitationRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+        role: { type: string }
+        expires_in_hours: { type: integer, minimum: 1, maximum: 720 }
+    CollectionResponse:
+      type: object
+      required: [organization_id, items, total, data_state]
+      properties:
+        organization_id: { type: string, format: uuid }
+        items: { type: array, items: { type: object, additionalProperties: true } }
+        total: { type: integer, minimum: 0 }
+        data_state: { type: string }
+        next_cursor: { type: [string, 'null'] }
+    SecurityFindingInput:
+      type: object
+      required: [finding_id, receipt_id, severity, status, evidence_refs, risk_score, created_at_ms, updated_at_ms]
+      properties:
+        finding_id: { type: string }
+        receipt_id: { type: string }
+        severity: { type: string, enum: [critical, high, medium, low, info] }
+        status: { type: string, enum: [open, acknowledged, resolved] }
+        evidence_refs: { type: array, minItems: 1, items: { type: string } }
+        risk_score: { type: integer, minimum: 0, maximum: 100 }
+        created_at_ms: { type: integer, format: int64 }
+        updated_at_ms: { type: integer, format: int64 }
+    TransactionTelemetryInput:
+      type: object
+      required: [transaction_id, tenant_id, state, kind, subject_id, proposed_action, policy_id, policy_version, created_at_ms, updated_at_ms]
+      properties:
+        transaction_id: { type: string }
+        tenant_id: { type: string }
+        state: { type: string }
+        kind: { type: string }
+        subject_id: { type: string }
+        proposed_action: { type: string }
+        policy_id: { type: string }
+        policy_version: { type: string }
+        correlation_id: { type: [string, 'null'] }
+        receipt_id: { type: [string, 'null'] }
+        outcome_code: { type: [string, 'null'] }
+        created_at_ms: { type: integer, format: int64 }
+        updated_at_ms: { type: integer, format: int64 }
+    SecurityOperationsSnapshot:
+      type: object
+      required: [organization_id, data_state, generated_at_ms, monitoring, risk, alerts, policy_drift, crypto_posture, aer_kep_q, incidents]
+      properties:
+        organization_id: { type: string }
+        data_state: { type: string, enum: [not_populated, populated] }
+        generated_at_ms: { type: integer, format: int64 }
+        monitoring: { type: object, additionalProperties: true }
+        risk: { type: object, additionalProperties: true }
+        alerts: { type: object, additionalProperties: true }
+        policy_drift: { type: object, additionalProperties: true }
+        crypto_posture: { type: object, additionalProperties: true }
+        aer_kep_q: { type: object, additionalProperties: true }
+        incidents: { type: object, additionalProperties: true }
+    MonitoringSignalInput:
+      type: object
+      required: [signal_id, source, severity, title, message, evidence_refs, observed_at_ms]
+      properties:
+        signal_id: { type: string }
+        source: { type: string, enum: [intelligence, q_core, monitoring, operator, system] }
+        severity: { type: string, enum: [critical, high, medium, low, info] }
+        title: { type: string }
+        message: { type: string }
+        evidence_refs: { type: array, minItems: 1, items: { type: string } }
+        correlation_id: { type: [string, 'null'] }
+        observed_at_ms: { type: integer, format: int64 }
+    SecurityLifecycleTransition:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string }
+    PolicyBaselineInput:
+      type: object
+      required: [policy_id, policy_version, policy]
+      properties:
+        policy_id: { type: string }
+        policy_version: { type: string }
+        policy: { type: object, additionalProperties: true }
+    PolicyObservationInput:
+      type: object
+      required: [policy_id, policy_version, policy, observed_at_ms]
+      properties:
+        policy_id: { type: string }
+        policy_version: { type: string }
+        policy: { type: object, additionalProperties: true }
+        observed_at_ms: { type: integer, format: int64 }
+    RemediationInput:
+      type: object
+      required: [action, rationale]
+      properties:
+        action: { type: string, enum: [ACKNOWLEDGE_INCIDENT, REVALIDATE_POLICY] }
+        finding_id: { type: [string, 'null'] }
+        incident_id: { type: [string, 'null'] }
+        rationale: { type: string }
+    TransactionCollection:
+      type: object
+      required: [organization_id, items, total, data_state]
+      properties:
+        organization_id: { type: string, format: uuid }
+        items: { type: array, items: { type: object, additionalProperties: true } }
+        total: { type: integer, minimum: 0 }
+        receipts: { type: array, items: { type: object, additionalProperties: true } }
+        data_state: { type: string }
+        next_cursor: { type: [string, 'null'] }

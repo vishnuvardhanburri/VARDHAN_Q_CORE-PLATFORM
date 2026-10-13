@@ -1,0 +1,12 @@
+# Force GitHub Linguist to ignore all frontend files in the language stats
+*.ts linguist-detectable=false
+*.tsx linguist-detectable=false
+*.js linguist-detectable=false
+*.json linguist-detectable=false
+*.css linguist-detectable=false
+
+intelligence_plane/** linguist-vendored
+zk_engine/** linguist-vendored
+
+# Explicitly mark Rust as the primary language
+*.rs linguist-detectable=true

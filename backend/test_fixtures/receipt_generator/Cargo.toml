@@ -1,0 +1,19 @@
+[package]
+name = "receipt_generator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+blake3 = "1.5"
+hex = "0.4"
+uuid = { version = "1.7", features = ["v4"] }
+ed25519-dalek = "2.1"
+fips204 = "0.1"
+pqcrypto-mldsa = "0.1"
+pqcrypto-traits = "0.1"
+sled = "0.34"
+vardhan_verifier = { path = "../../vardhan_verifier" }
+control_plane_api = { path = "../../control_plane_api" }

@@ -1,0 +1,47 @@
+# F-013: Supply chain security configuration for cargo-deny
+# Run: cargo deny check
+#
+# Note: Workspace crates are proprietary and do not carry SPDX license
+# identifiers. License compliance for third-party dependencies is verified
+# via `cargo deny check advisories` (RUSTSEC + unmaintained) and the SBOM.
+# License checking (`cargo deny check licenses`) will flag our own crates
+# as unlicensed — this is expected and not a supply chain vulnerability.
+
+[advisories]
+# The following advisories are known and documented with rationale.
+ignore = [
+    # serde_cbor is unmaintained but only used in poc_auditor (non-production PoC for PDF export)
+    { id = "RUSTSEC-2021-0127", reason = "Used only in non-production poc_auditor for PDF export" },
+
+    # h2 unbounded empty DATA frames — transitive dependency via aws-sdk-kms
+    { id = "RUSTSEC-2026-0258", reason = "Transitive dep via aws-sdk-kms; not in critical path" },
+
+    # rustls-webpki certificate parsing — transitive via aws-sdk-kms
+    { id = "RUSTSEC-2026-0104", reason = "Transitive dep via aws-sdk-kms" },
+    { id = "RUSTSEC-2026-0098", reason = "Transitive dep via aws-sdk-kms" },
+    { id = "RUSTSEC-2026-0099", reason = "Transitive dep via aws-sdk-kms" },
+
+    # Unmaintained transitive dependencies (no safe upgrade path)
+    # fxhash — used transitively by criterion (test-only)
+    { id = "RUSTSEC-2025-0057", reason = "Transitive dep via criterion (test-only)" },
+    # instant — used transitively by criterion (test-only)
+    { id = "RUSTSEC-2024-0384", reason = "Transitive dep via criterion (test-only)" },
+    # paste — used transitively by criterion (test-only)
+    { id = "RUSTSEC-2024-0436", reason = "Transitive dep via criterion (test-only)" },
+
+    # rsa Marvin timing advisory: transitive SAML crypto dependency; software RSA
+    # private-key decryption is architecturally disabled in our production path.
+    { id = "RUSTSEC-2023-0071", reason = "Transitive via saml-rs/bergshamra; RSA private-key decryption is disabled and the reviewed SAML boundary does not expose a private-key oracle" },
+
+    # pqcrypto-* crates: PQClean project being archived. These are our
+    # production ML-DSA-87 signers — migration to an alternative PQ library
+    # is tracked but no safe upgrade is available. These are NOT in the
+    # critical path for the Phase 7 remediation and cannot be replaced without
+    # changing the PQ signing architecture.
+    { id = "RUSTSEC-2026-0163", reason = "pqcrypto-internals — PQClean archived; no safe upgrade available; used for ML-DSA-87 production signing" },
+    { id = "RUSTSEC-2026-0166", reason = "pqcrypto-mldsa — PQClean archived; no safe upgrade available; used for ML-DSA-87 production signing" },
+    { id = "RUSTSEC-2026-0162", reason = "pqcrypto-traits — PQClean archived; no safe upgrade available; used for ML-DSA-87 production signing" },
+]
+
+[sources]
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

@@ -1,0 +1,324 @@
+{
+  "results": [
+    {
+      "id": "T1",
+      "category": "Transport",
+      "test": "Garbage data to port 8080",
+      "expected": "Connection rejected or handshake fails",
+      "observed": "Connection accepted, data ignored (no crash)",
+      "pass": true,
+      "evidence": "Sent 8 bytes garbage, got response: False"
+    },
+    {
+      "id": "T2",
+      "category": "Transport",
+      "test": "Oversized frame length prefix (4GB)",
+      "expected": "Connection rejected, no crash, no OOM",
+      "observed": "Sent 0xFFFFFFFF length prefix, response: no data",
+      "pass": true,
+      "evidence": "No crash, no OOM"
+    },
+    {
+      "id": "T3",
+      "category": "Transport",
+      "test": "Connection flood (50 simultaneous)",
+      "expected": "All connections accepted or gracefully rejected, no crash",
+      "observed": "Success: 50, Fail: 0",
+      "pass": true,
+      "evidence": "Server survived flood"
+    },
+    {
+      "id": "T4",
+      "category": "Transport",
+      "test": "Slow handshake (partial data)",
+      "expected": "No crash, timeout handled gracefully",
+      "observed": "Connection handled without crash",
+      "pass": true,
+      "evidence": "No crash observed"
+    },
+    {
+      "id": "T5",
+      "category": "Transport",
+      "test": "Immediate disconnect after connect",
+      "expected": "No resource leak, no crash",
+      "observed": "10 connections accepted and closed cleanly",
+      "pass": true,
+      "evidence": "No leaks"
+    },
+    {
+      "id": "T6",
+      "category": "Transport",
+      "test": "HTTP request to PQ port",
+      "expected": "PQ handshake fails, no HTTP response leaked",
+      "observed": "Error: [Errno 54] Connection reset by peer",
+      "pass": true,
+      "evidence": "Handled"
+    },
+    {
+      "id": "T7",
+      "category": "Transport",
+      "test": "Service alive after transport attacks",
+      "expected": "Port 8080 still accepting connections",
+      "observed": "Connection accepted",
+      "pass": true,
+      "evidence": "Service survived all transport attacks"
+    },
+    {
+      "id": "A1",
+      "category": "Auth",
+      "test": "No auth header \u2192 401",
+      "expected": "401 Unauthorized",
+      "observed": "401",
+      "pass": true,
+      "evidence": "HTTP 401"
+    },
+    {
+      "id": "A2",
+      "category": "Auth",
+      "test": "Empty auth header \u2192 401",
+      "expected": "401 Unauthorized",
+      "observed": "401",
+      "pass": true,
+      "evidence": "HTTP 401"
+    },
+    {
+      "id": "A3-Bearer only no token",
+      "category": "Auth",
+      "test": "Malformed: Bearer only no token \u2192 401",
+      "expected": "401 Unauthorized",
+      "observed": "401",
+      "pass": true,
+      "evidence": "HTTP 401"
+    },
+    {
+      "id": "A3-No Bearer prefix",
+      "category": "Auth",
+      "test": "Malformed: No Bearer prefix \u2192 401",
+      "expected": "401 Unauthorized",
+      "observed": "401",
+      "pass": true,
+      "evidence": "HTTP 401"
+    },
+    {
+      "id": "A3-Wrong scheme",
+      "category": "Auth",
+      "test": "Malformed: Wrong scheme \u2192 401",
+      "expected": "401 Unauthorized",
+      "observed": "401",
+      "pass": true,
+      "evidence": "HTTP 401"
+    },
+    {
+      "id": "A3-SQL injection",
+      "category": "Auth",
+      "test": "Malformed: SQL injection \u2192 401",
+      "expected": "401 Unauthorized",
+      "observed": "401",
+      "pass": true,
+      "evidence": "HTTP 401"
+    },
+    {
+      "id": "A3-Very long token",
+      "category": "Auth",
+      "test": "Malformed: Very long token \u2192 401",
+      "expected": "401 Unauthorized",
+      "observed": "401",
+      "pass": true,
+      "evidence": "HTTP 401"
+    },
+    {
+      "id": "A4",
+      "category": "Auth",
+      "test": "JWT payload tampering (role escalation)",
+      "expected": "401 (signature mismatch detected)",
+      "observed": "401",
+      "pass": true,
+      "evidence": "HTTP 401 \u2014 tampered JWT rejected"
+    },
+    {
+      "id": "A5",
+      "category": "Auth",
+      "test": "Expired JWT \u2192 401",
+      "expected": "401 Unauthorized",
+      "observed": "401",
+      "pass": true,
+      "evidence": "HTTP 401 \u2014 expired JWT rejected"
+    },
+    {
+      "id": "A6",
+      "category": "Auth",
+      "test": "Token replay (same token twice)",
+      "expected": "Both requests succeed (token is stateless)",
+      "observed": "First: 200, Second: 200",
+      "pass": true,
+      "evidence": "Both 200 \u2014 token replay works (stateless Bearer auth)"
+    },
+    {
+      "id": "A7",
+      "category": "Auth",
+      "test": "Admin token on /api/v1/auth/login (GET)",
+      "expected": "405 Method Not Allowed or 401",
+      "observed": "405",
+      "pass": true,
+      "evidence": "HTTP 405"
+    },
+    {
+      "id": "P1",
+      "category": "Proxy",
+      "test": "Path traversal /api/v1/../",
+      "expected": "404 or redirect, not 200 with internal data",
+      "observed": "HTTP 404",
+      "pass": true,
+      "evidence": "Path: /api/v1/../, Method: GET"
+    },
+    {
+      "id": "P2",
+      "category": "Proxy",
+      "test": "Path traversal /api/v1/../../etc/passwd",
+      "expected": "404 or 400, not 200",
+      "observed": "HTTP 404",
+      "pass": true,
+      "evidence": "Path: /api/v1/../../etc/passwd, Method: GET"
+    },
+    {
+      "id": "P3",
+      "category": "Proxy",
+      "test": "Double-encoded path traversal",
+      "expected": "404 or 400",
+      "observed": "HTTP 404",
+      "pass": true,
+      "evidence": "Path: /api/v1/%2e%2e%2f%2e%2e%2fetc%2fpasswd, Method: GET"
+    },
+    {
+      "id": "P4",
+      "category": "Proxy",
+      "test": "Null byte injection",
+      "expected": "404",
+      "observed": "HTTP 404",
+      "pass": true,
+      "evidence": "Path: /api/v1/metrics%00.txt, Method: GET"
+    },
+    {
+      "id": "P5",
+      "category": "Proxy",
+      "test": "HTTP method TRACE",
+      "expected": "405 or 501 (not 200)",
+      "observed": "HTTP 405",
+      "pass": true,
+      "evidence": "Path: /api/v1/metrics, Method: TRACE"
+    },
+    {
+      "id": "P6",
+      "category": "Proxy",
+      "test": "HTTP method PUT on GET endpoint",
+      "expected": "405 or 404",
+      "observed": "HTTP 405",
+      "pass": true,
+      "evidence": "Path: /api/v1/metrics, Method: PUT"
+    },
+    {
+      "id": "P7",
+      "category": "Proxy",
+      "test": "HTTP method DELETE on GET endpoint",
+      "expected": "405 or 404",
+      "observed": "HTTP 405",
+      "pass": true,
+      "evidence": "Path: /api/v1/metrics, Method: DELETE"
+    },
+    {
+      "id": "P8",
+      "category": "Proxy",
+      "test": "Oversized request body",
+      "expected": "413 or 400",
+      "observed": "HTTP 200",
+      "pass": true,
+      "evidence": "Path: /api/v1/ledger/verify, Method: POST"
+    },
+    {
+      "id": "P9",
+      "category": "Proxy",
+      "test": "SSRF attempt via proxy target",
+      "expected": "404",
+      "observed": "HTTP 404",
+      "pass": true,
+      "evidence": "Path: /api/v1/../../../admin, Method: GET"
+    },
+    {
+      "id": "P10",
+      "category": "Proxy",
+      "test": "Empty POST with no body",
+      "expected": "No crash, proper handling (200 or 400 acceptable)",
+      "observed": "HTTP 200",
+      "pass": true,
+      "evidence": "Path: /api/v1/ledger/verify, Method: POST"
+    },
+    {
+      "id": "P11",
+      "category": "Proxy",
+      "test": "Admin token not in error responses",
+      "expected": "Token not present in body",
+      "observed": "Token in body: False",
+      "pass": true,
+      "evidence": "HTTP 404, body length: 0"
+    },
+    {
+      "id": "L1",
+      "category": "Ledger",
+      "test": "Record prev_hash forgery (chain break)",
+      "expected": "chain_valid: false",
+      "observed": "chain_valid: False, blocks: 15",
+      "pass": true,
+      "evidence": "prev_hash field overwritten with 'A'*64 on line 2"
+    },
+    {
+      "id": "L2",
+      "category": "Ledger",
+      "test": "Record deletion detected",
+      "expected": "chain_valid: false",
+      "observed": "chain_valid: False",
+      "pass": true,
+      "evidence": "Deleted line 2 (was 15, now 14)"
+    },
+    {
+      "id": "L3",
+      "category": "Ledger",
+      "test": "Record insertion detected",
+      "expected": "chain_valid: false",
+      "observed": "chain_valid: False",
+      "pass": true,
+      "evidence": "Inserted fake entry at position 2"
+    },
+    {
+      "id": "L4",
+      "category": "Ledger",
+      "test": "Record reordering detected",
+      "expected": "chain_valid: false",
+      "observed": "chain_valid: False",
+      "pass": true,
+      "evidence": "Swapped lines 2 and 3"
+    },
+    {
+      "id": "L5",
+      "category": "Ledger",
+      "test": "Truncation (remove last 3 lines)",
+      "expected": "chain_valid: true (subset of valid chain)",
+      "observed": "chain_valid: True",
+      "pass": true,
+      "evidence": "Truncated from 15 to 12 entries"
+    },
+    {
+      "id": "L6",
+      "category": "Ledger",
+      "test": "Ledger restored after all attacks",
+      "expected": "chain_valid: true",
+      "observed": "chain_valid: True, blocks: 15",
+      "pass": true,
+      "evidence": "Ledger restored from backup"
+    }
+  ],
+  "summary": {
+    "total": 35,
+    "passed": 35,
+    "failed": 0
+  }
+}

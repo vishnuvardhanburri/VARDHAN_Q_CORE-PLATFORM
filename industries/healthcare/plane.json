@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "industry": "healthcare",
+  "name": "Healthcare",
+  "compliance": ["HIPAA", "HITECH", "GDPR"],
+  "assets": ["phi", "ehr_system", "medical_device", "clinical_application", "research_dataset", "third_party_health_service"],
+  "threats": ["phi_exposure", "ransomware", "medical_device_compromise", "credential_theft", "supply_chain_compromise", "research_data_exfiltration"],
+  "risk": {"factors": ["patient_safety", "privacy_impact", "clinical_availability", "regulatory_exposure", "recovery_cost"], "weights": {"patient_safety": 5, "privacy_impact": 5, "clinical_availability": 5, "regulatory_exposure": 4, "recovery_cost": 4}},
+  "policies": ["phi_minimization", "clinical_system_integrity", "device_trust", "research_data_protection", "privileged_access"],
+  "workflows": ["phi_exposure_scan", "ransomware_exposure_review", "medical_device_integrity_check", "third_party_risk_review", "breach_evidence_collection"],
+  "controls": ["strong_identity", "network_segmentation", "device_attestation", "immutable_audit", "key_lifecycle", "incident_containment"],
+  "integrations": ["siem", "iam", "ehr", "medical_device_platform", "itsm", "hsm_kms"],
+  "deployment": {"modes": ["managed", "private_cloud", "healthcare_on_prem"], "requires_hsm_for_private_keys": true, "telemetry": "tenant_bound_qcore"},
+  "qcore_services": ["trust_boundary", "authority_policy", "transaction_state", "signed_receipt", "audit_ledger", "independent_verification", "pq_crypto", "aer_kep_q"]
+}

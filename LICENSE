@@ -1,0 +1,27 @@
+VARDHAN Q-CORE ENTERPRISE LICENSE
+Version 1.0
+
+Copyright (c) 2026 Vardhan Tech Solutions. All rights reserved.
+
+1. PERMITTED USE
+This software ("Vardhan Q-Core Platform") is proprietary and strictly licensed. 
+You are permitted to view, compile, and run this code strictly for non-commercial, 
+academic, or evaluation purposes on a local, non-production machine.
+
+2. RESTRICTIONS
+You may NOT:
+a) Use this software in a production environment or for any commercial purpose.
+b) Deploy this software to process live customer data or telemetry.
+c) Modify, re-distribute, sublicense, or sell this software.
+d) Bypass, modify, or disable the cryptographic license verification checks.
+
+3. COMMERCIAL ENTERPRISE LICENSE
+Deployment of the Q-Core Node infrastructure in a production environment, including 
+the activation of eBPF kernel shields and Hybrid Chaos Core engines, requires a paid 
+Commercial Enterprise License. 
+
+Contact: enterprise@vardhan.io for licensing.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES 
+OR OTHER LIABILITY.

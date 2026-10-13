@@ -1,0 +1,27 @@
+{
+  "circuits": [
+    {
+      "circuitId": "poseidon-preimage",
+      "circuitIdHex": "0x706f736569646f6e2d707265696d616765000000000000000000000000000000",
+      "vkHash": "0x2daa077c6c6a30539d9fdfe93f116070fac13994f8f5a2a92d1d5c3bdc3986c4",
+      "a": [
+        "0x15b5ad38b3b241364c47944d2ee017dd7320b8e839476d7ae1efb74f26efcdf6",
+        "0x1103324f96083518044c1f42d9192960c7c0456318a4b2332afaaf3ddf467ca1"
+      ],
+      "b": [
+        "0x0d6950b4eb81389967e12110165fa0876073bb910272edffe666696283e0f8fb",
+        "0x16d9fde88b4f18d5ce0719d904c11f9ee965903857f57854132cfd9c0d257431",
+        "0x120ada243181371df229f252d57bb7ad881003a0ddf17a02540fec9b3e79d325",
+        "0x025a1049ee21caa6f3f943691fbbc2a05683b8661880698be83707de521cd225"
+      ],
+      "c": [
+        "0x196636557b077265f15bdc37da026cfd96c9285c6e9d2417db995eaf3040fe99",
+        "0x052891cfdb487d55133bad738f3027c956d390b75036a677a094abb930858190"
+      ],
+      "publicInputs": [
+        "0x0b57d55e666859a94dbf91adb025d93cdee99630d55c6bd8a7c7cfdd136052a9"
+      ]
+    }
+  ],
+  "note": "generated live by integration/run.mjs"
+}
