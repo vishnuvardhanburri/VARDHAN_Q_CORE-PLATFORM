@@ -1,0 +1,246 @@
+{
+  "id": "DOSSIER-HSBC-CRYPTOGRAPHIC_AGILITY-2026",
+  "institution": "HSBC",
+  "businessArea": "UK / Global banking operations",
+  "problemType": "CRYPTOGRAPHIC_AGILITY",
+  "generatedAt": "2026-10-13T19:22:12.072Z",
+  "gitHead": "unknown",
+  "classification": "AUTHORIZATION_REQUIRED — Internal Vardhan Intelligence Use Only",
+  "section1_institution": {
+    "name": "HSBC",
+    "jurisdiction": "UK / Global",
+    "businessArea": "HSBC has an active quantum technology programme with quantum defences, PQC pilot work with Quantinuum, and strategic urgency around quantum-safe migration, indicating a need for post-quantum cryptographic tooling and migration verification.",
+    "website": "https://www.hsbc.com",
+    "evidence": [
+      {
+        "claim": "Quantum Technologies, Emerging Technology, Innovation and Ventures: HSBC has a Quantum Technologies team within Emerging Technology, Innovation and Ventures that believes quantum computing will have a significant impact on financial services, and is building quantum defences to protect against future cyber threats.",
+        "sourceUrl": "https://www.hsbc.com/who-we-are/hsbc-and-digital/hsbc-and-quantum",
+        "date": "2026-09-07"
+      },
+      {
+        "claim": "Emerging Technology, Innovation and Ventures: HSBC is working with Quantinuum to apply post-quantum cryptography to financial innovation, including tokenised physical gold.",
+        "sourceUrl": "https://www.hsbc.com/who-we-are/hsbc-and-digital/hsbc-and-quantum",
+        "date": "2026-09-07"
+      },
+      {
+        "claim": "Innovation and Ventures: HSBC demonstrated a 34% improvement in order-fulfilment prediction using a quantum/hybrid workflow with IBM Quantum, described by HSBC's Group Head of Quantum Technologies Philip Intallura as \"the single most important achievement of the HSBC quantum programme to date\".",
+        "sourceUrl": "https://www.hsbc.com/-/files/hsbc/who-we-are/pdf/250923-hsbc-x-ibm-quantum-algo-trading-transcript.pdf",
+        "date": "2025-09-23"
+      },
+      {
+        "claim": "Quantum Innovation: HSBC reports that nearly 80% of major global banks are already engaging with quantum technologies, making quantum literacy \"a competitive necessity\".",
+        "sourceUrl": "https://www.hsbc.com/news-and-views/views/hsbc-views/upskilling-everyone-is-vital-for-the-quantum-era",
+        "date": "2025-06-09"
+      },
+      {
+        "claim": "Quantum Innovation / Cybersecurity: Philip Intallura, Group Head of Quantum Technologies at HSBC, states that quantum computers will break current encryption standards and the time to act is now.",
+        "sourceUrl": "https://www.hsbc.com/news-and-views/views/hsbc-views/upskilling-everyone-is-vital-for-the-quantum-era",
+        "date": "2025-06-09"
+      }
+    ]
+  },
+  "section2_verifiedEvidence": [
+    {
+      "excerpt": "We believe quantum technology is going to have a very significant impact on the financial services industry. ... Building quantum defences. Protecting against future cyber threats.",
+      "sourceUrl": "https://www.hsbc.com/who-we-are/hsbc-and-digital/hsbc-and-quantum",
+      "sourceType": "CORPORATE_WEBSITE",
+      "publishedDate": "2026-09-07",
+      "sourceTitle": "HSBC and Quantum",
+      "provenance": "DOCUMENTED_FACT (bank-specific)"
+    },
+    {
+      "excerpt": "We're working with Quantinuum to apply quantum technologies and post-quantum cryptography to financial innovation, including the first application for tokenised physical gold.",
+      "sourceUrl": "https://www.hsbc.com/who-we-are/hsbc-and-digital/hsbc-and-quantum",
+      "sourceType": "CORPORATE_WEBSITE",
+      "publishedDate": "2026-09-07",
+      "sourceTitle": "HSBC and Quantum",
+      "provenance": "DOCUMENTED_FACT (bank-specific)"
+    },
+    {
+      "excerpt": "What we've demonstrated here is the ability to do something with a quantum computer in a hybrid workflow that we just cannot replicate using classical computing alone. ... up to 34 per cent improvement in predicting whether an order will be fulfilled.",
+      "sourceUrl": "https://www.hsbc.com/-/files/hsbc/who-we-are/pdf/250923-hsbc-x-ibm-quantum-algo-trading-transcript.pdf",
+      "sourceType": "PUBLIC_PDF",
+      "publishedDate": "2025-09-23",
+      "sourceTitle": "HSBC x IBM - Quantum Algo Trading (Transcript)",
+      "provenance": "DOCUMENTED_FACT (bank-specific)"
+    },
+    {
+      "excerpt": "With nearly 80 per cent of major global banks already engaging with quantum technologies, cultivating enterprise-wide quantum literacy is fast becoming a competitive necessity.",
+      "sourceUrl": "https://www.hsbc.com/news-and-views/views/hsbc-views/upskilling-everyone-is-vital-for-the-quantum-era",
+      "sourceType": "TECHNICAL_BLOG",
+      "publishedDate": "2025-06-09",
+      "sourceTitle": "Upskilling everyone is vital for the quantum era",
+      "provenance": "DOCUMENTED_FACT (bank-specific)"
+    },
+    {
+      "excerpt": "Quantum computers will be capable of breaking the encryption standards underpinning our digital world – the time to act is now, says Philip Intallura.",
+      "sourceUrl": "https://www.hsbc.com/news-and-views/views/hsbc-views/upskilling-everyone-is-vital-for-the-quantum-era",
+      "sourceType": "TECHNICAL_BLOG",
+      "publishedDate": "2025-06-09",
+      "sourceTitle": "Upskilling everyone is vital for the quantum era",
+      "provenance": "DOCUMENTED_FACT (bank-specific)"
+    }
+  ],
+  "section3_problemHypothesis": {
+    "hypothesis": "HSBC has an active quantum technology programme with quantum defences, PQC pilot work with Quantinuum, and strategic urgency around quantum-safe migration, indicating a need for post-quantum cryptographic tooling and migration verification.",
+    "observedFact": "HSBC has a Quantum Technologies team within Emerging Technology, Innovation and Ventures that believes quantum computing will have a significant impact on financial services, and is building quantum defences to protect against future cyber threats.",
+    "technicalInference": "VARDHAN_INFERENCE: HSBC has an established quantum technology programme with explicit focus on defensive (post-quantum) cryptography, indicating active assessment of quantum-safe migration paths.",
+    "problemType": "CRYPTOGRAPHIC_AGILITY",
+    "supportingReasoning": "Observed facts:\n  1. HSBC has a Quantum Technologies team within Emerging Technology, Innovation and Ventures that believes quantum computing will have a significant impact on financial services, and is building quantum defences to protect against future cyber threats.\n  2. HSBC is working with Quantinuum to apply post-quantum cryptography to financial innovation, including tokenised physical gold.\n  3. HSBC demonstrated a 34% improvement in order-fulfilment prediction using a quantum/hybrid workflow with IBM Quantum, described by HSBC's Group Head of Quantum Technologies Philip Intallura as \"the single most important achievement of the HSBC quantum programme to date\".\n  4. HSBC reports that nearly 80% of major global banks are already engaging with quantum technologies, making quantum literacy \"a competitive necessity\".\n  5. Philip Intallura, Group Head of Quantum Technologies at HSBC, states that quantum computers will break current encryption standards and the time to act is now.\n\nTechnical inferences (VARDHAN_INFERENCE — not observed facts):\n  1. VARDHAN_INFERENCE: HSBC has an established quantum technology programme with explicit focus on defensive (post-quantum) cryptography, indicating active assessment of quantum-safe migration paths.\n  2. VARDHAN_INFERENCE: HSBC has an active proof-of-concept or pilot programme applying post-quantum cryptography with a quantum-technology partner (Quantinuum), suggesting a live evaluation of quantum-safe protocols in a financial context.\n  3. VARDHAN_INFERENCE: HSBC has an active, resourced quantum computing programme with real-world production data applications — establishing quantum technology as a strategic priority with dedicated budget and personnel.\n  4. VARDHAN_INFERENCE: Quantum technology adoption is widespread across major banks — HSBC operates in a competitive context where quantum-safe migration is industry-wide, making early adoption a differentiator.\n  5. VARDHAN_INFERENCE: HSBC's quantum leadership actively identifies quantum-decryption threat timelines as urgent, signalling an active migration-planning process for quantum-safe cryptography.\n\nThese facts and inferences converge on the hypothesis that the institution has an active initiative in the relevant problem domain."
+  },
+  "section4_confidence": {
+    "level": "HIGH",
+    "rationale": "Multiple credible signals (5) from 3 distinct public sources. Signals from the bank's own corporate website (institution-specific). Signals from the bank's own technical/engineering blog (authoritative source). Evidence gaps remain: Specific quantum-safe algorithms or protocols in use are not disclosed; Timeline for quantum-defence deployment is not published; Specific PQC algorithms being tested are not named. Aggregate qualification score: 94/100 (P0 tier).",
+    "unresolvedQuestions": [
+      "What quantum-safe cryptography strategies and protocols is HSBC evaluating for post-quantum migration?",
+      "What post-quantum cryptographic algorithms and protocols are being tested in the Quantinuum collaboration?",
+      "How is the quantum programme structured across the bank, and what resources are allocated to quantum-defence work?",
+      "How is quantum literacy being cultivated across HSBC, and what training programmes exist for cybersecurity architects?",
+      "What is the bank's timeline assessment for quantum-safe migration, and which existing systems are prioritised?"
+    ],
+    "evidenceGaps": [
+      "Specific quantum-safe algorithms or protocols in use are not disclosed",
+      "Timeline for quantum-defence deployment is not published",
+      "Specific PQC algorithms being tested are not named",
+      "Production deployment plans are not disclosed",
+      "Performance is measured on trading prediction, not security outcomes",
+      "No information on quantum-safe cryptography budget or timeline",
+      "The \"nearly 80%\" figure is industry-aggregated, not HSBC-specific",
+      "No specific upskilling metrics or timeline are provided",
+      "No specific migration timeline or algorithm preference is disclosed",
+      "Internal risk assessment details are not public"
+    ],
+    "scoreBreakdown": {
+      "evidenceQuality": 20,
+      "capabilityRelevance": 20,
+      "activeInitiative": 9,
+      "technicalSponsor": 15,
+      "boundedEvaluation": 15,
+      "measurableCriteria": 15,
+      "total": 94
+    },
+    "totalScore": 94
+  },
+  "section5_vardhanCapability": [
+    {
+      "capability": "AER-KEP-Q",
+      "name": "AER-KEP-Q — Asynchronous Exposure-Resilient Key Establishment",
+      "description": "Epoch-based key establishment protocol with automatic quarantine on exposure detection and fresh epoch reissuance, persisting state across restarts with Raft-backed HA.",
+      "technicalMechanism": "ML-KEM-1024 + ML-DSA-87 + Ed25519 dual-signing, transaction-bound HKDF, per-epoch replay protection",
+      "relevanceToProblem": "Relevant to CRYPTOGRAPHIC_AGILITY, KEY_LIFECYCLE, INCIDENT_RESPONSE, TRUST_BOUNDARY",
+      "evidenceUrl": "VARDHAN_INVENTION_SHORTLIST.md#1-aer-kep-q"
+    },
+    {
+      "capability": "PQ_SHIELD",
+      "name": "pq_shield — Quantum-Safe Network Proxy",
+      "description": "Post-quantum TLS-terminating reverse proxy with ML-KEM-1024 + XKyber key exchange, providing ingress security for legacy workloads.",
+      "technicalMechanism": "ML-KEM-1024 + ML-DSA-87 handshake, AEAD transport, concurrency limiting, Raft-backed HA",
+      "relevanceToProblem": "Relevant to CRYPTOGRAPHIC_AGILITY, TRUST_BOUNDARY, SECURITY_SEGMENTATION, INCIDENT_RESPONSE",
+      "evidenceUrl": "backend/pq_shield/src/lib.rs"
+    },
+    {
+      "capability": "KEY_LIFECYCLE",
+      "name": "Key Lifecycle Management",
+      "description": "Formal key lifecycle state machine (Active → Rotating → Deprecated → Retired → Revoked) with time-based deprecation and secure destruction.",
+      "technicalMechanism": "State machine with is_valid_transition(), TTL-based deprecation, secure on-disk destruction",
+      "relevanceToProblem": "Relevant to KEY_LIFECYCLE, CRYPTOGRAPHIC_AGILITY, COMPLIANCE_AUTOMATION",
+      "evidenceUrl": "VARDHAN_INVENTION_SHORTLIST.md#3-key-lifecycle-management"
+    },
+    {
+      "capability": "EXPOSURE_ALERT",
+      "name": "Exposure-Alert Pipeline",
+      "description": "Cryptographic exposure detection with pluggable alert sinks and automatic epoch quarantine trigger.",
+      "technicalMechanism": "Pluggable AlertSink trait, AlertSeverity enum (INFO→CRITICAL), epoch quarantine integration",
+      "relevanceToProblem": "Relevant to INCIDENT_RESPONSE, CRYPTOGRAPHIC_AGILITY, KEY_LIFECYCLE",
+      "evidenceUrl": "VARDHAN_INVENTION_SHORTLIST.md#7-exposure-alert-pipeline"
+    }
+  ],
+  "section6_evaluationProposal": {
+    "title": "[Diagnostic] HSBC — CRYPTOGRAPHIC_AGILITY assessment using synthetic data",
+    "scope": "Synthetic-data assessment of the institution's cryptographic inventory and quantum-vulnerability surface against Vardhan's AER-KEP-Q epoch management and pq_shield quantum-safe proxy.",
+    "methodology": "Provide a synthetic cryptographic inventory dataset (100-500 entries) mirroring real asset metadata (algorithm class, key size, expiry, usage context). Run Vardhan's CryptographicInventoryDiscovery + QuantumVulnerabilityAssessor against the dataset. Map findings to the bank's stated quantum-safe cryptography research priorities.",
+    "duration": "5 working days",
+    "estimatedCost": "£15,000 (diagnostic) / £50,000 (proof-of-value)",
+    "deliverables": [
+      "Cryptographic vulnerability assessment report (synthetic-data)",
+      "AER-KEP-Q integration compatibility matrix",
+      "pq_shield proxy deployment recommendation",
+      "Migration risk prioritisation with bounded scope"
+    ],
+    "dataHandling": "All evaluation data is synthetic — no production bank data, credentials, or customer information are used. All evidence is derived from public sources only."
+  },
+  "section7_successMetrics": [
+    {
+      "metric": "Cryptographic vulnerability detection rate",
+      "acceptanceCriteria": ">80% of synthetic quantum-vulnerable assets identified with <10% false positive rate on the synthetic dataset",
+      "baseline": "Unknown — diagnostic establishes baseline",
+      "measurementMethod": "Run Vardhan CryptographicInventoryDiscovery against synthetic 500-entry key inventory"
+    },
+    {
+      "metric": "AER-KEP-Q compatibility score",
+      "acceptanceCriteria": ">60% of synthetic key-establishment patterns match AER-KEP-Q epoch model",
+      "baseline": "Unknown — pilot determines match",
+      "measurementMethod": "Run Vardhan AER-KEP-Q simulator against synthetic handshake traces"
+    }
+  ],
+  "section8_sponsorRoles": [
+    {
+      "role": "Group Head of Quantum Technologies",
+      "department": "Emerging Technology, Innovation and Ventures",
+      "evidenceUrl": "https://www.hsbc.com/who-we-are/hsbc-and-digital/hsbc-and-quantum",
+      "validationScope": "Validate quantum programme scope, resource allocation, and post-quantum migration strategy across the bank.",
+      "confidence": "HIGH",
+      "notes": "The role title and department are publicly disclosed. The current office-holder is Philip Intallura (named in the source transcript PDF)."
+    },
+    {
+      "role": "CISO / Chief Information Security Officer",
+      "department": "Risk & Security",
+      "evidenceUrl": "https://www.hsbc.com/who-we-are/hsbc-and-digital/hsbc-and-quantum",
+      "validationScope": "Validate quantum-safe cryptography integration with enterprise security architecture and cyber-defence posture.",
+      "confidence": "HIGH",
+      "notes": "Cyber-defence focus is explicitly stated; specific CISO not named on the quantum page."
+    },
+    {
+      "role": "Quantum Innovation Manager",
+      "department": "Emerging Technology, Innovation and Ventures",
+      "evidenceUrl": "https://www.hsbc.com/news-and-views/views/hsbc-views/upskilling-everyone-is-vital-for-the-quantum-era",
+      "validationScope": "Validate quantum workforce upskilling programme and cybersecurity-architect masterclasses.",
+      "confidence": "HIGH",
+      "notes": "Role title and holder (William Shoosmith) are publicly disclosed in the article byline."
+    },
+    {
+      "role": "Head of Digital Assets",
+      "department": "Innovation and Ventures",
+      "evidenceUrl": "https://www.hsbc.com/who-we-are/hsbc-and-digital/hsbc-and-quantum",
+      "validationScope": "Validate post-quantum cryptography application to tokenised assets and financial innovation pilots.",
+      "confidence": "MEDIUM",
+      "notes": "Digital Assets initiative is disclosed; specific head title not named on the quantum page."
+    }
+  ],
+  "section9_barriers": [
+    {
+      "category": "Procurement",
+      "description": "Large banks operate multi-year procurement cycles with extensive tender and approval processes for security infrastructure.",
+      "evidence": "JPMorgan Chase technology page describes enterprise-scale security operations with formal procurement processes.",
+      "mitigation": "Frame as a diagnostic assessment (£15K) with no procurement commitment, allowing entry before formal RFP cycle."
+    },
+    {
+      "category": "Security Assurance",
+      "description": "Banks require extensive third-party security assessments (SOC 2, ISO 27001, penetration testing) before integrating new infrastructure.",
+      "evidence": "JPMorgan Chase blog recommends \"contractual requirements for timely security notifications, right-to-audit provisions\".",
+      "mitigation": "Provide Vardhan security package (attestation, audit ledger export) as part of diagnostic deliverable."
+    },
+    {
+      "category": "Integration",
+      "description": "Post-quantum migration requires integration with existing key management, HSM, and PKI infrastructure.",
+      "evidence": "JPMorgan Chase research mentions adapting blockchain technologies; HSBC mentions quantum key distribution.",
+      "mitigation": "Design pq_shield as a reverse proxy with no upstream changes — zero integration risk for proof-of-value."
+    }
+  ],
+  "section10_nextAction": {
+    "action": "Hold for human approval — do not initiate outbound contact.",
+    "rationale": "Opportunity scored 94/100 (P0). Meets qualification threshold but requires human review before any external outreach.",
+    "gate": "HUMAN_APPROVAL_REQUIRED",
+    "estimatedTimeline": "Within 2 business days of human approval"
+  }
+}

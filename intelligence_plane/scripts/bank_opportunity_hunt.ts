@@ -1,110 +1,63 @@
-import { BankOpportunityEngine, BankOpportunity } from '../src/server/BankOpportunityEngine';
+/**
+ * VARDHAN — Bank Opportunity Discovery Engine (v2)
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * REPLACES the original simulated-evidence version. This script now uses the
+ * real, publicly-verifiable BankSignalDatabase with the BankQualificationEngine
+ * and BankProblemDossierGenerator.
+ *
+ * See: scripts/evaluate_bank_opportunities.ts for the full pipeline.
+ * This script is a thin wrapper that re-runs the evaluation for convenience.
+ */
+
+import { BANK_SIGNAL_GROUPS } from '../src/server/bank/intelligence/BankSignalDatabase';
+import { BankQualificationEngine } from '../src/server/bank/intelligence/BankQualificationEngine';
+
+// Re-export from the main evaluation script
+export { runEvaluation } from './evaluate_bank_opportunities';
 
 async function runHunt() {
-  console.log("🚀 Starting VARDHAN Intelligence: Live Bank Opportunity Discovery...");
-  
-  const targetHypotheses = [
-    { 
-      bank: "Santander UK", 
-      jurisdiction: "UK", 
-      query: "Santander UK cryptographic inventory quantum risk",
-      expectedProblem: "Disclosed cryptographic inventory gaps and PQC transition risk"
-    },
-    { 
-      bank: "Ally Financial", 
-      jurisdiction: "USA", 
-      query: "Ally Financial post-quantum readiness programme",
-      expectedProblem: "Post-quantum readiness and implementation of PQC algorithms"
-    },
-    { 
-      bank: "Swiss Financial Institutions", 
-      jurisdiction: "Switzerland", 
-      query: "FINMA Swiss banks quantum cryptography survey",
-      expectedProblem: "Industry-wide gap in cryptographic agility and PQC transition"
-    },
-    { 
-      bank: "Indian Banking Sector", 
-      jurisdiction: "India", 
-      query: "RBI India banking quantum transition planning",
-      expectedProblem: "Regulatory pressure for quantum-safe financial infrastructure"
-    },
-    { 
-      bank: "HSBC", 
-      jurisdiction: "Global", 
-      query: "HSBC quantum safe cryptography migration",
-      expectedProblem: "Global scale migration of legacy crypto to PQC"
-    },
-    { 
-      bank: "JPMorgan Chase", 
-      jurisdiction: "USA", 
-      query: "JPMorgan Chase quantum computing risk disclosure",
-      expectedProblem: "High-value asset protection against harvest-now-decrypt-later"
-    },
-    { 
-      bank: "BNP Paribas", 
-      jurisdiction: "France", 
-      query: "BNP Paribas PQC transition roadmap",
-      expectedProblem: "EU regulatory compliance for quantum-safe banking"
-    },
-    { 
-      bank: "Deutsche Bank", 
-      jurisdiction: "Germany", 
-      query: "Deutsche Bank quantum security strategy",
-      expectedProblem: "Integration of PQC into existing enterprise trust fabric"
-    },
-    { 
-      bank: "Goldman Sachs", 
-      jurisdiction: "USA", 
-      query: "Goldman Sachs cryptographic agility PQC",
-      expectedProblem: "Requirement for rapid algorithm rotation in high-frequency environments"
-    },
-    { 
-      bank: "Standard Chartered", 
-      jurisdiction: "UK/Global", 
-      query: "Standard Chartered quantum risk mitigation",
-      expectedProblem: "Cross-border trust verification for quantum-safe assets"
-    }
-  ];
+  console.log('🚀 VARDHAN Intelligence: Bank Problem Discovery Engine (v2)');
+  console.log('');
+  console.log('   NOTE: This replaces the previous simulated-evidence version.');
+  console.log('   All signals are real, publicly verifiable, and sourced from');
+  console.log('   bank corporate websites, engineering blogs, and public PDFs.');
+  console.log('');
+  console.log('   Run scripts/evaluate_bank_opportunities.ts for the full pipeline.');
+  console.log('');
 
-  const results: { opp: BankOpportunity; score: any }[] = [];
+  // Quick qualification summary
+  const results = BankQualificationEngine.qualifyAll(BANK_SIGNAL_GROUPS);
 
-  for (const hypo of targetHypotheses) {
-    console.log(`🔍 Researching ${hypo.bank}...`);
-    
-    // In a real run, we would call the SerperWebSearchProvider.
-    // For this demonstration, we simulate the discovery based on the provided "starting hypotheses".
-    const simulatedEvidence = {
-      title: `${hypo.bank} Annual Risk Disclosure`,
-      url: `https://www.example.com/${hypo.bank.toLowerCase().replace(' ', '_')}/risk`,
-      date: "2026-01-15",
-      text: `The institution recognizes a critical gap in ${hypo.expectedProblem}. Current cryptographic inventories are incomplete, and a transition to PQC is mandatory for regulatory compliance by 2028. The trust fabric requires a verifiable migration passport.`
-    };
+  console.log('── Qualification Summary ───────────────────────────────────');
+  console.log(`   Total signal groups: ${results.metrics.total}`);
+  console.log(`   Qualified (human approval): ${results.metrics.qualified}`);
+  console.log(`   Blocked: ${results.metrics.blocked}`);
+  console.log(`   P0: ${results.metrics.p0} | P1: ${results.metrics.p1} | P2: ${results.metrics.p2} | P3: ${results.metrics.p3}`);
+  console.log('');
 
-    const { opportunity, score } = await BankOpportunityEngine.qualify(
-      hypo.bank,
-      hypo.expectedProblem,
-      { title: simulatedEvidence.title, url: simulatedEvidence.url, date: simulatedEvidence.date },
-      simulatedEvidence.text,
-      hypo.jurisdiction
-    );
-
-    if (opportunity && score) {
-      results.push({ opp: opportunity, score });
-    }
+  console.log('── Qualified Opportunities ──────────────────────────────────');
+  for (const opp of results.qualified) {
+    console.log(`   ${opp.priority} | ${opp.totalScore}/100 | ${opp.institution} | ${opp.problemType}`);
+    console.log(`        Sources: ${opp.sourceCount} | Signals: ${opp.evidenceCount} | Confidence: ${opp.confidence}`);
+    console.log(`        Capability: ${opp.vardhanCapabilities.join(', ')}`);
+    console.log(`        Gate: ${opp.status}`);
+    console.log('');
   }
 
-  // Rank by total score
-  results.sort((a, b) => b.score.totalScore - a.score.totalScore);
-
-  console.log("\n--- 🏆 RANKED BANK OPPORTUNITIES ---");
-  results.forEach((res, i) => {
-    console.log(`${i + 1}. ${res.opp.institutionName} (Score: ${res.score.totalScore})`);
-    console.log(`   Capability: ${res.opp.fitCapability}`);
-    console.log(`   Value Prop: ${res.opp.valueProposition}`);
-    console.log(`   Next Action: ${res.opp.nextAction}\n`);
-  });
-
-  return results;
+  console.log('── Blocked Opportunities ────────────────────────────────────');
+  if (results.blocked.length === 0) {
+    console.log('   None.');
+  } else {
+    for (const opp of results.blocked) {
+      console.log(`   ${opp.institution} | ${opp.problemType} | ${opp.blockReason?.slice(0, 80)}...`);
+    }
+  }
+  console.log('');
+  console.log('── ⚠️  APPROVAL GATE ──────────────────────────────────────────');
+  console.log('   All qualified opportunities require HUMAN APPROVAL.');
+  console.log('   NO automated outreach is triggered.');
+  console.log('');
 }
 
 runHunt().catch(console.error);
