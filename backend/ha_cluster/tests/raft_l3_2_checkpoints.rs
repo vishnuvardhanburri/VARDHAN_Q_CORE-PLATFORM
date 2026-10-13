@@ -834,7 +834,10 @@ async fn test_c8_deletion_detection() {
     // Explicitly apply the committed checkpoint entry on every node before
     // inspecting the persisted checkpoint chain.
     for n in &mut nodes {
-        n.applier.apply_committed_entries().await.expect("apply committed checkpoint");
+        n.applier
+            .apply_committed_entries()
+            .await
+            .expect("apply committed checkpoint");
     }
 
     let path = nodes[leader_idx].checkpoint_path.clone();
@@ -1205,6 +1208,7 @@ async fn test_c13_insertion_detection() {
     for n in &mut nodes {
         n.apply_handle.abort();
     }
+    tokio::time::sleep(Duration::from_millis(100)).await; // let in-flight applies drain
     for n in &mut nodes {
         n.applier.apply_committed_entries().await.ok();
     }
@@ -1222,7 +1226,10 @@ async fn test_c13_insertion_detection() {
     // Apply the committed checkpoint entry after the quorum commit so the
     // checkpoint JSONL is populated before corruption is injected.
     for n in &mut nodes {
-        n.applier.apply_committed_entries().await.expect("apply committed checkpoint");
+        n.applier
+            .apply_committed_entries()
+            .await
+            .expect("apply committed checkpoint");
     }
 
     let path = nodes[leader_idx].checkpoint_path.clone();
@@ -1808,6 +1815,7 @@ async fn test_c22_restart_during_commitment() {
     }
     // Abort the restarted node's background apply loop to prevent races
     nodes[leader_idx].apply_handle.abort();
+    tokio::time::sleep(Duration::from_millis(100)).await; // let in-flight applies drain
 
     // Apply committed entries — should process the checkpoint entry
     nodes[leader_idx]

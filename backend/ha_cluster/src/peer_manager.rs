@@ -375,11 +375,11 @@ async fn run_peer_worker(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
-    use std::sync::{Arc, Mutex};
-    use std::sync::atomic::{AtomicU64, Ordering};
-    use std::thread;
     use rand::Rng;
+    use std::collections::HashSet;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::{Arc, Mutex};
+    use std::thread;
 
     /// SEC-010: request_id uniqueness and collision resistance model.
     ///

@@ -28,7 +28,6 @@ pub struct LedgerApplier {
     pub checkpoint_writer: Option<Arc<CheckpointWriter>>,
     pub applied_requests: RwLock<HashMap<(String, String), u64>>,
     pub merkle_hashes: RwLock<Vec<[u8; 32]>>,
-    pub ledger_seq: RwLock<u64>,
     pub ledger_prev_hash: RwLock<[u8; 32]>,
     apply_lock: Mutex<()>,
 }
@@ -46,7 +45,6 @@ impl LedgerApplier {
             checkpoint_writer: None,
             applied_requests: RwLock::new(HashMap::new()),
             merkle_hashes: RwLock::new(Vec::new()),
-            ledger_seq: RwLock::new(0),
             ledger_prev_hash: RwLock::new([0u8; 32]),
             apply_lock: Mutex::new(()),
         }
@@ -136,12 +134,7 @@ impl LedgerApplier {
                 .as_millis() as u64;
 
             let prev_hash = self.ledger.latest_hash().await;
-            let seq = {
-                let mut s = self.ledger_seq.write().await;
-                let v = *s;
-                *s += 1;
-                v
-            };
+            let seq = self.ledger.len().await as u64;
             let canonical = {
                 let mut hasher = blake3::Hasher::new();
                 hasher.update(&seq.to_le_bytes());

@@ -1287,8 +1287,6 @@ pub struct LedgerApplier {
     /// Canonical hashes (LedgerEntry-style) of every regular ledger entry applied,
     /// used for Merkle root computation that pq_verify can independently reconstruct.
     pub merkle_hashes: RwLock<Vec<[u8; 32]>>,
-    /// Next ledger sequence number (for canonical hash computation).
-    pub ledger_seq: RwLock<u64>,
     /// Previous canonical hash (for chain linkage in canonical hash computation).
     pub ledger_prev_hash: RwLock<[u8; 32]>,
 }
@@ -1306,7 +1304,6 @@ impl LedgerApplier {
             checkpoint_writer: None,
             applied_requests: RwLock::new(HashMap::new()),
             merkle_hashes: RwLock::new(Vec::new()),
-            ledger_seq: RwLock::new(0),
             ledger_prev_hash: RwLock::new([0u8; 32]),
         }
     }
@@ -1401,12 +1398,7 @@ impl LedgerApplier {
                 .as_millis() as u64;
 
             let prev_hash = self.ledger.latest_hash().await;
-            let seq = {
-                let mut s = self.ledger_seq.write().await;
-                let v = *s;
-                *s += 1;
-                v
-            };
+            let seq = self.ledger.len().await as u64;
             let _event_json = match serde_json::from_slice::<serde_json::Value>(&entry_data) {
                 Ok(v) => serde_json::to_string(&v).unwrap_or_default(),
                 Err(_) => String::from_utf8_lossy(&entry_data).to_string(),
@@ -1429,7 +1421,7 @@ impl LedgerApplier {
             let prev_hash_for_block = prev_hash;
             let block = tokio::task::spawn_blocking(move || {
                 ledger_sync::LedgerBlock::new(
-                    seq, // Use ledger_seq (regular-entry count), not raft_log_index-1
+                    seq, // Use ledger.len() (actual block count), not raft_log_index-1
                     timestamp_ms,
                     prev_hash_for_block,
                     [0u8; 32],
