@@ -15,7 +15,7 @@ pub fn verify_receipt(raw: &[u8], expected_tenant: &str, issuer: &ReceiptIssuerK
     if receipt.signatures.ed25519_key_id != issuer.ed25519_key_id || receipt.signatures.ml_dsa_87_key_id != issuer.ml_dsa_87_key_id { return Err("receipt references an unregistered issuer key".into()); }
     if receipt.issuer_key_fingerprint != issuer.issuer_key_fingerprint { return Err("receipt issuer fingerprint does not match registered key".into()); }
     let structural = VardhanVerifier::new(vardhan_verifier::VerifierConfig { expected_tenant_id: Some(expected_tenant.into()), ..Default::default() }).verify(&receipt, None, None);
-    let mut failures = structural.failures;
+    let mut failures: Vec<_> = structural.failures.into_iter().filter(|f| f.reason != "Ed25519 public key missing" && f.reason != "ML-DSA-87 public key missing").collect();
     let mut checks_passed = structural.checks_passed;
     if verify_ed25519(&issuer.ed25519_public_key, receipt.payload_hash.as_bytes(), &receipt.signatures.ed25519_sig) { checks_passed.push("ed25519_signature_valid".into()); } else { failures.push(VerificationFailure { check: "ed25519_signature_valid".into(), reason: "Ed25519 signature invalid".into() }); }
     if verify_mldsa87(&issuer.ml_dsa_87_public_key, receipt.payload_hash.as_bytes(), &receipt.signatures.ml_dsa_87_sig) { checks_passed.push("ml_dsa_87_signature_valid".into()); } else { failures.push(VerificationFailure { check: "ml_dsa_87_signature_valid".into(), reason: "ML-DSA-87 signature invalid".into() }); }

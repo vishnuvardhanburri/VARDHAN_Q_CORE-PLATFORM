@@ -357,7 +357,7 @@ mod tests {
                 ml_dsa_87_key_id: "key-2".to_string(),
             },
         };
-        receipt.payload_hash = blake3::hash(&VardhanVerifier::canonical_receipt_payload(&receipt)).to_string();
+        receipt.payload_hash = blake3::hash(&canonical_receipt_payload(&receipt)).to_string();
         receipt
     }
 
