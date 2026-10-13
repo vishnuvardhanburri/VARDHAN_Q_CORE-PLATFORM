@@ -20,8 +20,8 @@ jobs:
           # GitHub runners may reuse runners — clean up any prior swap
           sudo swapon --show 2>/dev/null | grep -q /swapfile && (sudo swapoff /swapfile || true)
           sudo rm -f /swapfile
-          # Use dd instead of fallocate (fallocate can fail with ETXTBSY on some runners)
-          sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=none
+          # Use fallocate (faster, creates file without writing zeros); fallback to dd
+          sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
@@ -29,6 +29,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: System dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev
+      - name: Free disk space before build
+        run: |
+          docker system prune -af --volumes 2>/dev/null || true
+          sudo rm -rf /tmp/* /var/log/*/ /usr/share/dotnet/ /usr/share/temurin/ 2>/dev/null || true
+          echo "Disk usage:"; df -h /
       - name: Formatting normalization
         run: cargo fmt --all
       - name: Workspace tests
