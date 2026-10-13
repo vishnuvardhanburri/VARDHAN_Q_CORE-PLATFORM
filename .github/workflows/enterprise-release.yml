@@ -17,7 +17,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Provision swap (prevents lld linker OOM on heavy crates)
         run: |
-          sudo fallocate -l 4G /swapfile
+          # GitHub runners may reuse runners — clean up any prior swap
+          sudo swapon --show 2>/dev/null | grep -q /swapfile && (sudo swapoff /swapfile || true)
+          sudo rm -f /swapfile
+          # Use dd instead of fallocate (fallocate can fail with ETXTBSY on some runners)
+          sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=none
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
