@@ -88,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Initial payload hash for signing
-    r.payload_hash = blake3::hash(&vardhan_verifier::VardhanVerifier::canonical_receipt_payload(&r)).to_string();
+    r.payload_hash = blake3::hash(&vardhan_verifier::canonical_receipt_payload(&r)).to_string();
     
     // Signatures
     let mut ed_sig = hex::encode(ed_sk.sign(r.payload_hash.as_bytes()).to_bytes());
