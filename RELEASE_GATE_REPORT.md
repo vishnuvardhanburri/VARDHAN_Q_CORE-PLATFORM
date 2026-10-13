@@ -132,7 +132,7 @@ All five release-gate requirements from the task are satisfied:
 |---|---|
 | `backend/vardhan_receipt/src/main.rs` | Added idempotency guard at `process_transaction` level; fixed `test_q_replay` to assert denial; fixed double `#[test]` on `test_s_identity_substitution_fails`; added 6 release-gate regression tests (R1–R6); made `get_valid_contract()` use unique finding_ids via atomic counter |
 | `backend/vardhan_receipt/src/gateway.rs` | Added `is_finding_already_sealed` guard in `handle_seal` API handler |
-| `lab_demo_verify.sh` | Added Test 4 (tampered signature rejection) and Test 5 (unauthorized identity rejection) |
+| `lab_demo_verify.sh` | Added Test 4 (tampered signature rejection via VardhanVerifier) and Test 5 (unauthorized identity rejection). Located at `antigravity/lab_demo_verify.sh` (maintained outside the git repo for local lab execution). |
 
 ### Files Created
 
