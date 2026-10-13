@@ -15,6 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Provision swap (prevents lld linker OOM on heavy crates)
+        run: |
+          sudo fallocate -l 4G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          sudo swapon --show
       - uses: dtolnay/rust-toolchain@stable
       - name: System dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev
@@ -22,6 +29,8 @@ jobs:
         run: cargo fmt --all
       - name: Workspace tests
         run: cargo test --workspace
+        env:
+          CARGO_BUILD_JOBS: 2
       - name: Release build
         run: cargo build --workspace --release
       - name: SDK contract gate
