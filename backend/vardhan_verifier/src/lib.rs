@@ -117,6 +117,27 @@ pub struct VardhanVerifier {
     config: VerifierConfig,
 }
 
+    pub fn canonical_receipt_payload(receipt: &VerifiableReceipt) -> Vec<u8> {
+        let evidence = receipt.evidence_commitments.iter().map(|item| {
+            format!("{}:{}:{}", item.evidence_id, item.content_hash, item.category)
+        }).collect::<Vec<_>>().join(";");
+        let fields = [
+            receipt.schema_version.as_str(), receipt.receipt_id.as_str(), receipt.transaction_id.as_str(),
+            receipt.tenant_id.as_str(), receipt.subject_id.as_str(), receipt.actor_identity.as_str(),
+            receipt.proposed_action.as_str(), receipt.policy_id.as_str(), receipt.policy_version.as_str(),
+            receipt.state_hash_at_decision.as_deref().unwrap_or(""), evidence.as_str(),
+            receipt.authority_reference.as_str(), receipt.decision.as_str(), receipt.outcome_code.as_str(),
+            &receipt.timestamp_ms.to_string(), &receipt.ledger_commit_index.to_string(),
+            receipt.parent_receipt_id.as_deref().unwrap_or(""), receipt.correlation_id.as_deref().unwrap_or(""),
+        ];
+        fields.iter().flat_map(|field| {
+            let mut encoded = format!("{}:", field.len()).into_bytes();
+            encoded.extend_from_slice(field.as_bytes());
+            encoded.push(b'|');
+            encoded
+        }).collect()
+    }
+
 impl VardhanVerifier {
     pub fn new(config: VerifierConfig) -> Self {
         Self { config }
@@ -203,7 +224,7 @@ impl VardhanVerifier {
         }
 
         // 6. Payload Hash
-        let expected_payload = Self::canonical_receipt_payload(receipt);
+        let expected_payload = canonical_receipt_payload(receipt);
         let expected_hash = blake3::hash(&expected_payload).to_string();
         if expected_hash == receipt.payload_hash {
             passed.push("payload_hash_valid".to_string());
@@ -297,26 +318,6 @@ impl VardhanVerifier {
         }
     }
 
-    pub fn canonical_receipt_payload(receipt: &VerifiableReceipt) -> Vec<u8> {
-        let evidence = receipt.evidence_commitments.iter().map(|item| {
-            format!("{}:{}:{}", item.evidence_id, item.content_hash, item.category)
-        }).collect::<Vec<_>>().join(";");
-        let fields = [
-            receipt.schema_version.as_str(), receipt.receipt_id.as_str(), receipt.transaction_id.as_str(),
-            receipt.tenant_id.as_str(), receipt.subject_id.as_str(), receipt.actor_identity.as_str(),
-            receipt.proposed_action.as_str(), receipt.policy_id.as_str(), receipt.policy_version.as_str(),
-            receipt.state_hash_at_decision.as_deref().unwrap_or(""), evidence.as_str(),
-            receipt.authority_reference.as_str(), receipt.decision.as_str(), receipt.outcome_code.as_str(),
-            &receipt.timestamp_ms.to_string(), &receipt.ledger_commit_index.to_string(),
-            receipt.parent_receipt_id.as_deref().unwrap_or(""), receipt.correlation_id.as_deref().unwrap_or(""),
-        ];
-        fields.iter().flat_map(|field| {
-            let mut encoded = format!("{}:", field.len()).into_bytes();
-            encoded.extend_from_slice(field.as_bytes());
-            encoded.push(b'|');
-            encoded
-        }).collect()
-    }
 
     fn now_ms() -> u64 {
         SystemTime::now().duration_since(UNIX_EPOCH).expect("SystemTime before UNIX_EPOCH").as_millis() as u64

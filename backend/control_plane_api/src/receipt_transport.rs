@@ -68,6 +68,7 @@ pub async fn ingest_receipt(
         policy_version: receipt.policy_version.clone(), ledger_commit_index: receipt.ledger_commit_index, timestamp_ms: receipt.timestamp_ms,
         payload_hash: receipt.payload_hash.clone(), issuer_key_fingerprint: receipt.issuer_key_fingerprint.clone(), verification: ReceiptVerificationState::Verified,
     };
+    println!("DEBUG: Recording transaction {} and receipt {}", transaction.transaction_id, receipt.receipt_id);
     if let Err(error) = store.record_transaction(&transaction).and_then(|_| store.record_receipt(&telemetry)) {
         return (StatusCode::CONFLICT, Json(json!({"status":"rejected","error":error.to_string()}))).into_response();
     }
