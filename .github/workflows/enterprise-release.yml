@@ -36,6 +36,10 @@ jobs:
           echo "Disk usage:"; df -h /
       - name: Formatting normalization
         run: cargo fmt --all
+      - name: Build receipt engine for control-plane lifecycle tests
+        run: cargo build -p vardhan_receipt
+        env:
+          CARGO_BUILD_JOBS: 2
       - name: Workspace tests
         run: cargo test --workspace
         env:
