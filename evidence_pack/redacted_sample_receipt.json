@@ -1,0 +1,63 @@
+{
+  "actor_identity": "engine-v2",
+  "authority_reference": "gate:VardhanGate",
+  "correlation_id": null,
+  "decision": "AUTHORIZED",
+  "evidence_commitments": [
+    {
+      "category": "STATIC_ANALYSIS",
+      "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "evidence_id": "ev-evidence-001"
+    }
+  ],
+  "issuer_key_fingerprint": "\u27e6REDACTED\u27e7",
+  "ledger_commit_index": 1792005580,
+  "outcome_code": "SEALING_OK",
+  "parent_receipt_id": null,
+  "payload_hash": "bb9a430e563af36f4ee4132d1dce0d90b93f94b974583903caa0bd1c1ddb36d3",
+  "policy_id": "VARDHAN_CORE_INTELLIGENCE_POLICY_V1",
+  "policy_version": "1.0",
+  "proposed_action": "SEAL_VERIFIED_FINDING",
+  "receipt_id": "VQR-48d478cb-152d-4247-b617-953a5d9e6493",
+  "schema_version": "1.1",
+  "signatures": {
+    "ed25519_key_id": "0f9b478d-d048-4274-8d35-169148999809",
+    "ed25519_sig": "\u27e6REDACTED-128-chars\u27e7",
+    "ml_dsa_87_key_id": "d13e4be9-bef2-43db-a077-81460ae6f932",
+    "ml_dsa_87_sig": "\u27e6REDACTED-9254-chars\u27e7"
+  },
+  "state_hash_at_decision": null,
+  "status": "SEALED",
+  "subject_id": "find-evidence-001",
+  "tenant_id": "org-vardhan-intelligence",
+  "timestamp_ms": 1792005580348,
+  "transaction_id": "68f77848-492a-4730-b3f9-f85be65bc0ef",
+  "verification_result": {
+    "status": "Valid",
+    "checks_passed": 19,
+    "checks_failed": 0,
+    "verifier": "vardhan-receipt verify --receipt-id <id>",
+    "commit_sha": "f727d722325305afb19a295ee178fbdea7371dae",
+    "checks": [
+      "schema_version_supported",
+      "receipt_id_format",
+      "field_transaction_id_present",
+      "field_tenant_id_present",
+      "field_subject_id_present",
+      "field_actor_identity_present",
+      "field_proposed_action_present",
+      "field_policy_id_present",
+      "field_policy_version_present",
+      "field_authority_reference_present",
+      "field_decision_present",
+      "field_payload_hash_present",
+      "timestamp_not_future",
+      "payload_hash_valid",
+      "decision_is_known_value",
+      "ed25519_signature_valid",
+      "mldsa87_signature_valid",
+      "signature_key_ids_present",
+      "issuer_key_fingerprint_present"
+    ]
+  }
+}

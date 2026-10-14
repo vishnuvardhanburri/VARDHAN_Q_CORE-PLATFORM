@@ -95,7 +95,7 @@ def api_request(method, path, token=None, body=None):
         if new_token and new_token.startswith("Bearer "): new_token = new_token[7:]
         return e.code, json.loads(resp_body) if resp_body else {}, new_token
 
-def build_valid_contract(finding_id="find-e2e-001", actor="intelligence-plane-orchestrator", org_id="org-sc-01"):
+def build_valid_contract(finding_id="find-e2e-001", actor="svc:vardhan-intelligence:e2e-valid", org_id="org-vardhan-intelligence"):
     return {
         "contract": {
             "schema_version": "1.1",
@@ -179,7 +179,7 @@ def main():
 
         print("\n[9] Submitting valid Q-Core contract")
         # Use registered tenant
-        contract = build_valid_contract(org_id="org-sc-01")
+        contract = build_valid_contract(org_id="org-vardhan-intelligence")
         status, body, token = api_request("POST", f"/api/v1/organizations/{org1_id}/security/validate", token, contract)
         check("Valid contract sealing", 200, status)
         receipt_status = body.get("status", "")
@@ -192,14 +192,14 @@ def main():
         check("Replay status REJECTED_REPLAY", "REJECTED_REPLAY", body.get("status", ""))
 
         print("\n[11] Trust Boundary: Malformed Hash")
-        bad_contract = build_valid_contract(finding_id="find-e2e-malformed", org_id="org-sc-01")
+        bad_contract = build_valid_contract(finding_id="find-e2e-malformed", org_id="org-vardhan-intelligence")
         bad_contract["contract"]["evidence_refs"][0]["content_hash"] = "deadbeef"
         status, body, token = api_request("POST", f"/api/v1/organizations/{org1_id}/security/validate", token, bad_contract)
         check("Malformed hash rejected", 200, status)
         check("Malformed hash status not SEALED", False, body.get("status") == "SEALED")
 
         print("\n[12] Unauthorized Actor")
-        unauth_contract = build_valid_contract(finding_id="find-e2e-unauth", actor="svc:attacker-service:evil-01", org_id="org-sc-01")
+        unauth_contract = build_valid_contract(finding_id="find-e2e-unauth", actor="svc:attacker-service:evil-01", org_id="org-vardhan-intelligence")
         status, body, token = api_request("POST", f"/api/v1/organizations/{org1_id}/security/validate", token, unauth_contract)
         check("Unauthorized actor rejected", 200, status)
         check("Unauthorized actor status not SEALED", False, body.get("status") == "SEALED")
