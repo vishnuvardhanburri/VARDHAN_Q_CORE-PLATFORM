@@ -33,6 +33,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev python3 jq
       - name: Formatting normalization
         run: cargo fmt --all
+      - name: Build receipt engine for control-plane lifecycle tests
+        run: cargo build -p vardhan_receipt
+        env:
+          CARGO_BUILD_JOBS: 2
       - name: Rust tests (unit + integration)
         run: cargo test --workspace
         env:
