@@ -40,3 +40,6 @@ sdk/rust/Cargo.lock
 sdk/java/target/
 sdk/typescript/package-lock.json
 sdk/typescript/node_modules/
+.admin_password
+.vardhan_data/
+auth_config.json

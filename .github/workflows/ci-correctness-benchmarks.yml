@@ -1,0 +1,78 @@
+name: Vardhan Q-Core Correctness & Performance
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    # Weekly benchmark runs
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Deterministic Correctness Tests ───────────────────────────────────────
+  correctness:
+    name: Correctness — E2E Lifecycle & Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provision swap (prevents OOM on heavy crates)
+        run: |
+          sudo swapon --show 2>/dev/null | grep -q /swapfile && (sudo swapoff /swapfile || true)
+          sudo rm -f /swapfile
+          sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+          sudo chmod 600 /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+      - uses: dtolnay/rust-toolchain@stable
+      - name: System dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev python3 jq
+      - name: Formatting normalization
+        run: cargo fmt --all
+      - name: Rust tests (unit + integration)
+        run: cargo test --workspace
+        env:
+          CARGO_BUILD_JOBS: 2
+      - name: Build release binaries
+        run: |
+          cargo build --release -p control_plane_api
+          cargo build --release -p vardhan_receipt
+      - name: Run lab demo verification
+        run: bash lab_demo_verify.sh
+      - name: Run E2E lifecycle validation
+        run: python3 scripts/e2e_lifecycle_validation.py
+
+  # ── Controlled Performance Benchmark ──────────────────────────────────────
+  benchmark:
+    name: Performance benchmark (controlled)
+    runs-on: ubuntu-latest
+    needs: correctness
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provision swap (prevents OOM on heavy crates)
+        run: |
+          sudo swapon --show 2>/dev/null | grep -q /swapfile && (sudo swapoff /swapfile || true)
+          sudo rm -f /swapfile
+          sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+      - uses: dtolnay/rust-toolchain@stable
+      - name: System dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev python3 jq
+      - name: Release build
+        run: |
+          cargo build --release -p control_plane_api
+          cargo build --release -p vardhan_receipt
+      - name: Run performance benchmark
+        run: python3 scripts/performance_benchmark.py
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: /tmp/vardhan_bench_results.json
