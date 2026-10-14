@@ -7,7 +7,7 @@
  * Each provider normalizes into the canonical model (see Model.ts).
  * Provenance is always preserved.
  */
-import type { CanonicalCompany, CanonicalPerson, CanonicalContact, Provenance, SourceEntry } from './Model';
+import type { CanonicalCompany, CanonicalPerson, CanonicalContact, Provenance, SourceEntry } from './Model.ts';
 import { ProviderCostClass } from '../IntelligenceCase';
 
 export interface ProviderCapabilities {

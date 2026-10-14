@@ -11,8 +11,8 @@
  * prose is never turned into an active problem here.
  */
 
-import type { DeepSignal, SignalSourceType, EvidenceProvenance, SignalStrength, DeepStage } from './DeepTypes';
-import type { Evidence, DiscoveredPage, CompanySurface, SourceRelationship } from './IntelligenceCase';
+import type { DeepSignal, SignalSourceType, EvidenceProvenance, SignalStrength, DeepStage } from './DeepTypes.ts';
+import type { Evidence, DiscoveredPage, CompanySurface, SourceRelationship } from './IntelligenceCase.ts';
 
 /**
  * Incident context classification — determines the semantic polarity of a

@@ -1,6 +1,6 @@
-import { IntelligenceCase, Evidence } from './IntelligenceCase';
-import { TemporalDeltaEngine, InstitutionalTrajectory } from './TemporalDeltaEngine';
-import { ThesisEngine, StrategicThesis } from './ThesisEngine';
+import { IntelligenceCase, Evidence } from './IntelligenceCase.ts';
+import { TemporalDeltaEngine, InstitutionalTrajectory } from './TemporalDeltaEngine.ts';
+import { ThesisEngine, StrategicThesis } from './ThesisEngine.ts';
 
 export interface StrategicWindow {
   window_status: 'OPEN' | 'CLOSING' | 'CLOSED';

@@ -8,22 +8,22 @@
  * OwnershipInferenceEngine -> DeepOwnerResolver
  */
 
-import { OwnerSearchPlanner } from './OwnerSearchPlanner';
-import { TargetedDiscoveryEngine } from './TargetedDiscoveryEngine';
-import { OwnershipInferenceEngine } from './OwnershipInferenceEngine';
-import { PeopleExtractor } from './PeopleExtractor';
-import { LiveWebResearchProvider } from './LiveWebResearchProvider';
-import { OwnerSelector } from './OwnerSelector';
-import { DeepOwnerResolver, subsystemFromFinding } from './DeepOwnerResolver';
-import { CANDIDATE_ROLES } from './IntelligenceCase';
+import { OwnerSearchPlanner } from './OwnerSearchPlanner.ts';
+import { TargetedDiscoveryEngine } from './TargetedDiscoveryEngine.ts';
+import { OwnershipInferenceEngine } from './OwnershipInferenceEngine.ts';
+import { PeopleExtractor } from './PeopleExtractor.ts';
+import { LiveWebResearchProvider } from './LiveWebResearchProvider.ts';
+import { OwnerSelector } from './OwnerSelector.ts';
+import { DeepOwnerResolver, subsystemFromFinding } from './DeepOwnerResolver.ts';
+import { CANDIDATE_ROLES } from './IntelligenceCase.ts';
 import type { 
   FindingClassification, Evidence, OwnerCandidate
-} from './IntelligenceCase';
+} from './IntelligenceCase.ts';
 import type { 
   OwnerResolutionResult, DeepOwner, OwnerSearchPlan,
   OwnerProvenance, ProviderCompanyLike, GrowjoCompany, EvidenceLedger, DeepStage
-} from './DeepTypes';
-import { GrowjoProvider } from './GrowjoProvider';
+} from './DeepTypes.ts';
+import { GrowjoProvider } from './GrowjoProvider.ts';
 
 const ROLE_KEYWORDS = [
   ...CANDIDATE_ROLES.map((r: string) => r.toLowerCase()),

@@ -1,4 +1,4 @@
-import { Evidence, PublicObservationProvider, ObservationOptions, ObservationResult, HttpFetcher } from './IntelligenceCase';
+import { Evidence, PublicObservationProvider, ObservationOptions, ObservationResult, HttpFetcher } from './IntelligenceCase.ts';
 import { randomBytes } from 'crypto';
 
 /** Conservative subdomain candidates to probe (only on the same root domain). */

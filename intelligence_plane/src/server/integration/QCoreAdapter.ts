@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 // Import the full contract types from the canonical definition
-import { VerifiedFindingContract } from '../VerifiedFindingContract';
+import type { VerifiedFindingContract } from '../VerifiedFindingContract.ts';
 
 // Re-export the full contract types so tests can import them from here
 export type {
@@ -19,7 +19,7 @@ export type {
   VARDHAN_CORE_INTELLIGENCE_POLICY_V1,
   SEAL_VERIFIED_FINDING,
   REQUIRED_DECISION_CANDIDATES,
-} from '../VerifiedFindingContract';
+} from '../VerifiedFindingContract.ts';
 
 // Receipt Model
 export interface DualSignature {
@@ -67,27 +67,44 @@ export interface QCoreValidationRequest {
 
 export class QCoreAdapter {
   private apiBaseUrl: string;
+  private authToken: string | null = null;
 
   constructor(apiBaseUrl?: string) {
     this.apiBaseUrl = apiBaseUrl || "http://localhost:8080";
   }
 
+  public async setToken(token: string) {
+    this.authToken = token;
+  }
+
   public async validateAndSeal(request: QCoreValidationRequest, organizationId: string): Promise<QCoreReceipt> {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/api/v1/organizations/${organizationId}/security/validate`, {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (this.authToken) {
+        headers['Authorization'] = `Bearer ${this.authToken}`;
+      }
+
+      const response = await fetch(`${this.apiBaseUrl}/api/v1/seal`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(request),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Q-Core API error: ${response.statusText}`);
+        console.error(`Q-Core API Error Response:`, JSON.stringify(errorData, null, 2));
+        throw new Error(errorData.message || errorData.error || `Q-Core API error: ${response.statusText}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      if (data.status === "SEALED_AND_PUBLISHED" || data.status === "SEALED_BUT_NOT_PUBLISHED") {
+        return data.receipt;
+      } else {
+        throw new Error("Unexpected Q-Core response status: " + data.status);
+      }
     } catch (e) {
       console.error(`Q-Core Integration Error: ${e}`);
       return {

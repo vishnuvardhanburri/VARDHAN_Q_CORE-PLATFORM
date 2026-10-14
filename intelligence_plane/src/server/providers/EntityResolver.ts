@@ -7,7 +7,7 @@
  * Name-aliasing only happens through the explicit alias registry; we NEVER
  * merge entities merely because names are similar.
  */
-import type { CanonicalCompany, Provenance } from './Model';
+import type { CanonicalCompany, Provenance } from './Model.ts';
 import { DomainResolver, type ResolveSeed } from '../DomainResolver';
 import type { CompanyResolution } from '../DeepTypes';
 import type { HttpFetcher } from '../IntelligenceCase';

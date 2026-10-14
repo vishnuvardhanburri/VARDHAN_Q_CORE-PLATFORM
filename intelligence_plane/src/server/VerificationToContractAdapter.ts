@@ -6,11 +6,11 @@ import type {
   IntelligenceIdentity, 
   OrganizationIdentity, 
   ResourceIdentity 
-} from './VerifiedFindingContract';
-import { computeEvidenceContentHash } from './VerifiedFindingContract';
+} from './VerifiedFindingContract.ts';
+import { computeEvidenceContentHash } from './VerifiedFindingContract.ts';
 
-import { VerifiedFinding, IntelligenceRunContext } from './DeepTypes';
-import { Evidence } from './IntelligenceCase';
+import { VerifiedFinding, IntelligenceRunContext } from './DeepTypes.ts';
+import { Evidence } from './IntelligenceCase.ts';
 
 export class VerificationToContractAdapter {
   static adapt(

@@ -16,8 +16,8 @@
  *
  * Each provider is OPTIONAL. Provider failure does not kill the pipeline.
  */
-import type { CanonicalCompany, CanonicalPerson, CanonicalContact, Provenance, SourceEntry } from './Model';
-import { CompanyDataProvider, type ProviderLookupResult } from './ProviderInterface';
+import type { CanonicalCompany, CanonicalPerson, CanonicalContact, Provenance, SourceEntry } from './Model.ts';
+import { CompanyDataProvider, type ProviderLookupResult } from './ProviderInterface.ts';
 import { ResearchPolicyManager } from '../ResearchPolicyManager';
 
 export interface ProviderConfig {

@@ -1,4 +1,4 @@
-import { SearchProvider, SearchProviderResponse, SearchOptions, SearchFailureReason } from '../WebSearchProvider';
+import type { SearchProvider, SearchProviderResponse, SearchOptions, SearchFailureReason } from '../WebSearchProvider.ts';
 
 export class SerperWebSearchProvider implements SearchProvider {
   readonly name = 'SerperWebSearchProvider';

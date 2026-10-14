@@ -1,4 +1,4 @@
-import { CompanyDataProvider } from './ProviderInterface';
+import { CompanyDataProvider } from './ProviderInterface.ts';
 import { IntelligenceCase, Evidence } from '../IntelligenceCase';
 
 export enum GitHubProviderStatus {

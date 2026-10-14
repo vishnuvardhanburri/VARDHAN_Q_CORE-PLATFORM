@@ -1,10 +1,10 @@
-import { AutonomousLoopManager } from './AutonomousLoopManager';
-import { IntelligenceCase } from './IntelligenceCase';
-import { ClaimAndMetricValidator } from './targetQualificationEngine';
-import { LivePublicObservationProvider } from './LivePublicObservationProvider';
-import { PersonDiscoveryEngine } from './PersonDiscoveryEngine';
-import { DeepOwnerResolver } from './DeepOwnerResolver';
-import { ContactabilityFinder } from './ContactabilityFinder';
+import { AutonomousLoopManager } from './AutonomousLoopManager.ts';
+import { IntelligenceCase } from './IntelligenceCase.ts';
+import { ClaimAndMetricValidator } from './targetQualificationEngine.ts';
+import { LivePublicObservationProvider } from './LivePublicObservationProvider.ts';
+import { PersonDiscoveryEngine } from './PersonDiscoveryEngine.ts';
+import { DeepOwnerResolver } from './DeepOwnerResolver.ts';
+import { ContactabilityFinder } from './ContactabilityFinder.ts';
 
 async function runFullValidation() {
   const companies = [

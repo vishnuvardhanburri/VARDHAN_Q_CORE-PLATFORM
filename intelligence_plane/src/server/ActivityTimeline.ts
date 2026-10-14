@@ -5,8 +5,8 @@
 // provenance (DOCUMENTED_FACT / REAL_PUBLIC_OBSERVATION / VARDHAN_INFERENCE) and
 // the evidence IDs it traces to — never fabricated.
 
-import type { ActivityEvent, ActivityType, DeepSignal, GithubRepoMeta, DeepProspect, DeepFinding } from './DeepTypes';
-import type { Evidence, FindingClassification } from './IntelligenceCase';
+import type { ActivityEvent, ActivityType, DeepSignal, GithubRepoMeta, DeepProspect, DeepFinding } from './DeepTypes.ts';
+import type { Evidence, FindingClassification } from './IntelligenceCase.ts';
 
 export interface ActivityInput {
   company: DeepProspect['company'];

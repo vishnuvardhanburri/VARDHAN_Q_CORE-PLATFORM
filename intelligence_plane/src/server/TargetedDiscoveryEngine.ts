@@ -5,9 +5,9 @@
  * Transition: Collect-then-Filter -> Plan-then-Hunt.
  */
 
-import type { OwnerSearchPlan, PersonEvidence, EvidenceLedger } from './DeepTypes';
-import { PeopleExtractor } from './PeopleExtractor';
-import { LiveWebResearchProvider } from './LiveWebResearchProvider';
+import type { OwnerSearchPlan, PersonEvidence, EvidenceLedger } from './DeepTypes.ts';
+import { PeopleExtractor } from './PeopleExtractor.ts';
+import { LiveWebResearchProvider } from './LiveWebResearchProvider.ts';
 
 export class TargetedDiscoveryEngine {
   constructor(

@@ -35,10 +35,10 @@
  */
 
 import { createHash } from 'crypto';
-import type { Evidence } from './IntelligenceCase';
-import type { EntryPoint, EntryPointGraph } from './EntryPointModel';
-import type { ExpectedBehavior, ExpectationType, ExpectationSource } from './findings/ProblemFinding';
-import { normalizeUrl } from './EntryPointDiscovery';
+import type { Evidence } from './IntelligenceCase.ts';
+import type { EntryPoint, EntryPointGraph } from './EntryPointModel.ts';
+import type { ExpectedBehavior, ExpectationType, ExpectationSource } from './findings/ProblemFinding.ts';
+import { normalizeUrl } from './EntryPointDiscovery.ts';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 

@@ -11,11 +11,11 @@
  * the failure, selects an alternate strategy, and retries within budget.
  */
 
-import { TriageEngine, type TriageResult } from './TriageEngine';
+import { TriageEngine, type TriageResult } from './TriageEngine.ts';
 import { VardhanNoiseFilter } from '../findings/VardhanNoiseFilter';
 import { OpportunityDetector, type FindingOutput } from '../findings/OpportunityDetector';
 import { SignalCorrelationEngine } from '../signals/SignalCorrelationEngine';
-import { BudgetController, type BudgetTier, type ResearchBudget, BUDGET_TIERS } from './ResearchBudget';
+import { BudgetController, type BudgetTier, type ResearchBudget, BUDGET_TIERS } from './ResearchBudget.ts';
 import { EvidenceLedger } from '../EvidenceLedger';
 import { StatePersistence } from '../StatePersistence';
 import { ChangeDetector, snapshotFromProspect } from '../ChangeDetector';

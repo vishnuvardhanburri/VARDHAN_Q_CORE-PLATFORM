@@ -11,13 +11,13 @@ import {
   AffectedTargetCandidate, 
   DependencyConfidence, 
   TemporalRelation 
-} from './LiveIncidentModels';
+} from './LiveIncidentModels.ts';
 import { 
   IntelligenceCase, 
   Evidence, 
   Provenance 
-} from './IntelligenceCase';
-import { LIVE_SOURCE_REGISTRY } from './LiveSourceRegistry';
+} from './IntelligenceCase.ts';
+import { LIVE_SOURCE_REGISTRY } from './LiveSourceRegistry.ts';
 
 export class LiveIncidentCorrelationEngine {
   /**

@@ -15,10 +15,10 @@
  * validate.
  */
 
-import { BankSignal, BankSignalGroup, BankProblemType } from './BankSignalModel';
-import { QualifiedBankOpportunity } from './BankQualificationEngine';
-import { getSponsors } from './BankSponsorRoleMap';
-import { VARDHAN_CAPABILITIES } from './BankSignalDatabase';
+import { BankSignal, BankSignalGroup, BankProblemType } from './BankSignalModel.ts';
+import { QualifiedBankOpportunity } from './BankQualificationEngine.ts';
+import { getSponsors } from './BankSponsorRoleMap.ts';
+import { VARDHAN_CAPABILITIES } from './BankSignalDatabase.ts';
 
 export interface BankProblemDossier {
   id: string;

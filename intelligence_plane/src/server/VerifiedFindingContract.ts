@@ -17,7 +17,7 @@
  */
 
 import { createHash } from 'crypto';
-import type { Evidence } from './IntelligenceCase';
+import type { Evidence } from './IntelligenceCase.ts';
 
 export const FINDING_CONTRACT_VERSION = '1.0';
 

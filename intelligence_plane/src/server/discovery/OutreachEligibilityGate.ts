@@ -1,4 +1,4 @@
-import { OpportunityEvidencePacket } from './SemanticTypes';
+import { OpportunityEvidencePacket } from './SemanticTypes.ts';
 
 export class OutreachEligibilityGate {
   /**

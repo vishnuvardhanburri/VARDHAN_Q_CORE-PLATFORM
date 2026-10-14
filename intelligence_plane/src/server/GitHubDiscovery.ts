@@ -5,8 +5,8 @@
 // link is present on a page the company publishes. Uses the unauthenticated
 // GitHub REST API (60 req/hr) and is rate-limit aware.
 
-import type { GithubRepoMeta } from './DeepTypes';
-import type { HttpFetcher } from './IntelligenceCase';
+import type { GithubRepoMeta } from './DeepTypes.ts';
+import type { HttpFetcher } from './IntelligenceCase.ts';
 
 export interface GitHubDiscoveryOptions {
   fetcher: HttpFetcher;

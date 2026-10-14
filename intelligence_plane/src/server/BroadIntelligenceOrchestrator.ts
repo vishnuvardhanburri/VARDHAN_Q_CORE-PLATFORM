@@ -1,7 +1,7 @@
-import { CompanyResearchContext } from './CompanyResearchContext';
-import { HybridProbeEngine, ProbeIntensity } from './discovery/HybridProbeEngine';
-import { ErrorSignatureAnalyzer, BoundaryType } from './discovery/ErrorSignatureAnalyzer';
-import { knowledgeLayer } from './knowledge/KnowledgeIntegrationLayer';
+import { CompanyResearchContext } from './CompanyResearchContext.ts';
+import { HybridProbeEngine, ProbeIntensity } from './discovery/HybridProbeEngine.ts';
+import { ErrorSignatureAnalyzer, BoundaryType } from './discovery/ErrorSignatureAnalyzer.ts';
+import { knowledgeLayer } from './knowledge/KnowledgeIntegrationLayer.ts';
 
 export enum AssessmentMode {
   PUBLIC_INTELLIGENCE = 'PUBLIC_INTELLIGENCE',

@@ -23,7 +23,7 @@
  *     and we never fetch disallowed resources aggressively).
  */
 
-import { CompanySurface, DiscoveredPage, ProfessionalPageCategory, HttpFetcher } from './IntelligenceCase';
+import type { CompanySurface, DiscoveredPage, ProfessionalPageCategory, HttpFetcher } from './IntelligenceCase.ts';
 
 export const VARDHAN_USER_AGENT = 'VARDHAN-Public-OBSERVER/1.0 (read-only; contact@vardhan.ai)';
 

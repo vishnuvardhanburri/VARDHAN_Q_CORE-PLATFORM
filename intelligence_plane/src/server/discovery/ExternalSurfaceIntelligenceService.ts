@@ -1,12 +1,12 @@
-import { ExternalSurface, ExternalSurfaceProfile } from './SurfaceTypes';
+import { ExternalSurface, ExternalSurfaceProfile } from './SurfaceTypes.ts';
 import {
   SurfaceSemanticAssessment,
   ExposureAssessment
-} from './SemanticTypes';
-import { SurfaceSemanticValidator } from './SurfaceSemanticValidator';
-import { ExposureCorrelationEngine } from './ExposureCorrelationEngine';
-import { ExternalExposureGraphEngine, ExposureGraph } from './ExternalExposureGraphEngine';
-import { ExposureNarrativeGenerator } from './ExposureNarrativeGenerator';
+} from './SemanticTypes.ts';
+import { SurfaceSemanticValidator } from './SurfaceSemanticValidator.ts';
+import { ExposureCorrelationEngine } from './ExposureCorrelationEngine.ts';
+import { ExternalExposureGraphEngine, ExposureGraph } from './ExternalExposureGraphEngine.ts';
+import { ExposureNarrativeGenerator } from './ExposureNarrativeGenerator.ts';
 import { Evidence } from '../IntelligenceCase';
 import { VardhanSystemManager } from '../system/VardhanSystemManager';
 

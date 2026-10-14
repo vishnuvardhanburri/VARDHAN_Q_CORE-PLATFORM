@@ -1,13 +1,15 @@
-import type { SearchResult } from './SearchCache';
-import { SignalType } from './SignalTaxonomy';
+import type { SearchResult } from './SearchCache.ts';
+import type { SignalType } from './SignalTaxonomy.ts';
 
-export enum SearchFailureReason {
-  SEARCH_BLOCKED = 'SEARCH_BLOCKED',
-  SEARCH_UNAVAILABLE = 'SEARCH_UNAVAILABLE',
-  SEARCH_EMPTY = 'SEARCH_EMPTY',
-  SEARCH_RATE_LIMITED = 'SEARCH_RATE_LIMITED',
-  SEARCH_PARSE_ERROR = 'SEARCH_PARSE_ERROR'
-}
+export const SearchFailureReason = {
+  SEARCH_BLOCKED: 'SEARCH_BLOCKED',
+  SEARCH_UNAVAILABLE: 'SEARCH_UNAVAILABLE',
+  SEARCH_EMPTY: 'SEARCH_EMPTY',
+  SEARCH_RATE_LIMITED: 'SEARCH_RATE_LIMITED',
+  SEARCH_PARSE_ERROR: 'SEARCH_PARSE_ERROR'
+} as const;
+
+export type SearchFailureReason = typeof SearchFailureReason[keyof typeof SearchFailureReason];
 
 export type EvidenceOrigin =
   | 'MOCK_TEST'

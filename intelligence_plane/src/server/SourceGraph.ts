@@ -1,4 +1,4 @@
-import { Signal } from './types/LoopTypes';
+import { Signal } from './types/LoopTypes.ts';
 
 /**
  * SourceGraph manages the relationship between a Company, its public sources,

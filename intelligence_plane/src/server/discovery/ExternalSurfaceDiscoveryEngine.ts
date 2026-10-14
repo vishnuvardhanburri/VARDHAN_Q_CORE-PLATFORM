@@ -1,4 +1,4 @@
-import { SurfaceType, ExposureType, ExternalSurface } from './SurfaceTypes';
+import { SurfaceType, ExposureType, ExternalSurface } from './SurfaceTypes.ts';
 import { VardhanSystemManager } from '../system/VardhanSystemManager';
 
 export class ExternalSurfaceDiscoveryEngine {

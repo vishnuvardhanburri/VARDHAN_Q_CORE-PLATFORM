@@ -8,8 +8,8 @@
  * or stale, LIVE_WEB_RESEARCH is triggered.
  */
 
-import type { GrowjoCompany, ProviderCompanyLike } from './DeepTypes';
-import type { CompanySurface } from './IntelligenceCase';
+import type { GrowjoCompany, ProviderCompanyLike } from './DeepTypes.ts';
+import type { CompanySurface } from './IntelligenceCase.ts';
 
 export type SufficiencyFlag =
   | 'company_identity'

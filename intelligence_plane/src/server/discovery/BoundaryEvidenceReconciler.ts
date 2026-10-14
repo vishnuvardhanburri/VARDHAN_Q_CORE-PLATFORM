@@ -4,7 +4,7 @@ import {
   ConsistencyState, 
   CapabilityState,
   TrustBoundary 
-} from './BoundaryTypes';
+} from './BoundaryTypes.ts';
 import { Evidence, ExternalSurface } from '../IntelligenceCase';
 
 export class BoundaryEvidenceReconciler {

@@ -12,9 +12,9 @@
  *   UNKNOWN   — no timestamp available
  */
 
-import type { Evidence } from './IntelligenceCase';
-import type { OwnerCandidate } from './IntelligenceCase';
-import type { DeepContact } from './DeepTypes';
+import type { Evidence } from './IntelligenceCase.ts';
+import type { OwnerCandidate } from './IntelligenceCase.ts';
+import type { DeepContact } from './DeepTypes.ts';
 
 export type FreshnessLevel = 'FRESH' | 'AGING' | 'STALE' | 'UNKNOWN';
 

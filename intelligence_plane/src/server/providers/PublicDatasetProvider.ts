@@ -10,11 +10,11 @@
  * License: CC0 (Creative Commons Zero) per the dataset READMEs.
  * No scraping, no CAPTCHA bypass, no private data.
  */
-import type { CanonicalCompany, CanonicalPerson, CanonicalContact, Provenance, SourceEntry, SourceCategory } from './Model';
-import type { ProviderCapabilities } from './ProviderInterface';
-import { CompanyDataProvider } from './ProviderInterface';
+import type { CanonicalCompany, CanonicalPerson, CanonicalContact, Provenance, SourceEntry, SourceCategory } from './Model.ts';
+import type { ProviderCapabilities } from './ProviderInterface.ts';
+import { CompanyDataProvider } from './ProviderInterface.ts';
 import type { ProviderCostClass } from '../IntelligenceCase';
-import { CSVProvider, type CsvSchema, type CsvImportResult } from './CSVProvider';
+import { CSVProvider, type CsvSchema, type CsvImportResult } from './CSVProvider.ts';
 
 /**
  * Schema for the companydatacom/public-datasets city business CSVs.

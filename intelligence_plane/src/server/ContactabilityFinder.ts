@@ -25,9 +25,9 @@
  * COMPANY_BUSINESS_EMAIL — never as a person's email.
  */
 
-import type { DeepContact, ContactConfidence, GrowjoCompany, DeepOwner } from './DeepTypes';
-import type { DiscoveredPage } from './IntelligenceCase';
-import { GrowjoProvider } from './GrowjoProvider';
+import type { DeepContact, ContactConfidence, GrowjoCompany, DeepOwner } from './DeepTypes.ts';
+import type { DiscoveredPage } from './IntelligenceCase.ts';
+import { GrowjoProvider } from './GrowjoProvider.ts';
 
 const PROFILE_HANDLE_RE = /href=["'](?:https?:)?\/\/(?:www\.)?(?:linkedin\.com\/in|twitter\.com|x\.com)\/([A-Za-z0-9._-]+)\/??[^"']*["']/i;
 const MAIlTO_RE = /href=["']mailto:([^"']+)["']/i;

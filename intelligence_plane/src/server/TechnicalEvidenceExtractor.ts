@@ -12,16 +12,16 @@ import {
   SignalSourceType, 
   EvidenceProvenance, 
   SignalStrength 
-} from './IntelligenceCase';
+} from './IntelligenceCase.ts';
 import { 
   TechnicalEvidence, 
   TechnicalFactType 
-} from './TechnicalEvidence';
-import { extractorRegistry } from './extractors/ExtractorRegistry';
+} from './TechnicalEvidence.ts';
+import { extractorRegistry } from './extractors/ExtractorRegistry.ts';
 import { 
   SignalCandidate, 
   DeepSignalExtractor 
-} from './DeepSignalExtractor';
+} from './DeepSignalExtractor.ts';
 
 export class TechnicalEvidenceExtractor {
   /**

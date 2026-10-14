@@ -16,41 +16,41 @@
 
 import path from 'path';
 import fs from 'fs';
-import { IntelligenceEngine } from './IntelligenceEngine';
-import { LivePublicObservationProvider } from './LivePublicObservationProvider';
-import { PublicLinkDiscovery, categorizeProfessionalPath } from './PublicLinkDiscovery';
-import { subsystemFromFinding, DeepOwnerResolver } from './DeepOwnerResolver';
-import { PeopleExtractor } from './PeopleExtractor';
+import { IntelligenceEngine } from './IntelligenceEngine.ts';
+import { LivePublicObservationProvider } from './LivePublicObservationProvider.ts';
+import { PublicLinkDiscovery, categorizeProfessionalPath } from './PublicLinkDiscovery.ts';
+import { subsystemFromFinding, DeepOwnerResolver } from './DeepOwnerResolver.ts';
+import { PeopleExtractor } from './PeopleExtractor.ts';
 import type {
   DeepBuilderOptions, DeepBuilderResult, DeepProspect, DeepSignal,
   DeepOwner, DeepContact, IcpQualification, DeepDecision, DeepConfidence,
   DeepStage, DeepEmailDraft, DeepFinding, EvidenceProvenance,
   ProviderCompanyLike, GrowjoCompany, CompanyResolution, GithubRepoMeta, ActivityEvent,
   DiagnosticOpportunity, OutreachCardFields
-} from './DeepTypes';
+} from './DeepTypes.ts';
 import type {
   IntelligenceCase, Evidence, OwnerCandidate, CompanySurface, FindingClassification, FindingType, SeverityLevel, StrengthLevel, DiscoveredPage
-} from './IntelligenceCase';
-import { DeepSignalExtractor } from './DeepSignalExtractor';
-import { ContactabilityFinder } from './ContactabilityFinder';
-import { OwnerSelector } from './OwnerSelector';
-import { OwnerPipeline } from './OwnerPipeline';
-import { PersonDiscoveryEngine } from './PersonDiscoveryEngine';
-import { GitHubDiscovery } from './GitHubDiscovery';
-import { ActivityTimeline } from './ActivityTimeline';
-import { IcpQualificationEngine, type IcpContext } from './IcpQualificationEngine';
-import { buildOpportunity, buildOutreachCardFields } from './DiagnosticOpportunityEngine';
-import { DataSufficiencyChecker } from './DataSufficiencyChecker';
-import { LiveWebResearchProvider } from './LiveWebResearchProvider';
-import { ChangeDetector, snapshotFromProspect } from './ChangeDetector';
-import { FreshnessEngine } from './FreshnessEngine';
-import { AdaptiveInvestigationEngine, type AdaptiveInvestigationOptions, type AdaptiveInvestigationRecord, type AdaptiveInvestigationAggregate, type AdaptiveInvestigationResult } from './AdaptiveInvestigationEngine';
-import { EntryPointDiscovery } from './EntryPointDiscovery';
-import { EntryPointGraphBuilder, attachRelationsToAnchors } from './EntryPointGraph';
-import { EntryPointChangeDetector } from './EntryPointChangeDetector';
-import { ExpectationEngine } from './ExpectationEngine';
-import { DifferentialFindingEngine } from './DifferentialFindingEngine';
-import { InvestigationPlanner } from './InvestigationPlanner';
+} from './IntelligenceCase.ts';
+import { DeepSignalExtractor } from './DeepSignalExtractor.ts';
+import { ContactabilityFinder } from './ContactabilityFinder.ts';
+import { OwnerSelector } from './OwnerSelector.ts';
+import { OwnerPipeline } from './OwnerPipeline.ts';
+import { PersonDiscoveryEngine } from './PersonDiscoveryEngine.ts';
+import { GitHubDiscovery } from './GitHubDiscovery.ts';
+import { ActivityTimeline } from './ActivityTimeline.ts';
+import { IcpQualificationEngine, type IcpContext } from './IcpQualificationEngine.ts';
+import { buildOpportunity, buildOutreachCardFields } from './DiagnosticOpportunityEngine.ts';
+import { DataSufficiencyChecker } from './DataSufficiencyChecker.ts';
+import { LiveWebResearchProvider } from './LiveWebResearchProvider.ts';
+import { ChangeDetector, snapshotFromProspect } from './ChangeDetector.ts';
+import { FreshnessEngine } from './FreshnessEngine.ts';
+import { AdaptiveInvestigationEngine, type AdaptiveInvestigationOptions, type AdaptiveInvestigationRecord, type AdaptiveInvestigationAggregate, type AdaptiveInvestigationResult } from './AdaptiveInvestigationEngine.ts';
+import { EntryPointDiscovery } from './EntryPointDiscovery.ts';
+import { EntryPointGraphBuilder, attachRelationsToAnchors } from './EntryPointGraph.ts';
+import { EntryPointChangeDetector } from './EntryPointChangeDetector.ts';
+import { ExpectationEngine } from './ExpectationEngine.ts';
+import { DifferentialFindingEngine } from './DifferentialFindingEngine.ts';
+import { InvestigationPlanner } from './InvestigationPlanner.ts';
 
 import type {
   ExpectedBehavior,
@@ -59,8 +59,8 @@ import type {
   DifferentialState,
   ProblemFinding,
   InvestigationPlan,
-} from './findings/ProblemFinding';
-import { TechnicalProblemDetector, type ProblemDetectorOptions, type ProblemDetectionResult } from './TechnicalProblemDetector';
+} from './findings/ProblemFinding.ts';
+import { TechnicalProblemDetector, type ProblemDetectorOptions, type ProblemDetectionResult } from './TechnicalProblemDetector.ts';
 
 /**
  * Language cues that an observation is *exposed without authentication*.

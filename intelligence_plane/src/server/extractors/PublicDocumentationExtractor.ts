@@ -5,7 +5,7 @@
  * Targets: Scaling limits, architecture shifts, API deprecations, and infra-hints.
  */
 
-import { SourceExtractor, Observation } from './SourceExtractor';
+import { SourceExtractor, Observation } from './SourceExtractor.ts';
 import { SourceType } from '../IntelligenceCase';
 
 export class PublicDocumentationExtractor extends SourceExtractor {

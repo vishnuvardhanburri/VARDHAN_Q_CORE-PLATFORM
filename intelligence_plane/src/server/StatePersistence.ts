@@ -11,8 +11,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import type { StoredState } from './ChangeDetector';
-import type { CachedResult } from './SearchCache';
+import type { StoredState } from './ChangeDetector.ts';
+import type { CachedResult } from './SearchCache.ts';
 
 export interface PersistedResearchState {
   company: string;

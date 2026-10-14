@@ -1,5 +1,5 @@
-import { IntelligenceCase } from './IntelligenceCase';
-import { BehavioralXRayResult } from './BehavioralXRayAnalyzer';
+import { IntelligenceCase } from './IntelligenceCase.ts';
+import { BehavioralXRayResult } from './BehavioralXRayAnalyzer.ts';
 
 export enum EdgeType {
   OBSERVED_EDGE = 'OBSERVED_EDGE',

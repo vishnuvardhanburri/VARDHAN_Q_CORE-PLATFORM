@@ -1,6 +1,6 @@
 import { CompanyResearchContext } from '../CompanyResearchContext';
 import { Evidence, Provenance, EvidenceClassification } from '../IntelligenceCase';
-import { SpecialistResult, SpecialistInput, SpecialistTaskType } from './SpecialistTypes';
+import { SpecialistResult, SpecialistInput, SpecialistTaskType } from './SpecialistTypes.ts';
 
 export abstract class BaseSpecialist {
   abstract readonly taskType: SpecialistTaskType;

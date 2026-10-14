@@ -4,8 +4,8 @@ import {
   IntelligenceCase, 
   Evidence,
   TargetType
-} from './IntelligenceCase';
-import { CompanyResearchContext } from './CompanyResearchContext';
+} from './IntelligenceCase.ts';
+import { CompanyResearchContext } from './CompanyResearchContext.ts';
 
 export interface TargetCandidate {
   targetId: string;

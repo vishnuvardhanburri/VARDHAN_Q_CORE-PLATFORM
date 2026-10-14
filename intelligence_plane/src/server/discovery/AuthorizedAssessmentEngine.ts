@@ -1,4 +1,4 @@
-import { BoundaryCapabilityAssessment } from './BoundaryTypes';
+import { BoundaryCapabilityAssessment } from './BoundaryTypes.ts';
 
 export interface AuthScope {
   organization: string;

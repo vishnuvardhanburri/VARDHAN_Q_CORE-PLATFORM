@@ -5,9 +5,9 @@
  * This is the FINAL gate before a hypothesis becomes a SignalCandidate.
  */
 
-import { AffectedTargetCandidate } from './LiveIncidentModels';
-import { IntelligenceCase } from './IntelligenceCase';
-import { LivePublicObservationProvider } from './LivePublicObservationProvider';
+import { AffectedTargetCandidate } from './LiveIncidentModels.ts';
+import { IntelligenceCase } from './IntelligenceCase.ts';
+import { LivePublicObservationProvider } from './LivePublicObservationProvider.ts';
 
 export class TargetVerificationEngine {
   constructor(private observationProvider: LivePublicObservationProvider) {}

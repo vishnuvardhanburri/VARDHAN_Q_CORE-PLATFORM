@@ -23,7 +23,7 @@
 import type {
   EntryPoint, EntryPointChange, EntryPointTelemetry,
   EntryPointSnapshot, EntryPointStatus,
-} from './EntryPointModel';
+} from './EntryPointModel.ts';
 
 /** Deep-compare two entry points for field differences. */
 function diffEntryPoints(

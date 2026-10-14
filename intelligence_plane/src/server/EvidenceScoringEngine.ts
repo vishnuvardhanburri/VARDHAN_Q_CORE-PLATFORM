@@ -6,7 +6,7 @@
  * noise (MICRO) and strategic intelligence (CRITICAL).
  */
 
-import { Evidence, EvidenceStrength, ScoreBreakdown, EvidenceType, TemporalStatus, EvidenceRelationship } from './IntelligenceCase';
+import { Evidence, EvidenceStrength, ScoreBreakdown, EvidenceType, TemporalStatus, EvidenceRelationship } from './IntelligenceCase.ts';
 
 const EVIDENCE_WEIGHTS = Object.freeze({
   reliability: 0.25,

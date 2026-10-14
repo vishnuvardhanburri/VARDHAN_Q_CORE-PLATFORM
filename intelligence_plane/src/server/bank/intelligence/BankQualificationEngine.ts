@@ -50,11 +50,11 @@
  * NO automated outreach is ever triggered by this engine.
  */
 
-import { BankSignal, BankSignalGroup, BankProblemType } from './BankSignalModel';
-import { getSponsors } from './BankSponsorRoleMap';
+import { BankSignal, BankSignalGroup, BankProblemType } from './BankSignalModel.ts';
+import { getSponsors } from './BankSponsorRoleMap.ts';
 import {
   VARDHAN_CAPABILITIES,
-} from './BankSignalDatabase';
+} from './BankSignalDatabase.ts';
 
 export type QualificationStatus =
   | 'READY_FOR_HUMAN_APPROVAL'

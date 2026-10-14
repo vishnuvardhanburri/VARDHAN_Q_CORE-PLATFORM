@@ -1,5 +1,5 @@
-import { IntelligenceCase } from './IntelligenceCase';
-import { FRICTION_TAXONOMY, FrictionMapping } from './intelligence/taxonomy/friction';
+import { IntelligenceCase } from './IntelligenceCase.ts';
+import { FRICTION_TAXONOMY, FrictionMapping } from './intelligence/taxonomy/friction.ts';
 
 export interface StrategicThesis {
   thesis: string;

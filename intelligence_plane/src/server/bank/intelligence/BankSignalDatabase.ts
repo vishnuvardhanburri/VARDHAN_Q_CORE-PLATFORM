@@ -16,7 +16,7 @@
  *     are publicly disclosed.
  */
 
-import { BankSignal, BankSignalGroup, BankProblemType, SignalConfidence, VardhanCapability } from './BankSignalModel';
+import { BankSignal, BankSignalGroup, BankProblemType, SignalConfidence, VardhanCapability } from './BankSignalModel.ts';
 
 // ── Discovery timestamp (set at module load time to ensure it reflects when
 //    the signal was actually captured during this research run) ──────────────

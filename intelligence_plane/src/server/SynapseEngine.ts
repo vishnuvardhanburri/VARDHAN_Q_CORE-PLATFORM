@@ -1,5 +1,5 @@
-import { IntelligenceCase } from './IntelligenceCase';
-import { HumanSignal } from './providers/HumanTelemetryProvider';
+import { IntelligenceCase } from './IntelligenceCase.ts';
+import { HumanSignal } from './providers/HumanTelemetryProvider.ts';
 
 export interface SynapseCorrelation {
   vulnerability_type: 'SYSTEMIC_COLLAPSE' | 'KNOWLEDGE_VACUUM' | 'TECHNICAL_DEBT_EXPLOSION';

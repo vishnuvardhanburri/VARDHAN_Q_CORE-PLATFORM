@@ -18,9 +18,9 @@
  * The planner operates strictly in PUBLIC_INTELLIGENCE mode.
  */
 
-import type { EntryPoint, EntryPointGraph } from './EntryPointModel';
-import type { ExpectedBehavior, BehavioralObservation, InvestigationPlan, DifferentialState } from './findings/ProblemFinding';
-import type { Evidence } from './IntelligenceCase';
+import type { EntryPoint, EntryPointGraph } from './EntryPointModel.ts';
+import type { ExpectedBehavior, BehavioralObservation, InvestigationPlan, DifferentialState } from './findings/ProblemFinding.ts';
+import type { Evidence } from './IntelligenceCase.ts';
 
 // ── Plan ID generation ────────────────────────────────────────────────────────
 

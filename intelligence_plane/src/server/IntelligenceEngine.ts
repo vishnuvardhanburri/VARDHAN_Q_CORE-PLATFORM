@@ -1,12 +1,12 @@
 import {
   IntelligenceCase, Evidence, ProspectDecision, FindingClassification,
   TechnicalThesis, TechnicalOwner, FindingStrength, UncertaintyModel, FindingLedEmail, FindingType, SeverityLevel, EngineMode, EvidenceClaim, PublicObservationProvider
-} from './IntelligenceCase';
-import { LivePublicObservationProvider } from './LivePublicObservationProvider';
-import { SignalCorrelationEngine } from './signals/SignalCorrelationEngine';
-import { OpportunityDetector } from './findings/OpportunityDetector';
-import { DeepSignalExtractor } from './DeepSignalExtractor';
-import type { DeepSignal } from './DeepTypes';
+} from './IntelligenceCase.ts';
+import { LivePublicObservationProvider } from './LivePublicObservationProvider.ts';
+import { SignalCorrelationEngine } from './signals/SignalCorrelationEngine.ts';
+import { OpportunityDetector } from './findings/OpportunityDetector.ts';
+import { DeepSignalExtractor } from './DeepSignalExtractor.ts';
+import type { DeepSignal } from './DeepTypes.ts';
 
 export class IntelligenceEngine {
   static async run(

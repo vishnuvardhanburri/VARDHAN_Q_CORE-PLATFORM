@@ -5,7 +5,7 @@
  * URL and the target company's verified identity.
  */
 
-import { SourceRelationship } from './IntelligenceCase';
+import { SourceRelationship } from './IntelligenceCase.ts';
 
 export class SourceRelationshipValidator {
   /**

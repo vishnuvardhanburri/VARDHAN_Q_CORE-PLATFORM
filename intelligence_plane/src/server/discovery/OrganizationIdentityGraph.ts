@@ -1,4 +1,4 @@
-import { Alias } from './SurfaceTypes';
+import { Alias } from './SurfaceTypes.ts';
 import { VardhanSystemManager } from '../system/VardhanSystemManager';
 
 export class OrganizationIdentityGraph {

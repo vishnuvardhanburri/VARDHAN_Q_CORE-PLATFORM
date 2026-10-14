@@ -17,7 +17,7 @@
  * — via explicit allow or classification + policy — before it contributes
  * evidence. DISCOVERED_EXTERNAL_SOURCE ≠ TRUSTED_TECHNICAL_EVIDENCE.
  */
-import type { SourceEntry, SourceCategory } from './Model';
+import type { SourceEntry, SourceCategory } from './Model.ts';
 
 interface AuthorityMetadata {
   /** Trust score 0-100 (editorial sources = 90+, user-content = 30). */

@@ -12,7 +12,7 @@
  *   4. If no explicit evidence exists, do NOT invent an owner. Returns null.
  */
 
-import { OwnerCandidate, StrengthLevel } from './IntelligenceCase';
+import { OwnerCandidate, StrengthLevel } from './IntelligenceCase.ts';
 
 export interface OwnerSelection {
   candidate: OwnerCandidate | null;

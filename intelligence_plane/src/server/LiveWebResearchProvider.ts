@@ -5,21 +5,21 @@
  * dataset data is incomplete or stale.
  */
 
-import type { HttpFetcher } from './IntelligenceCase';
-import type { Evidence } from './IntelligenceCase';
-import { SearchCache } from './SearchCache';
-import { NullSearchProvider } from './WebSearchProvider';
-import type { SearchProvider, SearchOptions } from './WebSearchProvider';
-import type { SearchResult } from './SearchCache';
-import { QueryGenerator } from './QueryGenerator';
-import { FreshnessEngine } from './FreshnessEngine';
-import { ResearchBudget } from './ResearchBudget';
-import type { ResearchStage } from './ResearchBudget';
-import { PublicLinkDiscovery } from './PublicLinkDiscovery';
-import { PeopleExtractor } from './PeopleExtractor';
-import type { OwnerCandidate, DiscoveredPage, CompanySurface } from './IntelligenceCase';
-import { GitHubDiscovery } from './GitHubDiscovery';
-import type { GithubRepoMeta } from './DeepTypes';
+import type { HttpFetcher } from './IntelligenceCase.ts';
+import type { Evidence } from './IntelligenceCase.ts';
+import { SearchCache } from './SearchCache.ts';
+import { NullSearchProvider } from './WebSearchProvider.ts';
+import type { SearchProvider, SearchOptions } from './WebSearchProvider.ts';
+import type { SearchResult } from './SearchCache.ts';
+import { QueryGenerator } from './QueryGenerator.ts';
+import { FreshnessEngine } from './FreshnessEngine.ts';
+import { ResearchBudget } from './ResearchBudget.ts';
+import type { ResearchStage } from './ResearchBudget.ts';
+import { PublicLinkDiscovery } from './PublicLinkDiscovery.ts';
+import { PeopleExtractor } from './PeopleExtractor.ts';
+import type { OwnerCandidate, DiscoveredPage, CompanySurface } from './IntelligenceCase.ts';
+import { SerperWebSearchProvider } from './providers/SerperWebSearchProvider.ts';
+import type { GithubRepoMeta } from './DeepTypes.ts';
 import { randomBytes } from 'crypto';
 
 export interface LiveWebResearchResult {
@@ -81,10 +81,9 @@ export class LiveWebResearchProvider {
     return null;
   }
 
-  async search(query: string): Promise<SearchResult[]> {
-    // Using NullSearchProvider for the mock/baseline, but in production this uses the actual provider.
-    const provider = new NullSearchProvider();
-    const resp = await provider.search(query, { maxResults: 8 });
+  async search(query: string, options: { searchProvider?: SearchProvider, maxResults?: number } = {}): Promise<SearchResult[]> {
+    const provider = options.searchProvider || new NullSearchProvider();
+    const resp = await provider.search(query, { maxResults: options.maxResults ?? 8 });
     return (resp.results || []).map(r => ({ title: r.title, snippet: r.snippet, url: r.url, source: resp.providerName }));
   }
 
@@ -121,8 +120,11 @@ export class LiveWebResearchProvider {
 
     let searchProvider: SearchProvider | undefined = options.searchProvider;
     if (!searchProvider || !searchProvider.available) {
-      searchProvider = new NullSearchProvider();
+      // Attempt to use Serper if API key is present, otherwise fallback to Null
+      const serper = new SerperWebSearchProvider();
+      searchProvider = serper.available ? serper : new NullSearchProvider();
     }
+
     const searchAvailable = searchProvider.available;
     if (!searchAvailable) {
       errors.push('SEARCH_UNAVAILABLE: No search provider available in FREE_ONLY mode — continuing with public web sources only.');

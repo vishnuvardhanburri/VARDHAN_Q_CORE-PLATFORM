@@ -33,15 +33,15 @@
  * expectation derived from evidence is contradicted by observation.
  */
 
-import type { Evidence } from './IntelligenceCase';
-import type { EntryPoint } from './EntryPointModel';
+import type { Evidence } from './IntelligenceCase.ts';
+import type { EntryPoint } from './EntryPointModel.ts';
 import type {
   ExpectedBehavior,
   BehavioralObservation,
   BehaviorDifferential,
   DifferentialState,
   DifferentialMateriality,
-} from './findings/ProblemFinding';
+} from './findings/ProblemFinding.ts';
 
 // ── Internal IDs ──────────────────────────────────────────────────────────────
 

@@ -10,7 +10,7 @@ import type {
   EvidenceLedger, 
   DeepOwner, 
   OwnerConfidence 
-} from './DeepTypes';
+} from './DeepTypes.ts';
 
 export class OwnershipInferenceEngine {
   private static readonly WEIGHTS = {

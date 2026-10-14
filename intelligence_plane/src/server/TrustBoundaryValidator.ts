@@ -19,8 +19,8 @@ import {
   VerifiedFindingContract,
   FINDING_CONTRACT_VERSION,
   computeEvidenceContentHash,
-} from './VerifiedFindingContract';
-import type { Evidence } from './IntelligenceCase';
+} from './VerifiedFindingContract.ts';
+import type { Evidence } from './IntelligenceCase.ts';
 
 export interface ValidationFailure {
   code: string;

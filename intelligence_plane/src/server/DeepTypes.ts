@@ -21,8 +21,8 @@ import type {
   Evidence, EvidenceClaim, FindingClassification, FindingType,
   OwnerCandidate, CompanySurface, DiscoveredPage, IntelligenceCase,
   SeverityLevel, StrengthLevel, FindingStrength
-} from './IntelligenceCase';
-import type { ChangeRecord } from './ChangeDetector';
+} from './IntelligenceCase.ts';
+import type { ChangeRecord } from './ChangeDetector.ts';
 
 // ── Signals ──────────────────────────────────────────────────────────────────
 
