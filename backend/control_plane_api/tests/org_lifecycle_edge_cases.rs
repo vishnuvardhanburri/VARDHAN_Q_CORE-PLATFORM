@@ -852,11 +852,20 @@ async fn replay_protection_after_sealing() {
         .send()
         .await
         .unwrap();
-    let body2 = r2.json::<serde_json::Value>().await.unwrap();
+    let response_status = r2.status();
+    let response_body = r2.text().await.unwrap();
+    let body2: serde_json::Value = serde_json::from_str(&response_body).unwrap_or_else(|error| {
+        panic!(
+            "Second submission returned non-JSON response (HTTP {}): {}; parse error: {}",
+            response_status, response_body, error
+        )
+    });
     assert_eq!(
-        body2["status"].as_str().unwrap(),
-        "REJECTED_REPLAY",
-        "Second submission must be rejected as replay"
+        body2["status"].as_str(),
+        Some("REJECTED_REPLAY"),
+        "Second submission must be rejected as replay; HTTP {} response: {}",
+        response_status,
+        response_body
     );
 }
 
