@@ -63,7 +63,11 @@ pub(crate) fn key(prefix: &[u8], value: &str) -> Vec<u8> { let mut out = prefix.
 fn member_key(org_id: &str, username: &str) -> Vec<u8> { key(MEMBER_PREFIX, &format!("{org_id}:{username}")) }
 pub(crate) fn json_error(status: StatusCode, message: &str) -> Response { (status, Json(json!({ "error": message }))).into_response() }
 pub(crate) fn load_json<T: for<'de> Deserialize<'de>>(db: &Db, k: &[u8]) -> Result<Option<T>, String> { let value = db.get(k).map_err(|e| format!("control-plane store read failed: {e}"))?; value.map(|bytes| serde_json::from_slice(&bytes).map_err(|e| format!("invalid stored state: {e}"))).transpose() }
-pub(crate) fn save_json<T: Serialize>(db: &Db, k: &[u8], value: &T) -> Result<(), String> { let bytes = serde_json::to_vec(value).map_err(|e| format!("state serialization failed: {e}"))?; db.insert(k, bytes).map(|_| ()).map_err(|e| format!("control-plane store write failed: {e}")) }
+pub(crate) fn save_json<T: Serialize>(db: &Db, k: &[u8], value: &T) -> Result<(), String> {
+    let bytes = serde_json::to_vec(value).map_err(|e| format!("state serialization failed: {e}"))?;
+    db.insert(k, bytes).map(|_| ()).map_err(|e| format!("control-plane store write failed: {e}"))?;
+    db.flush().map(|_| ()).map_err(|e| format!("control-plane store flush failed: {e}"))
+}
 pub(crate) fn is_member(db: &Db, org_id: &str, username: &str) -> Result<bool, String> { Ok(db.get(member_key(org_id, username)).map_err(|e| format!("membership read failed: {e}"))?.is_some()) }
 pub(crate) fn member_role(db: &Db, org_id: &str, username: &str) -> Result<Option<String>, String> {
     db.get(member_key(org_id, username))
