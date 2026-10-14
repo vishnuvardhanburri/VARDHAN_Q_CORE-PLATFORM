@@ -5,8 +5,8 @@ pub struct TrustBoundaryValidator;
 impl TrustBoundaryValidator {
     pub fn validate(contract: &VerifiedFindingContract) -> Result<(), String> {
         // 1. schema/version
-        if contract.schema_version != "1.0" {
-            return Err("Invalid schema_version, expected 1.0".to_string());
+        if contract.schema_version != "1.0" && contract.schema_version != "1.1" {
+            return Err("Invalid schema_version, expected 1.0 or 1.1".to_string());
         }
 
         // 2. tenant identity
