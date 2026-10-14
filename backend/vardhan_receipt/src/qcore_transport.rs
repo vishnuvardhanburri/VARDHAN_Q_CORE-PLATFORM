@@ -15,6 +15,8 @@ const SERVICE_ID_ENV: &str = "VARDHAN_QCORE_SERVICE_ID";
 const SERVICE_SECRET_ENV: &str = "VARDHAN_QCORE_SERVICE_SECRET";
 const TRANSPORT_URL_ENV: &str = "VARDHAN_QCORE_TRANSPORT_URL";
 const MAX_RECEIPT_BYTES: usize = 2 * 1024 * 1024;
+const TRANSPORT_VERSION: &str = "2";
+const PROTOCOL_DOMAIN: &[u8] = b"VARDHAN-QCORE-RECEIPT-TRANSPORT-V2";
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -78,21 +80,19 @@ pub async fn publish_receipt(
 
     let timestamp = now_ms();
     let nonce = Uuid::new_v4().to_string();
-    let canonical = format!("{}.{}.{}", timestamp, nonce, String::from_utf8_lossy(&body));
+    let path = format!("/api/v1/organizations/{organization_id}/qcore/receipts");
+    let canonical = canonical_request(organization_id, &service_id, timestamp, &nonce, &body);
     let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
         .map_err(|_| PublishError::Request("invalid HMAC secret".into()))?;
-    mac.update(canonical.as_bytes());
+    mac.update(&canonical);
     let signature = hex::encode(mac.finalize().into_bytes());
 
-    let url = format!(
-        "{}/api/v1/organizations/{}/qcore/receipts",
-        base_url.trim_end_matches('/'),
-        organization_id
-    );
+    let url = format!("{}{}", base_url.trim_end_matches('/'), path);
 
     let response = Client::new()
         .post(url)
         .header("content-type", "application/json")
+        .header("x-vardhan-transport-version", TRANSPORT_VERSION)
         .header("x-vardhan-service-id", &service_id)
         .header("x-vardhan-timestamp", timestamp.to_string())
         .header("x-vardhan-nonce", &nonce)
@@ -135,6 +135,28 @@ fn required_env(name: &'static str) -> Result<String, PublishError> {
         .ok_or(PublishError::NotConfigured(name))
 }
 
+fn canonical_request(organization_id: &str, service_id: &str, timestamp: u64, nonce: &str, body: &[u8]) -> Vec<u8> {
+    let path = format!("/api/v1/organizations/{organization_id}/qcore/receipts");
+    let timestamp = timestamp.to_string();
+    let fields: [&[u8]; 9] = [
+        PROTOCOL_DOMAIN,
+        TRANSPORT_VERSION.as_bytes(),
+        b"POST",
+        path.as_bytes(),
+        organization_id.as_bytes(),
+        service_id.as_bytes(),
+        timestamp.as_bytes(),
+        nonce.as_bytes(),
+        body,
+    ];
+    let mut out = Vec::with_capacity(fields.iter().map(|field| 8 + field.len()).sum());
+    for field in fields {
+        out.extend_from_slice(&(field.len() as u64).to_be_bytes());
+        out.extend_from_slice(field);
+    }
+    out
+}
+
 fn now_ms() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -152,9 +174,9 @@ mod tests {
         let nonce = "nonce-1";
         let body = r#"{"receipt_id":"VQR-1"}"#;
         let secret = "test-secret";
-        let canonical = format!("{}.{}.{}", timestamp, nonce, body);
+        let canonical = canonical_request("org-a", "svc-a", timestamp, nonce, body.as_bytes());
         let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
-        mac.update(canonical.as_bytes());
+        mac.update(&canonical);
         let first = hex::encode(mac.finalize().into_bytes());
 
         let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
@@ -165,13 +187,13 @@ mod tests {
 
     #[test]
     fn wrong_secret_does_not_verify() {
-        let canonical = "1700000000000.nonce.body";
+        let canonical = canonical_request("org-a", "svc-a", 1_700_000_000_000, "nonce", b"body");
         let mut signer = HmacSha256::new_from_slice(b"secret-a").unwrap();
-        signer.update(canonical.as_bytes());
+        signer.update(&canonical);
         let signature = signer.finalize().into_bytes();
 
         let mut verifier = HmacSha256::new_from_slice(b"secret-b").unwrap();
-        verifier.update(canonical.as_bytes());
+        verifier.update(&canonical);
         assert!(verifier.verify_slice(&signature).is_err());
     }
 }
