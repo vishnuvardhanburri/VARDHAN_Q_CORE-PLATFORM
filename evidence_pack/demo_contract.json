@@ -1,0 +1,27 @@
+{
+  "contract": {
+    "schema_version": "1.1",
+    "finding_id": "find-demo-001",
+    "intelligence": {"engine_id": "demo-engine", "engine_version": "1.0.0", "run_id": "demo-run-001"},
+    "organization": {"organization_id": "org-vardhan-intelligence", "canonical_domain": "vardhan.org"},
+    "affected_resource": {"canonical_url": "https://api.vardhan.org", "surface_type": "API_REST", "entry_point_id": "ep-demo"},
+    "technical_area": "STATIC_ANALYSIS",
+    "technical_mechanism": "SQLi",
+    "expected_behavior": "safe",
+    "observed_behavior": "vulnerable",
+    "differential_state": "CONFIRMED_MISMATCH",
+    "materiality": "HIGH",
+    "evidence_refs": [{"evidence_id": "ev-demo-001", "public_url": "https://evidence.vardhan.org", "temporal_status": "CURRENT", "is_context_artifact": false, "evidence_origin": "scan", "content_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}],
+    "provenance_chain": {"expectation_id": "exp-demo", "observation_ids": ["obs-demo"], "differential_id": "diff-demo", "hypothesis_id": "hyp-demo", "verification_contract_id": "verif-demo"},
+    "contradictory_evidence_ids": [],
+    "uncertainty": [],
+    "benign_explanation": "",
+    "authorization_context": {"requires_authorized_assessment": false},
+    "decision_candidate": "SEAL_VERIFIED_FINDING",
+    "policy_reference": "VARDHAN_CORE_INTELLIGENCE_POLICY_V1",
+    "created_at": "2026-10-13T10:00:00Z",
+    "evidence_earliest_retrieved_at": "2026-10-13T09:00:00Z",
+    "evidence_latest_retrieved_at": "2026-10-13T09:30:00Z"
+  },
+  "actor_workload_id": "svc:vardhan-intelligence:demo-01"
+}
