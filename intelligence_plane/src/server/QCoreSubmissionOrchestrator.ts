@@ -1,9 +1,9 @@
-import { VerificationToContractAdapter } from './VerificationToContractAdapter';
-import { QCoreIntegrationService } from './QCoreIntegrationService';
-import type { ProblemFinding } from './findings/ProblemFinding';
-import type { IntelligenceRunContext } from './DeepTypes';
-import type { Evidence } from './IntelligenceCase';
-import type { VerifiedFindingContract } from './VerifiedFindingContract';
+import { VerificationToContractAdapter } from './VerificationToContractAdapter.ts';
+import { QCoreIntegrationService } from './QCoreIntegrationService.ts';
+import type { ProblemFinding } from './findings/ProblemFinding.ts';
+import type { IntelligenceRunContext } from './DeepTypes.ts';
+import type { Evidence } from './IntelligenceCase.ts';
+import type { VerifiedFindingContract } from './VerifiedFindingContract.ts';
 import * as fs from 'fs';
 import * as path from 'path';
 

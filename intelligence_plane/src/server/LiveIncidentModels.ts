@@ -5,7 +5,7 @@
  * correlation to target companies.
  */
 
-import { Provenance } from './IntelligenceCase';
+import { Provenance } from './IntelligenceCase.ts';
 
 export type LiveEventType =
   | 'SERVICE_OUTAGE'

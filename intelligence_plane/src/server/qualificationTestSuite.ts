@@ -12,7 +12,7 @@ import {
   ClaimAndMetricValidator,
   TargetFreshnessClassifier,
   QualifiedTargetRecord
-} from './targetQualificationEngine';
+} from './targetQualificationEngine.ts';
 import { AllCompanyResearch } from '../data/allCompaniesResearch';
 
 interface TestResult {

@@ -8,12 +8,12 @@
  * RAW_HTML -> Visible Text Pipeline -> Token-Bound Role Match -> Name Candidate
  */
 
-import {
+import type {
   CANDIDATE_ROLES,
   OwnerCandidate,
   DiscoveredPage,
   StrengthLevel
-} from './IntelligenceCase';
+} from './IntelligenceCase.ts';
 
 /** A person extracted from public sources (before confidence scoring). */
 export interface RawPerson {

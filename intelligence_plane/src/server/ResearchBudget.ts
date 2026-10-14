@@ -1,4 +1,4 @@
-import { IntelligenceCase, ResearchBudgetState } from './IntelligenceCase';
+import type { IntelligenceCase, ResearchBudgetState } from './IntelligenceCase.ts';
 
 /** Safely access budget_state, returning a default if missing. */
 function bs(cs?: IntelligenceCase): ResearchBudgetState {

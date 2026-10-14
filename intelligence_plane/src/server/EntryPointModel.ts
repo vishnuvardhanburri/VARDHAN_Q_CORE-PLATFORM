@@ -15,7 +15,7 @@
  * *how to attack*.
  */
 
-import type { EvidenceProvenance } from './DeepTypes';
+import type { EvidenceProvenance } from './DeepTypes.ts';
 
 // ── Surface Type Classification ───────────────────────────────────────────────
 

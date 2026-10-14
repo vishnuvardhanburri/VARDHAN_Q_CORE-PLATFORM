@@ -5,7 +5,7 @@
  * CandidateSignal to be promoted to a VerifiedFinding.
  */
 
-import { SignalSourceType, SourceRelationship } from './IntelligenceCase';
+import { SignalSourceType, SourceRelationship } from './IntelligenceCase.ts';
 
 export interface ProofContract {
   identity: {

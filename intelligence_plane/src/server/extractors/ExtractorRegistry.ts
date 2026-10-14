@@ -5,10 +5,10 @@
  */
 
 import { SourceType } from '../IntelligenceCase';
-import { SourceExtractor } from './SourceExtractor';
-import { StatusExtractor } from './StatusExtractor';
-import { CareersExtractor } from './CareersExtractor';
-import { PublicDocumentationExtractor } from './PublicDocumentationExtractor';
+import { SourceExtractor } from './SourceExtractor.ts';
+import { StatusExtractor } from './StatusExtractor.ts';
+import { CareersExtractor } from './CareersExtractor.ts';
+import { PublicDocumentationExtractor } from './PublicDocumentationExtractor.ts';
 
 class ExtractorRegistry {
   private registry: Map<SourceType, SourceExtractor> = new Map();

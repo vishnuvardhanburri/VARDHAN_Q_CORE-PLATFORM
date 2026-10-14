@@ -23,7 +23,7 @@ import { LivePublicObservationProvider } from './LivePublicObservationProvider.j
 import { PublicLinkDiscovery } from './PublicLinkDiscovery.js';
 import { PeopleExtractor } from './PeopleExtractor.js';
 import { OwnerSelector } from './OwnerSelector.js';
-import { ResearchBudget } from './ResearchBudget';
+import { ResearchBudget } from './ResearchBudget.ts';
 import type {
   OwnerCandidate, CompanySurface, DiscoveredPage,
   PublicObservationProvider

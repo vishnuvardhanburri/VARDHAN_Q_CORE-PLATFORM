@@ -1,5 +1,5 @@
-import { AutonomousLoopManager } from './AutonomousLoopManager';
-import { IntelligenceCase } from './IntelligenceCase';
+import { AutonomousLoopManager } from './AutonomousLoopManager.ts';
+import { IntelligenceCase } from './IntelligenceCase.ts';
 
 async function runValidation() {
   const companies = [

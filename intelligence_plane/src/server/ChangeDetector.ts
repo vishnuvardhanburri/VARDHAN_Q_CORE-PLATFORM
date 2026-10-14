@@ -8,8 +8,8 @@
  * affirmative evidence of removal (e.g. page now 404 that was 200).
  */
 
-import type { DeepProspect, DeepSignal, ActivityEvent } from './DeepTypes';
-import type { Evidence, OwnerCandidate } from './IntelligenceCase';
+import type { DeepProspect, DeepSignal, ActivityEvent } from './DeepTypes.ts';
+import type { Evidence, OwnerCandidate } from './IntelligenceCase.ts';
 
 export type ChangeKind = 'NEW' | 'CHANGED' | 'UNCHANGED' | 'REMOVED' | 'UNKNOWN';
 

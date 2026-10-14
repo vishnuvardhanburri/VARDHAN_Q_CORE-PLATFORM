@@ -2,8 +2,8 @@ import {
   SurfaceSemanticAssessment, 
   SurfaceRelationship, 
   SurfaceRelationshipType 
-} from './SemanticTypes';
-import { ExternalSurface } from './SurfaceTypes';
+} from './SemanticTypes.ts';
+import { ExternalSurface } from './SurfaceTypes.ts';
 import { Evidence } from '../IntelligenceCase';
 
 export interface ExposureGraph {

@@ -33,15 +33,15 @@
  *   PUBLIC_PROFESSIONAL_SOURCE — identity from third-party professional source
  */
 
-import type { CanonicalCompany, CanonicalPerson } from './providers/Model';
+import type { CanonicalCompany, CanonicalPerson } from './providers/Model.ts';
 import type {
   DeepStage, ProviderCompanyLike, GithubRepoMeta
-} from './DeepTypes';
+} from './DeepTypes.ts';
 import type {
   OwnerCandidate, StrengthLevel,
   DiscoveredPage, ProfessionalPageCategory
-} from './IntelligenceCase';
-import { PeopleExtractor } from './PeopleExtractor';
+} from './IntelligenceCase.ts';
+import { PeopleExtractor } from './PeopleExtractor.ts';
 
 /**
  * Provenance tags for person identity. Keeps the 6 canonical provenance

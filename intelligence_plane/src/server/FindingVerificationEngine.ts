@@ -1,19 +1,19 @@
 import {
   DeepSignal,
   VerifiedFinding
-} from './DeepTypes';
+} from './DeepTypes.ts';
 import {
   Evidence,
   SignalCandidate,
   SourceRelationship
-} from './IntelligenceCase';
-import { VerificationToContractAdapter } from './VerificationToContractAdapter';
-import type { QCoreIntegrationService } from './QCoreIntegrationService';
-import type { IntelligenceRunContext } from './DeepTypes';
+} from './IntelligenceCase.ts';
+import { VerificationToContractAdapter } from './VerificationToContractAdapter.ts';
+import type { QCoreIntegrationService } from './QCoreIntegrationService.ts';
+import type { IntelligenceRunContext } from './DeepTypes.ts';
 import {
   getContractForType,
   ProofContract
-} from './FindingProofContracts';
+} from './FindingProofContracts.ts';
 
 export interface SubjectAttribution {
   subject: 'TARGET_COMPANY' | 'CUSTOMER' | 'PARTNER' | 'VENDOR' | 'INDUSTRY' | 'UNKNOWN';

@@ -2,8 +2,8 @@ import {
   OrganizationCandidate,
   DiscoveryRequest
 } from './AutonomousOrganizationDiscoveryEngine.types';
-import { OrganizationCandidateExtractor } from './OrganizationCandidateExtractor';
-import { CompanyNormalizer } from './CompanyNormalizer';
+import { OrganizationCandidateExtractor } from './OrganizationCandidateExtractor.ts';
+import { CompanyNormalizer } from './CompanyNormalizer.ts';
 import { VardhanSystemManager } from '../system/VardhanSystemManager';
 
 export interface DiscoveryRequest {

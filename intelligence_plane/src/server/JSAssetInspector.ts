@@ -1,4 +1,4 @@
-import { Evidence } from './IntelligenceCase';
+import { Evidence } from './IntelligenceCase.ts';
 
 export interface JSEndpoint {
   endpoint: string;

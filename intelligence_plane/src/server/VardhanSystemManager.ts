@@ -22,25 +22,25 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
-import type { IntelligenceRunContext } from './DeepTypes';
-import type { QueuedCompany } from './DeepTypes';
-import { CompanyQueue } from './CompanyQueue';
-import { DomainResolver, type ResolveSeed } from './DomainResolver';
-import { SourceDiscoveryOrchestrator } from './SourceDiscoveryOrchestrator';
-import { LiveWebResearchProvider } from './LiveWebResearchProvider';
-import type { LiveWebResearchResult } from './LiveWebResearchProvider';
-import { DeepProspectBuilder } from './DeepProspectBuilder';
-import type { DeepBuilderResult } from './DeepTypes';
-import { QCoreSubmissionOrchestrator } from './QCoreSubmissionOrchestrator';
-import { VardhanDecisionEngine, type Decision } from './VardhanDecisionEngine';
-import { VardhanModelGateway, type ModelProvider } from './VardhanModelGateway';
-import { EvidenceLedger } from './EvidenceLedger';
-import { StatePersistence } from './StatePersistence';
-import { DataSufficiencyChecker } from './DataSufficiencyChecker';
-import { ResearchBudget, type ResearchStage } from './ResearchBudget';
-import type { Evidence } from './IntelligenceCase';
-import type { DiscoveredSource } from './SourceDiscoveryOrchestrator';
-import { ChangeDetector, snapshotFromProspect } from './ChangeDetector';
+import type { IntelligenceRunContext } from './DeepTypes.ts';
+import type { QueuedCompany } from './DeepTypes.ts';
+import { CompanyQueue } from './CompanyQueue.ts';
+import { DomainResolver, type ResolveSeed } from './DomainResolver.ts';
+import { SourceDiscoveryOrchestrator } from './SourceDiscoveryOrchestrator.ts';
+import { LiveWebResearchProvider } from './LiveWebResearchProvider.ts';
+import type { LiveWebResearchResult } from './LiveWebResearchProvider.ts';
+import { DeepProspectBuilder } from './DeepProspectBuilder.ts';
+import type { DeepBuilderResult } from './DeepTypes.ts';
+import { QCoreSubmissionOrchestrator } from './QCoreSubmissionOrchestrator.ts';
+import { VardhanDecisionEngine, type Decision } from './VardhanDecisionEngine.ts';
+import { VardhanModelGateway, type ModelProvider } from './VardhanModelGateway.ts';
+import { EvidenceLedger } from './EvidenceLedger.ts';
+import { StatePersistence } from './StatePersistence.ts';
+import { DataSufficiencyChecker } from './DataSufficiencyChecker.ts';
+import { ResearchBudget, type ResearchStage } from './ResearchBudget.ts';
+import type { Evidence } from './IntelligenceCase.ts';
+import type { DiscoveredSource } from './SourceDiscoveryOrchestrator.ts';
+import { ChangeDetector, snapshotFromProspect } from './ChangeDetector.ts';
 
 export type SystemManagerState =
   | 'DISCOVER'

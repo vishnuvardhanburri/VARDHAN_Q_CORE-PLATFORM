@@ -7,7 +7,7 @@
 // bypasses login/CAPTCHA/rate-limits, or guesses platforms. Only CSV/API data
 // explicitly supplied by the operator is accepted.
 
-import type { GrowjoCompany } from './DeepTypes';
+import type { GrowjoCompany } from './DeepTypes.ts';
 
 export interface GrowjoImportResult {
   companies: GrowjoCompany[];

@@ -1,5 +1,5 @@
 import { describe, beforeAll, expect, test } from "vitest";
-import { QCoreAdapter, QCoreValidationRequest } from './QCoreAdapter';
+import { QCoreAdapter, QCoreValidationRequest } from './QCoreAdapter.ts';
 import {
   VerifiedFindingContract,
   FINDING_CONTRACT_VERSION,

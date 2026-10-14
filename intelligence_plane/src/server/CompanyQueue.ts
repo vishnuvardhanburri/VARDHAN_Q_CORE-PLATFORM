@@ -6,7 +6,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import type { QueuedCompany, QueueState, GrowjoCompany, CompanyResolution, DeepDecision, DeepConfidence } from './DeepTypes';
+import type { QueuedCompany, QueueState, GrowjoCompany, CompanyResolution, DeepDecision, DeepConfidence } from './DeepTypes.ts';
 
 export class CompanyQueue {
   private file: string;

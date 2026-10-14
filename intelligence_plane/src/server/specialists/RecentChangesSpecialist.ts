@@ -1,5 +1,5 @@
-import { BaseSpecialist } from './BaseSpecialist';
-import { SpecialistInput } from './SpecialistTypes';
+import { BaseSpecialist } from './BaseSpecialist.ts';
+import { SpecialistInput } from './SpecialistTypes.ts';
 import { CompanyResearchContext } from '../CompanyResearchContext';
 
 export class RecentChangesSpecialist extends BaseSpecialist {

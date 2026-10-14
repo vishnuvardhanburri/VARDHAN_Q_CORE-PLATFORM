@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { Evidence } from './IntelligenceCase';
+import { Evidence } from './IntelligenceCase.ts';
 
 export interface DocumentedApiOperation {
   operationId: string;

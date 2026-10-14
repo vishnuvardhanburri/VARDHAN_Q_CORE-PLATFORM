@@ -1,5 +1,5 @@
 import { IntelligenceCase, Evidence } from '../IntelligenceCase';
-import { TrendSignal } from './TrendAndChangeIntelligenceEngine';
+import { TrendSignal } from './TrendAndChangeIntelligenceEngine.ts';
 
 export type AdvisoryType = 
   | 'PUBLIC_EXPOSURE_ADVISORY' 

@@ -1,5 +1,5 @@
-import { Evidence } from './IntelligenceCase';
-import { TechnicalEntity, TechnicalRelationship, EntityType } from './TechnicalEntity';
+import { Evidence } from './IntelligenceCase.ts';
+import { TechnicalEntity, TechnicalRelationship, EntityType } from './TechnicalEntity.ts';
 
 export class TechnicalEntityExtractor {
   private readonly entityDefinitions: Record<string, { type: EntityType, keywords: string[], confidence: 'LOW' | 'MEDIUM' | 'HIGH' }> = {

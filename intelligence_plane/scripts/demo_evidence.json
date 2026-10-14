@@ -1,0 +1,29 @@
+{
+  "evidence": [
+    {
+      "id": "ev_quantum_001",
+      "evidence_origin": "REAL_PUBLIC_OBSERVATION",
+      "public_url": "https://sc.com/security-quantum-migration",
+      "source_type": "ENGINEERING_BLOG",
+      "method": "GET",
+      "status": 200,
+      "observed_behavior": "The bank is actively planning a quantum-resistant migration of its core ledger using cryptographic agility and ML-DSA signatures.",
+      "reproductions": 1,
+      "repeatable": true,
+      "tested_without_auth": true,
+      "not_tested": ["mutations", "auth bypass"],
+      "retrieved_at": "2026-10-14T00:00:00Z",
+      "evidence_text": "We are migrating to ML-DSA-87 to protect our core ledger.",
+      "latency_ms": 0
+    }
+  ],
+  "discovered_pages": [],
+  "htmlByUrl": {},
+  "owner_candidates": [],
+  "github_repos": [],
+  "queries_executed": [],
+  "errors": [],
+  "search_available": true,
+  "search_provider": "Serper",
+  "stage_reached": 3
+}

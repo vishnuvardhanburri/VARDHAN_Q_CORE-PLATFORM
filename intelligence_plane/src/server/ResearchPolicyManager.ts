@@ -1,4 +1,4 @@
-import { ResearchMode, ResearchPolicy } from './IntelligenceCase';
+import { ResearchMode, ResearchPolicy } from './IntelligenceCase.ts';
 
 export class ResearchPolicyManager {
   private static currentPolicy: ResearchPolicy;

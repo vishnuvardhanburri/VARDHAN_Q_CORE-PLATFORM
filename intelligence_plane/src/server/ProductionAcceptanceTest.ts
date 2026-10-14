@@ -1,13 +1,13 @@
-import { IntelligenceCase } from './IntelligenceCase';
-import { AutonomousLoopManager } from './AutonomousLoopManager';
-import { DomainResolver } from './DomainResolver';
-import { IcpQualificationEngine } from './IcpQualificationEngine';
-import { PersonDiscoveryEngine } from './PersonDiscoveryEngine';
-import { DeepOwnerResolver } from './DeepOwnerResolver';
-import { ContactabilityFinder } from './ContactabilityFinder';
-import { BehavioralXRayAnalyzer } from './BehavioralXRayAnalyzer';
-import { DependencyGraphReconstructor } from './DependencyGraphReconstructor';
-import { ThesisEngine } from './ThesisEngine';
+import { IntelligenceCase } from './IntelligenceCase.ts';
+import { AutonomousLoopManager } from './AutonomousLoopManager.ts';
+import { DomainResolver } from './DomainResolver.ts';
+import { IcpQualificationEngine } from './IcpQualificationEngine.ts';
+import { PersonDiscoveryEngine } from './PersonDiscoveryEngine.ts';
+import { DeepOwnerResolver } from './DeepOwnerResolver.ts';
+import { ContactabilityFinder } from './ContactabilityFinder.ts';
+import { BehavioralXRayAnalyzer } from './BehavioralXRayAnalyzer.ts';
+import { DependencyGraphReconstructor } from './DependencyGraphReconstructor.ts';
+import { ThesisEngine } from './ThesisEngine.ts';
 
 export interface ProductionTestCompany {
   name: string;

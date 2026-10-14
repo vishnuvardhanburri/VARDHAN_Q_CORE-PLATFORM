@@ -6,8 +6,8 @@
  * of search personas, subsystems, and keywords.
  */
 
-import type { FindingClassification, Evidence } from './IntelligenceCase';
-import type { OwnerSearchPlan } from './DeepTypes';
+import type { FindingClassification, Evidence } from './IntelligenceCase.ts';
+import type { OwnerSearchPlan } from './DeepTypes.ts';
 
 export class OwnerSearchPlanner {
   static plan(

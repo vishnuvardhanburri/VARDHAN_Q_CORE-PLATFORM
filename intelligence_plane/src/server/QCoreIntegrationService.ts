@@ -1,7 +1,7 @@
-import { TrustBoundaryValidator } from './TrustBoundaryValidator';
-import type { VerifiedFindingContract } from './VerifiedFindingContract';
-import type { Evidence } from './IntelligenceCase';
-import type { IQCoreIntegrationService } from './QCoreSubmissionOrchestrator';
+import { TrustBoundaryValidator } from './TrustBoundaryValidator.ts';
+import type { VerifiedFindingContract } from './VerifiedFindingContract.ts';
+import type { Evidence } from './IntelligenceCase.ts';
+import type { IQCoreIntegrationService } from './QCoreSubmissionOrchestrator.ts';
 
 // We inline a simple HTTP client since @vardhan/qcore-sdk might not have the new schema
 export class QCoreIntegrationService implements IQCoreIntegrationService {

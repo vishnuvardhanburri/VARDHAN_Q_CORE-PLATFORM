@@ -9,8 +9,8 @@
  * Choose the highest-priority next action. Do NOT crawl hundreds of URLs.
  */
 
-import type { Hypothesis } from './HypothesisEngine';
-import type { ResearchState } from './VardhanResearchController';
+import type { Hypothesis } from './HypothesisEngine.ts';
+import type { ResearchState } from './VardhanResearchController.ts';
 
 export type ActionType =
   | 'inspect_github'

@@ -1,5 +1,5 @@
-import { IcpContext, IcpQualification, IcpDimension } from './IcpQualificationEngine';
-import { CompanySurface, Evidence, FindingClassification } from './IntelligenceCase';
+import type { IcpContext, IcpQualification, IcpDimension } from './IcpQualificationEngine.ts';
+import type { CompanySurface, Evidence, FindingClassification } from './IntelligenceCase.ts';
 
 export interface BankOpportunity {
   institutionName: string;

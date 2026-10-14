@@ -1,7 +1,7 @@
-import { CompanyQueue } from './CompanyQueue';
-import { VardhanSystemManager } from './system/VardhanSystemManager';
-import { VardhanModelGateway, OllamaProvider } from './VardhanModelGateway';
-import { detectSearchCapabilities, PublicWebSearchProvider, NullSearchProvider } from './WebSearchProvider';
+import { CompanyQueue } from './CompanyQueue.ts';
+import { VardhanSystemManager } from './system/VardhanSystemManager.ts';
+import { VardhanModelGateway, OllamaProvider } from './VardhanModelGateway.ts';
+import { detectSearchCapabilities, PublicWebSearchProvider, NullSearchProvider } from './WebSearchProvider.ts';
 import * as path from 'path';
 
 export interface FanoutOptions {

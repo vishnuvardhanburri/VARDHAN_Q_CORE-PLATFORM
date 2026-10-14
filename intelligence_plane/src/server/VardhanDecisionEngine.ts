@@ -19,10 +19,10 @@
  * Decision: REJECT / LOW_VALUE / RESEARCH_MORE / VALID_FINDING / STRONG_FINDING
  */
 
-import type { Evidence } from './IntelligenceCase';
-import type { DeepSignal, DeepFinding } from './DeepTypes';
-import type { FreshSource, FreshnessLevel } from './FreshnessEngine';
-import { FreshnessEngine } from './FreshnessEngine';
+import type { Evidence } from './IntelligenceCase.ts';
+import type { DeepSignal, DeepFinding } from './DeepTypes.ts';
+import type { FreshSource, FreshnessLevel } from './FreshnessEngine.ts';
+import { FreshnessEngine } from './FreshnessEngine.ts';
 
 export type DecisionOutcome = 'REJECT' | 'LOW_VALUE' | 'RESEARCH_MORE' | 'VALID_FINDING' | 'STRONG_FINDING';
 

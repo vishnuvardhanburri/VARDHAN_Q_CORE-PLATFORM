@@ -8,19 +8,19 @@
 
 import {
   FindingVerificationEngine
-} from './FindingVerificationEngine';
+} from './FindingVerificationEngine.ts';
 import {
   DiagnosticFitEngine
-} from './DiagnosticFitEngine';
+} from './DiagnosticFitEngine.ts';
 import {
   OutreachReadiness
-} from './OutreachReadiness';
+} from './OutreachReadiness.ts';
 import {
   SignalCandidate
-} from './DeepTypes';
+} from './DeepTypes.ts';
 import {
   Evidence
-} from './IntelligenceCase';
+} from './IntelligenceCase.ts';
 
 async function runGoldenPathTest() {
   console.log('🚀 Starting Golden Path Regression: SendGrid Latency Case');

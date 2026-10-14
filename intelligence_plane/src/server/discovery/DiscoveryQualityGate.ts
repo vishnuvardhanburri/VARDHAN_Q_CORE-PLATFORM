@@ -1,4 +1,4 @@
-import { OrganizationCandidate } from './AutonomousOrganizationDiscoveryEngine';
+import { OrganizationCandidate } from './AutonomousOrganizationDiscoveryEngine.ts';
 
 export class DiscoveryQualityGate {
   async evaluate(candidate: OrganizationCandidate): Promise<'CANDIDATE' | 'SUPPORTED' | 'REJECTED' | 'RESEARCH_MORE'> {

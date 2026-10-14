@@ -8,9 +8,9 @@
  */
 
 import { Router } from 'express';
-import { SignalDiscoveryPipeline, DeduplicationService, SOURCE_CATALOGUE } from './signalDiscoveryPipeline';
+import { SignalDiscoveryPipeline, DeduplicationService, SOURCE_CATALOGUE } from './signalDiscoveryPipeline.ts';
 import { ALL_COMPANIES_RESEARCH_DATA } from '../data/allCompaniesResearch';
-import { TargetQualificationEngine } from './targetQualificationEngine';
+import { TargetQualificationEngine } from './targetQualificationEngine.ts';
 
 export const signalRouter = Router();
 

@@ -1,4 +1,4 @@
-import { ResearchBudgetState } from './IntelligenceCase';
+import { ResearchBudgetState } from './IntelligenceCase.ts';
 
 export class CompanyResearchContext {
   private budget: ResearchBudgetState = {

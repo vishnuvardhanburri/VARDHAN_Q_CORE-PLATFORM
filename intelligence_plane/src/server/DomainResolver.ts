@@ -5,8 +5,8 @@
 // It NEVER guesses a domain (no name-based search-engine/DNS lookups without
 // operator-supplied credentials). Ambiguous cases surface as RESEARCH_MORE.
 
-import type { CompanyResolution, GrowjoCompany } from './DeepTypes';
-import type { HttpFetcher } from './IntelligenceCase';
+import type { CompanyResolution, GrowjoCompany } from './DeepTypes.ts';
+import type { HttpFetcher } from './IntelligenceCase.ts';
 
 export interface ResolveSeed {
   domain: string | null;

@@ -5,7 +5,7 @@
  * Focuses on incident reports, outage windows, and operational health.
  */
 
-import { SourceExtractor, Observation } from './SourceExtractor';
+import { SourceExtractor, Observation } from './SourceExtractor.ts';
 import { SourceType } from '../IntelligenceCase';
 
 export class StatusExtractor extends SourceExtractor {

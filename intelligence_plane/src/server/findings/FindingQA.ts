@@ -18,8 +18,8 @@
 
 import type { Evidence } from '../IntelligenceCase';
 import type { DeepSignal } from '../DeepTypes';
-import type { FindingNode } from './FindingGraph';
-import { VardhanNoiseFilter } from './VardhanNoiseFilter';
+import type { FindingNode } from './FindingGraph.ts';
+import { VardhanNoiseFilter } from './VardhanNoiseFilter.ts';
 import { FreshnessEngine } from '../FreshnessEngine';
 
 export interface QAResult {

@@ -1,7 +1,7 @@
-import { ExternalSurface } from './SurfaceTypes';
+import { ExternalSurface } from './SurfaceTypes.ts';
 import { Evidence } from '../IntelligenceCase';
-import { OrganizationIdentityGraph } from './OrganizationIdentityGraph';
-import { SurfaceSemanticAssessment, FunctionalRole, AuthExpectation } from './SemanticTypes';
+import { OrganizationIdentityGraph } from './OrganizationIdentityGraph.ts';
+import { SurfaceSemanticAssessment, FunctionalRole, AuthExpectation } from './SemanticTypes.ts';
 
 export class SurfaceSemanticValidator {
   async validate(

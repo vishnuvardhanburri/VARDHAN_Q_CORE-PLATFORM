@@ -22,8 +22,8 @@
  * Each phase is a classifier that returns EntryPoint[] from matching evidence.
  */
 
-import type { Evidence, CompanySurface, DiscoveredPage } from './IntelligenceCase';
-import type { DeepSignal, EvidenceProvenance } from './DeepTypes';
+import type { Evidence, CompanySurface, DiscoveredPage } from './IntelligenceCase.ts';
+import type { DeepSignal, EvidenceProvenance } from './DeepTypes.ts';
 import type {
   EntryPoint, EntryPointTelemetry, EntryPointGraph,
   EntryPointAttribution, EntryPointObservability,
@@ -31,7 +31,7 @@ import type {
   EntryPointProtocol, EntryPointAuthModel, EntryPointAuthzModel,
   EntryPointTenantBoundary, EntryPointEnvironment, EntryPointTechContext,
   EntryPointDiscoverySource, EntryPointStatus, IneligibilityReason,
-} from './EntryPointModel';
+} from './EntryPointModel.ts';
 import { createHash } from 'crypto';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

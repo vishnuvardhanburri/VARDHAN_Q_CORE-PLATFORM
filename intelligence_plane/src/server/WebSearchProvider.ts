@@ -1,4 +1,5 @@
-import type { HttpFetcher } from './IntelligenceCase';
+import { SearchFailureReason } from "./IntelligenceCase.ts";
+import type { HttpFetcher } from './IntelligenceCase.ts';
 
 export interface SearchOptions {
   limit?: number;
@@ -17,6 +18,8 @@ export interface SearchProviderResponse {
   error?: string;
   failureReason?: string;
 }
+
+export { SearchFailureReason };
 
 export interface SearchProvider {
   readonly name: string;

@@ -1,5 +1,5 @@
 import { knowledgeLayer, TechnicalPattern } from '../knowledge/KnowledgeIntegrationLayer';
-import { ProbeResult } from './HybridProbeEngine';
+import { ProbeResult } from './HybridProbeEngine.ts';
 
 export enum BoundaryType {
   WAF_PROTECTED = 'WAF_PROTECTED',

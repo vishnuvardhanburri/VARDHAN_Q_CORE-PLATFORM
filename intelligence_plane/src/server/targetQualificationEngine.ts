@@ -21,7 +21,7 @@
 
 import { SIGNAL_DATABASE, RealSignalEntry } from '../utils/signalEngineReal';
 import { ALL_COMPANIES_RESEARCH_DATA, AllCompanyResearch } from '../data/allCompaniesResearch';
-import { SignalRecord } from './signalDiscoveryPipeline';
+import { SignalRecord } from './signalDiscoveryPipeline.ts';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES

@@ -15,7 +15,7 @@ import {
   SignalExtractor,
   SignalRecord,
   SignalDiscoveryPipeline,
-} from './signalDiscoveryPipeline';
+} from './signalDiscoveryPipeline.ts';
 
 interface TestResult {
   id: number;

@@ -19,11 +19,11 @@
  * material, not automatic proof.
  */
 
-import type { Evidence, SignalCandidate } from './IntelligenceCase';
-import type { VerifiedFinding } from './DeepTypes';
-import type { EntryPoint } from './EntryPointModel';
-import type { EntryPointGraph } from './EntryPointModel';
-import type { EvidenceProvenance } from './DeepTypes';
+import type { Evidence, SignalCandidate } from './IntelligenceCase.ts';
+import type { VerifiedFinding } from './DeepTypes.ts';
+import type { EntryPoint } from './EntryPointModel.ts';
+import type { EntryPointGraph } from './EntryPointModel.ts';
+import type { EvidenceProvenance } from './DeepTypes.ts';
 import type {
   ProblemFinding,
   TechnicalObservation,
@@ -35,8 +35,8 @@ import type {
   ObservationCategory,
   SignalType,
   CorrelationTheme,
-} from './findings/ProblemFinding';
-import { FindingVerificationEngine } from './FindingVerificationEngine';
+} from './findings/ProblemFinding.ts';
+import { FindingVerificationEngine } from './FindingVerificationEngine.ts';
 
 // ── Detection Knowledge (reference patterns) ──────────────────────────────────
 

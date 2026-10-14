@@ -1,4 +1,4 @@
-import { VerifiedFinding } from './DeepTypes';
+import { VerifiedFinding } from './DeepTypes.ts';
 
 export interface DiagnosticOpportunity {
   finding_id: string;

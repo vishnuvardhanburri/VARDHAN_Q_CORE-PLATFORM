@@ -8,9 +8,9 @@
  * Never guesses emails / phones from name+domain conventions.
  * Every field preserves provenance (source = "CSV", source_url, retrieved_at).
  */
-import type { CanonicalCompany, CanonicalPerson, CanonicalContact, Provenance } from './Model';
-import type { ProviderCapabilities } from './ProviderInterface';
-import { CompanyDataProvider } from './ProviderInterface';
+import type { CanonicalCompany, CanonicalPerson, CanonicalContact, Provenance } from './Model.ts';
+import type { ProviderCapabilities } from './ProviderInterface.ts';
+import { CompanyDataProvider } from './ProviderInterface.ts';
 import type { ProviderCostClass } from '../IntelligenceCase';
 
 // Reusable CSV parser (handles quoted fields with embedded commas/newlines).

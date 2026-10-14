@@ -25,7 +25,7 @@ import type {
   EntryPoint, EntryPointGraph, EntryPointEdge, EntryPointRelation,
   EntryPointRelationType, EntryPointGraphMetrics, EdgeBasis,
   EntryPointSurfaceType,
-} from './EntryPointModel';
+} from './EntryPointModel.ts';
 import { createHash } from 'crypto';
 
 /** Determine if two entry points should be connected by a relationship,

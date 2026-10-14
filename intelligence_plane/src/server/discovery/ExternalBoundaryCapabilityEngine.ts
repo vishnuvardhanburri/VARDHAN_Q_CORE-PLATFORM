@@ -1,12 +1,12 @@
-import { ExternalSurfaceProfile } from './ExternalSurfaceIntelligenceService';
+import { ExternalSurfaceProfile } from './ExternalSurfaceIntelligenceService.ts';
 import { Evidence } from '../IntelligenceCase';
 import { 
   BoundaryCapabilityAssessment, 
   CapabilityState, 
   TrustBoundary, 
   AuthorizationState 
-} from './BoundaryTypes';
-import { BoundaryEvidenceReconciler } from './BoundaryEvidenceReconciler';
+} from './BoundaryTypes.ts';
+import { BoundaryEvidenceReconciler } from './BoundaryEvidenceReconciler.ts';
 
 export class ExternalBoundaryCapabilityEngine {
   private reconciler = new BoundaryEvidenceReconciler();

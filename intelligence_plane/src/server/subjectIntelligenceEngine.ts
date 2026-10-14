@@ -10,7 +10,7 @@ import {
   VerifiedSignalInput,
   SubjectLineGenerationResult,
   GeneratedSubjectCandidate
-} from './subjectLineService';
+} from './subjectLineService.ts';
 
 export {
   SubjectLineService,

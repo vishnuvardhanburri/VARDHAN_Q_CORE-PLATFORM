@@ -5,7 +5,7 @@
  * Focuses on SRE, Platform, and Infrastructure hiring signals.
  */
 
-import { SourceExtractor, Observation } from './SourceExtractor';
+import { SourceExtractor, Observation } from './SourceExtractor.ts';
 import { SourceType } from '../IntelligenceCase';
 
 export class CareersExtractor extends SourceExtractor {

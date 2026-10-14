@@ -1,4 +1,4 @@
-import { IntelligenceCase } from './IntelligenceCase';
+import { IntelligenceCase } from './IntelligenceCase.ts';
 
 export interface TemporalDelta {
   metric: string;

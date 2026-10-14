@@ -6,11 +6,11 @@ import {
   EvidenceClassification,
   SourceState,
   HttpFetcher
-} from './IntelligenceCase';
-import { LivePublicObservationProvider } from './LivePublicObservationProvider';
-import { TargetedSearchProvider } from './providers/TargetedSearchProvider';
-import { ResearchBudget } from './ResearchBudget';
-import { GitHubWebProvider } from './providers/GitHubWebProvider';
+} from './IntelligenceCase.ts';
+import { LivePublicObservationProvider } from './LivePublicObservationProvider.ts';
+import { TargetedSearchProvider } from './providers/TargetedSearchProvider.ts';
+import { ResearchBudget } from './ResearchBudget.ts';
+import { GitHubWebProvider } from './providers/GitHubWebProvider.ts';
 
 export interface DiscoveryURL {
   url: string;

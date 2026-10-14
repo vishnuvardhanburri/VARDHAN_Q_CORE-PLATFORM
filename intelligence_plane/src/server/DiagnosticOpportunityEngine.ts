@@ -17,11 +17,11 @@
  * Only OBSERVED_* and POSSIBLE_* findings are actionable (DOCUMENTED_* are
  * published facts, not active technical problems).
  */
-import type { FindingType, SeverityLevel } from './IntelligenceCase';
-import type { Evidence, IntelligenceCase } from './IntelligenceCase';
+import type { FindingType, SeverityLevel } from './IntelligenceCase.ts';
+import type { Evidence, IntelligenceCase } from './IntelligenceCase.ts';
 import type { DeepFinding, DeepProspect, DiagnosticOpportunity,
   CommercialRelevance, TechnicalProblemType, DeepDecision, DeepConfidence,
-  OutreachCardFields } from './DeepTypes';
+  OutreachCardFields } from './DeepTypes.ts';
 
 /** Finding types that represent published facts / non-active problems. */
 const NON_ACTIONABLE_FINDING_TYPES = new Set([

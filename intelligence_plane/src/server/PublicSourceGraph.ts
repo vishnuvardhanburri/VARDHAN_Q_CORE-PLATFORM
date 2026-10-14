@@ -26,8 +26,8 @@
 
 import type {
   CompanySurface, DiscoveredPage, ProfessionalPageCategory,
-} from './IntelligenceCase';
-import { categorizeProfessionalPath } from './PublicLinkDiscovery';
+} from './IntelligenceCase.ts';
+import { categorizeProfessionalPath } from './PublicLinkDiscovery.ts';
 
 /**
  * A public cross-origin identity link that the company declares on its own

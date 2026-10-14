@@ -7,9 +7,9 @@
  * The Growjo CSV remains the PRIMARY / preferred initial lead source,
  * but the system works perfectly without it.
  */
-import type { CanonicalCompany, CanonicalPerson, CanonicalContact, SourceEntry, SourceCategory } from './Model';
-import type { ProviderCapabilities } from './ProviderInterface';
-import { CompanyDataProvider } from './ProviderInterface';
+import type { CanonicalCompany, CanonicalPerson, CanonicalContact, SourceEntry, SourceCategory } from './Model.ts';
+import type { ProviderCapabilities } from './ProviderInterface.ts';
+import { CompanyDataProvider } from './ProviderInterface.ts';
 import type { ProviderCostClass } from '../IntelligenceCase';
 import { GrowjoProvider } from '../GrowjoProvider';
 import type { GrowjoCompany } from '../DeepTypes';

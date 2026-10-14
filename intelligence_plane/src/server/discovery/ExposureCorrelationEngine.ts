@@ -1,6 +1,6 @@
-import { SurfaceSemanticAssessment } from './SemanticTypes';
+import { SurfaceSemanticAssessment } from './SemanticTypes.ts';
 import { Evidence } from '../IntelligenceCase';
-import { ExposureAssessment } from './SemanticTypes';
+import { ExposureAssessment } from './SemanticTypes.ts';
 
 export class ExposureCorrelationEngine {
   async correlate(

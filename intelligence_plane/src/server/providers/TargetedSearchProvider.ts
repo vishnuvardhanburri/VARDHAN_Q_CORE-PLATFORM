@@ -1,7 +1,7 @@
-import { CompanyDataProvider } from './ProviderInterface';
+import { CompanyDataProvider } from './ProviderInterface.ts';
 import { IntelligenceCase, Evidence } from '../IntelligenceCase';
 import { WebSearchProviderManager, SearchProvider, PublicWebSearchProvider, SerperSearchProvider } from '../WebSearchProvider';
-import { GitHubProvider } from './GitHubProvider';
+import { GitHubProvider } from './GitHubProvider.ts';
 
 export class TargetedSearchProvider {
   private searchManager: WebSearchProviderManager;

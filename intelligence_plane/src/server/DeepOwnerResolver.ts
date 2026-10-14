@@ -10,9 +10,9 @@
  * verbatim candidate evidence, the responsibility match, and the confidence.
  */
 
-import type { DeepOwner, OwnerConfidence, DeepStage } from './DeepTypes';
-import type { OwnerCandidate, FindingClassification, Evidence } from './IntelligenceCase';
-import { OwnerSelector } from './OwnerSelector';
+import type { DeepOwner, OwnerConfidence, DeepStage } from './DeepTypes.ts';
+import type { OwnerCandidate, FindingClassification, Evidence } from './IntelligenceCase.ts';
+import { OwnerSelector } from './OwnerSelector.ts';
 
 /** Derive the responsibility area ("subsystem") from the finding + evidence. */
 export function subsystemFromFinding(

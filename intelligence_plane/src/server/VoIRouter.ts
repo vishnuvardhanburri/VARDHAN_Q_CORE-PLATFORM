@@ -1,7 +1,7 @@
-import { IntelligenceCase } from './IntelligenceCase';
-import { ResearchState, VoIAction, VoIActionType } from './types/LoopTypes';
-import { GitHubProviderStatus } from './providers/GitHubProvider';
-import { ResearchBudget } from './ResearchBudget';
+import { IntelligenceCase } from './IntelligenceCase.ts';
+import { ResearchState, VoIAction, VoIActionType } from './types/LoopTypes.ts';
+import { GitHubProviderStatus } from './providers/GitHubProvider.ts';
+import { ResearchBudget } from './ResearchBudget.ts';
 
 export interface ActionHistoryRecord {
   action_type: VoIActionType;

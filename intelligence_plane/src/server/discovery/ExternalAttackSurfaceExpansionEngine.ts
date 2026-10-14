@@ -1,6 +1,6 @@
 import { VardhanSystemManager } from '../system/VardhanSystemManager';
-import { OrganizationIdentityGraph } from './OrganizationIdentityGraph';
-import { ExternalSurface, SurfaceType, DiscoveryState, ExpectationSource } from './SurfaceTypes';
+import { OrganizationIdentityGraph } from './OrganizationIdentityGraph.ts';
+import { ExternalSurface, SurfaceType, DiscoveryState, ExpectationSource } from './SurfaceTypes.ts';
 
 export interface ExternalSurfaceInventory {
   organization: string;

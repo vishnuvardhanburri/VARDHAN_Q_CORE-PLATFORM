@@ -1,4 +1,4 @@
-import { OpportunityDetector, EngineeringOpportunity, OpportunityType } from './OpportunityDetector';
+import { OpportunityDetector, EngineeringOpportunity, OpportunityType } from './OpportunityDetector.ts';
 import { Evidence, DeepSignal } from '../IntelligenceCase';
 
 export interface QualityOpportunity extends EngineeringOpportunity {

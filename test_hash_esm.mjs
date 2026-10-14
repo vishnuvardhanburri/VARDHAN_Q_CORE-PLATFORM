@@ -1,0 +1,1 @@
+import { blake3 } from '@noble/hashes/blake3.js'; console.log('Type:', typeof blake3(Buffer.from('test'))); console.log('Value:', blake3(Buffer.from('test'))); console.log('Hex:', Buffer.from(blake3(Buffer.from('test'))).toString('hex'));

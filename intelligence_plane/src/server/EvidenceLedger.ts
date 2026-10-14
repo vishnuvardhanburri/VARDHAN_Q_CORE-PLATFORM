@@ -11,7 +11,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomBytes, createHash } from 'crypto';
-import type { Evidence } from './IntelligenceCase';
+import type { Evidence } from './IntelligenceCase.ts';
 
 export type EvidenceType = 'FACT' | 'OBSERVATION' | 'DOCUMENTED_SOURCE' | 'INFERENCE';
 

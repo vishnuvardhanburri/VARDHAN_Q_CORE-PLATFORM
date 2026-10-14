@@ -1,5 +1,5 @@
-import { ExternalSurface, SurfaceType } from './SurfaceTypes';
-import { SurfaceSemanticAssessment } from './SemanticTypes';
+import { ExternalSurface, SurfaceType } from './SurfaceTypes.ts';
+import { SurfaceSemanticAssessment } from './SemanticTypes.ts';
 
 export interface SurfaceSnapshot {
   timestamp: Date;

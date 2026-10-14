@@ -13,8 +13,8 @@
 import type {
   DeepSignal, DeepOwner, DeepContact,
   IcpDimension, IcpQualification, IcpFit, IcpOverall
-} from './DeepTypes';
-import type { CompanySurface, OwnerCandidate, Evidence, FindingClassification } from './IntelligenceCase';
+} from './DeepTypes.ts';
+import type { CompanySurface, OwnerCandidate, Evidence, FindingClassification } from './IntelligenceCase.ts';
 
 export interface IcpContext {
   company: string;

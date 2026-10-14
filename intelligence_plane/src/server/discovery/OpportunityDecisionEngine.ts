@@ -2,10 +2,10 @@ import {
   OpportunityDecision, 
   OpportunityDecisionState, 
   OpportunityEvidencePacket 
-} from './SemanticTypes';
+} from './SemanticTypes.ts';
 import { Evidence, IntelligenceCase, InvestigationHypothesis } from '../IntelligenceCase';
-import { ExposureGraph } from './ExternalExposureGraphEngine';
-import { SurfaceSemanticAssessment } from './SemanticTypes';
+import { ExposureGraph } from './ExternalExposureGraphEngine.ts';
+import { SurfaceSemanticAssessment } from './SemanticTypes.ts';
 
 export class OpportunityDecisionEngine {
   async decide(

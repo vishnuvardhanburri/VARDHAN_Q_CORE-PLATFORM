@@ -1,6 +1,6 @@
-import { ExposureGraph } from './ExternalExposureGraphEngine';
-import { SurfaceSemanticAssessment } from './SemanticTypes';
-import { ExposureAssessment } from './SemanticTypes';
+import { ExposureGraph } from './ExternalExposureGraphEngine.ts';
+import { SurfaceSemanticAssessment } from './SemanticTypes.ts';
+import { ExposureAssessment } from './SemanticTypes.ts';
 
 export class ExposureNarrativeGenerator {
   /**
