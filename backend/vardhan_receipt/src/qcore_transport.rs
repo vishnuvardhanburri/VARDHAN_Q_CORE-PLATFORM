@@ -180,7 +180,7 @@ mod tests {
         let first = hex::encode(mac.finalize().into_bytes());
 
         let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap();
-        mac.update(canonical.as_bytes());
+        mac.update(&canonical);
         let second = hex::encode(mac.finalize().into_bytes());
         assert_eq!(first, second);
     }
