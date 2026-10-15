@@ -1,113 +1,70 @@
-# Threat Model
+# Threat Model — Synthetic Financial-Services PoV
 
-## Scope
+## Status and scope
 
-**System under test:** VARDHAN Q-Core control plane + receipt engine (PoV Docker environment)  
-**Deployment context:** Enterprise financial-services workflow (LGT gateway)  
-**Assumed environment:** Single-container deployment with plaintext HTTP transport (PoC scope)
+**Scenario:** synthetic financial-services trust/evidence workflow running locally in Docker.  
+**Not an LGT assessment:** no LGT requirement, workflow, incident, architecture, budget or buyer intent has been confirmed. The earlier expansion “Logistics Gateway Trust” was invented and is withdrawn.  
+**Test status:** first-run results were reported before an audit of the harness. Corrected implementation and test changes are on the follow-up branch; a fresh corrected run is pending.
 
----
+## Assets and trust boundaries
 
-## Assets
+| Asset | Intended security property | Current lab implementation / limitation |
+|---|---|---|
+| Sealed finding receipt | Tamper evidence and independent verification | Reported dual Ed25519 + ML-DSA-87 signatures; fresh run pending |
+| Finding ID / replay state | Duplicate submission rejection | Local filesystem flags; single-node only; global ID namespace |
+| Session token | Authenticated API use | One-time token rotation, creating client concurrency complexity |
+| Signing keys | Confidentiality and integrity | Development keystore; no production KMS/HSM assurance |
+| Tenant identity | Correct organization binding and authorization | Static allowlist; dynamic organization creation is not linked to policy registry |
+| Transport | Confidentiality and service authenticity | Plaintext local HTTP in the PoV; no TLS/mTLS validation |
+| Audit data | Retrievability and reviewability | Audit endpoint response was reported; completeness, integrity under admin compromise, retention and export remain unproven |
 
-| Asset | Sensitivity | Protection |
-|-------|------------|------------|
-| Sealed finding receipts | HIGH — tamper-evident audit trail | Ed25519 + ML-DSA-87 dual signatures |
-| Finding IDs (idempotency) | MEDIUM — replay prevention | File-based atomic flag files (O_CREAT \| O_EXCL) |
-| Session tokens | HIGH — bearer credential | One-time-use rotation |
-| Signing keys | CRITICAL — cryptographic material | AES-256-GCM envelope encryption, dev fallback |
-| Tenant registry | HIGH — authorization boundary | Static allowlist in policy authority |
+Trust boundaries are: client-to-HTTP API, URL organization ID to contract organization ID, API-to-receipt subprocess, receipt engine to filesystem idempotency/keystore, and receipt-to-independent-verifier.
 
----
+The API handler now explicitly rejects requests whose URL organization ID differs from the contract organization's organization_id field, returning HTTP 403 with status REJECTED_TENANT_MISMATCH. This was added after finding that the prior handler ignored the URL path identifier. The mismatch test is present in the follow-up branch; **the new guard has not been run through the corrected integration test yet**.
 
-## Trust Boundaries
+## Threats and controls to test
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      VARDHAN Q-Core Container                   │
-│                                                                 │
-│  ┌─────────────┐     ┌────────────────────┐     ┌───────────┐  │
-│  │ HTTP Client  │────│  Control Plane API  │────│           │  │
-│  │ (Test Script)│    │  (axum server)      │    │ Receipt   │  │
-│  └─────────────┘     │  - Auth middleware │    │ Engine    │  │
-│                        │  - Token rotation  │    │ (subprocess│  │
-│                        │  - Org management  │    │ validate-  │  │
-│                        └───────────────────┬┘    │ canonical) │  │
-│                                              │   └───────────┘  │
-│  ┌─────────────────────────────────────────────┐               │
-│  │  Trust Boundary: Subprocess Invocation      │               │
-│  │  - Env vars propagated explicitly            │               │
-│  └─────────────────────────────────────────────┘               │
-│                                                                 │
-│  ┌─────────────────────────────────────────────┐               │
-│  │  Trust Boundary: Filesystem (idempotency)   │               │
-│  │  - /var/lib/vardhan/idempotency/            │               │
-│  │  - /var/lib/vardhan/keystore/               │               │
-│  └─────────────────────────────────────────────┘               │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Threat | Intended control | Evidence status |
+|---|---|---|
+| Forged or modified receipt | Independent verification of signatures and receipt structure | Previously reported pass; fresh run required |
+| Payload/hash tampering | Canonical validation and integrity checks | Previously tested for a malformed short hash only; broader mutation/fuzz testing required |
+| Duplicate/replayed finding | Atomic idempotency state | Sequential replay previously reported; concurrent assertion was defective and is corrected, pending rerun |
+| Cross-tenant route/payload mismatch | Handler checks URL org ID against contract org ID | Guard added; explicit negative test added; validation pending |
+| Unknown tenant | Fail-closed static tenant policy | Previously reported pass; retest route and payload with matching unknown tenant ID |
+| Unauthorized actor string | Policy authority rejects unapproved workload ID | Previously reported pass; prefix matching is not a cryptographic workload identity proof |
+| Unauthenticated API request | Authentication middleware returns 401 | Previously reported pass; retest |
+| Malformed/oversized input | Schema validation, bounded resources and safe failure | Only a small malformed-input case previously tested; size/time limits and fuzzing not established |
+| Token theft/reuse | One-time-use token rotation | Limited happy/negative path; not a comprehensive token abuse assessment |
+| Concurrent replay across instances | Shared/consensus idempotency state | **Not implemented/validated**; local filesystem flags are single-node |
+| MITM or credential interception | TLS/mTLS | **Not present in local PoV** |
+| Key theft, rotation, recovery | Production KMS/HSM lifecycle and access controls | **Not established** |
+| Resource exhaustion | Rate limiting, quotas, backpressure, bounded payloads | Not validated |
+| Audit alteration or deletion | Tamper-resistant centralized audit ledger, retention and export controls | Not validated by a successful HTTP 200 alone |
+| Crash/restart consistency | Durable state and reproducible restart tests | Previously reported manually; not yet included as a fresh reproducible pass in the corrected run |
 
----
+## Security test semantics
 
-## Attack Surface
+A test “pass” means that the specific test input produced its asserted response on the tested source revision. It does not establish broad security. The fresh security runner is expected to record 24 explicit assertions, including:
+- valid sealing and signature presence;
+- sequential replay rejection;
+- invalid hash, unauthorized actor, spoofed actor, unknown tenant and malformed input rejection;
+- unauthenticated request denial;
+- route/payload tenant mismatch rejection;
+- exactly one SEALED and four REJECTED_REPLAY responses for five concurrent submissions to the same tenant route;
+- audit endpoint response and independent verification.
 
-### 1. Authentication (Control Plane API)
-- **Threat:** Token replay / token theft
-- **Mitigation:** One-time-use token rotation — every authenticated response invalidates the old token via `Authorization-New-Token` header
-- **Risk:** If a client fails to capture the rotated token, subsequent requests return 401
+The above are **expected assertions, not fresh passed outcomes** until a corrected run completes and the raw JSON is inspected.
 
-### 2. Authorization (Policy Authority)
-- **Threat:** Unauthorized tenant access
-- **Mitigation:** Fail-closed tenant registry — only `org-vardhan-intelligence`, `org-acme-bank-poc`, `org-test-tenant-valid` are allowed. Unknown tenants receive `DENY_TENANT_UNKNOWN`
-- **Risk:** Static tenant list requires manual provisioning
+## Retained high-priority limitations
 
-### 3. Idempotency / Replay (Receipt Engine)
-- **Threat:** Finding re-submission (double-sealing)
-- **Mitigation:** Atomic file creation (`O_CREAT | O_EXCL`) at `$VARDHAN_IDEMPOTENCY_DIR/sealed_{finding_id}.flag` — survives process restarts (durable on filesystem)
-- **Risk:** File-based idempotency does not scale across distributed nodes (future work: shared ledger or Redis)
+1. **Single-node replay state:** file-based and not coordinated across replicas.
+2. **Static tenant allowlist:** organization creation does not automatically provision a matching policy tenant.
+3. **Route-to-payload tenant binding:** new guard is awaiting integration test.
+4. **Plaintext transport:** local-only; do not expose the port publicly.
+5. **Development secrets:** the lab contains fallback development credentials; never reuse them in deployed systems.
+6. **Per-request subprocess:** receipt sealing invokes a child process on each request and ML-DSA-87 full sealing cost dominates the path.
+7. **Production control plane:** TLS/mTLS, KMS/HSM, durable backup/restore, HA/DR, rate limiting, monitoring, authorization review and external assurance remain separate gates.
 
-### 4. Cryptographic Integrity (Receipt Engine)
-- **Threat:** Receipt tampering / signature forgery
-- **Mitigation:** Dual-signature model (Ed25519 for performance + ML-DSA-87 for quantum resistance) — both signatures must verify
-- **Risk:** Ed25519 is vulnerable to quantum attacks; ML-DSA-87 provides quantum-safe backup
+## Decision
 
-### 5. Transport Security
-- **Threat:** Man-in-the-middle
-- **Mitigation (PoC):** Plaintext HTTP within Docker container; TLS terminates at reverse proxy in production
-- **Risk:** No transport encryption in PoC scope — acceptable for internal testing only
-
-### 6. Actor Identity Spoofing
-- **Threat:** Malicious actor impersonates `svc:vardhan-intelligence:*`
-- **Mitigation:** Actor workload ID prefix enforced by policy authority — `svc:vardhan-intelligence:` prefix required for ALLOW
-- **Risk:** Prefix-based enforcement is a namespace check, not a cryptographic identity proof (future: SPIFFE/SPIRE integration)
-
----
-
-## Attack Matrix
-
-| Attack ID | Attack | Target | Mitigation | Test Result |
-|-----------|--------|--------|------------|-------------|
-| S1 | Valid contract submission | Receipt engine | Dual signatures (Ed25519 + ML-DSLA-87) | ✅ SEALED |
-| S2 | Replay (same finding_id) | Idempotency | File-based flag | ✅ REJECTED_REPLAY |
-| S3 | Tampered payload_hash (short hash) | Integrity | Hash format validation | ✅ Rejected |
-| S4 | Unauthorized actor (spoofed prefix) | AuthZ | Prefix enforcement | ✅ Rejected |
-| S5 | Spoofed issuer prefix | AuthZ | Prefix enforcement | ✅ Rejected |
-| S6 | Tampered signature | Integrity | Signature verification | ✅ Invalid |
-| S7 | Unknown tenant | AuthZ | Tenant registry | ✅ DENY_TENANT_UNKNOWN |
-| S8 | Malformed contract | Validation | Schema validation | ✅ Rejected |
-| S12 | Unauthenticated request | AuthN | Bearer token required | ✅ 401 |
-| S15 | Concurrent duplicate submission | Idempotency | File lock (O_EXCL) | ✅ 1 SEALED + 4 REJECTED |
-| S16 | Audit endpoint access | Audit log | Token-auth required | ✅ 200 |
-| S16b | Independent receipt verification | Crypto | Dual signature verify | ✅ Valid |
-
----
-
-## Residual Risk
-
-| Risk | Likelihood | Impact | Mitigation Status |
-|------|-----------|--------|-------------------|
-| Token rotation bug in test client | Medium | Test failure | Client-side fix documented |
-| Finding ID collision across runs | High (without fix) | False replay rejection | `RUN_ID` + global counter |
-| Transport MITM (PoC only) | High | Data interception | TLS in production deployment |
-| File-based idempotency (non-distributed) | Medium (scale) | Replay across nodes | Future: Redis/shared ledger |
-| Ed25519 quantum vulnerability | Low (current era) | Signature forgery | ML-DSA-87 quantum-safe backup |
+**CONDITIONAL / further lab validation only.** Do not describe this as a penetration test, independent security assessment, certified compliance control, production-ready platform, proven ROI, or validated LGT requirement. Buyer-specific discovery is still required to confirm whether the hypothesized workflow problem exists.

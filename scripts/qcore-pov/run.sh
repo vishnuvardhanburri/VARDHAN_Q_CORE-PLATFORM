@@ -133,7 +133,13 @@ else
     echo "❌ Security test process failed"
     TEST_FAILURES=$((TEST_FAILURES + 1))
 fi
-docker cp qcore-pov:/tmp/security_results.json "${RESULTS_DIR}/security_results_${TIMESTAMP}.json" 2>/dev/null || echo '{"error": "no security results"}' > "${RESULTS_DIR}/security_results_${TIMESTAMP}.json"
+if docker cp qcore-pov:/tmp/security_results.json "${RESULTS_DIR}/security_results_${TIMESTAMP}.json" 2>/dev/null && [ -s "${RESULTS_DIR}/security_results_${TIMESTAMP}.json" ]; then
+    echo "✅ Security results artifact saved"
+else
+    echo "❌ Security results artifact missing"
+    echo '{"error": "no security results"}' > "${RESULTS_DIR}/security_results_${TIMESTAMP}.json"
+    TEST_FAILURES=$((TEST_FAILURES + 1))
+fi
 
 # ── Step 4: Run performance benchmarks ──────────────────────────
 echo ""
@@ -144,7 +150,12 @@ else
     echo "❌ Performance benchmark process failed"
     TEST_FAILURES=$((TEST_FAILURES + 1))
 fi
-docker cp qcore-pov:/tmp/perf_results.json "${RESULTS_DIR}/perf_results_${TIMESTAMP}.json" 2>/dev/null || true
+if docker cp qcore-pov:/tmp/perf_results.json "${RESULTS_DIR}/perf_results_${TIMESTAMP}.json" 2>/dev/null && [ -s "${RESULTS_DIR}/perf_results_${TIMESTAMP}.json" ]; then
+    echo "✅ Performance results artifact saved"
+else
+    echo "❌ Performance results artifact missing"
+    TEST_FAILURES=$((TEST_FAILURES + 1))
+fi
 
 # ── Step 5: Run crypto benchmarks ───────────────────────────────
 echo ""
@@ -155,7 +166,12 @@ else
     echo "❌ Cryptographic benchmark process failed"
     TEST_FAILURES=$((TEST_FAILURES + 1))
 fi
-docker cp qcore-pov:/tmp/crypto_results.json "${RESULTS_DIR}/crypto_results_${TIMESTAMP}.json" 2>/dev/null || true
+if docker cp qcore-pov:/tmp/crypto_results.json "${RESULTS_DIR}/crypto_results_${TIMESTAMP}.json" 2>/dev/null && [ -s "${RESULTS_DIR}/crypto_results_${TIMESTAMP}.json" ]; then
+    echo "✅ Cryptographic results artifact saved"
+else
+    echo "❌ Cryptographic results artifact missing"
+    TEST_FAILURES=$((TEST_FAILURES + 1))
+fi
 
 # ── Step 6: Collect logs ────────────────────────────────────────
 echo ""
