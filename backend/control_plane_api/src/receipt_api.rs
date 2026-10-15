@@ -59,9 +59,32 @@ fn receipt_binary_path() -> Result<PathBuf, String> {
 
 pub async fn validate_canonical(
     State(_state): State<ControlPlaneState>,
-    Path(_organization_id): Path<String>,
+    Path(organization_id): Path<String>,
     Json(payload): Json<ValidationRequest>,
 ) -> impl IntoResponse {
+    // Bind the URL tenant to the contract tenant before invoking the receipt
+    // engine. Without this check, the path can name one organization while the
+    // signed contract names another (or a globally allowed static tenant).
+    let payload_organization_id = payload
+        .contract
+        .pointer("/organization/organization_id")
+        .and_then(serde_json::Value::as_str);
+    if payload_organization_id != Some(organization_id.as_str()) {
+        tracing::warn!(
+            route_organization_id = %organization_id,
+            payload_organization_id = ?payload_organization_id,
+            "receipt validation rejected because route and payload tenant differ"
+        );
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({
+                "status": "REJECTED_TENANT_MISMATCH",
+                "error": "Route organization does not match contract organization"
+            })),
+        )
+            .into_response();
+    }
+
     let binary_path = match receipt_binary_path() {
         Ok(path) => path,
         Err(error) => {

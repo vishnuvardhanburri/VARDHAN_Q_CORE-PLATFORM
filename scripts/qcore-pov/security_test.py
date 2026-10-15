@@ -92,10 +92,10 @@ def build_contract(finding_id="find-pov-001", actor="svc:vardhan-intelligence:fi
             },
             "organization": {
                 "organization_id": org_id,
-                "canonical_domain": "lgt-bank.pov"
+                "canonical_domain": "synthetic-bank.invalid"
             },
             "affected_resource": {
-                "canonical_url": "https://api.lgt-bank.pov/security",
+                "canonical_url": "https://api.synthetic-bank.invalid/security",
                 "surface_type": "API_REST",
                 "entry_point_id": "ep-financial-01"
             },
@@ -107,7 +107,7 @@ def build_contract(finding_id="find-pov-001", actor="svc:vardhan-intelligence:fi
             "materiality": "HIGH",
             "evidence_refs": [{
                 "evidence_id": "ev-pov-001",
-                "public_url": "https://evidence.lgt-bank.pov",
+                "public_url": "https://evidence.synthetic-bank.invalid",
                 "temporal_status": "CURRENT",
                 "is_context_artifact": False,
                 "evidence_origin": "scan",
@@ -165,10 +165,14 @@ def main():
     # ── Create organization ──────────────────────────────────────
     print("\n[Setup] Creating organization...")
     status, body, token = api_request("POST", "/api/v1/organizations", token, 
-                                      {"name": "LGT PoC Tenant"})
+                                      {"name": "Synthetic Financial Services PoV Tenant"})
     check("Org creation", 201, status)
-    org_id = body.get("organization", {}).get("id", "")
-    check("Org ID present", True, bool(org_id))
+    created_org_id = body.get("organization", {}).get("id", "")
+    check("Org ID present", True, bool(created_org_id))
+    # The current PoV policy authority has a static tenant allowlist. Use its
+    # pre-registered synthetic tenant for receipt tests and separately exercise
+    # the mismatch guard; dynamic onboarding is not validated by this lab.
+    org_id = "org-vardhan-intelligence"
     
     # ── Security Tests ───────────────────────────────────────────
     
@@ -225,15 +229,35 @@ def main():
     # S7: Unknown tenant
     print("\n--- S7: Unknown Tenant ---")
     unknown_tenant = build_contract(finding_id="find-pov-s7", org_id="org-unknown-attacker")
-    status, body, token = api_request("POST", f"/api/v1/organizations/{org_id}/security/validate", 
+    status, body, token = api_request("POST", "/api/v1/organizations/org-unknown-attacker/security/validate",
                                       token, unknown_tenant)
     check("S7: Unknown tenant not SEALED", True, body.get("status", "") != "SEALED")
     
     # S8: Malformed contract
     print("\n--- S8: Malformed Contract ---")
-    status, body, token = api_request("POST", f"/api/v1/organizations/{org_id}/security/validate", 
-                                      token, {"contract": {"schema_version": "bad"}, "actor_workload_id": "test"})
+    malformed_contract = {
+        "contract": {
+            "schema_version": "bad",
+            "organization": {"organization_id": org_id}
+        },
+        "actor_workload_id": "test"
+    }
+    status, body, token = api_request("POST", f"/api/v1/organizations/{org_id}/security/validate",
+                                      token, malformed_contract)
     check("S8: Malformed contract not SEALED", True, body.get("status", "") != "SEALED")
+
+    # S9: Route/payload tenant mismatch (both IDs exist in static test registry)
+    print("\n--- S9: Route/Payload Tenant Mismatch ---")
+    mismatched_contract = build_contract(
+        finding_id="find-pov-s9", org_id="org-acme-bank-poc"
+    )
+    status, body, token = api_request(
+        "POST", f"/api/v1/organizations/{org_id}/security/validate",
+        token, mismatched_contract
+    )
+    check("S9: Route/payload tenant mismatch returns 403", 403, status)
+    check("S9: Route/payload tenant mismatch has explicit rejection",
+          "REJECTED_TENANT_MISMATCH", body.get("status", ""))
     
     # S12: Unauthenticated API access
     print("\n--- S12: Unauthenticated API Access ---")
@@ -244,29 +268,38 @@ def main():
     print("\n--- S15: Concurrent Duplicate Submissions ---")
     concurrent_contract = build_contract(finding_id="find-pov-s15")
     results = []
-    
+
     def submit_concurrent(idx):
-        # Each concurrent thread gets its own login and org
-        s, b, t = api_request("POST", "/api/v1/auth/login",
-                              body={"username": ADMIN_USER, "password": ADMIN_PASS})
-        if s != 200: return "ERROR"
-        t = b.get("token", t)
-        s2, b2, t2 = api_request("POST", "/api/v1/organizations", t, {"name": f"Concurrent Tenant {idx}"})
-        if s2 not in (200, 201): return "ERROR"
-        oid = b2.get("organization", {}).get("id", "")
-        s3, b3, _ = api_request("POST", f"/api/v1/organizations/{oid}/security/validate",
-                                t2, concurrent_contract)
-        return b3.get("status", "ERROR")
-    
+        # Give each request an independent one-time token, but submit the same
+        # finding_id to the same tenant/path to test the atomic replay boundary.
+        login_status, login_body, _ = api_request(
+            "POST", "/api/v1/auth/login",
+            body={"username": ADMIN_USER, "password": ADMIN_PASS}
+        )
+        if login_status != 200:
+            return (login_status, "LOGIN_FAILED")
+        request_token = login_body.get("token", "")
+        status, body, _ = api_request(
+            "POST",
+            f"/api/v1/organizations/{org_id}/security/validate",
+            request_token,
+            concurrent_contract,
+        )
+        return (status, body.get("status", "ERROR"))
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(submit_concurrent, i) for i in range(5)]
-        results = [f.result() for f in concurrent.futures.as_completed(futures)]
-    
-    sealed_count = sum(1 for r in results if r == "SEALED")
-    replay_count = sum(1 for r in results if r == "REJECTED_REPLAY")
+        results = [future.result() for future in concurrent.futures.as_completed(futures)]
+
+    sealed_count = sum(1 for status, result in results if status == 200 and result == "SEALED")
+    replay_count = sum(1 for status, result in results if status == 200 and result == "REJECTED_REPLAY")
     print(f"  Concurrent results: {sealed_count} sealed, {replay_count} replay-rejected")
-    # Note: since each uses a different org, all should seal. But if same org, only 1 should seal.
-    check("S15: All 5 concurrent submissions processed", 5, len(results))
+    check("S15: Exactly one concurrent submission seals", 1, sealed_count)
+    check("S15: Remaining concurrent submissions rejected as replay", 4, replay_count)
+    check("S15: All responses are expected", True, all(
+        status == 200 and result in ("SEALED", "REJECTED_REPLAY")
+        for status, result in results
+    ))
     
     # S16: Audit trail retrieval
     print("\n--- S16: Audit Trail Retrieval ---")

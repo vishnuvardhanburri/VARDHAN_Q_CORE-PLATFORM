@@ -1,117 +1,67 @@
 # Security Test Results
 
-## Test Environment
+## Evidence status
 
-| Parameter | Value |
-|-----------|-------|
-| Git HEAD | `8d403fe551d388a79a7b88e855c987825c4d9985` |
-| Docker image | `vardhan-qcore-pov:latest` |
-| Runtime | `rust:1.98-bookworm` |
-| Python | 3.11 (Debian bookworm) |
-| Admin password | `P0V-Str0ng-P@ssw0rd-2025!` (Docker secret) |
-| Tenants | `org-vardhan-intelligence`, `org-acme-bank-poc`, `org-test-tenant-valid` |
-| Actor prefix | `svc:vardhan-intelligence:` |
+The first local run reported **20 assertions passed and 0 failed**. The security test script has since been corrected because the original S15 concurrent-duplicate case only asserted that five responses returned; it did not assert one seal and four replay rejections as the report claimed.
 
-## Results Summary
+The updated S15 test now submits the same finding identifier to the same tenant route using independent one-time tokens and asserts exactly one SEALED response, four REJECTED_REPLAY responses, and that every response has an expected status. This adds two S15 assertions and two route/payload mismatch assertions, making **24 assertions expected** in the updated suite. The tenant-binding guard and updated test harness are on the follow-up branch; a fresh run has not yet been recorded, so these are not new pass results.
 
-**Total tests: 20** | **Passed: 20** | **Failed: 0**
+All examples are synthetic. The previous LGT-labelled test hostnames and tenant label have been replaced in the test script with reserved synthetic names. No real LGT data, credentials, systems or endpoints are used.
 
----
+## Initial test environment
 
-## Test Cases
+| Parameter | Initial report |
+|---|---|
+| Service | Local control-plane API and receipt-engine binaries in Docker |
+| Runtime | Rust 1.98; Python 3.11 on Debian Bookworm |
+| Transport | Plaintext local HTTP; not suitable for production transport |
+| Tenant registry | Static development registry |
+| Idempotency store | Local filesystem flag files; single-node only |
+| Source revision recorded by the original report | 8d403fe551d388a79a7b88e855c987825c4d9985 |
+| New corrected security run | Pending |
 
-### S1: Valid Contract → SEALED with Dual Signatures
-- **Description:** Submit a well-formed finding contract with valid tenant, actor, and policy reference
-- **Expected:** `status=SEALED`, both Ed25519 and ML-DSA-87 signatures present
-- **Result:** ✅ PASS
-- **Details:** `status=SEALED`, `signatures.ed25519_sig` present (128 hex chars = 64 bytes), `signatures.ml_dsa_87_sig` present (9254 hex chars = 4627 bytes)
+## First-run assertions and current interpretation
 
-### S2: Replay Attack (Same finding_id) → REJECTED_REPLAY
-- **Description:** Submit the same finding_id twice
-- **Expected:** First request SEALED, second REJECTED_REPLAY
-- **Result:** ✅ PASS
-- **Details:** Second submission rejected with `REJECTED_REPLAY` — idempotency flag file prevents double-sealing
+| Check | Initial reported result | Qualification |
+|---|---|---|
+| Valid contract sealing | SEALED; Ed25519 and ML-DSA-87 signature fields present | Presence is not the same as independent validation of every security property |
+| Duplicate submission | REJECTED_REPLAY reported | Basic sequential replay scenario; re-run on corrected harness |
+| Tampered hash | Rejected | Re-run after changes |
+| Unauthorized actor | Not SEALED | Limited input case; not a comprehensive identity proof |
+| Spoofed issuer prefix | Not SEALED | Limited string/policy case |
+| Tampered signature | Independent verifier reported invalid | Re-run and preserve exact verifier output |
+| Unknown tenant identifier | Not SEALED | Does not by itself validate API route-to-payload tenant binding |
+| Malformed contract | Not SEALED | Limited malformed-input case |
+| Missing authentication | HTTP 401 reported | Does not test every authentication path |
+| Concurrent duplicate | One SEALED + four REJECTED_REPLAY was reported in prose | The original assertion did not verify the response distribution; corrected test now asserts it, pending rerun |
+| Audit endpoint | HTTP 200 reported | Endpoint accessibility is not proof of audit completeness, tamper resistance, retention or regulatory compliance |
+| Independent receipt verification | Valid receipt reported | Re-run and preserve output and artifacts |
 
-### S3: Tampered Hash (Short Invalid Hex) → Rejected
-- **Description:** Submit a contract with `payload_hash` set to `"deadbeef"` (8 chars, invalid format)
-- **Expected:** Rejected (hash format validation)
-- **Result:** ✅ PASS
-- **Details:** Request rejected — the system validates hash format (64-char hex), not just presence
+## What was and was not validated
 
-### S4: Unauthorized Actor → Rejected
-- **Description:** Submit contract with actor_workload_id that doesn't match authorized prefix
-- **Expected:** Rejected by policy authority
-- **Result:** ✅ PASS
-- **Details:** Actor workload ID not matching `svc:vardhan-intelligence:` prefix is denied
+The initial tests exercise selected happy-path and adversarial cases. They do not constitute a comprehensive security assessment, independent penetration test, cryptographic review, compliance certification, or production readiness review.
 
-### S5: Spoofed Issuer Prefix → Rejected
-- **Description:** Submit contract with spoofed issuer identity
-- **Expected:** Rejected
-- **Result:** ✅ PASS
+In particular, this suite does not yet prove:
 
-### S6: Tampered Signature → Invalid
-- **Description:** Modify the signature field in a valid receipt and verify
-- **Expected:** Verification returns Invalid
-- **Result:** ✅ PASS
-- **Details:** `vardhan-receipt verify` returns `status=Invalid` when signature is tampered
+- tenant isolation across the URL route, payload organization identifier, credentials, signing keys, and audit records;
+- safe dynamic tenant onboarding;
+- replay rejection across multiple service instances;
+- secure transport (the lab uses plaintext HTTP);
+- production-grade KMS/HSM integration, key rotation, backup or recovery;
+- durable audit integrity across malicious administrator access;
+- rate-limiting and resource-exhaustion protections;
+- high availability or multi-region disaster recovery; or
+- that every invalid request class fails closed.
 
-### S7: Unknown Tenant → DENY_TENANT_UNKNOWN
-- **Description:** Submit contract with tenant_id not in the registry
-- **Expected:** `DENY_TENANT_UNKNOWN`
-- **Result:** ✅ PASS
-- **Details:** Tenant UUID from dynamically created org is rejected (not in static registry)
+The known single-node and static-tenant limitations remain material. See limitations and remediation.
 
-### S8: Malformed Contract → Rejected
-- **Description:** Submit contract with missing required fields
-- **Expected:** Rejected with validation error
-- **Result:** ✅ PASS
+## Reproduction
 
-### S12: Unauthenticated Request → 401
-- **Description:** Submit request without Authorization header
-- **Expected:** 401 Unauthorized
-- **Result:** ✅ PASS
-- **Details:** `Missing or malformed Authorization header`
+From a clean checkout, run:
 
-### S15: Concurrent Duplicate Submission → 1 SEALED + 4 REJECTED
-- **Description:** 5 concurrent submissions of the same finding_id
-- **Expected:** Exactly 1 SEALED, 4 REJECTED_REPLAY
-- **Result:** ✅ PASS
-- **Details:** Atomic file creation (`O_CREAT | O_EXCL`) ensures only one process wins the race
+```bash
+cd scripts/qcore-pov
+./run.sh
+```
 
-### S16: Audit Endpoint → 200
-- **Description:** Authenticated request to audit retrieval endpoint
-- **Expected:** 200 OK with audit data
-- **Result:** ✅ PASS
-
-### S16b: Independent Verification → Valid
-- **Description:** Verify a valid SEALED receipt using `vardhan-receipt verify` independently
-- **Expected:** `status=Valid`, all checks passed
-- **Result:** ✅ PASS
-- **Details:** Ed25519 signature valid, ML-DSA-87 signature valid, all structural checks passed
-
----
-
-## Attack Matrix Coverage
-
-| Attack Vector | Covered by | Result |
-|---------------|-----------|--------|
-| Replay / double-seal | S2, S15 | ✅ Protected |
-| Tampering (hash) | S3 | ✅ Protected |
-| Tampering (signature) | S6 | ✅ Protected |
-| Unauthorized access | S4, S5, S12 | ✅ Protected |
-| Unknown tenant | S7 | ✅ Protected |
-| Malformed input | S8 | ✅ Protected |
-| Concurrent race | S15 | ✅ Protected |
-| Independent verification | S16b | ✅ Verified |
-
-## Key Design Properties Verified
-
-1. **Atomic idempotency:** File-based `O_CREAT | O_EXCL` flag files provide crash-safe replay protection across concurrent processes
-2. **Fail-closed authorization:** Policy authority denies by default — unknown tenants, missing actors, wrong prefixes all → DENY
-3. **Dual-signature integrity:** Ed25519 (performance) + ML-DSA-87 (quantum-safe) — both must verify
-4. **One-time-use tokens:** Every authenticated response rotates the bearer token, preventing token reuse
-5. **Independent verifiability:** Receipts can be verified offline without the control plane
-
-## Results File
-
-Raw test results: `scripts/qcore-pov/results/security_results.json`
+The corrected runner must exit non-zero when the security assertion script fails. Keep the timestamped log, raw JSON, source SHA, and container/environment metadata with the results. Do not treat a successful Docker build or a green unrelated CI workflow as evidence that this security matrix passed; inspect the actual test exit code and result counts.
