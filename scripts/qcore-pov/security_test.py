@@ -167,8 +167,12 @@ def main():
     status, body, token = api_request("POST", "/api/v1/organizations", token, 
                                       {"name": "Synthetic Financial Services PoV Tenant"})
     check("Org creation", 201, status)
-    org_id = body.get("organization", {}).get("id", "")
-    check("Org ID present", True, bool(org_id))
+    created_org_id = body.get("organization", {}).get("id", "")
+    check("Org ID present", True, bool(created_org_id))
+    # The current PoV policy authority has a static tenant allowlist. Use its
+    # pre-registered synthetic tenant for receipt tests and separately exercise
+    # the mismatch guard; dynamic onboarding is not validated by this lab.
+    org_id = "org-vardhan-intelligence"
     
     # ── Security Tests ───────────────────────────────────────────
     
@@ -225,15 +229,35 @@ def main():
     # S7: Unknown tenant
     print("\n--- S7: Unknown Tenant ---")
     unknown_tenant = build_contract(finding_id="find-pov-s7", org_id="org-unknown-attacker")
-    status, body, token = api_request("POST", f"/api/v1/organizations/{org_id}/security/validate", 
+    status, body, token = api_request("POST", "/api/v1/organizations/org-unknown-attacker/security/validate",
                                       token, unknown_tenant)
     check("S7: Unknown tenant not SEALED", True, body.get("status", "") != "SEALED")
     
     # S8: Malformed contract
     print("\n--- S8: Malformed Contract ---")
-    status, body, token = api_request("POST", f"/api/v1/organizations/{org_id}/security/validate", 
-                                      token, {"contract": {"schema_version": "bad"}, "actor_workload_id": "test"})
+    malformed_contract = {
+        "contract": {
+            "schema_version": "bad",
+            "organization": {"organization_id": org_id}
+        },
+        "actor_workload_id": "test"
+    }
+    status, body, token = api_request("POST", f"/api/v1/organizations/{org_id}/security/validate",
+                                      token, malformed_contract)
     check("S8: Malformed contract not SEALED", True, body.get("status", "") != "SEALED")
+
+    # S9: Route/payload tenant mismatch (both IDs exist in static test registry)
+    print("\n--- S9: Route/Payload Tenant Mismatch ---")
+    mismatched_contract = build_contract(
+        finding_id="find-pov-s9", org_id="org-acme-bank-poc"
+    )
+    status, body, token = api_request(
+        "POST", f"/api/v1/organizations/{org_id}/security/validate",
+        token, mismatched_contract
+    )
+    check("S9: Route/payload tenant mismatch returns 403", 403, status)
+    check("S9: Route/payload tenant mismatch has explicit rejection",
+          "REJECTED_TENANT_MISMATCH", body.get("status", ""))
     
     # S12: Unauthenticated API access
     print("\n--- S12: Unauthenticated API Access ---")
