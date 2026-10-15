@@ -29,6 +29,8 @@ Timestamped artifacts are saved under scripts/qcore-pov/results, including secur
 
 The corrected performance results include measured run duration, requests per second, successful requests per second, and maximum concurrent requests observed. Do not infer throughput from nominal concurrency divided by p50 latency.
 
+Each run also writes an environment metadata file and a Docker stats time series (CPU, memory, network I/O, block I/O, and process count) under the results directory. These artifacts accompany the exact timestamped raw JSON and logs.
+
 ## Security and operational limitations
 
 - The current configuration is for a local development lab and uses plaintext HTTP.
