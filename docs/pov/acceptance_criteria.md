@@ -1,56 +1,56 @@
-# PoV Acceptance Criteria & Pass/Fail Matrix
+# PoV Acceptance Criteria — Audit and Current Status
 
-## Git Baseline
-- **Commit:** `8d403fe551d388a79a7b88e855c987825c4d9985`
-- **Docker image:** `vardhan-qcore-pov:latest` (multi-stage Rust 1.98 → runtime)
-- **Runtime:** Docker Desktop macOS arm64
+## Status
 
----
+The original matrix contained **28 rows (AC-01 through AC-28), not 26**. The initial report's “26/26 all pass” summary was incorrect.
 
-## Acceptance Criteria
+The table below distinguishes first-run observations from criteria that the original measurement method did not establish. The corrected harness has been committed on a follow-up branch, but it has **not yet been rerun**. As a result, there is no current all-pass status for the corrected PoV.
 
-| # | Criterion | Threshold | Measured | Pass/Fail |
-|---|-----------|-----------|----------|-----------|
-| AC-01 | Docker image builds successfully (multi-stage Rust 1.98) | Build exit 0 | exit 0 | ✅ PASS |
-| AC-02 | Container starts and passes health check | HTTP 200 `{"status":"operational"}` within 30s | Health check passes | ✅ PASS |
-| AC-03 | Login endpoint works at c1 (single-threaded) | p50 ≤ 100ms | p50 = 68.7ms | ✅ PASS |
-| AC-04 | Login endpoint works at c100 (high concurrency) | ≥45/50 success, p50 ≤ 600ms | 50/50, p50 = 495.8ms | ✅ PASS |
-| AC-05 | Contract sealing works at c1 | p50 ≤ 10ms, ≥50/50 success | p50 = 7.2ms, 50/50 | ✅ PASS |
-| AC-06 | Contract sealing works at c100 | ≥50/50 success, p50 ≤ 100ms | 50/50, p50 = 36.2ms | ✅ PASS |
-| AC-07 | Receipt verification works at c1 | p50 ≤ 5ms, ≥50/50 | p50 = 1.2ms, 50/50 | ✅ PASS |
-| AC-08 | Receipt verification works at c100 | ≥50/50 success, p50 ≤ 30ms | 50/50, p50 = 10.7ms | ✅ PASS |
-| AC-09 | Audit retrieval works at c100 | ≥50/50 success, p50 ≤ 20ms | 50/50, p50 = 3.4ms | ✅ PASS |
-| AC-10 | E2E workflow works at c50 | ≥20/20 success, p50 ≤ 100ms | 20/20, p50 = 25.0ms | ✅ PASS |
-| AC-11 | Baseline (subprocess, no HTTP) works at c1 | p50 ≤ 10ms, ≥50/50 | p50 = 6.6ms, 50/50 | ✅ PASS |
-| AC-12 | Baseline (subprocess) works at c100 | ≥50/50 success, p50 ≤ 50ms | 50/50, p50 = 20.0ms | ✅ PASS |
-| AC-13 | Security: valid contract → SEALED with dual signatures | Ed25519 + ML-DSA-87 present | Both present | ✅ PASS |
-| AC-14 | Security: replay attack → REJECTED_REPLAY | Idempotent replay rejected | 1 SEALED + 4 REJECTED | ✅ PASS |
-| AC-15 | Security: tampered hash → rejected | Tampered hash rejected (401/422) | Rejected | ✅ PASS |
-| AC-16 | Security: unauthorized actor → rejected | Spoofed actor prefix rejected | Rejected | ✅ PASS |
-| AC-17 | Security: unknown tenant → DENY_TENANT_UNKNOWN | Unknown tenant denied | Denied | ✅ PASS |
-| AC-18 | Security: unauthenticated request → 401 | 401 for missing token | 401 | ✅ PASS |
-| AC-19 | Cryptographic: Ed25519 sign ≥ 5K ops/sec | ≥5,000 ops/sec | 67,649 ops/sec | ✅ PASS |
-| AC-20 | Cryptographic: Ed25519 verify ≥ 5K ops/sec | ≥5,000 ops/sec | 24,127 ops/sec | ✅ PASS |
-| AC-21 | Cryptographic: ML-DSA-87 sign ≥ 50 ops/sec | ≥50 ops/sec | 146.3 ops/sec | ✅ PASS |
-| AC-22 | Cryptographic: ML-DSA-87 verify ≥ 100 ops/sec | ≥100 ops/sec | 790.2 ops/sec | ✅ PASS |
-| AC-23 | Cryptographic: BLAKE3 throughput ≥ 500 MB/s | ≥500 MB/s | 910 MB/s | ✅ PASS |
-| AC-24 | Reliability: receipt verifiable after container restart | Verify exit code 0 after restart | Exit code 0 | ✅ PASS |
-| AC-25 | Reliability: idempotency flag persists after restart | Replay rejected after restart | REJECTED_REPLAY | ✅ PASS |
-| AC-26 | Reliability: new contract works after restart | ≥1/1 SEALED after restart | 1/1 SEALED | ✅ PASS |
-| AC-27 | HTTP API overhead vs baseline at c1 | ≤5ms overhead | ~1.5ms (7.2ms vs 6.6ms) | ✅ PASS |
-| AC-28 | Concurrency scaling: throughput does not degrade below 2/req per sec | ≥2 req/sec at c100 | ~10 req/sec at c100 | ✅ PASS |
+Status meanings:
 
----
+- **Reported / rerun required** — an initial run reported a passing result, but the corrected branch must be run again before relying on it.
+- **Invalid measurement** — the method or sample size did not exercise the criterion it claimed to measure.
+- **Pending evidence** — no valid reproducible evidence has been collected for the criterion yet.
 
-## Summary
+## Acceptance matrix
 
-| Category | Criteria Met | Total | Status |
-|----------|-------------|-------|--------|
-| Docker / Environment | 1/1 | 1 | ✅ PASS |
-| Performance | 9/9 | 9 | ✅ PASS |
-| Security | 6/6 | 6 | ✅ PASS |
-| Cryptography | 5/5 | 5 | ✅ PASS |
-| Reliability | 3/3 | 3 | ✅ PASS |
-| API Overhead | 1/1 | 1 | ✅ PASS |
-| Concurrency Scaling | 1/1 | 1 | ✅ PASS |
-| **TOTAL** | **26/26** | **26** | ✅ **ALL PASS** |
+| ID | Criterion | First-run observation | Status after audit |
+|---|---|---|---|
+| AC-01 | Docker image builds | Build reported successful | Reported / rerun required |
+| AC-02 | Service starts and health check passes | Health check reported successful | Reported / rerun required |
+| AC-03 | Login latency at one worker | p50 68.716 ms in 50 requests | Preliminary; rerun with corrected runner |
+| AC-04 | Login latency at 100 concurrent requests | 50 measured requests in the requested c100 run | Invalid measurement: at most 50 requests could be in flight; rerun |
+| AC-05 | Contract sealing latency at one worker | p50 7.178 ms in 50 requests | Preliminary; rerun with corrected runner |
+| AC-06 | Contract sealing latency at 100 concurrent requests | 50 measured requests in the requested c100 run | Invalid measurement; rerun |
+| AC-07 | Independent receipt verification at one worker | p50 1.198 ms in 50 requests | Preliminary; rerun with corrected runner |
+| AC-08 | Receipt verification at 100 concurrent requests | 50 measured requests in the requested c100 run | Invalid measurement; rerun |
+| AC-09 | Audit retrieval at 100 concurrent requests | 50 measured requests in the requested c100 run | Invalid measurement; rerun |
+| AC-10 | End-to-end submit/seal/verify at 50 concurrent requests | 20 measured requests | Invalid measurement for c50; rerun with at least 10 requests per worker |
+| AC-11 | Direct CLI baseline at one worker | p50 6.627 ms in 50 requests | Preliminary; matched comparison required |
+| AC-12 | Direct CLI baseline at 100 concurrent requests | 50 measured requests in the requested c100 run | Invalid measurement; rerun |
+| AC-13 | Valid contract seals with Ed25519 and ML-DSA-87 signature fields | Reported pass | Reported / rerun required |
+| AC-14 | Sequential replay is rejected | Reported REJECTED_REPLAY | Reported / rerun required |
+| AC-15 | Tampered hash is rejected | Reported rejected | Reported / rerun required |
+| AC-16 | Unauthorized actor is rejected | Reported not SEALED | Reported / rerun required |
+| AC-17 | Unknown tenant identifier is rejected | Reported not SEALED | Reported / rerun required; route-to-payload tenant binding remains unproven |
+| AC-18 | Missing authentication is rejected | HTTP 401 reported | Reported / rerun required |
+| AC-19 | Ed25519 signing benchmark | Direct Python cryptography microbenchmark reported | Preliminary; rerun and retain environment metadata |
+| AC-20 | Ed25519 verification benchmark | Direct Python cryptography microbenchmark reported | Preliminary; rerun and retain environment metadata |
+| AC-21 | ML-DSA-87 signing performance | Full receipt-engine CLI path measured | Criterion is mislabelled as primitive-only signing; relabel as full CLI sealing or add a primitive-only benchmark |
+| AC-22 | ML-DSA-87 verification performance | Full receipt-verification CLI path measured | Criterion is mislabelled as primitive-only verification; relabel as full CLI verification or add a primitive-only benchmark |
+| AC-23 | BLAKE3 throughput | Direct library measurement reported | Preliminary; rerun and retain environment metadata |
+| AC-24 | Receipt verifies after container restart | Reported pass | Pending reproducible restart test in the one-command suite |
+| AC-25 | Replay/idempotency state survives restart | Reported pass | Pending reproducible restart test in the one-command suite |
+| AC-26 | New contract seals after restart | Reported pass | Pending reproducible restart test in the one-command suite |
+| AC-27 | HTTP overhead versus direct CLI baseline | Reported text says ~1.5 ms, while displayed medians (7.178 and 6.627 ms) differ by 0.551 ms | Arithmetic corrected; paired matched rerun required before making an overhead claim |
+| AC-28 | Sustained throughput at c100 | Previous documents show inferred values, not measured run throughput | Invalid measurement; corrected runner now records requests/sec over measured wall-clock duration |
+
+## Additional security assertion
+
+The previous S15 concurrency test did not assert the reported response distribution. The corrected test now requires exactly one SEALED response and four REJECTED_REPLAY responses for five concurrent submissions of the same finding ID to the same tenant route, using separate one-time tokens. It also tests that a route/payload tenant mismatch returns 403 and `REJECTED_TENANT_MISMATCH`. Including setup, negative cases and new assertions, 24 security assertions are expected; the fresh result is pending.
+
+## Rerun acceptance rule
+
+Do not label this PoV “all pass” until the corrected runner has completed successfully and all applicable criteria have valid evidence. For every result, preserve the source SHA, test timestamp, command, raw JSON/log, host/CPU/RAM information, Docker resource settings, measured request count, observed concurrency, latency percentiles, elapsed duration, throughput and failure count.
+
+No criterion establishes production readiness, regulatory compliance, independent cryptographic assurance or validation against LGT-specific requirements.
