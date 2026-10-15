@@ -803,7 +803,7 @@ async fn replay_protection_after_sealing() {
         .await
         .unwrap();
     token = rotated_token(&cr, &token);
-    let org = cr.json::<serde_json::Value>().await.unwrap()["organization"]["id"]
+    let _org = cr.json::<serde_json::Value>().await.unwrap()["organization"]["id"]
         .as_str()
         .unwrap()
         .to_string();
