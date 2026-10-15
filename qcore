@@ -155,7 +155,8 @@ cmd_doctor() {
         if docker compose version &>/dev/null; then
             ok "Docker Compose: $(docker compose version --short)"
         else
-            warn "Docker Compose plugin not found (install docker compose v2)"
+            err "Docker Compose plugin not found (install Docker Compose v2)"
+            ((errors++))
         fi
     else
         err "Docker not found — required for ./qcore up"
@@ -246,24 +247,45 @@ cmd_up() {
     info "Starting VARDHAN Q-CORE local stack..."
     ensure_env
 
-    info "Building and starting services..."
-    docker compose -f "$COMPOSE_FILE" up --build -d
+    if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+        err "Docker is unavailable. Run ./qcore doctor and start Docker Desktop/Engine."
+        return 1
+    fi
+    if ! docker compose version >/dev/null 2>&1; then
+        err "Docker Compose v2 is required. Install the Docker Compose plugin."
+        return 1
+    fi
 
-    info "Waiting for services to become healthy..."
-    local max_wait=60
+    info "Building and starting services..."
+    docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d
+
+    info "Waiting for both services to respond..."
+    local max_wait=120
     local elapsed=0
+    local control_ready=false
+    local frontend_ready=false
     while [ "$elapsed" -lt "$max_wait" ]; do
-        if curl -sf "http://localhost:${CONTROL_PLANE_PORT}/api/v1/platform/health" 2>/dev/null | grep -q operational; then
-            ok "Control-plane API is healthy on port ${CONTROL_PLANE_PORT}"
+        control_ready=false
+        frontend_ready=false
+        if curl -fsS "http://localhost:${CONTROL_PLANE_PORT}/api/v1/platform/health" 2>/dev/null | grep -q operational; then
+            control_ready=true
+        fi
+        if curl -fsS "http://localhost:${INTELLIGENCE_PORT}/" >/dev/null 2>&1; then
+            frontend_ready=true
+        fi
+        if [ "$control_ready" = true ] && [ "$frontend_ready" = true ]; then
             break
         fi
         sleep 3
         elapsed=$((elapsed + 3))
     done
 
-    if [ "$elapsed" -ge "$max_wait" ]; then
-        err "Control-plane API did not become healthy within ${max_wait}s"
-        err "Check logs: ./qcore logs control-plane"
+    if [ "$control_ready" != true ] || [ "$frontend_ready" != true ]; then
+        err "The full stack did not become ready within ${max_wait}s."
+        err "Control plane ready: ${control_ready}; Intelligence Plane ready: ${frontend_ready}"
+        docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps || true
+        docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --no-color --tail=80 || true
+        err "Use './qcore logs' for follow-up diagnostics."
         return 1
     fi
 
@@ -273,20 +295,21 @@ cmd_up() {
     echo "  Intelligence Plane: http://localhost:${INTELLIGENCE_PORT}"
 }
 
+
 # ── Status ───────────────────────────────────────────────────────
 cmd_status() {
     echo "=== VARDHAN Q-CORE — Service Status ==="
     echo ""
 
     # Control plane
-    if curl -sf "http://localhost:${CONTROL_PLANE_PORT}/api/v1/platform/health" 2>/dev/null | grep -q operational; then
+    if curl -fsS "http://localhost:${CONTROL_PLANE_PORT}/api/v1/platform/health" 2>/dev/null | grep -q operational; then
         ok "Control-plane API: healthy (port ${CONTROL_PLANE_PORT})"
     else
         warn "Control-plane API: unhealthy or stopped"
     fi
 
     # Intelligence plane
-    if curl -sf "http://localhost:${INTELLIGENCE_PORT}" 2>/dev/null | grep -q "<\|{"; then
+    if curl -fsS "http://localhost:${INTELLIGENCE_PORT}/" >/dev/null 2>&1; then
         ok "Intelligence Plane: healthy (port ${INTELLIGENCE_PORT})"
     else
         warn "Intelligence Plane: unhealthy or stopped"
@@ -296,6 +319,7 @@ cmd_status() {
     echo "Docker containers:"
     docker compose -f "$COMPOSE_FILE" ps 2>/dev/null || true
 }
+
 
 # ── Logs ─────────────────────────────────────────────────────────
 cmd_logs() {
@@ -310,14 +334,20 @@ cmd_logs() {
 # ── Test ────────────────────────────────────────────────────────
 cmd_test() {
     info "Running VARDHAN Q-CORE validation suite..."
+    ensure_env
     local failures=0
 
     # 1. Environment validation
-    info "[1/9] Environment validation"
-    cmd_doctor || true
+    info "[1/10] Environment validation"
+    if cmd_doctor; then
+        ok "Environment prerequisites: passed"
+    else
+        err "Environment prerequisites: FAILED"
+        failures=$((failures + 1))
+    fi
 
     # 2. Formatting and static checks
-    info "[2/9] Rust formatting check"
+    info "[2/10] Rust formatting check"
     if cargo fmt --all -- --check 2>/dev/null; then
         ok "Rust formatting: clean"
     else
@@ -326,7 +356,7 @@ cmd_test() {
     fi
 
     # 3. Rust workspace build and tests
-    info "[3/9] Rust workspace tests"
+    info "[3/10] Rust workspace tests"
     if cargo test --workspace 2>&1 | tail -5; then
         ok "Rust tests: passed"
     else
@@ -335,7 +365,7 @@ cmd_test() {
     fi
 
     # 4. Frontend/package validation
-    info "[4/9] Intelligence Plane build"
+    info "[4/10] Intelligence Plane build"
     if [ -d "$REPO_ROOT/intelligence_plane/node_modules" ]; then
         if (cd "$REPO_ROOT/intelligence_plane" && npm run build 2>&1 | tail -3); then
             ok "Frontend build: passed"
@@ -345,7 +375,7 @@ cmd_test() {
         fi
     else
         info "Installing node_modules..."
-        (cd "$REPO_ROOT/intelligence_plane" && npm install 2>&1 | tail -3)
+        (cd "$REPO_ROOT/intelligence_plane" && npm ci 2>&1 | tail -3)
         if (cd "$REPO_ROOT/intelligence_plane" && npm run build 2>&1 | tail -3); then
             ok "Frontend build: passed"
         else
@@ -355,7 +385,7 @@ cmd_test() {
     fi
 
     # 5. API contract tests
-    info "[5/9] Control plane contract tests"
+    info "[5/10] Control plane contract tests"
     if python3 scripts/check_rustls_lock.py 2>/dev/null; then
         ok "Rustls lock check: passed"
     else
@@ -364,7 +394,7 @@ cmd_test() {
     fi
 
     # 6. Tenant isolation and security regression
-    info "[6/9] Tenant isolation tests"
+    info "[6/10] Tenant isolation tests"
     if cargo test -p control_plane_api --test tenant_isolation_test --test org_lifecycle_edge_cases 2>&1 | tail -5; then
         ok "Tenant isolation: passed"
     else
@@ -373,7 +403,7 @@ cmd_test() {
     fi
 
     # 7. Lab demo verification
-    info "[7/9] Lab demo verification"
+    info "[7/10] Lab demo verification"
     if bash lab_demo_verify.sh 2>&1 | tail -5; then
         ok "Lab demo: passed"
     else
@@ -382,7 +412,7 @@ cmd_test() {
     fi
 
     # 8. E2E lifecycle validation
-    info "[8/9] E2E lifecycle validation"
+    info "[8/10] E2E lifecycle validation"
     if python3 scripts/e2e_lifecycle_validation.py 2>&1 | tail -5; then
         ok "E2E lifecycle: passed"
     else
@@ -391,11 +421,20 @@ cmd_test() {
     fi
 
     # 9. Resilience tests
-    info "[9/9] Raft resilience tests"
+    info "[9/10] Raft resilience tests"
     if cargo test -p ha_cluster --test raft_l3_1_hardening 2>&1 | tail -5; then
         ok "Raft tests: passed"
     else
         err "Raft tests: FAILED"
+        failures=$((failures + 1))
+    fi
+
+    # 10. Validate the canonical runtime configuration.
+    info "[10/10] Unified runtime Compose configuration"
+    if docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" config --quiet; then
+        ok "Docker Compose configuration: valid"
+    else
+        err "Docker Compose configuration: FAILED"
         failures=$((failures + 1))
     fi
 
@@ -439,16 +478,6 @@ cmd_pov() {
 cmd_down() {
     info "Stopping VARDHAN Q-CORE services..."
     docker compose -f "$COMPOSE_FILE" down 2>/dev/null || true
-
-    # Also clean up any stray processes on our ports
-    for port in "$CONTROL_PLANE_PORT" "$INTELLIGENCE_PORT"; do
-        local pids
-        pids=$(lsof -ti ":$port" 2>/dev/null || true)
-        if [ -n "$pids" ]; then
-            info "Killing stray processes on port $port"
-            echo "$pids" | xargs kill -9 2>/dev/null || true
-        fi
-    done
 
     ok "Services stopped"
 }
