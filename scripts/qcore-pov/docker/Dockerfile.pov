@@ -58,7 +58,12 @@ ENV VARDHAN_KEYSTORE_DIR=/var/lib/vardhan/keystore
 ENV VARDHAN_IDEMPOTENCY_DIR=/var/lib/vardhan/idempotency
 ENV VARDHAN_CONTROL_PLANE_DATA_DIR=/var/lib/vardhan/control-plane
 ENV QCORE_HOST=http://localhost:8080
+# Python PoV scripts use ENGINE_BIN; the Rust HTTP API uses RECEIPT_BIN.
 ENV VARDHAN_RECEIPT_ENGINE_BIN=/usr/local/bin/vardhan-receipt
+ENV VARDHAN_RECEIPT_BIN=/usr/local/bin/vardhan-receipt
+# The PoV harness writes explicitly provisioned test tenants here; the receipt
+# subprocess reloads this file for each validation request.
+ENV VARDHAN_AUTH_CONFIG_PATH=/var/lib/vardhan/keystore/auth_config.json
 
 EXPOSE 8080
 
