@@ -23,6 +23,49 @@ FAIL_COUNT = 0
 RESULTS = []
 
 RECEIPT_BIN = os.environ.get("VARDHAN_RECEIPT_ENGINE_BIN", "vardhan-receipt")
+DEFAULT_TENANT_ID = "org-vardhan-intelligence"
+
+def register_tenant(tenant_id):
+    """Provision a synthetic PoV tenant into the receipt engine's test config."""
+    config_path = os.environ.get("VARDHAN_AUTH_CONFIG_PATH")
+    if not config_path:
+        config_path = os.path.join(
+            os.environ.get("VARDHAN_KEYSTORE_DIR", "/var/lib/vardhan/keystore"),
+            "auth_config.json",
+        )
+        os.environ["VARDHAN_AUTH_CONFIG_PATH"] = config_path
+
+    if os.path.exists(config_path):
+        with open(config_path, encoding="utf-8") as handle:
+            config = json.load(handle)
+        if not isinstance(config, dict):
+            raise RuntimeError("PoV auth config must be a JSON object")
+        config.setdefault("tenants", [])
+        config.setdefault("policies", [])
+    else:
+        config = {
+            "tenants": [
+                "org-vardhan-intelligence",
+                "org-acme-bank-poc",
+                "org-test-tenant-valid",
+            ],
+            "policies": [{
+                "policy_id": "VARDHAN_CORE_INTELLIGENCE_POLICY_V1",
+                "policy_version": "1.0",
+                "governed_actions": ["SEAL_VERIFIED_FINDING"],
+                "authorized_actor_prefixes": ["svc:vardhan-intelligence:"],
+            }],
+        }
+
+    if tenant_id not in config["tenants"]:
+        config["tenants"].append(tenant_id)
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    temp_path = f"{config_path}.{os.getpid()}.tmp"
+    with open(temp_path, "w", encoding="utf-8") as handle:
+        json.dump(config, handle, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temp_path, config_path)
 
 def check(label, expected, actual):
     global PASS_COUNT, FAIL_COUNT
@@ -77,8 +120,8 @@ def api_request(method, path, token=None, body=None):
     except Exception as e:
         return 0, {"error": str(e)}, token
 
-def build_contract(finding_id="find-pov-001", actor="svc:vardhan-intelligence:financial-pov", 
-                   org_id="org-vardhan-intelligence", hash_override=None):
+def build_contract(finding_id="find-pov-001", actor="svc:vardhan-intelligence:financial-pov",
+                   org_id=None, hash_override=None):
     """Build a standard Q-Core contract for testing."""
     base_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     contract = {
@@ -91,7 +134,7 @@ def build_contract(finding_id="find-pov-001", actor="svc:vardhan-intelligence:fi
                 "run_id": "run-pov-001"
             },
             "organization": {
-                "organization_id": org_id,
+                "organization_id": org_id or DEFAULT_TENANT_ID,
                 "canonical_domain": "synthetic-bank.invalid"
             },
             "affected_resource": {
@@ -149,7 +192,7 @@ def verify_receipt(receipt_json_str, receipt_id="verify-pov"):
         return -1, str(e)
 
 def main():
-    global PASS_COUNT, FAIL_COUNT
+    global PASS_COUNT, FAIL_COUNT, DEFAULT_TENANT_ID
     
     print("=" * 60)
     print("  VARDHAN Q-CORE — Security Test Matrix (PoV)")
@@ -169,10 +212,14 @@ def main():
     check("Org creation", 201, status)
     created_org_id = body.get("organization", {}).get("id", "")
     check("Org ID present", True, bool(created_org_id))
-    # The current PoV policy authority has a static tenant allowlist. Use its
-    # pre-registered synthetic tenant for receipt tests and separately exercise
-    # the mismatch guard; dynamic onboarding is not validated by this lab.
-    org_id = "org-vardhan-intelligence"
+    if not created_org_id:
+        raise RuntimeError("organization creation did not return an ID")
+    # In this synthetic harness, explicit test provisioning adds the new org to
+    # the receipt engine's allowlist before use. This does not claim production
+    # organization creation automatically provisions the policy registry.
+    register_tenant(created_org_id)
+    DEFAULT_TENANT_ID = created_org_id
+    org_id = created_org_id
     
     # ── Security Tests ───────────────────────────────────────────
     
