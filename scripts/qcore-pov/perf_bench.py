@@ -129,19 +129,22 @@ def build_contract(finding_id, payload_size=1024, actor="svc:vardhan-intelligenc
     }
     return contract
 
+POV_TENANT_ID = "org-vardhan-intelligence"
+
 def create_session(worker_id=None):
-    """Create a fresh login session and org. Returns (token, org_id) or (None, None)."""
-    s, b, _ = api_request("POST", "/api/v1/auth/login",
-                          body={"username": ADMIN_USER, "password": ADMIN_PASS})
-    if s != 200:
+    """Create a fresh login session for the pre-registered synthetic PoV tenant."""
+    status, body, _ = api_request(
+        "POST", "/api/v1/auth/login",
+        body={"username": ADMIN_USER, "password": ADMIN_PASS}
+    )
+    if status != 200:
         return None, None
-    token = b.get("token", "")
-    name = f"Bench-{int(time.time())}-{worker_id}" if worker_id is not None else f"Bench-{int(time.time())}"
-    s2, b2, token = api_request("POST", "/api/v1/organizations", token, {"name": name})
-    if s2 not in (200, 201):
+    token = body.get("token", "")
+    if not token:
         return None, None
-    org_id = b2.get("organization", {}).get("id", "")
-    return token, org_id
+    # Dynamic organization creation is not wired to the static policy tenant
+    # registry in this PoV build. Route and contract IDs must match.
+    return token, POV_TENANT_ID
 
 def benchmark_with_sessions(label, func, concurrency, requests, warmup):
     """Measure a session-backed operation with setup and warm-up excluded."""
