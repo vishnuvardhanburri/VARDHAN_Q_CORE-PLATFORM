@@ -261,6 +261,7 @@ def bench_mldsa87():
         verify_times.append(elapsed_ms)
     
     RESULTS["mldsa87"]["sign"] = {
+        "measurement_scope": "Full vardhan-receipt validate-canonical subprocess; includes process startup, parsing, hashing, key access, sealing and serialization, not an isolated ML-DSA-87 primitive timing.",
         "iterations": iterations,
         "successes": sign_successes,
         "median_ms": round(statistics.median(sign_times), 3),
@@ -271,6 +272,7 @@ def bench_mldsa87():
     }
     
     RESULTS["mldsa87"]["verify"] = {
+        "measurement_scope": "Full vardhan-receipt verify subprocess for a receipt; not an isolated ML-DSA-87 primitive timing.",
         "iterations": iterations,
         "median_ms": round(statistics.median(verify_times), 3),
         "mean_ms": round(statistics.mean(verify_times), 3),
@@ -279,8 +281,8 @@ def bench_mldsa87():
         "ops_per_second": round(iterations / (sum(verify_times) / 1000), 1),
     }
     
-    print(f"  ML-DSA-87 sign (via validate-canonical): median={RESULTS['mldsa87']['sign']['median_ms']}ms")
-    print(f"  ML-DSA-87 verify (full receipt): median={RESULTS['mldsa87']['verify']['median_ms']}ms")
+    print(f"  ML-DSA-87 full validate-canonical CLI path: median={RESULTS['mldsa87']['sign']['median_ms']}ms")
+    print(f"  ML-DSA-87 full receipt verify CLI path: median={RESULTS['mldsa87']['verify']['median_ms']}ms")
 
     # Extract signature sizes from receipt if available
     try:
