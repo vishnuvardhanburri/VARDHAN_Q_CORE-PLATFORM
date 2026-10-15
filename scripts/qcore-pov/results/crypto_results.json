@@ -1,0 +1,127 @@
+{
+  "ed25519": {
+    "1KB": {
+      "iterations": 10000,
+      "payload_size_bytes": 1024,
+      "sign": {
+        "median_us": 14.875,
+        "mean_us": 14.782,
+        "min_us": 13.25,
+        "max_us": 141.292,
+        "ops_per_second": 67649.1
+      },
+      "verify": {
+        "median_us": 41.167,
+        "mean_us": 41.447,
+        "min_us": 35.291,
+        "max_us": 129.667,
+        "ops_per_second": 24127.2
+      }
+    },
+    "10KB": {
+      "iterations": 10000,
+      "payload_size_bytes": 10240,
+      "sign": {
+        "median_us": 25.333,
+        "mean_us": 24.627,
+        "min_us": 22.666,
+        "max_us": 48.375,
+        "ops_per_second": 40606.7
+      },
+      "verify": {
+        "median_us": 46.25,
+        "mean_us": 45.992,
+        "min_us": 40.167,
+        "max_us": 120.167,
+        "ops_per_second": 21743.1
+      }
+    },
+    "100KB": {
+      "iterations": 10000,
+      "payload_size_bytes": 102400,
+      "sign": {
+        "median_us": 119.917,
+        "mean_us": 120.666,
+        "min_us": 118.458,
+        "max_us": 209.042,
+        "ops_per_second": 8287.3
+      },
+      "verify": {
+        "median_us": 94.959,
+        "mean_us": 94.218,
+        "min_us": 88.333,
+        "max_us": 157.875,
+        "ops_per_second": 10613.7
+      }
+    },
+    "signature_size_bytes": 64
+  },
+  "mldsa87": {
+    "sign": {
+      "iterations": 100,
+      "successes": 100,
+      "median_ms": 6.645,
+      "mean_ms": 6.833,
+      "min_ms": 6.25,
+      "max_ms": 11.254,
+      "ops_per_second": 146.3
+    },
+    "verify": {
+      "iterations": 100,
+      "median_ms": 1.232,
+      "mean_ms": 1.265,
+      "min_ms": 1.033,
+      "max_ms": 1.718,
+      "ops_per_second": 790.2
+    },
+    "signature_size_bytes": 4627
+  },
+  "blake3": {
+    "1KB": {
+      "iterations": 100000,
+      "payload_size_bytes": 1024,
+      "median_us": 1.042,
+      "mean_us": 1.073,
+      "min_us": 0.875,
+      "max_us": 31.25,
+      "throughput_mbps": 910.23
+    },
+    "10KB": {
+      "iterations": 10000,
+      "payload_size_bytes": 10240,
+      "median_us": 11.875,
+      "mean_us": 12.012,
+      "min_us": 11.666,
+      "max_us": 80.0,
+      "throughput_mbps": 812.99
+    },
+    "100KB": {
+      "iterations": 1000,
+      "payload_size_bytes": 102400,
+      "median_us": 127.542,
+      "mean_us": 128.29,
+      "min_us": 127.375,
+      "max_us": 159.0,
+      "throughput_mbps": 761.21
+    },
+    "1MB": {
+      "iterations": 100,
+      "payload_size_bytes": 1048576,
+      "median_us": 1307.938,
+      "mean_us": 1315.028,
+      "min_us": 1306.209,
+      "max_us": 1371.916,
+      "throughput_mbps": 760.44
+    }
+  },
+  "qcore_integration": {
+    "receipt_id": "VQR-{uuid}",
+    "payload_hash_algorithm": "BLAKE3",
+    "signature_schemes": [
+      "ed25519",
+      "ml_dsa_87"
+    ],
+    "signing_mode": "dual_signature",
+    "certificate_algorithm": "blake3_hex_of_ed25519_public_key"
+  }
+}
