@@ -86,6 +86,13 @@ ENVIRONMENT_FILE="${RESULTS_DIR}/environment_${TIMESTAMP}.txt"
 STATS_FILE="${RESULTS_DIR}/docker_stats_${TIMESTAMP}.csv"
 {
     echo "Captured UTC: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    echo "Source Git HEAD: $(git -C "$REPO_ROOT" rev-parse HEAD 2>&1 || echo unknown)"
+    echo "Working tree status:"
+    git -C "$REPO_ROOT" status --short 2>&1 || true
+    echo "PoV scripts checksums:"
+    sha256sum "$POV_DIR/run.sh" "$POV_DIR/security_test.py" "$POV_DIR/perf_bench.py" "$POV_DIR/crypto_bench.py" 2>&1 || shasum -a 256 "$POV_DIR/run.sh" "$POV_DIR/security_test.py" "$POV_DIR/perf_bench.py" "$POV_DIR/crypto_bench.py" 2>&1 || true
+    echo "--- Docker image ---"
+    docker image inspect --format='ID={{.Id}} OS={{.Os}} Architecture={{.Architecture}}' vardhan-qcore-pov:latest 2>&1 || true
     echo "--- Host OS ---"
     uname -a
     echo "--- Docker version ---"
