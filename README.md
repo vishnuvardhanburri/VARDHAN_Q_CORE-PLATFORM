@@ -102,6 +102,7 @@ Vardhan's target enterprise engagement sequence is buyer-gated: **£15K architec
 - [£60K proof-of-value scope](docs/commercial/POV_60K_SCOPE.md)
 - [£500K production scope](docs/commercial/PRODUCTION_500K_SCOPE.md)
 - [First buyer problem-validation outreach](docs/commercial/FIRST_BUYER_OUTREACH.md)
+- [LGT buyer hypothesis and tailored first-contact brief](docs/commercial/LGT_TARGET_HYPOTHESIS.md)
 
 ## Two-Pillar Architecture
 
