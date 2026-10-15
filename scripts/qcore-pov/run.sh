@@ -80,6 +80,46 @@ echo ""
 echo "[3/7] Running security test matrix..."
 TIMESTAMP=$(date -u +%Y%m%d_%H%M%S)
 TEST_FAILURES=0
+
+# Record host/container configuration so latency and throughput can be interpreted.
+ENVIRONMENT_FILE="${RESULTS_DIR}/environment_${TIMESTAMP}.txt"
+STATS_FILE="${RESULTS_DIR}/docker_stats_${TIMESTAMP}.csv"
+{
+    echo "Captured UTC: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    echo "--- Host OS ---"
+    uname -a
+    echo "--- Docker version ---"
+    docker --version
+    echo "--- Docker daemon resources ---"
+    docker info --format='ServerOS={{.OSType}} ServerArch={{.Architecture}} CPUs={{.NCPU}} MemoryBytes={{.MemTotal}}' 2>&1 || true
+    echo "--- Container resource limits ---"
+    docker inspect --format='Image={{.Config.Image}} MemoryLimitBytes={{.HostConfig.Memory}} NanoCPUs={{.HostConfig.NanoCpus}} CpuQuota={{.HostConfig.CpuQuota}} CpuPeriod={{.HostConfig.CpuPeriod}}' qcore-pov 2>&1 || true
+    echo "--- Host CPU and memory ---"
+    if command -v sysctl >/dev/null 2>&1; then
+        echo "CPU model: $(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo unknown)"
+        echo "CPU count: $(sysctl -n hw.ncpu 2>/dev/null || echo unknown)"
+        echo "RAM bytes: $(sysctl -n hw.memsize 2>/dev/null || echo unknown)"
+    elif [ -r /proc/cpuinfo ]; then
+        grep -m1 'model name' /proc/cpuinfo || true
+        echo "CPU count: $(getconf _NPROCESSORS_ONLN 2>/dev/null || echo unknown)"
+        grep '^MemTotal:' /proc/meminfo || true
+    fi
+} > "$ENVIRONMENT_FILE" 2>&1
+echo "Environment metadata: $ENVIRONMENT_FILE"
+
+echo "timestamp_utc,cpu_percent,memory_usage,memory_percent,network_io,block_io,pids" > "$STATS_FILE"
+(
+    while [ "$(docker inspect -f '{{.State.Running}}' qcore-pov 2>/dev/null || echo false)" = "true" ]; do
+        TS=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+        METRICS=$(docker stats --no-stream --format '{{.CPUPerc}},{{.MemUsage}},{{.MemPerc}},{{.NetIO}},{{.BlockIO}},{{.PIDs}}' qcore-pov 2>/dev/null || true)
+        if [ -n "$METRICS" ]; then
+            printf '%s,%s\n' "$TS" "$METRICS" >> "$STATS_FILE"
+        fi
+        sleep 1
+    done
+) &
+STATS_PID=$!
+
 if docker exec qcore-pov bash -c 'python3 /usr/local/bin/security_test.py' 2>&1 | tee "${RESULTS_DIR}/security_test_${TIMESTAMP}.log"; then
     echo "✅ Security test process exited successfully"
 else
@@ -114,6 +154,11 @@ docker cp qcore-pov:/tmp/crypto_results.json "${RESULTS_DIR}/crypto_results_${TI
 echo ""
 echo "[6/7] Collecting container logs and state..."
 docker logs qcore-pov > "${RESULTS_DIR}/container_${TIMESTAMP}.log" 2>&1 || true
+
+# Stop resource sampling after all test suites have finished.
+kill "$STATS_PID" 2>/dev/null || true
+wait "$STATS_PID" 2>/dev/null || true
+echo "Docker stats time series: $STATS_FILE"
 
 # ── Step 7: Cleanup ─────────────────────────────────────────────
 echo ""
