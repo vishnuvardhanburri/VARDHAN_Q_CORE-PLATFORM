@@ -808,12 +808,15 @@ async fn replay_protection_after_sealing() {
         .unwrap()
         .to_string();
 
+    // Replay behavior is tested against the pre-registered development tenant.
+    // The separate organization lifecycle and tenant-mismatch tests cover dynamic IDs.
+    let tenant = "org-vardhan-intelligence";
     let contract = serde_json::json!({
         "contract": {
             "schema_version": "1.0",
             "finding_id": "find-regression-001",
             "intelligence": {"engine_id":"e","engine_version":"1","run_id":"r"},
-            "organization": {"organization_id":"org-vardhan-intelligence","canonical_domain":"vardhan.org"},
+            "organization": {"organization_id":tenant,"canonical_domain":"vardhan.org"},
             "affected_resource": {"canonical_url":"https://x","surface_type":"API_REST","entry_point_id":"ep"},
             "technical_area":"STATIC_ANALYSIS","technical_mechanism":"SQLi",
             "expected_behavior":"safe","observed_behavior":"vuln",
@@ -830,7 +833,7 @@ async fn replay_protection_after_sealing() {
 
     // First submission: should be SEALED
     let r1 = client
-        .post(format!("{}/api/v1/organizations/{}/security/validate", base, org))
+        .post(format!("{}/api/v1/organizations/{}/security/validate", base, tenant))
         .header("Authorization", format!("Bearer {}", token))
         .json(&contract)
         .send()
@@ -846,7 +849,7 @@ async fn replay_protection_after_sealing() {
 
     // Second submission: should be REJECTED_REPLAY
     let r2 = client
-        .post(format!("{}/api/v1/organizations/{}/security/validate", base, org))
+        .post(format!("{}/api/v1/organizations/{}/security/validate", base, tenant))
         .header("Authorization", format!("Bearer {}", token))
         .json(&contract)
         .send()
