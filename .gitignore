@@ -65,3 +65,42 @@ test_hash.mjs
 test_hash_esm.mjs
 unauthorized_actor.json
 *.sled
+
+# Root-level debug artifacts
+admin_pass_demo.txt
+conf
+vardhan.lic
+mock_control_plane.js
+BOOT_PLATFORM.sh
+run_and_test.sh
+run_server.sh
+run_e2e.sh
+debug_api.sh
+debug_auth.sh
+debug_login.sh
+debug_rotation.sh
+debug_rotation_v2.sh
+manual_rotation.sh
+qtf_debug.sh
+qtf_debug_org.sh
+qtf_passport_demo.sh
+simple_test.sh
+test_api.sh
+test_rotation.sh
+test_rotation_protected.sh
+test_token_header.sh
+final_release_verification.sh
+final_release_verification_v2.sh
+final_security_test.sh
+
+# Local .env (never commit with real secrets)
+.env
+
+# Docker
+.docker/
+
+# Python
+sdks/python/vardhan_qcore/*.egg-info/
+
+# ZK engine
+zk_engine/package-lock.json
