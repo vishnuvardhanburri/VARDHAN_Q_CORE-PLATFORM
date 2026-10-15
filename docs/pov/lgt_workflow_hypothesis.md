@@ -35,7 +35,7 @@ The first report recorded the following results, which remain **provisional unti
 - The first report compared 7.178 ms through the HTTP API with 6.627 ms for a direct CLI baseline, a difference of approximately 0.551 ms. Those were separate measurements, not a fully controlled paired experiment, so this is not yet a definitive causal HTTP-overhead estimate.
 - The initial “c100” suites used only 50 measured requests; they could not exercise 100 simultaneous in-flight requests. The initial E2E “c50” suite used only 20 requests. Those labels do not validate the named concurrency levels.
 - Earlier throughput values were inferred from nominal concurrency and median latency, not computed from total measured run duration. Those throughput claims are withdrawn pending rerun.
-- The initial security script reported 20 passing assertions, but its concurrent-duplicate check only verified that five responses existed; it did not assert the stated one-sealed/four-rejected outcome. The script has now been changed to assert these outcomes explicitly. The updated 22-assertion run is pending.
+- The initial security script reported 20 passing assertions, but its concurrent-duplicate check only verified that five responses existed; it did not assert the stated one-sealed/four-rejected outcome. The script has now been changed to assert these outcomes explicitly. The updated 24-assertion run (including explicit tenant route/payload mismatch rejection) is pending.
 - The initial report metadata listed 2025-10-15, while other embedded data has later timestamps. The execution date and tested source revision should be confirmed from a fresh timestamped run before the evidence pack is shared externally.
 
 See the performance benchmark results, security test results, and acceptance criteria for audit qualifications.
@@ -47,7 +47,7 @@ These tests do not establish that:
 - LGT has the hypothesized problem or has confirmed the workflow;
 - the platform is production-ready or suitable for a regulated deployment;
 - the platform complies with SOX, PCI DSS, DORA, or any other specific legal or regulatory obligation;
-- tenant isolation is complete across API routes, payloads, keys, audit records, and dynamically provisioned organizations;
+- tenant isolation is complete across API routes, payloads, keys, audit records, and dynamically provisioned organizations; a route-to-payload tenant-binding guard and explicit mismatch test have been added on the follow-up branch, but remain unvalidated until rerun;
 - replay protection is distributed across multiple nodes;
 - transport, key management, backup/recovery, HA/DR, rate limiting, or operational monitoring are production-secure;
 - cryptography or the full architecture has been independently reviewed; or
