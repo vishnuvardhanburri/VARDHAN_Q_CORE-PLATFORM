@@ -22,7 +22,7 @@ This is a synthetic financial-services scenario aimed at preparing a possible LG
 | Original E2E requested c50 test | 20 measured requests | Cannot validate 50 simultaneous in-flight requests |
 | Original throughput claims | Withdrawn | They were not measured from wall-clock run duration |
 
-The corrected benchmark script now uses at least 100 measured requests and at least 10 requests per requested worker by default, performs session setup and warm-up outside the measured window, and writes measured wall-clock throughput plus observed concurrent-request counts. The concurrent replay test now asserts exactly one seal and four replay rejections. These changes have **not yet produced a new measurement set**.
+The corrected benchmark script now uses at least 100 measured requests and at least 10 requests per requested worker by default, performs session setup and warm-up outside the measured window, and writes measured wall-clock throughput plus observed concurrent-request counts. The concurrent replay test now asserts exactly one seal and four replay rejections. The API validation handler now rejects route-to-payload tenant mismatches, and the security suite includes explicit tests for this control and for unknown tenants. These code changes have **not yet produced a fresh test result or new measurement set**.
 
 ## What is in the lab
 
