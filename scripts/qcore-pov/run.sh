@@ -79,19 +79,35 @@ fi
 echo ""
 echo "[3/7] Running security test matrix..."
 TIMESTAMP=$(date -u +%Y%m%d_%H%M%S)
-docker exec qcore-pov bash -c 'python3 /usr/local/bin/security_test.py' 2>&1 | tee "${RESULTS_DIR}/security_test_${TIMESTAMP}.log" || true
+TEST_FAILURES=0
+if docker exec qcore-pov bash -c 'python3 /usr/local/bin/security_test.py' 2>&1 | tee "${RESULTS_DIR}/security_test_${TIMESTAMP}.log"; then
+    echo "✅ Security test process exited successfully"
+else
+    echo "❌ Security test process failed"
+    TEST_FAILURES=$((TEST_FAILURES + 1))
+fi
 docker cp qcore-pov:/tmp/security_results.json "${RESULTS_DIR}/security_results_${TIMESTAMP}.json" 2>/dev/null || echo '{"error": "no security results"}' > "${RESULTS_DIR}/security_results_${TIMESTAMP}.json"
 
 # ── Step 4: Run performance benchmarks ──────────────────────────
 echo ""
 echo "[4/7] Running performance benchmarks..."
-docker exec qcore-pov bash -c 'python3 /usr/local/bin/perf_bench.py' 2>&1 | tee "${RESULTS_DIR}/perf_${TIMESTAMP}.log" || true
+if docker exec qcore-pov bash -c 'python3 /usr/local/bin/perf_bench.py' 2>&1 | tee "${RESULTS_DIR}/perf_${TIMESTAMP}.log"; then
+    echo "✅ Performance benchmark process exited successfully"
+else
+    echo "❌ Performance benchmark process failed"
+    TEST_FAILURES=$((TEST_FAILURES + 1))
+fi
 docker cp qcore-pov:/tmp/perf_results.json "${RESULTS_DIR}/perf_results_${TIMESTAMP}.json" 2>/dev/null || true
 
 # ── Step 5: Run crypto benchmarks ───────────────────────────────
 echo ""
 echo "[5/7] Running crypto benchmarks..."
-docker exec qcore-pov bash -c 'python3 /usr/local/bin/crypto_bench.py' 2>&1 | tee "${RESULTS_DIR}/crypto_${TIMESTAMP}.log" || true
+if docker exec qcore-pov bash -c 'python3 /usr/local/bin/crypto_bench.py' 2>&1 | tee "${RESULTS_DIR}/crypto_${TIMESTAMP}.log"; then
+    echo "✅ Cryptographic benchmark process exited successfully"
+else
+    echo "❌ Cryptographic benchmark process failed"
+    TEST_FAILURES=$((TEST_FAILURES + 1))
+fi
 docker cp qcore-pov:/tmp/crypto_results.json "${RESULTS_DIR}/crypto_results_${TIMESTAMP}.json" 2>/dev/null || true
 
 # ── Step 6: Collect logs ────────────────────────────────────────
@@ -111,3 +127,10 @@ echo "  PoV Complete"
 echo "  Results directory: ${RESULTS_DIR}/"
 echo "  Ended: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 echo "============================================================"
+
+if [ "$TEST_FAILURES" -gt 0 ]; then
+    echo "❌ PoV run finished with $TEST_FAILURES failed test/benchmark process(es)"
+    exit 1
+fi
+
+echo "✅ All PoV test/benchmark processes exited successfully"
