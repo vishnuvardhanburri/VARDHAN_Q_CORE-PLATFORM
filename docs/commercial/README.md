@@ -33,7 +33,7 @@ See [Production scope](PRODUCTION_500K_SCOPE.md). £500K is a planning value unt
 ## Immediate execution sequence
 
 1. **Pick one target account and one buyer problem.** Use public evidence to form a question; do not infer internal architecture, incidents, budget, or intent.
-2. **Send a problem question, not a £15K proposal.** Use [first-buyer outreach](FIRST_BUYER_OUTREACH.md). The immediate objective is a response from a relevant buyer and a conversation to validate the problem.
+2. **Send a problem question, not a £15K proposal.** Use [first-buyer outreach](FIRST_BUYER_OUTREACH.md). For the existing LGT outreach target, use the [LGT buyer hypothesis and tailored brief](LGT_TARGET_HYPOTHESIS.md). The immediate objective is a response from a relevant buyer and a conversation to validate the problem.
 3. **Qualify the buying path.** Identify sponsor, technical owner, security/procurement route, access constraints, timing, budget path, and decision process. Keep unknowns marked UNKNOWN.
 4. **Offer discovery only when relevant.** Send the £15K scope and terms for acceptance. An unacknowledged lead or unaccepted proposal is not contracted.
 5. **End discovery with a signed PoV plan or a stop decision.** Do not start the £60K scope before access, feasibility, and acceptance criteria are agreed.
