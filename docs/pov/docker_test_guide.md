@@ -31,6 +31,8 @@ The corrected performance results include measured run duration, requests per se
 
 Each run also writes an environment metadata file and a Docker stats time series (CPU, memory, network I/O, block I/O, and process count) under the results directory. These artifacts accompany the exact timestamped raw JSON and logs.
 
+The `Docker PoV Validation` GitHub Actions workflow runs the test runner on relevant pushes and pull requests, validates the generated artifact bundle with `verify_results.py`, and uploads timestamped evidence for 30 days. This separates CI code-check success from the PoV's own security and benchmark result. The workflow's artifact is the source of truth for the specific source SHA and runner environment used in that run.
+
 ## Security and operational limitations
 
 - The current configuration is for a local development lab and uses plaintext HTTP.
