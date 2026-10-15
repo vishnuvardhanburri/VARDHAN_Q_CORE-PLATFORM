@@ -1,0 +1,83 @@
+name: Docker PoV Validation
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "scripts/qcore-pov/**"
+      - "backend/control_plane_api/src/receipt_api.rs"
+      - "backend/vardhan_receipt/**"
+      - ".github/workflows/pov-docker-validation.yml"
+  pull_request:
+    paths:
+      - "scripts/qcore-pov/**"
+      - "backend/control_plane_api/src/receipt_api.rs"
+      - "backend/vardhan_receipt/**"
+      - ".github/workflows/pov-docker-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-pov-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-pov:
+    name: Build, test, benchmark and archive evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@v4
+
+      - name: Record runner and Docker versions
+        run: |
+          uname -a
+          python3 --version
+          docker --version
+          docker info --format='ServerOS={{.OSType}} ServerArch={{.Architecture}} CPUs={{.NCPU}} MemoryBytes={{.MemTotal}}'
+
+      - name: Validate runner and Python syntax
+        run: |
+          bash -n scripts/qcore-pov/run.sh
+          python3 - <<'PY'
+          import ast
+          from pathlib import Path
+
+          for name in (
+              "security_test.py",
+              "perf_bench.py",
+              "crypto_bench.py",
+              "verify_results.py",
+          ):
+              path = Path("scripts/qcore-pov") / name
+              ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+              print(f"syntax OK: {path}")
+          PY
+
+      - name: Run Docker security, performance and cryptographic PoV
+        run: ./scripts/qcore-pov/run.sh
+
+      - name: Validate the generated evidence bundle
+        run: python3 scripts/qcore-pov/verify_results.py scripts/qcore-pov/results
+
+      - name: Upload timestamped PoV evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qcore-docker-pov-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            scripts/qcore-pov/results/security_test_*.log
+            scripts/qcore-pov/results/security_results_*.json
+            scripts/qcore-pov/results/perf_*.log
+            scripts/qcore-pov/results/perf_results_*.json
+            scripts/qcore-pov/results/crypto_*.log
+            scripts/qcore-pov/results/crypto_results_*.json
+            scripts/qcore-pov/results/container_*.log
+            scripts/qcore-pov/results/environment_*.txt
+            scripts/qcore-pov/results/docker_stats_*.csv
