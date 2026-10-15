@@ -1,0 +1,201 @@
+Captured UTC: 2026-10-15T13:14:11Z
+Source Git HEAD: 0c335d085fd064d18004f1b6d2ab891ec484483b
+Working tree status:
+M  .github/workflows/ci-correctness-benchmarks.yml
+M  Cargo.lock
+AD audit_trail.jsonl
+D  auth.sled/conf
+D  auth.sled/db
+ M backend/auth_service/src/api_key.rs
+ M backend/auth_service/src/lib.rs
+ M backend/auth_service/src/mfa.rs
+ M backend/auth_service/src/mfa_challenge_store.rs
+ M backend/auth_service/src/mfa_policy.rs
+ M backend/auth_service/src/mfa_service.rs
+ M backend/auth_service/src/mfa_store.rs
+ M backend/auth_service/src/middleware.rs
+ M backend/auth_service/src/oidc.rs
+ M backend/auth_service/src/profile.rs
+ M backend/auth_service/src/session.rs
+ M backend/auth_service/tests/authoritative_role_projection_test.rs
+ M backend/auth_service/tests/integration_auth.rs
+ M backend/auth_service/tests/integration_bootstrap.rs
+M  backend/control_plane_api/Cargo.toml
+ M backend/control_plane_api/src/assurance_evidence.rs
+ M backend/control_plane_api/src/billing.rs
+ M backend/control_plane_api/src/billing_api.rs
+ M backend/control_plane_api/src/continuous_operations.rs
+ M backend/control_plane_api/src/durable_event_queue.rs
+ M backend/control_plane_api/src/enterprise_integrations.rs
+ M backend/control_plane_api/src/enterprise_sso.rs
+MM backend/control_plane_api/src/lib.rs
+ M backend/control_plane_api/src/main.rs
+ M backend/control_plane_api/src/operations_api.rs
+ M backend/control_plane_api/src/passport_api.rs
+ M backend/control_plane_api/src/qcore_telemetry.rs
+MM backend/control_plane_api/src/receipt_api.rs
+ M backend/control_plane_api/src/receipt_key_registry.rs
+ M backend/control_plane_api/src/receipt_transport.rs
+ M backend/control_plane_api/src/receipt_verification.rs
+ M backend/control_plane_api/src/resilience_contract.rs
+ M backend/control_plane_api/src/saml_service.rs
+ M backend/control_plane_api/src/security_operations.rs
+ M backend/control_plane_api/src/webauthn_api.rs
+ M backend/control_plane_api/tests/integration_tenant_isolation.rs
+ M backend/control_plane_api/tests/org_lifecycle_edge_cases.rs
+ M backend/control_plane_api/tests/receipt_trust_boundary_test.rs
+ M backend/core_crypto/src/anti_tamper.rs
+ M backend/ebpf_engine/ebpf_user/src/main.rs
+ M backend/pq_shield/src/admin.rs
+ M backend/pq_shield/src/lib.rs
+ M backend/test_fixtures/receipt_generator/src/main.rs
+M  backend/vardhan_keystore/Cargo.toml
+M  backend/vardhan_keystore/src/lib.rs
+MM backend/vardhan_keystore/src/protection.rs
+AM backend/vardhan_keystore/src/vault.rs
+AM backend/vardhan_receipt/src/audit_trail.rs
+M  backend/vardhan_receipt/src/auth_config.rs
+ M backend/vardhan_receipt/src/bin/publish_receipt.rs
+ M backend/vardhan_receipt/src/gateway.rs
+MM backend/vardhan_receipt/src/main.rs
+MM backend/vardhan_receipt/src/policy_authority.rs
+ M backend/vardhan_receipt/src/qcore_transport.rs
+ M backend/vardhan_verifier/src/lib.rs
+D  check_mldsa.rs
+D  control-plane.sled/conf
+D  control-plane.sled/db
+D  control_plane_data_debug/auth.sled/conf
+D  control_plane_data_debug/auth.sled/db
+D  control_plane_data_debug/auth.sled/snap.0000000000000179
+D  control_plane_data_debug/control-plane.sled/conf
+D  control_plane_data_debug/control-plane.sled/db
+D  control_plane_data_debug/control-plane.sled/snap.0000000000000060
+D  control_plane_data_debug/sessions.sled/conf
+D  control_plane_data_debug/sessions.sled/db
+D  control_plane_data_debug/sessions.sled/snap.00000000000013C8
+D  control_plane_data_final/auth.sled/conf
+D  control_plane_data_final/auth.sled/db
+D  control_plane_data_final/auth.sled/snap.0000000000000179
+D  control_plane_data_final/control-plane.sled/conf
+D  control_plane_data_final/control-plane.sled/db
+D  control_plane_data_final/control-plane.sled/snap.0000000000000060
+D  control_plane_data_final/sessions.sled/conf
+D  control_plane_data_final/sessions.sled/db
+D  control_plane_data_final/sessions.sled/snap.00000000000004DA
+D  control_plane_data_final_fresh/auth.sled/conf
+D  control_plane_data_final_fresh/auth.sled/db
+D  control_plane_data_final_fresh/control-plane.sled/conf
+D  control_plane_data_final_fresh/control-plane.sled/db
+D  control_plane_data_final_fresh/sessions.sled/conf
+D  control_plane_data_final_fresh/sessions.sled/db
+D  control_plane_data_final_fresh_2/auth.sled/conf
+D  control_plane_data_final_fresh_2/auth.sled/db
+D  control_plane_data_final_fresh_2/control-plane.sled/conf
+D  control_plane_data_final_fresh_2/control-plane.sled/db
+D  control_plane_data_final_fresh_2/sessions.sled/conf
+D  control_plane_data_final_fresh_2/sessions.sled/db
+D  control_plane_data_final_fresh_3/auth.sled/conf
+D  control_plane_data_final_fresh_3/auth.sled/db
+D  control_plane_data_final_fresh_3/control-plane.sled/conf
+D  control_plane_data_final_fresh_3/control-plane.sled/db
+D  control_plane_data_final_fresh_3/sessions.sled/conf
+D  control_plane_data_final_fresh_3/sessions.sled/db
+D  control_plane_data_final_v2/auth.sled/conf
+D  control_plane_data_final_v2/auth.sled/db
+D  control_plane_data_final_v2/control-plane.sled/conf
+D  control_plane_data_final_v2/control-plane.sled/db
+D  control_plane_data_final_v2/sessions.sled/conf
+D  control_plane_data_final_v2/sessions.sled/db
+D  control_plane_data_passport_debug/auth.sled/conf
+D  control_plane_data_passport_debug/auth.sled/db
+D  control_plane_data_passport_debug/auth.sled/snap.0000000000000179
+D  control_plane_data_passport_debug/control-plane.sled/conf
+D  control_plane_data_passport_debug/control-plane.sled/db
+D  control_plane_data_passport_debug/control-plane.sled/snap.0000000000000060
+D  control_plane_data_passport_debug/sessions.sled/conf
+D  control_plane_data_passport_debug/sessions.sled/db
+D  control_plane_data_passport_debug/sessions.sled/snap.0000000000001697
+D  control_plane_data_passport_demo/auth.sled/conf
+D  control_plane_data_passport_demo/auth.sled/db
+D  control_plane_data_passport_demo/auth.sled/snap.0000000000000179
+D  control_plane_data_passport_demo/control-plane.sled/conf
+D  control_plane_data_passport_demo/control-plane.sled/db
+D  control_plane_data_passport_demo/control-plane.sled/snap.0000000000000F0F
+D  control_plane_data_passport_demo/sessions.sled/conf
+D  control_plane_data_passport_demo/sessions.sled/db
+D  control_plane_data_passport_demo/sessions.sled/snap.000000000000B4DB
+D  control_plane_data_tf/auth.sled/conf
+D  control_plane_data_tf/auth.sled/db
+D  control_plane_data_tf/control-plane.sled/conf
+D  control_plane_data_tf/control-plane.sled/db
+D  control_plane_data_tf/sessions.sled/conf
+D  control_plane_data_tf/sessions.sled/db
+D  control_plane_data_tf_fixed/auth.sled/conf
+D  control_plane_data_tf_fixed/auth.sled/db
+D  control_plane_data_tf_fixed/control-plane.sled/conf
+D  control_plane_data_tf_fixed/control-plane.sled/db
+D  control_plane_data_tf_fixed/sessions.sled/conf
+D  control_plane_data_tf_fixed/sessions.sled/db
+D  control_plane_data_tf_fixed_v2/auth.sled/conf
+D  control_plane_data_tf_fixed_v2/auth.sled/db
+D  control_plane_data_tf_fixed_v2/control-plane.sled/conf
+D  control_plane_data_tf_fixed_v2/control-plane.sled/db
+D  control_plane_data_tf_fixed_v2/sessions.sled/conf
+D  control_plane_data_tf_fixed_v2/sessions.sled/db
+D  db
+ M docs/pov/decision_report.md
+ M docs/pov/performance_benchmark_results.md
+ M docs/pov/security_test_results.md
+A  evidence_pack/PHASE_8_FINAL_REPORT.md
+M  evidence_pack/evidence_summary.md
+M  evidence_pack/reproducible_test_report.md
+M  evidence_pack/threat_and_limitations.md
+D  final_static_contract.json
+D  final_static_contract_unique.json
+D  final_static_contract_unique_v2.json
+D  fix_transport_debug.py
+D  malformed_final.json
+D  malformed_hash.json
+D  patch_main.py
+D  patch_main_2.py
+D  qtf_migration_request.json
+D  qtf_migration_request_fixed.json
+D  qtf_migration_request_fixed_v2.json
+MM scripts/e2e_lifecycle_validation.py
+ M scripts/performance_benchmark.py
+ M scripts/qcore-pov/docker/Dockerfile.pov
+ M scripts/qcore-pov/perf_bench.py
+ D scripts/qcore-pov/results/crypto_results.json
+ D scripts/qcore-pov/results/perf_results.json
+ D scripts/qcore-pov/results/reliability_results.json
+ D scripts/qcore-pov/results/security_results.json
+ M scripts/qcore-pov/run.sh
+ M scripts/qcore-pov/security_test.py
+D  sessions.sled/conf
+D  sessions.sled/db
+D  test_contract.json
+D  test_db/conf
+D  test_db/db
+D  test_hash.mjs
+D  test_hash_esm.mjs
+D  unauthorized_actor.json
+?? lab_demo_verify.sh
+?? scripts/qcore-pov/results/environment_20261015_131411.txt
+PoV scripts checksums:
+137d86689a87e6607ae41a7b894e84fa60f83b9f93946eaf59200f00688653c2  /Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main/scripts/qcore-pov/run.sh
+8884348ad79b3b407a9dc1e3d80193576c3f581e00678126bb7b4dc59b289a19  /Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main/scripts/qcore-pov/security_test.py
+42dc619b7f3e20539c85fdefd823984e3112db6e1eaa8c7e67fa652361c22143  /Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main/scripts/qcore-pov/perf_bench.py
+52061f26d6d62159f040556b12bc7e863c541f93484bb9a8bcfb7128ffa54985  /Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main/scripts/qcore-pov/crypto_bench.py
+--- Docker image ---
+ID=sha256:bddd82756fde171e89954417ada5dfc4f5909e5563000981f71a87c6e2c17d0d OS=linux Architecture=arm64
+--- Host OS ---
+Darwin vishnus-MacBook.local 27.0.0 Darwin Kernel Version 27.0.0: Tue Aug 11 21:02:57 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T8132 arm64
+Docker version: Docker version 29.2.0, build 0b9d1985db
+--- Docker daemon resources ---
+ServerOS=linux ServerArch=aarch64 CPUs=10 MemoryBytes=8319504384
+--- Container resource limits ---
+Image=vardhan-qcore-pov:latest MemoryLimitBytes=0 NanoCPUs=0 CpuQuota=0 CpuPeriod=0
+--- Host CPU and memory ---
+CPU model: Apple M4
+CPU count: 10
+RAM bytes: 17179869184

@@ -31,6 +31,12 @@ pub struct AuthConfig {
     /// Registered policies. Each policy maps a policy_id to its version,
     /// governed actions, and authorized actor prefixes.
     pub policies: Vec<PolicyConfig>,
+    /// Issuer registry entries mapping workload identity prefixes to
+    /// trusted issuer metadata (e.g., SPIFFE IDs, OIDC endpoints).
+    /// Used for binding authorization decisions to independently
+    /// authenticated execution sources.
+    #[serde(default)]
+    pub issuers: Vec<IssuerEntry>,
 }
 
 /// Configuration entry for a single policy.
@@ -47,7 +53,54 @@ pub struct PolicyConfig {
     pub authorized_actor_prefixes: Vec<String>,
 }
 
+/// A trusted issuer entry in the issuer registry.
+///
+/// Maps a workload identity prefix to an issuer that vouches for that
+/// prefix. In production, the issuer would be an OIDC provider or a
+/// SPIFFE trust domain. In development, this can be a static mapping.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IssuerEntry {
+    /// The workload identity prefix this entry covers (e.g. "svc:vardhan-intelligence:")
+    pub workload_prefix: String,
+    /// The issuer URL or SPIFFE trust domain (e.g. "https://vault.vardhan.org")
+    pub issuer: String,
+    /// Public key or JWK URL for verifying workload identity tokens
+    pub jwks_url: Option<String>,
+    /// Whether this issuer is actively validating identities
+    pub active: bool,
+}
+
+/// A lookup table for issuer entries, indexed by workload prefix.
+#[derive(Debug, Clone, Default)]
+pub struct IssuerRegistry {
+    entries: Vec<IssuerEntry>,
+}
+
+impl IssuerRegistry {
+    /// Build an issuer registry from the auth config.
+    pub fn from_config(config: &AuthConfig) -> Self {
+        Self {
+            entries: config.issuers.clone(),
+        }
+    }
+
+    /// Check whether a workload identity is bound to a trusted issuer.
+    /// Returns `Some(issuer)` if the workload prefix matches an active entry.
+    pub fn resolve_issuer(&self, workload_id: &str) -> Option<&str> {
+        self.entries
+            .iter()
+            .filter(|e| e.active)
+            .find(|e| workload_id.starts_with(&e.workload_prefix))
+            .map(|e| e.issuer.as_str())
+    }
+}
+
 impl AuthConfig {
+    /// Build an issuer registry from this config.
+    pub fn issuer_registry(&self) -> IssuerRegistry {
+        IssuerRegistry::from_config(self)
+    }
+
     /// Load configuration from a file path.
     /// Returns `None` if the file does not exist or cannot be parsed.
     pub fn load_from_file(path: &Path) -> Option<Self> {
@@ -94,6 +147,12 @@ impl AuthConfig {
                 governed_actions: vec!["SEAL_VERIFIED_FINDING".to_string()],
                 authorized_actor_prefixes: vec!["svc:vardhan-intelligence:".to_string()],
             }],
+            issuers: vec![IssuerEntry {
+                workload_prefix: "svc:vardhan-intelligence:".to_string(),
+                issuer: "dev-local".to_string(),
+                jwks_url: None,
+                active: true,
+            }],
         }
     }
 
@@ -103,6 +162,7 @@ impl AuthConfig {
         Self {
             tenants: vec![],
             policies: vec![],
+            issuers: vec![],
         }
     }
 
@@ -114,6 +174,12 @@ impl AuthConfig {
     /// Get a policy entry by ID.
     pub fn policy_entry(&self, policy_id: &str) -> Option<&PolicyConfig> {
         self.policies.iter().find(|p| p.policy_id == policy_id)
+    }
+}
+
+impl Default for AuthConfig {
+    fn default() -> Self {
+        Self::empty()
     }
 }
 
@@ -328,6 +394,7 @@ mod tests {
                 governed_actions: vec!["ACT".to_string()],
                 authorized_actor_prefixes: vec!["svc:a".to_string()],
             }],
+            issuers: vec![],
         };
 
         let json = serde_json::to_string(&original).unwrap();

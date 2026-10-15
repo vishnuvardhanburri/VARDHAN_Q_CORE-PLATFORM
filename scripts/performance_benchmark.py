@@ -30,7 +30,7 @@ import concurrent.futures
 from pathlib import Path
 from datetime import datetime
 
-REPO_ROOT = Path("/Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main")
+REPO_ROOT = Path(__file__).resolve().parent.parent
 BINARY = str(REPO_ROOT / "target" / "release" / "control_plane_api")
 RECEIPT_BIN = str(REPO_ROOT / "target" / "release" / "vardhan-receipt")
 PORT = 18095

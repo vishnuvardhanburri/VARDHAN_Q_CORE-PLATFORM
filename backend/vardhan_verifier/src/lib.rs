@@ -117,26 +117,48 @@ pub struct VardhanVerifier {
     config: VerifierConfig,
 }
 
-    pub fn canonical_receipt_payload(receipt: &VerifiableReceipt) -> Vec<u8> {
-        let evidence = receipt.evidence_commitments.iter().map(|item| {
-            format!("{}:{}:{}", item.evidence_id, item.content_hash, item.category)
-        }).collect::<Vec<_>>().join(";");
-        let fields = [
-            receipt.schema_version.as_str(), receipt.receipt_id.as_str(), receipt.transaction_id.as_str(),
-            receipt.tenant_id.as_str(), receipt.subject_id.as_str(), receipt.actor_identity.as_str(),
-            receipt.proposed_action.as_str(), receipt.policy_id.as_str(), receipt.policy_version.as_str(),
-            receipt.state_hash_at_decision.as_deref().unwrap_or(""), evidence.as_str(),
-            receipt.authority_reference.as_str(), receipt.decision.as_str(), receipt.outcome_code.as_str(),
-            &receipt.timestamp_ms.to_string(), &receipt.ledger_commit_index.to_string(),
-            receipt.parent_receipt_id.as_deref().unwrap_or(""), receipt.correlation_id.as_deref().unwrap_or(""),
-        ];
-        fields.iter().flat_map(|field| {
+pub fn canonical_receipt_payload(receipt: &VerifiableReceipt) -> Vec<u8> {
+    let evidence = receipt
+        .evidence_commitments
+        .iter()
+        .map(|item| {
+            format!(
+                "{}:{}:{}",
+                item.evidence_id, item.content_hash, item.category
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(";");
+    let fields = [
+        receipt.schema_version.as_str(),
+        receipt.receipt_id.as_str(),
+        receipt.transaction_id.as_str(),
+        receipt.tenant_id.as_str(),
+        receipt.subject_id.as_str(),
+        receipt.actor_identity.as_str(),
+        receipt.proposed_action.as_str(),
+        receipt.policy_id.as_str(),
+        receipt.policy_version.as_str(),
+        receipt.state_hash_at_decision.as_deref().unwrap_or(""),
+        evidence.as_str(),
+        receipt.authority_reference.as_str(),
+        receipt.decision.as_str(),
+        receipt.outcome_code.as_str(),
+        &receipt.timestamp_ms.to_string(),
+        &receipt.ledger_commit_index.to_string(),
+        receipt.parent_receipt_id.as_deref().unwrap_or(""),
+        receipt.correlation_id.as_deref().unwrap_or(""),
+    ];
+    fields
+        .iter()
+        .flat_map(|field| {
             let mut encoded = format!("{}:", field.len()).into_bytes();
             encoded.extend_from_slice(field.as_bytes());
             encoded.push(b'|');
             encoded
-        }).collect()
-    }
+        })
+        .collect()
+}
 
 impl VardhanVerifier {
     pub fn new(config: VerifierConfig) -> Self {
@@ -158,12 +180,19 @@ impl VardhanVerifier {
         let mut passed: Vec<String> = Vec::new();
 
         // 1. Schema
-        if self.config.supported_schema_versions.contains(&receipt.schema_version) {
+        if self
+            .config
+            .supported_schema_versions
+            .contains(&receipt.schema_version)
+        {
             passed.push("schema_version_supported".to_string());
         } else {
             failures.push(VerificationFailure {
                 check: "schema_version_supported".to_string(),
-                reason: format!("Schema version '{}' is not supported", receipt.schema_version),
+                reason: format!(
+                    "Schema version '{}' is not supported",
+                    receipt.schema_version
+                ),
             });
         }
 
@@ -208,7 +237,10 @@ impl VardhanVerifier {
             } else {
                 failures.push(VerificationFailure {
                     check: "tenant_id_matches".to_string(),
-                    reason: format!("Tenant mismatch: expected {}, got {}", expected, receipt.tenant_id),
+                    reason: format!(
+                        "Tenant mismatch: expected {}, got {}",
+                        expected, receipt.tenant_id
+                    ),
                 });
             }
         }
@@ -236,7 +268,10 @@ impl VardhanVerifier {
         }
 
         // 7. Decision Value
-        if receipt.decision == "AUTHORIZED" || receipt.decision == "REJECTED" || receipt.decision == "SEALED" {
+        if receipt.decision == "AUTHORIZED"
+            || receipt.decision == "REJECTED"
+            || receipt.decision == "SEALED"
+        {
             passed.push("decision_is_known_value".to_string());
         } else {
             failures.push(VerificationFailure {
@@ -247,18 +282,26 @@ impl VardhanVerifier {
 
         // 8. Ed25519 Signature
         if let Some(pk_bytes) = ed25519_public_key_bytes {
-            use ed25519_dalek::{Signature, VerifyingKey, Verifier};
+            use ed25519_dalek::{Signature, Verifier, VerifyingKey};
             let res = (|| -> Result<(), String> {
                 let pk_arr: [u8; 32] = pk_bytes.try_into().map_err(|_| "Invalid PK length")?;
                 let vk = VerifyingKey::from_bytes(&pk_arr).map_err(|e| e.to_string())?;
-                let sig_bytes = hex::decode(&receipt.signatures.ed25519_sig).map_err(|e| e.to_string())?;
-                let sig_arr: [u8; 64] = sig_bytes.as_slice().try_into().map_err(|_| "Invalid sig length")?;
+                let sig_bytes =
+                    hex::decode(&receipt.signatures.ed25519_sig).map_err(|e| e.to_string())?;
+                let sig_arr: [u8; 64] = sig_bytes
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| "Invalid sig length")?;
                 let sig = Signature::from_bytes(&sig_arr);
-                vk.verify(receipt.payload_hash.as_bytes(), &sig).map_err(|e| e.to_string())
+                vk.verify(receipt.payload_hash.as_bytes(), &sig)
+                    .map_err(|e| e.to_string())
             })();
             match res {
                 Ok(()) => passed.push("ed25519_signature_valid".to_string()),
-                Err(e) => failures.push(VerificationFailure { check: "ed25519_signature_valid".to_string(), reason: e }),
+                Err(e) => failures.push(VerificationFailure {
+                    check: "ed25519_signature_valid".to_string(),
+                    reason: e,
+                }),
             }
         } else {
             failures.push(VerificationFailure {
@@ -270,16 +313,25 @@ impl VardhanVerifier {
         // 9. ML-DSA-87 Signature
         if let Some(pk_bytes) = mldsa87_public_key_bytes {
             let res = (|| -> Result<(), String> {
-                use pqcrypto_mldsa::mldsa87::{PublicKey, DetachedSignature};
-                use pqcrypto_traits::sign::{PublicKey as PqPublicKey, DetachedSignature as PqDetachedSignature};
+                use pqcrypto_mldsa::mldsa87::{DetachedSignature, PublicKey};
+                use pqcrypto_traits::sign::{
+                    DetachedSignature as PqDetachedSignature, PublicKey as PqPublicKey,
+                };
 
-                let sig_bytes = hex::decode(&receipt.signatures.ml_dsa_87_sig).map_err(|e| e.to_string())?;
-                let pk = PublicKey::from_bytes(pk_bytes).map_err(|e| format!("Invalid ML-DSA-87 PK: {}", e))?;
-                let sig = DetachedSignature::from_bytes(&sig_bytes).map_err(|e| format!("Invalid ML-DSA-87 Sig: {}", e))?;
+                let sig_bytes =
+                    hex::decode(&receipt.signatures.ml_dsa_87_sig).map_err(|e| e.to_string())?;
+                let pk = PublicKey::from_bytes(pk_bytes)
+                    .map_err(|e| format!("Invalid ML-DSA-87 PK: {}", e))?;
+                let sig = DetachedSignature::from_bytes(&sig_bytes)
+                    .map_err(|e| format!("Invalid ML-DSA-87 Sig: {}", e))?;
 
-                pqcrypto_mldsa::mldsa87::verify_detached_signature(&sig, receipt.payload_hash.as_bytes(), &pk)
-                    .map(|_| ())
-                    .map_err(|_| "ML-DSA-87 signature verification failed".to_string())
+                pqcrypto_mldsa::mldsa87::verify_detached_signature(
+                    &sig,
+                    receipt.payload_hash.as_bytes(),
+                    &pk,
+                )
+                .map(|_| ())
+                .map_err(|_| "ML-DSA-87 signature verification failed".to_string())
             })();
             match res {
                 Ok(()) => passed.push("mldsa87_signature_valid".to_string()),
@@ -296,18 +348,30 @@ impl VardhanVerifier {
         }
 
         // 10. Key IDs and Fingerprint
-        if !receipt.signatures.ed25519_key_id.is_empty() && !receipt.signatures.ml_dsa_87_key_id.is_empty() {
+        if !receipt.signatures.ed25519_key_id.is_empty()
+            && !receipt.signatures.ml_dsa_87_key_id.is_empty()
+        {
             passed.push("signature_key_ids_present".to_string());
         } else {
-            failures.push(VerificationFailure { check: "signature_key_ids_present".to_string(), reason: "Key IDs empty".to_string() });
+            failures.push(VerificationFailure {
+                check: "signature_key_ids_present".to_string(),
+                reason: "Key IDs empty".to_string(),
+            });
         }
         if !receipt.issuer_key_fingerprint.is_empty() {
             passed.push("issuer_key_fingerprint_present".to_string());
         } else {
-            failures.push(VerificationFailure { check: "issuer_key_fingerprint_present".to_string(), reason: "Fingerprint empty".to_string() });
+            failures.push(VerificationFailure {
+                check: "issuer_key_fingerprint_present".to_string(),
+                reason: "Fingerprint empty".to_string(),
+            });
         }
 
-        let status = if failures.is_empty() { VerificationStatus::Valid } else { VerificationStatus::Invalid };
+        let status = if failures.is_empty() {
+            VerificationStatus::Valid
+        } else {
+            VerificationStatus::Invalid
+        };
 
         VerificationResult {
             status,
@@ -318,9 +382,11 @@ impl VardhanVerifier {
         }
     }
 
-
     fn now_ms() -> u64 {
-        SystemTime::now().duration_since(UNIX_EPOCH).expect("SystemTime before UNIX_EPOCH").as_millis() as u64
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("SystemTime before UNIX_EPOCH")
+            .as_millis() as u64
     }
 }
 
@@ -368,6 +434,11 @@ mod tests {
         let result = verifier.verify(&receipt, None, None);
         // Should fail because signatures are now mandatory
         assert!(!result.is_valid());
-        assert!(result.failures.iter().any(|f| f.check == "ed25519_signature_valid"));
+        assert!(
+            result
+                .failures
+                .iter()
+                .any(|f| f.check == "ed25519_signature_valid")
+        );
     }
 }

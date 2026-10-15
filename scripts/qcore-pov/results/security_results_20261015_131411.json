@@ -1,0 +1,127 @@
+{
+  "tests": [
+    {
+      "status": "PASS",
+      "test": "Login succeeds",
+      "detail": "expected=200, got=200"
+    },
+    {
+      "status": "PASS",
+      "test": "Token present",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "Org creation",
+      "detail": "expected=201, got=201"
+    },
+    {
+      "status": "PASS",
+      "test": "Org ID present",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S1: Valid contract returns 200",
+      "detail": "expected=200, got=200"
+    },
+    {
+      "status": "PASS",
+      "test": "S1: Status is SEALED",
+      "detail": "expected=SEALED, got=SEALED"
+    },
+    {
+      "status": "PASS",
+      "test": "S1: Ed25519 signature present",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S1: ML-DSA-87 signature present",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S2: Replay returns 200",
+      "detail": "expected=200, got=200"
+    },
+    {
+      "status": "PASS",
+      "test": "S2: Status is REJECTED_REPLAY",
+      "detail": "expected=REJECTED_REPLAY, got=REJECTED_REPLAY"
+    },
+    {
+      "status": "PASS",
+      "test": "S3: Tampered hash not SEALED",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S4: Unauthorized actor not SEALED",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S5: Spoofed prefix not SEALED",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S6: Tampered sig verification returns Invalid",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S7: Unknown tenant not SEALED",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S8: Malformed contract not SEALED",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S9: Route/payload tenant mismatch returns 403",
+      "detail": "expected=403, got=403"
+    },
+    {
+      "status": "PASS",
+      "test": "S9: Route/payload tenant mismatch has explicit rejection",
+      "detail": "expected=REJECTED_TENANT_MISMATCH, got=REJECTED_TENANT_MISMATCH"
+    },
+    {
+      "status": "PASS",
+      "test": "S12: Unauthenticated denied (401)",
+      "detail": "expected=401, got=401"
+    },
+    {
+      "status": "PASS",
+      "test": "S15: Exactly one concurrent submission seals",
+      "detail": "expected=1, got=1"
+    },
+    {
+      "status": "PASS",
+      "test": "S15: Remaining concurrent submissions rejected as replay",
+      "detail": "expected=4, got=4"
+    },
+    {
+      "status": "PASS",
+      "test": "S15: All responses are expected",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S16: Audit endpoint accessible (200)",
+      "detail": "expected=200, got=200"
+    },
+    {
+      "status": "PASS",
+      "test": "S16b: Valid receipt verifies",
+      "detail": "expected=True, got=True"
+    }
+  ],
+  "passed": 24,
+  "failed": 0,
+  "total": 24
+}

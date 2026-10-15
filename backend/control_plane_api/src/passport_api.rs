@@ -1,7 +1,12 @@
-use axum::{extract::{State, Path}, http::StatusCode, response::IntoResponse, Json};
+use crate::ControlPlaneState;
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use crate::ControlPlaneState;
 use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -64,7 +69,11 @@ pub async fn get_passport(
     let key = format!("passport:{}", id);
     match crate::load_json::<QuantumMigrationPassport>(&state.db, key.as_bytes()) {
         Ok(Some(passport)) => (StatusCode::OK, Json(passport)).into_response(),
-        Ok(None) => (StatusCode::NOT_FOUND, Json(json!({"error": "Passport not found"}))).into_response(),
+        Ok(None) => (
+            StatusCode::NOT_FOUND,
+            Json(json!({"error": "Passport not found"})),
+        )
+            .into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e}))).into_response(),
     }
 }
@@ -87,10 +96,19 @@ pub async fn update_passport_state(
     Json(req): Json<UpdatePassportRequest>,
 ) -> impl IntoResponse {
     let key = format!("passport:{}", id);
-    let mut passport = match crate::load_json::<QuantumMigrationPassport>(&state.db, key.as_bytes()) {
+    let mut passport = match crate::load_json::<QuantumMigrationPassport>(&state.db, key.as_bytes())
+    {
         Ok(Some(p)) => p,
-        Ok(None) => return (StatusCode::NOT_FOUND, Json(json!({"error": "Passport not found"}))).into_response(),
-        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e}))).into_response(),
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({"error": "Passport not found"})),
+            )
+                .into_response()
+        }
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": e}))).into_response()
+        }
     };
 
     // Honest Lifecycle Guard: Reject invalid transitions
@@ -103,7 +121,9 @@ pub async fn update_passport_state(
         (MigrationLifecycleState::BLUEPRINT_PROPOSED, MigrationLifecycleState::AUTHORIZED) => true,
         (MigrationLifecycleState::AUTHORIZED, MigrationLifecycleState::TESTED) => true,
         (MigrationLifecycleState::TESTED, MigrationLifecycleState::EXECUTED) => true,
-        (MigrationLifecycleState::EXECUTED, MigrationLifecycleState::INDEPENDENTLY_VERIFIED) => true,
+        (MigrationLifecycleState::EXECUTED, MigrationLifecycleState::INDEPENDENTLY_VERIFIED) => {
+            true
+        }
         _ => false,
     };
 
@@ -116,7 +136,13 @@ pub async fn update_passport_state(
     if let MigrationLifecycleState::INDEPENDENTLY_VERIFIED = next_state {
         let receipt_id = match &passport.authorization_receipt_id {
             Some(id) => id,
-            None => return (StatusCode::BAD_REQUEST, Json(json!({"error": "Cannot verify without an authorization receipt"}))).into_response(),
+            None => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(json!({"error": "Cannot verify without an authorization receipt"})),
+                )
+                    .into_response()
+            }
         };
 
         // 1. Retrieve the canonical receipt record from the store.
@@ -136,11 +162,25 @@ pub async fn update_passport_state(
         // 3. Trust-Key Resolution: Get authoritative public keys for the issuer.
         // The receipt identifies its issuer via its tenant_id and the keys used.
         // We assume the registry maps organization_id to the issuer keys.
-        let issuer_keys = match state.db.get(format!("qcore:issuer-key:{}", receipt.tenant_id).as_bytes()) {
-             // Note: This is a simplified resolution; a real registry would use the service_id.
-             // For now, we retrieve the latest active key for the tenant.
-             Ok(Some(bytes)) => serde_json::from_slice::<crate::receipt_key_registry::ReceiptIssuerKey>(&bytes).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": format!("Key corruption: {}", e)})))),
-             _ => Err((StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "Trusted issuer keys not found in registry"})))),
+        let issuer_keys = match state
+            .db
+            .get(format!("qcore:issuer-key:{}", receipt.tenant_id).as_bytes())
+        {
+            // Note: This is a simplified resolution; a real registry would use the service_id.
+            // For now, we retrieve the latest active key for the tenant.
+            Ok(Some(bytes)) => {
+                serde_json::from_slice::<crate::receipt_key_registry::ReceiptIssuerKey>(&bytes)
+                    .map_err(|e| {
+                        (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Json(json!({"error": format!("Key corruption: {}", e)})),
+                        )
+                    })
+            }
+            _ => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"error": "Trusted issuer keys not found in registry"})),
+            )),
         };
 
         let keys = match issuer_keys {
@@ -157,11 +197,19 @@ pub async fn update_passport_state(
         );
 
         if !result.is_valid() {
-            let reasons: Vec<String> = result.failures.iter().map(|f| format!("{}: {}", f.check, f.reason)).collect();
-            return (StatusCode::BAD_REQUEST, Json(json!({
-                "error": "Cryptographic verification failed",
-                "details": reasons
-            }))).into_response();
+            let reasons: Vec<String> = result
+                .failures
+                .iter()
+                .map(|f| format!("{}: {}", f.check, f.reason))
+                .collect();
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({
+                    "error": "Cryptographic verification failed",
+                    "details": reasons
+                })),
+            )
+                .into_response();
         }
     }
 
@@ -173,12 +221,18 @@ pub async fn update_passport_state(
     }
 
     if let Some(exec) = req.evidence.as_object() {
-        if let Some(evidence) = serde_json::from_value::<ExecutionEvidence>(serde_json::Value::Object(exec.clone())).ok() {
+        if let Some(evidence) =
+            serde_json::from_value::<ExecutionEvidence>(serde_json::Value::Object(exec.clone()))
+                .ok()
+        {
             passport.execution_evidence = Some(evidence);
         }
     }
 
-    let timestamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64;
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64;
     passport.timestamp_chain.push(PassportEvent {
         timestamp,
         event: format!("Transition to {:?}", passport.lifecycle_state),

@@ -7,11 +7,10 @@ use pqcrypto_traits::sign::PublicKey;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 use vardhan_hybrid_core::execute_hybrid_transaction;
-
 
 #[derive(Parser)]
 #[command(
@@ -219,24 +218,46 @@ impl VardhanSealedReceipt {
     /// routed receipt field that establishes identity or lineage is length
     /// prefixed to prevent delimiter ambiguity.
     pub fn canonical_receipt_payload(&self) -> Vec<u8> {
-        let evidence = self.evidence_commitments.iter().map(|item| {
-            format!("{}:{}:{}", item.evidence_id, item.content_hash, item.category)
-        }).collect::<Vec<_>>().join(";");
+        let evidence = self
+            .evidence_commitments
+            .iter()
+            .map(|item| {
+                format!(
+                    "{}:{}:{}",
+                    item.evidence_id, item.content_hash, item.category
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(";");
         let fields = [
-            self.schema_version.as_str(), self.receipt_id.as_str(), self.transaction_id.as_str(),
-            self.tenant_id.as_str(), self.subject_id.as_str(), self.actor_identity.as_str(),
-            self.proposed_action.as_str(), self.policy_id.as_str(), self.policy_version.as_str(),
-            self.state_hash_at_decision.as_deref().unwrap_or(""), evidence.as_str(),
-            self.authority_reference.as_str(), self.decision.as_str(), self.outcome_code.as_str(),
-            &self.timestamp_ms.to_string(), &self.ledger_commit_index.to_string(),
-            self.parent_receipt_id.as_deref().unwrap_or(""), self.correlation_id.as_deref().unwrap_or(""),
+            self.schema_version.as_str(),
+            self.receipt_id.as_str(),
+            self.transaction_id.as_str(),
+            self.tenant_id.as_str(),
+            self.subject_id.as_str(),
+            self.actor_identity.as_str(),
+            self.proposed_action.as_str(),
+            self.policy_id.as_str(),
+            self.policy_version.as_str(),
+            self.state_hash_at_decision.as_deref().unwrap_or(""),
+            evidence.as_str(),
+            self.authority_reference.as_str(),
+            self.decision.as_str(),
+            self.outcome_code.as_str(),
+            &self.timestamp_ms.to_string(),
+            &self.ledger_commit_index.to_string(),
+            self.parent_receipt_id.as_deref().unwrap_or(""),
+            self.correlation_id.as_deref().unwrap_or(""),
         ];
-        fields.iter().flat_map(|field| {
-            let mut encoded = format!("{}:", field.len()).into_bytes();
-            encoded.extend_from_slice(field.as_bytes());
-            encoded.push(b'|');
-            encoded
-        }).collect()
+        fields
+            .iter()
+            .flat_map(|field| {
+                let mut encoded = format!("{}:", field.len()).into_bytes();
+                encoded.extend_from_slice(field.as_bytes());
+                encoded.push(b'|');
+                encoded
+            })
+            .collect()
     }
 }
 
@@ -271,6 +292,7 @@ pub struct HybridReceipt {
     classical_signature: String,
 }
 
+pub mod audit_trail;
 mod auth_config;
 pub mod contract;
 mod gateway;
@@ -305,16 +327,17 @@ async fn main() {
             // The same check is also enforced inside process_transaction() for defense in depth.
             let finding_id = request.contract.finding_id.clone();
             if is_finding_already_sealed(&finding_id) {
-                print_error("REJECTED_REPLAY", &format!("Finding {} has already been sealed", finding_id));
+                print_error(
+                    "REJECTED_REPLAY",
+                    &format!("Finding {} has already been sealed", finding_id),
+                );
                 return;
             }
 
             match process_transaction(request) {
                 Ok(receipt) => {
-                    // Finding_id is already recorded in the idempotency store
-                    // inside process_transaction upon successful sealing.
                     println!("{}", json!(receipt));
-                },
+                }
                 Err((code, msg)) => print_error(&code, &msg),
             }
         }
@@ -449,20 +472,69 @@ fn idempotency_store_path() -> std::path::PathBuf {
         .unwrap_or_else(|_| std::path::PathBuf::from("vardhan_receipt_idempotency"))
 }
 
+/// Check whether a finding_id has already been sealed in the durable
+/// idempotency store. Uses an atomic file-existence test.
 fn is_finding_already_sealed(finding_id: &str) -> bool {
     idempotency_store_path()
         .join(format!("sealed_{}.flag", finding_id))
         .exists()
 }
 
-/// Record a finding_id as sealed in the durable idempotency store.
-fn record_finding_sealed(finding_id: &str) {
+/// Check whether a finding_id is currently reserved (in-flight) by any process.
+fn is_finding_reserved(finding_id: &str) -> bool {
+    idempotency_store_path()
+        .join(format!("sealed_{}.reserve", finding_id))
+        .exists()
+        || is_finding_already_sealed(finding_id)
+}
+
+/// Atomically reserve a finding_id for sealing.
+/// Uses `O_CREAT | O_EXCL` (exclusive create) so that if two processes
+/// race, only one succeeds. Returns `true` if this caller won the race
+/// (reservation created), `false` if another process already claimed it.
+fn reserve_finding(finding_id: &str) -> bool {
     let dir = idempotency_store_path();
     let _ = std::fs::create_dir_all(&dir);
-    let _ = std::fs::write(
-        dir.join(format!("sealed_{}.flag", finding_id)),
-        b"SEALED",
-    );
+    let reserve_path = dir.join(format!("sealed_{}.reserve", finding_id));
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .truncate(false)
+        .create(true)
+        .open(&reserve_path)
+        .map(|mut f| {
+            let _ = f.write_all(b"RESERVED");
+        })
+        .is_ok()
+}
+
+/// Promote a reservation to a committed seal record.
+/// Creates the `.flag` file (with "SEALED" content) and removes the
+/// `.reserve` file, making the finding visible to `is_finding_already_sealed()`.
+/// Called only after successful sealing.
+fn commit_finding_sealed(finding_id: &str) {
+    let dir = idempotency_store_path();
+    let reserve_path = dir.join(format!("sealed_{}.reserve", finding_id));
+    let flag_path = dir.join(format!("sealed_{}.flag", finding_id));
+    // Write the flag file with "SEALED" content (overwrite if the rename
+    // left "RESERVED" content from the reserve phase).
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&flag_path)
+    {
+        let _ = f.write_all(b"SEALED");
+    }
+    let _ = std::fs::remove_file(&reserve_path);
+}
+
+/// Release a reservation after a failed attempt, so the finding_id
+/// can be retried. Called on any error path after `reserve_finding`.
+fn release_finding_reservation(finding_id: &str) {
+    let dir = idempotency_store_path();
+    let reserve_path = dir.join(format!("sealed_{}.reserve", finding_id));
+    let _ = std::fs::remove_file(&reserve_path);
 }
 
 #[cfg(test)]
@@ -497,8 +569,25 @@ pub fn process_transaction(
         ));
     }
 
+    // Atomically reserve the finding_id BEFORE any state mutation.
+    // If another concurrent process won the race, reject immediately.
+    // The reservation is promoted to a committed seal only after the
+    // receipt is successfully generated. On any failure path, the
+    // reservation is released so the finding can be retried.
+    if !reserve_finding(&finding_id) {
+        return Err((
+            "REJECTED_REPLAY".to_string(),
+            format!(
+                "Finding '{}' is being sealed by another process — \
+                 duplicate submission rejected by atomic idempotency guard",
+                finding_id
+            ),
+        ));
+    }
+
     // Evaluate trust boundary conditions on the full VerifiedFindingContract
     if let Err(e) = crate::trust_boundary::TrustBoundaryValidator::validate(&request.contract) {
+        release_finding_reservation(&finding_id);
         return Err(("REJECTED_TRUST_BOUNDARY".to_string(), e));
     }
 
@@ -520,6 +609,7 @@ pub fn process_transaction(
     );
 
     if let Err(_) = tx.transition(TransactionState::Validating) {
+        release_finding_reservation(&finding_id);
         return Err((
             "REJECTED_MALFORMED".to_string(),
             "Internal state machine error".to_string(),
@@ -554,6 +644,7 @@ pub fn process_transaction(
     };
 
     if let Err(_) = tx.apply_authority_result(authority_result.clone()) {
+        release_finding_reservation(&finding_id);
         return Err((
             "ERROR".to_string(),
             "Failed to apply authority result".to_string(),
@@ -562,6 +653,7 @@ pub fn process_transaction(
 
     if !decision.is_allow() {
         let _ = tx.reject(RejectionReason::AuthorityDenied);
+        release_finding_reservation(&finding_id);
         let code = decision
             .rejection_code()
             .unwrap_or("REJECTED_UNAUTHORIZED")
@@ -583,6 +675,9 @@ pub fn process_transaction(
         .collect::<Vec<_>>();
 
     let keystore = keystore_manager::get_keystore();
+    let tenant_id = request.contract.organization.organization_id.clone();
+    let engine_id = request.contract.intelligence.engine_id.clone();
+    let policy_ref = request.contract.policy_reference.clone();
     let mut receipt = VardhanSealedReceipt::build(
         tx.transaction_id.clone(),
         "SEALED".to_string(),
@@ -605,14 +700,22 @@ pub fn process_transaction(
         None,
         String::new(),
         String::new(),
-        DualSignature { ed25519_sig: String::new(), ed25519_key_id: String::new(), ml_dsa_87_sig: String::new(), ml_dsa_87_key_id: String::new() },
+        DualSignature {
+            ed25519_sig: String::new(),
+            ed25519_key_id: String::new(),
+            ml_dsa_87_sig: String::new(),
+            ml_dsa_87_key_id: String::new(),
+        },
     );
 
     let payload_hash = blake3::hash(&receipt.canonical_receipt_payload()).to_string();
     let ed25519_sig_result = keystore.sign_ed25519(payload_hash.as_bytes());
     let mldsa_sig_result = keystore.sign_mldsa87(payload_hash.as_bytes());
     receipt.payload_hash = payload_hash;
-    receipt.issuer_key_fingerprint = ed25519_sig_result.key_identity.public_key_fingerprint.clone();
+    receipt.issuer_key_fingerprint = ed25519_sig_result
+        .key_identity
+        .public_key_fingerprint
+        .clone();
     receipt.signatures = DualSignature {
         ed25519_sig: ed25519_sig_result.signature_hex,
         ed25519_key_id: ed25519_sig_result.key_identity.key_id,
@@ -632,10 +735,57 @@ pub fn process_transaction(
     let _ = tx.apply_outcome(outcome);
     let _ = tx.seal(receipt.receipt_id.clone());
 
-    // Record the finding_id in the durable idempotency store AFTER successful sealing.
-    // On any error path above, no record is created — failed verification leaves
-    // no unauthorized state change.
-    record_finding_sealed(&finding_id);
+    // Promote the atomic reservation to a committed seal record.
+    // Only after successful sealing is the finding_id permanently marked
+    // as sealed, making it visible to is_finding_already_sealed().
+    commit_finding_sealed(&finding_id);
+
+    // ── Audit Integrity: append a crash-safe, signed audit trail entry ──
+    // This binds the authorization decision to an execution ID and hash
+    // in a durable, hash-chained log.
+    let audit_path = idempotency_store_path()
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."))
+        .join("audit_trail.jsonl");
+
+    // Best-effort audit append: if the audit log fails, we do NOT roll back
+    // the receipt (it's already sealed), but we do log the error.
+    match audit_trail::AuditWriter::open(&audit_path, receipt.issuer_key_fingerprint.clone()) {
+        Ok(mut writer) => {
+            let event = json!({
+                "event_type": "QCoreSealedReceipt",
+                "finding_id": &finding_id,
+                "receipt_id": &receipt.receipt_id,
+                "tenant_id": &tenant_id,
+                "policy_id": &policy_ref,
+                "actor_identity": &engine_id,
+                "actor_workload_id": &request.actor_workload_id,
+                "outcome_code": "SEALING_OK",
+                "payload_hash": &receipt.payload_hash,
+                "decision": &receipt.decision,
+                "authorization_reference": &receipt.authority_reference,
+            });
+            let keystore_ref = keystore_manager::get_keystore();
+            match writer.append(event, |payload: &[u8]| {
+                let signing_result = keystore_ref.sign_mldsa87(payload);
+                hex::decode(&signing_result.signature_hex).unwrap_or_default()
+            }) {
+                Ok(entry) => {
+                    tracing::info!(
+                        "Audit entry appended: seq={}, hash_chain_tip={}",
+                        entry.seq,
+                        &entry.signature[..16]
+                    );
+                }
+                Err(e) => {
+                    tracing::warn!("Failed to append audit entry: {}", e);
+                }
+            }
+        }
+        Err(e) => {
+            tracing::warn!("Failed to open audit trail: {}", e);
+        }
+    }
 
     Ok(receipt)
 }
@@ -1046,8 +1196,88 @@ mod e2e_boundary_tests {
         let (code2, _msg2) = result2.err().unwrap();
         assert_eq!(
             code2, "REJECTED_REPLAY",
-            "Duplicate submission must return REJECTED_REPLAY, got: {}", code2
+            "Duplicate submission must return REJECTED_REPLAY, got: {}",
+            code2
         );
+    }
+
+    #[test]
+    fn test_q2_concurrent_duplicate_seals_exactly_once() {
+        use std::sync::{Arc, Barrier};
+        use std::thread;
+
+        init_test_env();
+        let ks = crate::keystore_manager::get_keystore();
+        let keyst_dir = std::env::var("VARDHAN_KEYSTORE_DIR").unwrap();
+        let _ = ks.save_to_dir(&std::path::PathBuf::from(&keyst_dir));
+
+        // Use a unique finding_id for this test
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static CONC_COUNTER: AtomicUsize = AtomicUsize::new(0);
+        let id = CONC_COUNTER.fetch_add(1, Ordering::SeqCst);
+        let finding_id = format!("find-conc-{}", id);
+
+        // Clean any pre-existing flag and reservation for this finding_id
+        let store_path = idempotency_store_path();
+        let flag_path = store_path.join(format!("sealed_{}.flag", finding_id));
+        let reserve_path = store_path.join(format!("sealed_{}.reserve", finding_id));
+        let _ = std::fs::remove_file(&flag_path);
+        let _ = std::fs::remove_file(&reserve_path);
+
+        let mut contract = get_valid_contract();
+        contract.finding_id = finding_id.clone();
+        let req = QCoreValidationRequest {
+            contract,
+            actor_workload_id: "svc:vardhan-intelligence:test-01".to_string(),
+        };
+
+        let num_threads = 5;
+        let barrier = Arc::new(Barrier::new(num_threads));
+
+        // Spawn num_threads threads that ALL submit the same finding_id
+        // simultaneously, using a barrier to maximize race window.
+        let results: Vec<_> = (0..num_threads)
+            .map(|i| {
+                let b = barrier.clone();
+                let req_clone = req.clone();
+                thread::spawn(move || {
+                    b.wait(); // All threads released simultaneously
+                    process_transaction(req_clone)
+                })
+            })
+            .collect();
+
+        // Collect outcomes
+        let mut sealed_count = 0;
+        let mut replay_count = 0;
+        for handle in results {
+            match handle.join() {
+                Ok(Ok(_)) => sealed_count += 1,
+                Ok(Err((code, _))) => {
+                    if code == "REJECTED_REPLAY" {
+                        replay_count += 1;
+                    } else {
+                        panic!("Unexpected rejection code in concurrent test: {}", code);
+                    }
+                }
+                Err(_) => panic!("Thread panicked during concurrent submission"),
+            }
+        }
+
+        assert_eq!(
+            sealed_count, 1,
+            "Exactly one concurrent submission must seal, got {}",
+            sealed_count
+        );
+        assert_eq!(
+            replay_count, 4,
+            "Four concurrent submissions must be rejected as REPLAY, got {}",
+            replay_count
+        );
+
+        // Clean up after test
+        let _ = std::fs::remove_file(&flag_path);
+        let _ = std::fs::remove_file(&reserve_path);
     }
 
     #[test]
@@ -1151,7 +1381,10 @@ mod e2e_boundary_tests {
             "Tampered Ed25519 signature must be rejected by the verifier"
         );
         assert!(
-            result.failures.iter().any(|f| f.check == "ed25519_signature_valid"),
+            result
+                .failures
+                .iter()
+                .any(|f| f.check == "ed25519_signature_valid"),
             "Expected ed25519_signature_valid failure, got: {:?}",
             result.failures
         );
@@ -1200,7 +1433,10 @@ mod e2e_boundary_tests {
             "Tampered ML-DSA-87 signature must be rejected by the verifier"
         );
         assert!(
-            result.failures.iter().any(|f| f.check == "mldsa87_signature_valid"),
+            result
+                .failures
+                .iter()
+                .any(|f| f.check == "mldsa87_signature_valid"),
             "Expected mldsa87_signature_valid failure, got: {:?}",
             result.failures
         );
@@ -1240,11 +1476,13 @@ mod e2e_boundary_tests {
         let (code2, msg2) = result2.err().unwrap();
         assert_eq!(
             code2, "REJECTED_REPLAY",
-            "Replay must return REJECTED_REPLAY, got: {}", code2
+            "Replay must return REJECTED_REPLAY, got: {}",
+            code2
         );
         assert!(
             msg2.contains(&contract.finding_id),
-            "Error message must reference the finding_id: {}", msg2
+            "Error message must reference the finding_id: {}",
+            msg2
         );
 
         // Verify the idempotency guard is not a terminal-state error — it's
@@ -1283,7 +1521,9 @@ mod e2e_boundary_tests {
             code
         );
         assert!(
-            msg.contains("not match") || msg.contains("not authorized"),
+            msg.contains("not bound")
+                || msg.contains("not authorized")
+                || msg.contains("not match"),
             "Error message must indicate actor authorization failure: {}",
             msg
         );
@@ -1317,10 +1557,7 @@ mod e2e_boundary_tests {
 
         // Attempt to process the tampered contract
         let result = process_transaction(req);
-        assert!(
-            result.is_err(),
-            "Tampered contract must be rejected"
-        );
+        assert!(result.is_err(), "Tampered contract must be rejected");
         let (code, _msg) = result.err().unwrap();
         assert_eq!(
             code, "REJECTED_TRUST_BOUNDARY",
@@ -1370,12 +1607,21 @@ mod e2e_boundary_tests {
         let receipt = process_transaction(req).unwrap();
 
         // ── Verify the sealed receipt has all required fields ──────────
-        assert!(receipt.receipt_id.starts_with("VQR-"), "Receipt ID must start with VQR-");
+        assert!(
+            receipt.receipt_id.starts_with("VQR-"),
+            "Receipt ID must start with VQR-"
+        );
         assert_eq!(receipt.status, "SEALED");
         assert_eq!(receipt.decision, "AUTHORIZED");
         assert_eq!(receipt.outcome_code, "SEALING_OK");
-        assert!(!receipt.payload_hash.is_empty(), "Payload hash must be populated");
-        assert!(!receipt.issuer_key_fingerprint.is_empty(), "Issuer key fingerprint must be populated");
+        assert!(
+            !receipt.payload_hash.is_empty(),
+            "Payload hash must be populated"
+        );
+        assert!(
+            !receipt.issuer_key_fingerprint.is_empty(),
+            "Issuer key fingerprint must be populated"
+        );
 
         // ── Verify dual signatures are present ──────────────────────────
         assert!(
@@ -1418,11 +1664,17 @@ mod e2e_boundary_tests {
             result.failures
         );
         assert!(
-            result.checks_passed.iter().any(|c| c == "ed25519_signature_valid"),
+            result
+                .checks_passed
+                .iter()
+                .any(|c| c == "ed25519_signature_valid"),
             "Ed25519 signature verification must pass"
         );
         assert!(
-            result.checks_passed.iter().any(|c| c == "mldsa87_signature_valid"),
+            result
+                .checks_passed
+                .iter()
+                .any(|c| c == "mldsa87_signature_valid"),
             "ML-DSA-87 signature verification must pass"
         );
     }

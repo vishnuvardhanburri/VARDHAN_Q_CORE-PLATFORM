@@ -1,21 +1,41 @@
 use crate::{
     continuous_operations::{ContinuousOperationsStore, MonitoringSignalInput, RemediationInput},
-    is_member,
-    member_role,
-    qcore_telemetry::{QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry, ReceiptVerificationState},
+    is_member, member_role,
+    qcore_telemetry::{
+        QCoreReceiptTelemetry, QCoreTelemetryStore, QCoreTransactionTelemetry,
+        ReceiptVerificationState,
+    },
     security_operations::{SecurityFindingInput, SecurityOperationsStore},
     ControlPlaneState,
 };
-use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Extension, Json};
 use auth_service::AuthenticatedUser;
+use axum::{
+    extract::{Path, State},
+    response::{IntoResponse, Response},
+    Extension, Json,
+};
 use serde::Deserialize;
 use serde_json::json;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-fn denied() -> Response { (axum::http::StatusCode::FORBIDDEN, Json(json!({"error":"Organization access denied."}))).into_response() }
-fn member(state: &ControlPlaneState, org_id: &str, user: &AuthenticatedUser) -> bool { is_member(&state.db, org_id, &user.username).unwrap_or(false) }
+fn denied() -> Response {
+    (
+        axum::http::StatusCode::FORBIDDEN,
+        Json(json!({"error":"Organization access denied."})),
+    )
+        .into_response()
+}
+fn member(state: &ControlPlaneState, org_id: &str, user: &AuthenticatedUser) -> bool {
+    is_member(&state.db, org_id, &user.username).unwrap_or(false)
+}
 fn can_operate(state: &ControlPlaneState, org_id: &str, user: &AuthenticatedUser) -> bool {
-    matches!(member_role(&state.db, org_id, &user.username).ok().flatten().as_deref(), Some("owner" | "security_admin" | "operator"))
+    matches!(
+        member_role(&state.db, org_id, &user.username)
+            .ok()
+            .flatten()
+            .as_deref(),
+        Some("owner" | "security_admin" | "operator")
+    )
 }
 
 #[derive(Debug, Deserialize)]
@@ -52,25 +72,47 @@ pub struct ReceiptTelemetryInput {
     pub verification: ReceiptVerificationState,
 }
 
-pub async fn security_posture(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
-    if !member(&state, &id, &user) { return denied(); }
+pub async fn security_posture(
+    State(state): State<ControlPlaneState>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<String>,
+) -> Response {
+    if !member(&state, &id, &user) {
+        return denied();
+    }
     match crate::continuous_operations::build_snapshot(&state, &id) {
         Ok(snapshot) => Json(snapshot).into_response(),
         Err(error) => (
             axum::http::StatusCode::SERVICE_UNAVAILABLE,
             Json(json!({"status":"unavailable","error":error.to_string()})),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
-pub async fn findings(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
-    if !member(&state, &id, &user) { return denied(); }
-    let items = SecurityOperationsStore::new(state.db.clone()).findings(&id).unwrap_or_default();
+pub async fn findings(
+    State(state): State<ControlPlaneState>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<String>,
+) -> Response {
+    if !member(&state, &id, &user) {
+        return denied();
+    }
+    let items = SecurityOperationsStore::new(state.db.clone())
+        .findings(&id)
+        .unwrap_or_default();
     Json(json!({"organization_id": id, "items": items, "total": items.len(), "data_state": if items.is_empty() { "not_populated" } else { "populated" }, "next_cursor": null})).into_response()
 }
 
-pub async fn ingest_finding(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>, Json(input): Json<SecurityFindingInput>) -> Response {
-    if !can_operate(&state, &id, &user) { return denied(); }
+pub async fn ingest_finding(
+    State(state): State<ControlPlaneState>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<String>,
+    Json(input): Json<SecurityFindingInput>,
+) -> Response {
+    if !can_operate(&state, &id, &user) {
+        return denied();
+    }
     match SecurityOperationsStore::new(state.db.clone()).record_finding(&id, &input) {
         Ok(finding) => {
             let ops = ContinuousOperationsStore::new(state.db.clone());
@@ -92,7 +134,8 @@ pub async fn ingest_finding(State(state): State<ControlPlaneState>, Extension(us
                     return (
                         axum::http::StatusCode::SERVICE_UNAVAILABLE,
                         Json(json!({"status":"unavailable","error":error.to_string()})),
-                    ).into_response();
+                    )
+                        .into_response();
                 }
             }
 
@@ -133,12 +176,14 @@ pub async fn ingest_finding(State(state): State<ControlPlaneState>, Extension(us
                     },
                     "remediation": remediation
                 })),
-            ).into_response()
-        },
+            )
+                .into_response()
+        }
         Err(err) => (
             axum::http::StatusCode::BAD_REQUEST,
             Json(json!({"status":"rejected","error":err.to_string()})),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -148,22 +193,57 @@ pub async fn update_incident(
     Path((id, incident_id)): Path<(String, String)>,
     Json(input): Json<serde_json::Value>,
 ) -> Response {
-    if !can_operate(&state, &id, &user) { return denied(); }
-    let status = input.get("status").and_then(|value| value.as_str()).unwrap_or("");
-    match SecurityOperationsStore::new(state.db.clone()).transition_incident(&id, &incident_id, status, SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or_default()) {
-        Ok(incident) => (axum::http::StatusCode::OK, Json(json!({"status":"updated","incident":incident}))).into_response(),
-        Err(error) => (axum::http::StatusCode::BAD_REQUEST, Json(json!({"status":"rejected","error":error.to_string()}))).into_response(),
+    if !can_operate(&state, &id, &user) {
+        return denied();
+    }
+    let status = input
+        .get("status")
+        .and_then(|value| value.as_str())
+        .unwrap_or("");
+    match SecurityOperationsStore::new(state.db.clone()).transition_incident(
+        &id,
+        &incident_id,
+        status,
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or_default(),
+    ) {
+        Ok(incident) => (
+            axum::http::StatusCode::OK,
+            Json(json!({"status":"updated","incident":incident})),
+        )
+            .into_response(),
+        Err(error) => (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(json!({"status":"rejected","error":error.to_string()})),
+        )
+            .into_response(),
     }
 }
 
-pub async fn incidents(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
-    if !member(&state, &id, &user) { return denied(); }
-    let items = SecurityOperationsStore::new(state.db.clone()).incidents(&id).unwrap_or_default();
+pub async fn incidents(
+    State(state): State<ControlPlaneState>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<String>,
+) -> Response {
+    if !member(&state, &id, &user) {
+        return denied();
+    }
+    let items = SecurityOperationsStore::new(state.db.clone())
+        .incidents(&id)
+        .unwrap_or_default();
     Json(json!({"organization_id": id, "items": items, "total": items.len(), "data_state": if items.is_empty() { "not_populated" } else { "populated" }, "next_cursor": null})).into_response()
 }
 
-pub async fn transactions(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
-    if !member(&state, &id, &user) { return denied(); }
+pub async fn transactions(
+    State(state): State<ControlPlaneState>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<String>,
+) -> Response {
+    if !member(&state, &id, &user) {
+        return denied();
+    }
     let store = QCoreTelemetryStore::new(state.db.clone());
     let items = store.transactions(&id).unwrap_or_default();
     let receipts = store.receipts(&id).unwrap_or_default();
@@ -173,8 +253,15 @@ pub async fn transactions(State(state): State<ControlPlaneState>, Extension(user
 
 /// Authenticated transaction telemetry ingestion boundary.
 /// Tenant/organization scope is checked before durable persistence.
-pub async fn ingest_transaction(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>, Json(input): Json<TransactionTelemetryInput>) -> impl IntoResponse {
-    if !can_operate(&state, &id, &user) { return denied(); }
+pub async fn ingest_transaction(
+    State(state): State<ControlPlaneState>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<String>,
+    Json(input): Json<TransactionTelemetryInput>,
+) -> impl IntoResponse {
+    if !can_operate(&state, &id, &user) {
+        return denied();
+    }
     let store = QCoreTelemetryStore::new(state.db.clone());
     let telemetry = QCoreTransactionTelemetry {
         organization_id: id,
@@ -201,8 +288,15 @@ pub async fn ingest_transaction(State(state): State<ControlPlaneState>, Extensio
 /// Authenticated receipt telemetry ingestion boundary.
 /// `verification` is explicit; this endpoint never upgrades an unverified
 /// receipt to Verified on its own.
-pub async fn ingest_receipt(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>, Json(input): Json<ReceiptTelemetryInput>) -> impl IntoResponse {
-    if !can_operate(&state, &id, &user) { return denied(); }
+pub async fn ingest_receipt(
+    State(state): State<ControlPlaneState>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<String>,
+    Json(input): Json<ReceiptTelemetryInput>,
+) -> impl IntoResponse {
+    if !can_operate(&state, &id, &user) {
+        return denied();
+    }
     let store = QCoreTelemetryStore::new(state.db.clone());
     let telemetry = QCoreReceiptTelemetry {
         organization_id: id,
@@ -226,8 +320,14 @@ pub async fn ingest_receipt(State(state): State<ControlPlaneState>, Extension(us
     }
 }
 
-pub async fn aer_kep_q_status(State(state): State<ControlPlaneState>, Extension(user): Extension<AuthenticatedUser>, Path(id): Path<String>) -> Response {
-    if !member(&state, &id, &user) { return denied(); }
+pub async fn aer_kep_q_status(
+    State(state): State<ControlPlaneState>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<String>,
+) -> Response {
+    if !member(&state, &id, &user) {
+        return denied();
+    }
     let Some(runtime) = &state.aer_kep_q else {
         return Json(json!({ "organization_id": id, "status": "unavailable", "runtime_attachment": "not_configured", "security_model": "quarantine_reissue", "cipher_suite": "ML-KEM-1024", "epoch_visibility": "runtime_only", "pending_messages": null, "exposure": {"status": "runtime_only", "quarantine": "enabled"}, "note": "AER-KEP-Q requires the control-plane deployment crypto identity and vault boundary." })).into_response();
     };
@@ -247,5 +347,6 @@ pub async fn aer_kep_q_status(State(state): State<ControlPlaneState>, Extension(
         "pending_messages": runtime.pending_for_epoch(runtime.active_epoch()).len(),
         "descriptor": descriptor.map(|d| json!({"epoch": d.epoch, "domain_id": d.domain_id})),
         "exposure": {"status": "monitored", "quarantine": "enabled"}
-    })).into_response()
+    }))
+    .into_response()
 }

@@ -143,7 +143,11 @@ async fn unauthenticated_org_creation_returns_401() {
         .send()
         .await
         .unwrap();
-    assert_eq!(r.status(), 401, "Unauthenticated org creation must be denied");
+    assert_eq!(
+        r.status(),
+        401,
+        "Unauthenticated org creation must be denied"
+    );
 }
 
 // ── 3. Privilege escalation — non-owner cannot assign roles ────────────────
@@ -206,7 +210,10 @@ async fn non_owner_cannot_assign_roles() {
 
     // viewer1 tries to change owner1's role — must be forbidden
     let r = client
-        .post(format!("{}/api/v1/organizations/{org}/members/owner1/role", base))
+        .post(format!(
+            "{}/api/v1/organizations/{org}/members/owner1/role",
+            base
+        ))
         .header("Authorization", format!("Bearer {}", viewer_token))
         .json(&serde_json::json!({"role": "security_admin"}))
         .send()
@@ -384,7 +391,10 @@ async fn cross_organization_data_access_denied() {
 
     // Dave tries to read Carol's audit
     let r3 = client
-        .get(format!("{}/api/v1/organizations/{}/security/audit", base, org_x))
+        .get(format!(
+            "{}/api/v1/organizations/{}/security/audit",
+            base, org_x
+        ))
         .header("Authorization", format!("Bearer {}", dave_token))
         .send()
         .await
@@ -403,10 +413,7 @@ async fn cross_organization_data_access_denied() {
         .await
         .unwrap();
     assert_eq!(r4.status(), 200);
-    let orgs: Vec<String> = r4
-        .json::<serde_json::Value>()
-        .await
-        .unwrap()["organizations"]
+    let orgs: Vec<String> = r4.json::<serde_json::Value>().await.unwrap()["organizations"]
         .as_array()
         .unwrap()
         .iter()
@@ -652,11 +659,7 @@ async fn expired_session_rejected() {
         .send()
         .await
         .unwrap();
-    assert_eq!(
-        r.status(),
-        401,
-        "Invalid/forged token must be rejected"
-    );
+    assert_eq!(r.status(), 401, "Invalid/forged token must be rejected");
 }
 
 // ── 10. Malformed request body ─────────────────────────────────────────────
@@ -750,7 +753,10 @@ async fn owner_role_escalation_blocked() {
 
     // Owner tries to escalate a member to "owner" — must be conflict
     let r = client
-        .post(format!("{}/api/v1/organizations/{org}/members/member7/role", base))
+        .post(format!(
+            "{}/api/v1/organizations/{org}/members/member7/role",
+            base
+        ))
         .header("Authorization", format!("Bearer {}", token))
         .json(&serde_json::json!({"role": "owner"}))
         .send()
@@ -769,9 +775,15 @@ async fn owner_role_escalation_blocked() {
 async fn replay_protection_after_sealing() {
     // Set up env vars that the vardhan-receipt binary needs
     let rand_id = uuid::Uuid::new_v4().to_string();
-    std::env::set_var("VARDHAN_KEYSTORE_DIR", format!("/tmp/vardhan_test_ks_{}", rand_id));
+    std::env::set_var(
+        "VARDHAN_KEYSTORE_DIR",
+        format!("/tmp/vardhan_test_ks_{}", rand_id),
+    );
     std::env::set_var("VARDHAN_ENV", "development");
-    std::env::set_var("VARDHAN_IDEMPOTENCY_DIR", format!("/tmp/vardhan_test_idem_{}", rand_id));
+    std::env::set_var(
+        "VARDHAN_IDEMPOTENCY_DIR",
+        format!("/tmp/vardhan_test_idem_{}", rand_id),
+    );
     std::fs::create_dir_all(format!("/tmp/vardhan_test_ks_{}", rand_id)).unwrap();
     std::fs::create_dir_all(format!("/tmp/vardhan_test_idem_{}", rand_id)).unwrap();
 
@@ -833,7 +845,10 @@ async fn replay_protection_after_sealing() {
 
     // First submission: should be SEALED
     let r1 = client
-        .post(format!("{}/api/v1/organizations/{}/security/validate", base, tenant))
+        .post(format!(
+            "{}/api/v1/organizations/{}/security/validate",
+            base, tenant
+        ))
         .header("Authorization", format!("Bearer {}", token))
         .json(&contract)
         .send()
@@ -849,7 +864,10 @@ async fn replay_protection_after_sealing() {
 
     // Second submission: should be REJECTED_REPLAY
     let r2 = client
-        .post(format!("{}/api/v1/organizations/{}/security/validate", base, tenant))
+        .post(format!(
+            "{}/api/v1/organizations/{}/security/validate",
+            base, tenant
+        ))
         .header("Authorization", format!("Bearer {}", token))
         .json(&contract)
         .send()
@@ -911,7 +929,10 @@ async fn audit_endpoint_returns_structured_data() {
 
     // Audit
     let r = client
-        .get(format!("{}/api/v1/organizations/{}/security/audit", base, org))
+        .get(format!(
+            "{}/api/v1/organizations/{}/security/audit",
+            base, org
+        ))
         .header("Authorization", format!("Bearer {}", token))
         .send()
         .await
@@ -924,7 +945,10 @@ async fn audit_endpoint_returns_structured_data() {
 
     // Operations
     let r2 = client
-        .get(format!("{}/api/v1/organizations/{}/security/operations", base, org))
+        .get(format!(
+            "{}/api/v1/organizations/{}/security/operations",
+            base, org
+        ))
         .header("Authorization", format!("Bearer {}", token))
         .send()
         .await

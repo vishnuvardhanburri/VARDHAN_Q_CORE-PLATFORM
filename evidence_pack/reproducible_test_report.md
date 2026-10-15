@@ -6,7 +6,7 @@
 |---|---|
 | Repository | VARDHAN Q-Core Platform |
 | Working directory | `/Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main` |
-| Git commit SHA (HEAD on `main`) | `f727d722325305afb19a295ee178fbdea7371dae` |
+| Git commit SHA (HEAD on `main`) | `8d403fe551d388a79a7b88e855c987825c4d9985` (Phase 8a baseline) |
 | Binary: control plane API | `target/release/control_plane_api` |
 | Binary: receipt engine | `target/release/vardhan-receipt` |
 | Rust toolchain | `cargo` stable (1.81+) |
@@ -43,8 +43,8 @@ python3 scripts/e2e_lifecycle_validation.py
 Expected output:
 
 ```
-Total checks: 31
-Passed: 31
+Total checks: 33
+Passed: 33
 Failed: 0
 ```
 
@@ -60,10 +60,28 @@ cargo test -p vardhan_receipt --bin vardhan-receipt
 Expected output:
 
 ```
-test result: ok. 59 passed; 0 failed; 0 ignored
+test result: ok. 68 passed; 0 failed; 0 ignored
 ```
 
-### 4. Rust regression tests (enterprise lifecycle edge cases)
+Includes 9 adversarial security tests (issuer binding, spoofed prefix, SQL injection,
+policy version bypass, empty context).
+
+### 4. Rust unit tests (keystore — with Vault feature)
+
+```bash
+cargo test -p vardhan_keystore --features vault
+```
+
+Expected output:
+
+```
+test result: ok. 43 passed; 0 failed; 0 ignored
+```
+
+Includes 6 Vault provider tests (key name default/custom, configured/not-configured,
+provider name, production safety).
+
+### 5. Rust regression tests (enterprise lifecycle edge cases)
 
 ```bash
 cargo test -p control_plane_api --test org_lifecycle_edge_cases
@@ -75,7 +93,9 @@ Expected output:
 test result: ok. 13 passed; 0 failed; 0 ignored
 ```
 
-### 5. Rust tenant isolation tests
+Includes replay protection via durable idempotency store.
+
+### 6. Rust tenant isolation tests
 
 ```bash
 cargo test -p control_plane_api --test tenant_isolation_test
@@ -87,10 +107,35 @@ Expected output:
 test result: ok. 6 passed; 0 failed; 0 ignored
 ```
 
-### 6. Performance benchmark
+### 7. Performance benchmark
 
 ```bash
 python3 scripts/performance_benchmark.py
+```
+
+### 8. Release build verification
+
+```bash
+cargo build --release -p vardhan_receipt -p control_plane_api
+```
+
+## Phase 8b Additional Test Commands
+
+### Adversarial security regression tests
+
+```bash
+# Issuer binding (DENY_ISSUER_UNBOUND) and empty tenant
+cargo test -p vardhan_receipt --bin vardhan-receipt \
+  -- t12_spoofed_issuer_prefix_is_denied t11_empty_tenant_is_denied t14_dot_separator_is_denied
+
+# Audit trail tamper detection
+cargo test -p vardhan_receipt --bin vardhan-receipt -- audit_trail::tests
+
+# Vault KMS key protection
+cargo test -p vardhan_keystore --features vault -- vault::tests
+
+# TLS feature compiles
+cargo build -p control_plane_api --features tls
 ```
 
 ## Commit-SHA Discrepancy Resolution
@@ -99,8 +144,10 @@ An earlier report referenced a commit SHA mismatch. This has been resolved:
 the repository HEAD on `main` is:
 
 ```
-f727d722325305afb19a295ee178fbdea7371dae
+8d403fe551d388a79a7b88e855c987825c4d9985
 ```
+
+(Phase 8a baseline; parent `f727d72`.)
 
 All binaries used in the evidence pack were built from this exact commit. The fix
 that resolved the lifecycle-suite failures was adding `db.flush()` to `save_json()`
@@ -116,7 +163,7 @@ persist to disk before the response is sent.
 | Issuer key fingerprint | `21c77fb2e4418ee7c1d70e4b7af011a56b574b11f81129df6dc2d728b044b6da` |
 | Ed25519 signature | Valid (19 checks passed, 0 failures) |
 | ML-DSA-87 signature | Valid (19 checks passed, 0 failures) |
-| Verifier | `vardhan-receipt verify --receipt-id <id>` (built from commit `f727d72`) |
+| Verifier | `vardhan-receipt verify --receipt-id <id>` (built from commit `8d403fe`) |
 | Verification checks passed | 19 of 19 |
 
 ## Known Issues and Workarounds
@@ -128,3 +175,4 @@ persist to disk before the response is sent.
 | Token from login response body is pre-rotation | Use `Authorization-New-Token` header from every response for the current token |
 | Replay returns HTTP 200, not 422 | Check `body.status` field, not HTTP status code |
 | Owner self-role-change returns 409 | Expected behavior — owner→non-owner is blocked by `enterprise_api.rs:162` |
+| `binary_path()` uses relative path | Fixed — now checks `CARGO_MANIFEST_DIR` for the release binary, with `VARDHAN_RECEIPT_ENGINE_BIN` env override |

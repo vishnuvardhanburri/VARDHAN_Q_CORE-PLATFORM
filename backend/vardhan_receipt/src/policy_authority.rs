@@ -51,33 +51,24 @@ impl PolicyRegistry {
 
     /// Build the registry from external configuration in the given base directory.
     pub fn build_with_base_dir(base_dir: Option<&Path>) -> Self {
-        match AuthConfigLoader::load_required(base_dir) {
-            Ok(config) => {
-                let mut entries = HashMap::new();
-                for policy_cfg in config.policies {
-                    entries.insert(
-                        policy_cfg.policy_id.clone(),
-                        PolicyEntry {
-                            policy_id: policy_cfg.policy_id,
-                            policy_version: policy_cfg.policy_version,
-                            governed_actions: policy_cfg.governed_actions,
-                            authorized_actor_prefixes: policy_cfg.authorized_actor_prefixes,
-                        },
-                    );
-                }
-                Self { entries }
-            }
-            Err(e) => {
-                // Production fail-closed: no policies → empty registry → all DENY
-                tracing::error!(
-                    "No auth configuration available. Registry is empty. All requests will be DENY. Error: {}",
-                    e
-                );
-                Self {
-                    entries: HashMap::new(),
-                }
-            }
+        Self::from_config(&AuthConfigLoader::load_required(base_dir).unwrap_or_default())
+    }
+
+    /// Build the registry from a config reference.
+    pub fn from_config(config: &crate::auth_config::AuthConfig) -> Self {
+        let mut entries = HashMap::new();
+        for policy_cfg in &config.policies {
+            entries.insert(
+                policy_cfg.policy_id.clone(),
+                PolicyEntry {
+                    policy_id: policy_cfg.policy_id.clone(),
+                    policy_version: policy_cfg.policy_version.clone(),
+                    governed_actions: policy_cfg.governed_actions.clone(),
+                    authorized_actor_prefixes: policy_cfg.authorized_actor_prefixes.clone(),
+                },
+            );
         }
+        Self { entries }
     }
 
     /// Resolve a policy entry by its canonical ID string.
@@ -193,20 +184,13 @@ impl TenantRegistry {
 
     /// Build the tenant registry from external configuration.
     pub fn build_with_base_dir(base_dir: Option<&Path>) -> Self {
-        match AuthConfigLoader::load_required(base_dir) {
-            Ok(config) => Self {
-                known: config.tenant_lookup(),
-            },
-            Err(e) => {
-                // Production fail-closed: no tenants → empty registry → all DENY
-                tracing::error!(
-                    "No auth configuration available. Tenant registry is empty. All requests will be DENY. Error: {}",
-                    e
-                );
-                Self {
-                    known: HashMap::new(),
-                }
-            }
+        Self::from_config(&AuthConfigLoader::load_required(base_dir).unwrap_or_default())
+    }
+
+    /// Build the tenant registry from a config reference.
+    pub fn from_config(config: &crate::auth_config::AuthConfig) -> Self {
+        Self {
+            known: config.tenant_lookup(),
         }
     }
 
@@ -231,13 +215,26 @@ impl TenantRegistry {
 pub struct GatewayAuthorityEvaluator {
     tenant_registry: TenantRegistry,
     policy_registry: PolicyRegistry,
+    issuer_registry: crate::auth_config::IssuerRegistry,
 }
 
 impl GatewayAuthorityEvaluator {
     pub fn new() -> Self {
+        // Build the auth config once and derive all registries from it
+        let config = match crate::auth_config::AuthConfigLoader::load_required(None) {
+            Ok(c) => c,
+            Err(e) => {
+                tracing::error!(
+                    "No auth configuration available. All requests will be DENY. Error: {}",
+                    e
+                );
+                crate::auth_config::AuthConfig::empty()
+            }
+        };
         Self {
-            tenant_registry: TenantRegistry::build(),
-            policy_registry: PolicyRegistry::build(),
+            tenant_registry: TenantRegistry::from_config(&config),
+            policy_registry: PolicyRegistry::from_config(&config),
+            issuer_registry: config.issuer_registry(),
         }
     }
 
@@ -280,7 +277,26 @@ impl GatewayAuthorityEvaluator {
             };
         }
 
-        // E3: policy_reference must resolve in the registry.
+        // E3: Issuer binding — the actor workload_id must be bound to a
+        // trusted issuer registry entry. This provides authorization-to-execution
+        // traceability: the workload identity must be vouched for by an
+        // independently authenticated issuer.
+        if self
+            .issuer_registry
+            .resolve_issuer(&ctx.actor_workload_id)
+            .is_none()
+        {
+            return AuthDecision::Deny {
+                rejection_code: "DENY_ISSUER_UNBOUND".to_string(),
+                reason: format!(
+                    "actor_workload_id '{}' is not bound to a trusted issuer — \
+                     no issuer registry entry covers this workload prefix",
+                    ctx.actor_workload_id
+                ),
+            };
+        }
+
+        // E4: policy_reference must resolve in the registry.
         let policy = match self.policy_registry.resolve(&ctx.policy_reference) {
             Some(p) => p,
             None => {
@@ -295,7 +311,7 @@ impl GatewayAuthorityEvaluator {
             }
         };
 
-        // E4: declared_policy_version must match the policy's active version exactly.
+        // E5: declared_policy_version must match the policy's active version exactly.
         // No "latest" fallback. No silent upgrade.
         if ctx.declared_policy_version != policy.policy_version {
             return AuthDecision::Deny {
@@ -308,7 +324,7 @@ impl GatewayAuthorityEvaluator {
             };
         }
 
-        // E5: action_type must be governed by this policy.
+        // E6: action_type must be governed by this policy.
         if !policy
             .governed_actions
             .iter()
@@ -324,7 +340,7 @@ impl GatewayAuthorityEvaluator {
             };
         }
 
-        // E6: actor_workload_id must match an authorized prefix.
+        // E7: actor_workload_id must match an authorized prefix.
         let actor_authorized = policy
             .authorized_actor_prefixes
             .iter()
@@ -505,14 +521,17 @@ mod tests {
         assert_eq!(decision.rejection_code(), Some("DENY_ACTOR_MISSING"));
     }
 
-    /// T9: Invalid actor (wrong prefix — not authorized under policy) → DENY
+    /// T9: Invalid actor (wrong issuer — not bound to a trusted issuer) → DENY
     #[test]
     fn t9_unauthorized_actor_is_denied() {
         let mut ctx = valid_ctx();
         ctx.actor_workload_id = "svc:some-other-service:rogue-v1".to_string();
         let decision = evaluator().evaluate(&ctx);
         assert!(!decision.is_allow());
-        assert_eq!(decision.rejection_code(), Some("DENY_ACTOR_NOT_AUTHORIZED"));
+        // The issuer binding check (DENY_ISSUER_UNBOUND) fires before the
+        // prefix check (DENY_ACTOR_NOT_AUTHORIZED) because the actor prefix
+        // is not registered in the issuer registry.
+        assert_eq!(decision.rejection_code(), Some("DENY_ISSUER_UNBOUND"));
     }
 
     /// T10: Policy/action mismatch (valid policy, wrong action for it) → DENY
@@ -525,7 +544,55 @@ mod tests {
         assert_eq!(decision.rejection_code(), Some("DENY_ACTION_NOT_GOVERNED"));
     }
 
-    /// T11: SEAL_VERIFIED_FINDING with "SEAL_VERIFIED_FINDING" action but
+    /// T11: Actor with empty tenant_id → DENY (tenant must be bound)
+    #[test]
+    fn t11_empty_tenant_is_denied() {
+        let mut ctx = valid_ctx();
+        ctx.tenant_id = String::new();
+        let decision = evaluator().evaluate(&ctx);
+        assert!(!decision.is_allow());
+        assert_eq!(decision.rejection_code(), Some("DENY_TENANT_MISSING"));
+    }
+
+    /// T11b: Adversarial — actor_workload_id with spoofed issuer prefix that
+    /// matches a registered issuer but uses a different service name.
+    /// This MUST still be DENY_ISSUER_UNBOUND because the full prefix must
+    /// match, not just the issuer name.
+    #[test]
+    fn t12_spoofed_issuer_prefix_is_denied() {
+        let mut ctx = valid_ctx();
+        // Registered issuer is "svc:vardhan-intelligence:"
+        // This spoofed variant changes the service name — not bound.
+        ctx.actor_workload_id = "svc:vardhan-intelligence-spoofed:rogue-v1".to_string();
+        let decision = evaluator().evaluate(&ctx);
+        // Should be DENY_ISSUER_UNBOUND (prefix not in issuer registry)
+        // Even though it contains "vardhan-intelligence" as a substring.
+        assert_eq!(decision.rejection_code(), Some("DENY_ISSUER_UNBOUND"));
+    }
+
+    /// T13: Adversarial — tenant_id with SQL injection attempt.
+    /// The policy engine must not crash or allow injection.
+    #[test]
+    fn t13_sql_injection_in_tenant_id_is_handled() {
+        let mut ctx = valid_ctx();
+        ctx.tenant_id = "' OR 1=1; DROP TABLE tenants; --".to_string();
+        let decision = evaluator().evaluate(&ctx);
+        assert!(!decision.is_allow());
+        assert_eq!(decision.rejection_code(), Some("DENY_TENANT_UNKNOWN"));
+    }
+
+    /// T14: Adversarial — actor_workload_id with a prefix that matches but
+    /// uses a different separator character. Must be denied as not authorized.
+    #[test]
+    fn t14_dot_separator_is_denied() {
+        let mut ctx = valid_ctx();
+        ctx.actor_workload_id = "svc.vardhan-intelligence.engine-v2".to_string();
+        let decision = evaluator().evaluate(&ctx);
+        assert!(!decision.is_allow());
+        assert_eq!(decision.rejection_code(), Some("DENY_ISSUER_UNBOUND"));
+    }
+
+    /// T17: SEAL_VERIFIED_FINDING with "SEAL_VERIFIED_FINDING" action but
     /// policy has wrong version → cannot bypass gate after validation
     #[test]
     fn t11_bypass_attempt_via_wrong_version_is_denied() {
@@ -538,7 +605,7 @@ mod tests {
         );
     }
 
-    /// T14: No hidden default allow — empty context is fully denied
+    /// T18: No hidden default allow — empty context is fully denied
     #[test]
     fn t14_empty_context_is_fully_denied() {
         let ctx = AuthEvalContext {

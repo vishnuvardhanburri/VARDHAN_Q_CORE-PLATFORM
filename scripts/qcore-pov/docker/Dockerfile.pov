@@ -46,7 +46,7 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/security_test.py /usr/local/bin/perf_bench.py /usr/local/bin/crypto_bench.py
 
 # Pre-create data directories with correct permissions
-RUN mkdir -p /var/lib/vardhan/control-plane /var/lib/vardhan/keystore /var/lib/vardhan/idempotency
+RUN mkdir -p /var/lib/vardhan/control-plane /var/lib/vardhan/keystore /var/lib/vardhan/idempotency /var/lib/vardhan/auth_config
 
 # Non-root user for security
 RUN useradd -m -u 10001 appuser && \
@@ -57,13 +57,14 @@ ENV VARDHAN_ENV=development
 ENV VARDHAN_KEYSTORE_DIR=/var/lib/vardhan/keystore
 ENV VARDHAN_IDEMPOTENCY_DIR=/var/lib/vardhan/idempotency
 ENV VARDHAN_CONTROL_PLANE_DATA_DIR=/var/lib/vardhan/control-plane
+ENV VARDHAN_AUTH_CONFIG_DIR=/var/lib/vardhan/auth_config
 ENV QCORE_HOST=http://localhost:8080
 # Python PoV scripts use ENGINE_BIN; the Rust HTTP API uses RECEIPT_BIN.
 ENV VARDHAN_RECEIPT_ENGINE_BIN=/usr/local/bin/vardhan-receipt
 ENV VARDHAN_RECEIPT_BIN=/usr/local/bin/vardhan-receipt
-# The PoV harness writes explicitly provisioned test tenants here; the receipt
-# subprocess reloads this file for each validation request.
-ENV VARDHAN_AUTH_CONFIG_PATH=/var/lib/vardhan/keystore/auth_config.json
+# Auth config lives in its own directory to avoid polluting the keystore dir
+# (which would cause keystore_manager to mistake auth_config.json for keystore data).
+ENV VARDHAN_AUTH_CONFIG_PATH=/var/lib/vardhan/auth_config/auth_config.json
 
 EXPOSE 8080
 

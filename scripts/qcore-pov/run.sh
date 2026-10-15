@@ -95,8 +95,7 @@ STATS_FILE="${RESULTS_DIR}/docker_stats_${TIMESTAMP}.csv"
     docker image inspect --format='ID={{.Id}} OS={{.Os}} Architecture={{.Architecture}}' vardhan-qcore-pov:latest 2>&1 || true
     echo "--- Host OS ---"
     uname -a
-    echo "--- Docker version ---"
-    docker --version
+    echo "Docker version: $(docker --version 2>&1 || true)"
     echo "--- Docker daemon resources ---"
     docker info --format='ServerOS={{.OSType}} ServerArch={{.Architecture}} CPUs={{.NCPU}} MemoryBytes={{.MemTotal}}' 2>&1 || true
     echo "--- Container resource limits ---"

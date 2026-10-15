@@ -54,7 +54,8 @@ async fn handle_seal(Json(payload): Json<QCoreValidationRequest>) -> impl IntoRe
                     "receipt": receipt,
                     "transport": publication
                 })),
-            ).into_response()
+            )
+                .into_response()
         }
         Err((code, msg)) => {
             let error_response = json!({

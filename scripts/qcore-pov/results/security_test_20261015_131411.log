@@ -1,0 +1,65 @@
+============================================================
+  VARDHAN Q-CORE — Security Test Matrix (PoV)
+============================================================
+
+[Setup] Logging in as admin...
+  ✅ PASS: Login succeeds (expected=200, got=200)
+  ✅ PASS: Token present (expected=True, got=True)
+
+[Setup] Creating organization...
+  ✅ PASS: Org creation (expected=201, got=201)
+  ✅ PASS: Org ID present (expected=True, got=True)
+
+--- S1: Valid Contract Sealing ---
+  ✅ PASS: S1: Valid contract returns 200 (expected=200, got=200)
+  ✅ PASS: S1: Status is SEALED (expected=SEALED, got=SEALED)
+  ✅ PASS: S1: Ed25519 signature present (expected=True, got=True)
+  ✅ PASS: S1: ML-DSA-87 signature present (expected=True, got=True)
+
+--- S2: Replay Rejection ---
+  ✅ PASS: S2: Replay returns 200 (expected=200, got=200)
+  ✅ PASS: S2: Status is REJECTED_REPLAY (expected=REJECTED_REPLAY, got=REJECTED_REPLAY)
+
+--- S3: Tampered Payload Hash ---
+  ✅ PASS: S3: Tampered hash not SEALED (expected=True, got=True)
+
+--- S4: Unauthorized Actor ---
+  ✅ PASS: S4: Unauthorized actor not SEALED (expected=True, got=True)
+
+--- S5: Spoofed Issuer Prefix ---
+  ✅ PASS: S5: Spoofed prefix not SEALED (expected=True, got=True)
+
+--- S6: Tampered Receipt Signature ---
+  ✅ PASS: S6: Tampered sig verification returns Invalid (expected=True, got=True)
+
+--- S7: Unknown Tenant ---
+  ✅ PASS: S7: Unknown tenant not SEALED (expected=True, got=True)
+
+--- S8: Malformed Contract ---
+  ✅ PASS: S8: Malformed contract not SEALED (expected=True, got=True)
+
+--- S9: Route/Payload Tenant Mismatch ---
+  ✅ PASS: S9: Route/payload tenant mismatch returns 403 (expected=403, got=403)
+  ✅ PASS: S9: Route/payload tenant mismatch has explicit rejection (expected=REJECTED_TENANT_MISMATCH, got=REJECTED_TENANT_MISMATCH)
+
+--- S12: Unauthenticated API Access ---
+  ✅ PASS: S12: Unauthenticated denied (401) (expected=401, got=401)
+
+--- S15: Concurrent Duplicate Submissions ---
+  Concurrent results: 1 sealed, 4 replay-rejected
+  ✅ PASS: S15: Exactly one concurrent submission seals (expected=1, got=1)
+  ✅ PASS: S15: Remaining concurrent submissions rejected as replay (expected=4, got=4)
+  ✅ PASS: S15: All responses are expected (expected=True, got=True)
+
+--- S16: Audit Trail Retrieval ---
+  ✅ PASS: S16: Audit endpoint accessible (200) (expected=200, got=200)
+
+--- S16b: Independent Receipt Verification ---
+  ✅ PASS: S16b: Valid receipt verifies (expected=True, got=True)
+
+============================================================
+  Security Test Summary
+  Passed: 24  Failed: 0  Total: 24
+============================================================
+
+Results written to /tmp/security_results.json

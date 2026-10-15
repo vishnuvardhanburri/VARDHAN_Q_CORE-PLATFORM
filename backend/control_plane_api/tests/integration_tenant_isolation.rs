@@ -1,4 +1,8 @@
-use axum::{body::Body, http::{Method, Request}, Router};
+use axum::{
+    body::Body,
+    http::{Method, Request},
+    Router,
+};
 use std::net::SocketAddr;
 use std::time::Duration;
 use tower::ServiceExt;

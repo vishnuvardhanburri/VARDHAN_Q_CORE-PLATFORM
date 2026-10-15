@@ -100,7 +100,9 @@ async fn auth_middleware(
     };
 
     // Persisted session/API-key identity must resolve an authoritative role.
-    if let Some(user) = auth_service::extract_authenticated_user(&state.auth_state, &req.headers()).await {
+    if let Some(user) =
+        auth_service::extract_authenticated_user(&state.auth_state, &req.headers()).await
+    {
         let mut req = req;
         req.extensions_mut().insert(user);
         return Ok(next.run(req).await);
@@ -109,13 +111,17 @@ async fn auth_middleware(
     // Explicit bootstrap administrator token remains a separate operator-controlled
     // emergency path and is never inferred from a normal session or API key.
     if !state.admin_token.is_empty()
-        && token_str.as_bytes().ct_eq(state.admin_token.as_bytes()).into()
+        && token_str
+            .as_bytes()
+            .ct_eq(state.admin_token.as_bytes())
+            .into()
     {
         let mut req = req;
-        req.extensions_mut().insert(auth_service::authorization::AuthenticatedUser {
-            username: "bootstrap-admin".to_string(),
-            role: auth_service::authorization::Role::Admin,
-        });
+        req.extensions_mut()
+            .insert(auth_service::authorization::AuthenticatedUser {
+                username: "bootstrap-admin".to_string(),
+                role: auth_service::authorization::Role::Admin,
+            });
         return Ok(next.run(req).await);
     }
 
@@ -247,11 +253,23 @@ async fn session_info_handler(
 ) -> impl IntoResponse {
     let caller = match auth_service::extract_authenticated_user(&state.auth_state, &headers).await {
         Some(u) => u,
-        None => return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(serde_json::json!({"error": "Unauthorized"}))).into_response(),
+        None => {
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                axum::Json(serde_json::json!({"error": "Unauthorized"})),
+            )
+                .into_response()
+        }
     };
     let token_str = match auth_service::extract_bearer_from_headers(&headers) {
         Some(t) => t,
-        None => return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(serde_json::json!({"error": "Unauthorized"}))).into_response(),
+        None => {
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                axum::Json(serde_json::json!({"error": "Unauthorized"})),
+            )
+                .into_response()
+        }
     };
     let token = auth_service::session::SessionToken::from_str(&token_str);
     auth_service::session_info_handler(
@@ -259,7 +277,9 @@ async fn session_info_handler(
         axum::extract::Extension(caller),
         axum::extract::Extension(token),
         headers,
-    ).await.into_response()
+    )
+    .await
+    .into_response()
 }
 
 async fn admin_get_profile(
@@ -268,13 +288,21 @@ async fn admin_get_profile(
 ) -> impl IntoResponse {
     let caller = match auth_service::extract_authenticated_user(&state.auth_state, &headers).await {
         Some(u) => u,
-        None => return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(serde_json::json!({"error": "Unauthorized"}))).into_response(),
+        None => {
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                axum::Json(serde_json::json!({"error": "Unauthorized"})),
+            )
+                .into_response()
+        }
     };
     auth_service::get_profile_handler(
         axum::extract::State(state.auth_state),
         axum::extract::Extension(caller),
         headers,
-    ).await.into_response()
+    )
+    .await
+    .into_response()
 }
 
 async fn admin_update_profile(
@@ -284,14 +312,22 @@ async fn admin_update_profile(
 ) -> impl IntoResponse {
     let caller = match auth_service::extract_authenticated_user(&state.auth_state, &headers).await {
         Some(u) => u,
-        None => return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(serde_json::json!({"error": "Unauthorized"}))).into_response(),
+        None => {
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                axum::Json(serde_json::json!({"error": "Unauthorized"})),
+            )
+                .into_response()
+        }
     };
     auth_service::update_profile_handler(
         axum::extract::State(state.auth_state),
         axum::extract::Extension(caller),
         headers,
         axum::Json(req),
-    ).await.into_response()
+    )
+    .await
+    .into_response()
 }
 
 async fn admin_change_password(
@@ -301,14 +337,22 @@ async fn admin_change_password(
 ) -> impl IntoResponse {
     let caller = match auth_service::extract_authenticated_user(&state.auth_state, &headers).await {
         Some(u) => u,
-        None => return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(serde_json::json!({"error": "Unauthorized"}))).into_response(),
+        None => {
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                axum::Json(serde_json::json!({"error": "Unauthorized"})),
+            )
+                .into_response()
+        }
     };
     auth_service::change_password_handler(
         axum::extract::State(state.auth_state),
         axum::extract::Extension(caller),
         headers,
         axum::Json(req),
-    ).await.into_response()
+    )
+    .await
+    .into_response()
 }
 
 async fn admin_get_settings(
@@ -355,12 +399,20 @@ async fn admin_list_api_keys(
 ) -> impl IntoResponse {
     let caller = match auth_service::extract_authenticated_user(&state.auth_state, &headers).await {
         Some(u) => u,
-        None => return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(serde_json::json!({"error": "Unauthorized"}))).into_response(),
+        None => {
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                axum::Json(serde_json::json!({"error": "Unauthorized"})),
+            )
+                .into_response()
+        }
     };
     auth_service::list_api_keys_handler(
         axum::extract::State(state.auth_state),
         axum::extract::Extension(caller),
-    ).await.into_response()
+    )
+    .await
+    .into_response()
 }
 
 async fn admin_create_api_key(
@@ -370,13 +422,21 @@ async fn admin_create_api_key(
 ) -> impl IntoResponse {
     let caller = match auth_service::extract_authenticated_user(&state.auth_state, &headers).await {
         Some(u) => u,
-        None => return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(serde_json::json!({"error": "Unauthorized"}))).into_response(),
+        None => {
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                axum::Json(serde_json::json!({"error": "Unauthorized"})),
+            )
+                .into_response()
+        }
     };
     auth_service::create_api_key_handler(
         axum::extract::State(state.auth_state),
         axum::extract::Extension(caller),
         axum::Json(req),
-    ).await.into_response()
+    )
+    .await
+    .into_response()
 }
 
 async fn admin_revoke_api_key(
@@ -386,13 +446,21 @@ async fn admin_revoke_api_key(
 ) -> impl IntoResponse {
     let caller = match auth_service::extract_authenticated_user(&state.auth_state, &headers).await {
         Some(u) => u,
-        None => return (axum::http::StatusCode::UNAUTHORIZED, axum::Json(serde_json::json!({"error": "Unauthorized"}))).into_response(),
+        None => {
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                axum::Json(serde_json::json!({"error": "Unauthorized"})),
+            )
+                .into_response()
+        }
     };
     auth_service::revoke_api_key_handler(
         axum::extract::State(state.auth_state),
         axum::extract::Path(id),
         axum::extract::Extension(caller),
-    ).await.into_response()
+    )
+    .await
+    .into_response()
 }
 
 async fn prometheus_metrics(State(state): State<AdminState>) -> impl IntoResponse {

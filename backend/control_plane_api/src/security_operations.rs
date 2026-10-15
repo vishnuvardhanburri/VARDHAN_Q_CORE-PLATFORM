@@ -76,7 +76,9 @@ pub struct SecurityOperationsStore {
 }
 
 impl SecurityOperationsStore {
-    pub fn new(db: Arc<Db>) -> Self { Self { db } }
+    pub fn new(db: Arc<Db>) -> Self {
+        Self { db }
+    }
 
     pub fn record_finding(
         &self,
@@ -86,14 +88,23 @@ impl SecurityOperationsStore {
         if organization_id.trim().is_empty() || input.finding_id.trim().is_empty() {
             return Err(SecurityOperationsError::EmptyFindingId);
         }
-        if input.receipt_id.trim().is_empty() { return Err(SecurityOperationsError::EmptyReceiptId); }
-        if input.evidence_refs.is_empty() || input.evidence_refs.iter().any(|v| v.trim().is_empty()) {
+        if input.receipt_id.trim().is_empty() {
+            return Err(SecurityOperationsError::EmptyReceiptId);
+        }
+        if input.evidence_refs.is_empty() || input.evidence_refs.iter().any(|v| v.trim().is_empty())
+        {
             return Err(SecurityOperationsError::MissingEvidence);
         }
-        if !matches!(input.severity.trim().to_ascii_lowercase().as_str(), "critical" | "high" | "medium" | "low" | "info") {
+        if !matches!(
+            input.severity.trim().to_ascii_lowercase().as_str(),
+            "critical" | "high" | "medium" | "low" | "info"
+        ) {
             return Err(SecurityOperationsError::InvalidSeverity);
         }
-        if !matches!(input.status.trim().to_ascii_lowercase().as_str(), "open" | "acknowledged" | "resolved") {
+        if !matches!(
+            input.status.trim().to_ascii_lowercase().as_str(),
+            "open" | "acknowledged" | "resolved"
+        ) {
             return Err(SecurityOperationsError::InvalidStatus);
         }
         if input.risk_score > 100 {
@@ -110,7 +121,9 @@ impl SecurityOperationsStore {
                     && receipt.verification == ReceiptVerificationState::Verified
                     && receipt.tenant_id == organization_id
             });
-        if !verified { return Err(SecurityOperationsError::MissingVerifiedReceipt); }
+        if !verified {
+            return Err(SecurityOperationsError::MissingVerifiedReceipt);
+        }
 
         let finding = SecurityFinding {
             organization_id: organization_id.to_owned(),
@@ -129,13 +142,21 @@ impl SecurityOperationsStore {
         if let Some(existing) = self.db.get(&key)? {
             let previous: SecurityFinding = serde_json::from_slice(&existing)
                 .map_err(|e| SecurityOperationsError::Serialization(e.to_string()))?;
-            if previous.receipt_id != finding.receipt_id || previous.organization_id != finding.organization_id {
+            if previous.receipt_id != finding.receipt_id
+                || previous.organization_id != finding.organization_id
+            {
                 return Err(SecurityOperationsError::FindingConflict);
             }
-            if previous == finding { return Ok(previous); }
+            if previous == finding {
+                return Ok(previous);
+            }
         }
 
-        self.db.insert(&key, serde_json::to_vec(&finding).map_err(|e| SecurityOperationsError::Serialization(e.to_string()))?)?;
+        self.db.insert(
+            &key,
+            serde_json::to_vec(&finding)
+                .map_err(|e| SecurityOperationsError::Serialization(e.to_string()))?,
+        )?;
         self.db.flush()?;
 
         if finding.risk_score >= 70 {
@@ -144,25 +165,43 @@ impl SecurityOperationsStore {
         Ok(finding)
     }
 
-    pub fn findings(&self, organization_id: &str) -> Result<Vec<SecurityFinding>, SecurityOperationsError> {
-        let prefix = format!("{}{}:", std::str::from_utf8(FINDING_PREFIX).unwrap(), organization_id);
+    pub fn findings(
+        &self,
+        organization_id: &str,
+    ) -> Result<Vec<SecurityFinding>, SecurityOperationsError> {
+        let prefix = format!(
+            "{}{}:",
+            std::str::from_utf8(FINDING_PREFIX).unwrap(),
+            organization_id
+        );
         let mut items = Vec::new();
         for entry in self.db.scan_prefix(prefix.as_bytes()) {
             let (_, value) = entry?;
-            items.push(serde_json::from_slice(&value)
-                .map_err(|e| SecurityOperationsError::Serialization(e.to_string()))?);
+            items.push(
+                serde_json::from_slice(&value)
+                    .map_err(|e| SecurityOperationsError::Serialization(e.to_string()))?,
+            );
         }
         items.sort_by_key(|item: &SecurityFinding| item.updated_at_ms);
         Ok(items)
     }
 
-    pub fn incidents(&self, organization_id: &str) -> Result<Vec<SecurityIncident>, SecurityOperationsError> {
-        let prefix = format!("{}{}:", std::str::from_utf8(INCIDENT_PREFIX).unwrap(), organization_id);
+    pub fn incidents(
+        &self,
+        organization_id: &str,
+    ) -> Result<Vec<SecurityIncident>, SecurityOperationsError> {
+        let prefix = format!(
+            "{}{}:",
+            std::str::from_utf8(INCIDENT_PREFIX).unwrap(),
+            organization_id
+        );
         let mut items = Vec::new();
         for entry in self.db.scan_prefix(prefix.as_bytes()) {
             let (_, value) = entry?;
-            items.push(serde_json::from_slice(&value)
-                .map_err(|e| SecurityOperationsError::Serialization(e.to_string()))?);
+            items.push(
+                serde_json::from_slice(&value)
+                    .map_err(|e| SecurityOperationsError::Serialization(e.to_string()))?,
+            );
         }
         items.sort_by_key(|item: &SecurityIncident| item.updated_at_ms);
         Ok(items)
@@ -225,8 +264,11 @@ impl SecurityOperationsStore {
                 updated_at_ms: finding.updated_at_ms,
             }
         };
-        self.db.insert(key, serde_json::to_vec(&incident)
-            .map_err(|e| SecurityOperationsError::Serialization(e.to_string()))?)?;
+        self.db.insert(
+            key,
+            serde_json::to_vec(&incident)
+                .map_err(|e| SecurityOperationsError::Serialization(e.to_string()))?,
+        )?;
         self.db.flush()?;
         Ok(())
     }
@@ -249,7 +291,9 @@ fn incident_key(org: &str, id: &str) -> Vec<u8> {
 }
 
 fn incident_id(org: &str, finding_id: &str) -> String {
-    let digest = blake3::hash(format!("{org}:{finding_id}").as_bytes()).to_hex().to_string();
+    let digest = blake3::hash(format!("{org}:{finding_id}").as_bytes())
+        .to_hex()
+        .to_string();
     format!("INC-{}", &digest[..24])
 }
 
@@ -263,7 +307,11 @@ fn highest_severity<'a>(a: &'a str, b: &'a str) -> &'a str {
             _ => 1,
         }
     }
-    if rank(a) >= rank(b) { a } else { b }
+    if rank(a) >= rank(b) {
+        a
+    } else {
+        b
+    }
 }
 
 fn status_rank(status: &str) -> u8 {
@@ -290,25 +338,29 @@ mod tests {
     use super::*;
     use crate::qcore_telemetry::{QCoreReceiptTelemetry, ReceiptVerificationState};
 
-    fn db() -> Arc<Db> { Arc::new(sled::Config::new().temporary(true).open().unwrap()) }
+    fn db() -> Arc<Db> {
+        Arc::new(sled::Config::new().temporary(true).open().unwrap())
+    }
 
     fn verified_receipt(store: &QCoreTelemetryStore) {
-        store.record_receipt(&QCoreReceiptTelemetry {
-            organization_id: "org-a".into(),
-            receipt_id: "VQR-1".into(),
-            transaction_id: "tx-1".into(),
-            tenant_id: "org-a".into(),
-            status: "SEALED".into(),
-            decision: "AUTHORIZED".into(),
-            outcome_code: "SUCCESS".into(),
-            policy_id: "p1".into(),
-            policy_version: "1.0".into(),
-            ledger_commit_index: 7,
-            timestamp_ms: 1,
-            payload_hash: "abc".into(),
-            issuer_key_fingerprint: "fp".into(),
-            verification: ReceiptVerificationState::Verified,
-        }).unwrap();
+        store
+            .record_receipt(&QCoreReceiptTelemetry {
+                organization_id: "org-a".into(),
+                receipt_id: "VQR-1".into(),
+                transaction_id: "tx-1".into(),
+                tenant_id: "org-a".into(),
+                status: "SEALED".into(),
+                decision: "AUTHORIZED".into(),
+                outcome_code: "SUCCESS".into(),
+                policy_id: "p1".into(),
+                policy_version: "1.0".into(),
+                ledger_commit_index: 7,
+                timestamp_ms: 1,
+                payload_hash: "abc".into(),
+                issuer_key_fingerprint: "fp".into(),
+                verification: ReceiptVerificationState::Verified,
+            })
+            .unwrap();
     }
 
     fn input() -> SecurityFindingInput {
@@ -339,11 +391,17 @@ mod tests {
     fn missing_or_cross_tenant_receipt_is_rejected() {
         let db = db();
         let store = SecurityOperationsStore::new(db.clone());
-        assert!(matches!(store.record_finding("org-a", &input()), Err(SecurityOperationsError::MissingVerifiedReceipt)));
+        assert!(matches!(
+            store.record_finding("org-a", &input()),
+            Err(SecurityOperationsError::MissingVerifiedReceipt)
+        ));
         verified_receipt(&QCoreTelemetryStore::new(db));
         let mut cross = input();
         cross.receipt_id = "VQR-2".into();
-        assert!(matches!(store.record_finding("org-b", &cross), Err(SecurityOperationsError::MissingVerifiedReceipt)));
+        assert!(matches!(
+            store.record_finding("org-b", &cross),
+            Err(SecurityOperationsError::MissingVerifiedReceipt)
+        ));
     }
 
     #[test]
@@ -353,11 +411,17 @@ mod tests {
         let store = SecurityOperationsStore::new(db);
         store.record_finding("org-a", &input()).unwrap();
         let incident_id = store.incidents("org-a").unwrap()[0].incident_id.clone();
-        let acknowledged = store.transition_incident("org-a", &incident_id, "acknowledged", 3).unwrap();
+        let acknowledged = store
+            .transition_incident("org-a", &incident_id, "acknowledged", 3)
+            .unwrap();
         assert_eq!(acknowledged.status, "acknowledged");
-        let resolved = store.transition_incident("org-a", &incident_id, "resolved", 4).unwrap();
+        let resolved = store
+            .transition_incident("org-a", &incident_id, "resolved", 4)
+            .unwrap();
         assert_eq!(resolved.status, "resolved");
-        assert!(store.transition_incident("org-a", &incident_id, "open", 5).is_err());
+        assert!(store
+            .transition_incident("org-a", &incident_id, "open", 5)
+            .is_err());
     }
 
     #[test]

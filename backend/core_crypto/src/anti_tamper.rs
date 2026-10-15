@@ -117,6 +117,20 @@ pub fn compute_self_hash() -> Option<[u8; 32]> {
 
 // ── Master Guard ──────────────────────────────────────────────────────────────
 
+/// Determines whether the single-step timing check should be active.
+/// In development and test environments, the timing-based check is disabled
+/// to avoid false positives under CPU contention. In production, the check
+/// is retained for anti-debugging protection.
+///
+/// This function is extracted as a standalone helper so it can be tested
+/// in isolation without mutating process-global environment variables in
+/// concurrently running unit tests.
+pub fn single_step_check_enabled() -> bool {
+    std::env::var("VARDHAN_ENV")
+        .map(|v| v == "production")
+        .unwrap_or(false)
+}
+
 /// Call this at the very start of main().
 /// Panics (and exits 137) on any tamper signal.
 ///
@@ -133,7 +147,11 @@ pub fn assert_integrity() {
     }
 
     // 2. Anti-step timing check
-    if detect_single_step() {
+    // Skip in development/test mode: the timing-based check triggers false positives
+    // when many vardhan-receipt subprocesses spawn concurrently under CPU contention
+    // (the 10,000-iteration NOP loop exceeds the 5ms threshold under heavy load).
+    // In production, this check provides anti-debugging protection.
+    if single_step_check_enabled() && detect_single_step() {
         eprintln!(
             "[VARDHAN GUARDIAN] CRITICAL: Execution stepping detected. Binary execution halted."
         );
@@ -142,10 +160,7 @@ pub fn assert_integrity() {
 
     // 3. Self-hash check
     // F-011: In production, binary hash verification is MANDATORY.
-    let is_production = std::env::var("VARDHAN_ENV")
-        .map(|v| v == "production")
-        .unwrap_or(false);
-
+    let is_production = single_step_check_enabled();
     let expected_hex = std::env::var("VARDHAN_BINARY_HASH").ok();
 
     if is_production && expected_hex.is_none() {
@@ -241,5 +256,21 @@ mod tests {
             !is_prod || has_hash,
             "If production, binary hash must be configured"
         );
+    }
+
+    #[test]
+    fn test_single_step_check_disabled_in_dev() {
+        // In the test/CI environment, VARDHAN_ENV is not "production"
+        // (or is unset), so the single-step timing check must be disabled.
+        // We verify the policy helper returns false in the default environment.
+        // This avoids mutating process-global VARDHAN_ENV in a unit test,
+        // which would be unsafe under parallel test execution.
+        let enabled = single_step_check_enabled();
+        let env_val = std::env::var("VARDHAN_ENV").unwrap_or_default();
+        if env_val == "production" {
+            assert!(enabled, "production should enable single-step check");
+        } else {
+            assert!(!enabled, "non-production should disable single-step check");
+        }
     }
 }

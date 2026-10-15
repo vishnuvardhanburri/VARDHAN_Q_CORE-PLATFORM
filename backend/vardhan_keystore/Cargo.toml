@@ -17,6 +17,13 @@ aes-gcm = "0.11"
 zeroize = { version = "1", features = ["zeroize_derive"] }
 tracing = "0.1"
 thiserror = "2"
+# Vault integration (optional, enabled via feature flag)
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "blocking"], optional = true }
+base64 = { version = "0.22", optional = true }
+
+[features]
+default = []
+vault = ["reqwest", "base64"]
 
 [dev-dependencies]
 tempfile = "3"

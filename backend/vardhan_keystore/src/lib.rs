@@ -18,10 +18,14 @@ use uuid::Uuid;
 use zeroize::Zeroizing;
 
 pub mod protection;
+#[cfg(feature = "vault")]
+pub mod vault;
 pub use protection::{
     DevelopmentLocalProtection, EnvironmentKeyProtectionProvider, KeyProtectionError,
     KeyProtectionProvider, ProductionEnvelopeProtection,
 };
+#[cfg(feature = "vault")]
+pub use vault::VaultKeyProtectionProvider;
 
 // ─── Test-only shared mutex for environment variable serialization ─────────
 #[cfg(test)]

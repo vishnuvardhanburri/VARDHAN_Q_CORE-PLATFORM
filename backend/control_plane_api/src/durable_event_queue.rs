@@ -57,11 +57,17 @@ pub struct DurableEventQueue {
 
 impl DurableEventQueue {
     pub fn new(db: Arc<Db>) -> Self {
-        Self { db, max_attempts: 5 }
+        Self {
+            db,
+            max_attempts: 5,
+        }
     }
 
     pub fn with_max_attempts(db: Arc<Db>, max_attempts: u32) -> Self {
-        Self { db, max_attempts: max_attempts.max(1) }
+        Self {
+            db,
+            max_attempts: max_attempts.max(1),
+        }
     }
 
     pub fn deterministic_id(organization_id: &str, kind: &str, payload: &[u8]) -> String {
@@ -101,9 +107,11 @@ impl DurableEventQueue {
             last_error: None,
         };
         let key = event_key(organization_id, &event_id);
-        let encoded = serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?;
+        let encoded =
+            serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?;
         if let Some(existing) = self.db.get(&key)? {
-            let previous: DurableEvent = serde_json::from_slice(&existing).map_err(|e| QueueError::Serialization(e.to_string()))?;
+            let previous: DurableEvent = serde_json::from_slice(&existing)
+                .map_err(|e| QueueError::Serialization(e.to_string()))?;
             if previous.payload_hash == event.payload_hash && previous.kind == event.kind {
                 return Ok(event_id);
             }
@@ -114,12 +122,17 @@ impl DurableEventQueue {
         Ok(event_id)
     }
 
-    pub fn claim_next(&self, organization_id: &str, now_ms: u64) -> Result<Option<DurableEvent>, QueueError> {
+    pub fn claim_next(
+        &self,
+        organization_id: &str,
+        now_ms: u64,
+    ) -> Result<Option<DurableEvent>, QueueError> {
         let prefix = org_prefix(organization_id);
         let mut candidates = Vec::new();
         for entry in self.db.scan_prefix(&prefix) {
             let (key, value) = entry?;
-            let event: DurableEvent = serde_json::from_slice(&value).map_err(|e| QueueError::Serialization(e.to_string()))?;
+            let event: DurableEvent = serde_json::from_slice(&value)
+                .map_err(|e| QueueError::Serialization(e.to_string()))?;
             if event.state == EventState::Pending && event.available_at_ms <= now_ms {
                 candidates.push((key, event));
             }
@@ -132,8 +145,12 @@ impl DurableEventQueue {
                 Some(value) => value,
                 None => continue,
             };
-            let encoded = serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?;
-            match self.db.compare_and_swap(&key, Some(previous.as_ref()), Some(encoded.as_slice())) {
+            let encoded =
+                serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?;
+            match self
+                .db
+                .compare_and_swap(&key, Some(previous.as_ref()), Some(encoded.as_slice()))
+            {
                 Ok(Ok(_)) => {
                     self.db.flush()?;
                     return Ok(Some(event));
@@ -160,8 +177,11 @@ impl DurableEventQueue {
         error: &str,
     ) -> Result<EventState, QueueError> {
         let key = event_key(organization_id, event_id);
-        let Some(value) = self.db.get(&key)? else { return Err(QueueError::NotFound); };
-        let mut event: DurableEvent = serde_json::from_slice(&value).map_err(|e| QueueError::Serialization(e.to_string()))?;
+        let Some(value) = self.db.get(&key)? else {
+            return Err(QueueError::NotFound);
+        };
+        let mut event: DurableEvent =
+            serde_json::from_slice(&value).map_err(|e| QueueError::Serialization(e.to_string()))?;
         if event.state != EventState::InFlight {
             return Err(QueueError::NotClaimable);
         }
@@ -175,13 +195,18 @@ impl DurableEventQueue {
             event.last_error = Some(error.to_owned());
         }
         let state = event.state.clone();
-        self.db.insert(key, serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?)?;
+        self.db.insert(
+            key,
+            serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?,
+        )?;
         self.db.flush()?;
         Ok(state)
     }
 
     pub fn get(&self, organization_id: &str, event_id: &str) -> Result<DurableEvent, QueueError> {
-        let Some(value) = self.db.get(event_key(organization_id, event_id))? else { return Err(QueueError::NotFound); };
+        let Some(value) = self.db.get(event_key(organization_id, event_id))? else {
+            return Err(QueueError::NotFound);
+        };
         serde_json::from_slice(&value).map_err(|e| QueueError::Serialization(e.to_string()))
     }
 
@@ -193,14 +218,20 @@ impl DurableEventQueue {
         error: Option<String>,
     ) -> Result<(), QueueError> {
         let key = event_key(organization_id, event_id);
-        let Some(value) = self.db.get(&key)? else { return Err(QueueError::NotFound); };
-        let mut event: DurableEvent = serde_json::from_slice(&value).map_err(|e| QueueError::Serialization(e.to_string()))?;
+        let Some(value) = self.db.get(&key)? else {
+            return Err(QueueError::NotFound);
+        };
+        let mut event: DurableEvent =
+            serde_json::from_slice(&value).map_err(|e| QueueError::Serialization(e.to_string()))?;
         if event.state != EventState::InFlight {
             return Err(QueueError::NotClaimable);
         }
         event.state = next;
         event.last_error = error;
-        self.db.insert(key, serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?)?;
+        self.db.insert(
+            key,
+            serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?,
+        )?;
         self.db.flush()?;
         Ok(())
     }
@@ -223,22 +254,35 @@ fn event_key(org: &str, event_id: &str) -> Vec<u8> {
 mod tests {
     use super::*;
 
-    fn db() -> Arc<Db> { Arc::new(sled::Config::new().temporary(true).open().unwrap()) }
+    fn db() -> Arc<Db> {
+        Arc::new(sled::Config::new().temporary(true).open().unwrap())
+    }
 
     #[test]
     fn duplicate_enqueue_is_idempotent() {
         let q = DurableEventQueue::new(db());
-        let a = q.enqueue("org-a", "receipt.verified", b"one".to_vec(), 1).unwrap();
-        let b = q.enqueue("org-a", "receipt.verified", b"one".to_vec(), 1).unwrap();
+        let a = q
+            .enqueue("org-a", "receipt.verified", b"one".to_vec(), 1)
+            .unwrap();
+        let b = q
+            .enqueue("org-a", "receipt.verified", b"one".to_vec(), 1)
+            .unwrap();
         assert_eq!(a, b);
-        assert!(matches!(q.get("org-a", &a).unwrap().state, EventState::Pending));
+        assert!(matches!(
+            q.get("org-a", &a).unwrap().state,
+            EventState::Pending
+        ));
     }
 
     #[test]
     fn different_payload_cannot_reuse_event_identity() {
         let q = DurableEventQueue::new(db());
-        let first = q.enqueue("org-a", "receipt.verified", b"one".to_vec(), 1).unwrap();
-        let second = q.enqueue("org-a", "receipt.verified", b"two".to_vec(), 1).unwrap();
+        let first = q
+            .enqueue("org-a", "receipt.verified", b"one".to_vec(), 1)
+            .unwrap();
+        let second = q
+            .enqueue("org-a", "receipt.verified", b"two".to_vec(), 1)
+            .unwrap();
         assert_ne!(first, second);
     }
 
@@ -262,9 +306,15 @@ mod tests {
         let q = DurableEventQueue::with_max_attempts(db(), 2);
         let id = q.enqueue("org-a", "x", b"x".to_vec(), 1).unwrap();
         let _ = q.claim_next("org-a", 1).unwrap().unwrap();
-        assert_eq!(q.requeue("org-a", &id, 1, "first").unwrap(), EventState::Pending);
+        assert_eq!(
+            q.requeue("org-a", &id, 1, "first").unwrap(),
+            EventState::Pending
+        );
         let _ = q.claim_next("org-a", 3_001).unwrap().unwrap();
-        assert_eq!(q.requeue("org-a", &id, 3_001, "second").unwrap(), EventState::DeadLetter);
+        assert_eq!(
+            q.requeue("org-a", &id, 3_001, "second").unwrap(),
+            EventState::DeadLetter
+        );
         assert_eq!(q.get("org-a", &id).unwrap().state, EventState::DeadLetter);
     }
 

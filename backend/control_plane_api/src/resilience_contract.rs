@@ -66,8 +66,19 @@ pub fn validate_policy(policy: &ResiliencePolicy) -> Result<(), ResilienceError>
     if policy.regions.is_empty() {
         return Err(ResilienceError::MissingRegion);
     }
-    let unique: BTreeSet<_> = policy.regions.iter().filter(|r| !r.trim().is_empty()).collect();
-    if unique.len() != policy.regions.len() || unique.len() != policy.regions.iter().filter(|r| !r.trim().is_empty()).count() {
+    let unique: BTreeSet<_> = policy
+        .regions
+        .iter()
+        .filter(|r| !r.trim().is_empty())
+        .collect();
+    if unique.len() != policy.regions.len()
+        || unique.len()
+            != policy
+                .regions
+                .iter()
+                .filter(|r| !r.trim().is_empty())
+                .count()
+    {
         return Err(ResilienceError::DuplicateRegion);
     }
     Ok(())
@@ -80,9 +91,16 @@ pub fn build_backup_manifest(
     key_registry_version: u64,
     created_at_ms: u64,
 ) -> Result<BackupManifest, ResilienceError> {
-    if snapshot_id.trim().is_empty() { return Err(ResilienceError::MissingSnapshot); }
-    if organization_id.trim().is_empty() { return Err(ResilienceError::MissingOrganization); }
-    if store_digests.iter().any(|digest| digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit())) {
+    if snapshot_id.trim().is_empty() {
+        return Err(ResilienceError::MissingSnapshot);
+    }
+    if organization_id.trim().is_empty() {
+        return Err(ResilienceError::MissingOrganization);
+    }
+    if store_digests
+        .iter()
+        .any(|digest| digest.len() != 64 || !digest.bytes().all(|b| b.is_ascii_hexdigit()))
+    {
         return Err(ResilienceError::InvalidDigest);
     }
     let mut hasher = Hasher::new();
@@ -113,11 +131,17 @@ pub fn verify_backup_manifest(manifest: &BackupManifest) -> bool {
         manifest.store_digests.clone(),
         manifest.key_registry_version,
         manifest.created_at_ms,
-    ).map(|expected| expected.manifest_hash == manifest.manifest_hash).unwrap_or(false)
+    )
+    .map(|expected| expected.manifest_hash == manifest.manifest_hash)
+    .unwrap_or(false)
 }
 
 impl UpgradeGuard {
-    pub fn validate_upgrade(&self, target_release: u64, target_schema: u64) -> Result<(), ResilienceError> {
+    pub fn validate_upgrade(
+        &self,
+        target_release: u64,
+        target_schema: u64,
+    ) -> Result<(), ResilienceError> {
         if target_release < self.current_release {
             return Err(ResilienceError::ReleaseRegression);
         }
@@ -141,12 +165,27 @@ mod tests {
 
     #[test]
     fn production_policy_requires_ha_kms_and_backup() {
-        let mut policy = ResiliencePolicy { production: true, min_nodes: 1, require_kms: false, backup_enabled: false, regions: vec!["in-1".into()] };
-        assert!(matches!(validate_policy(&policy), Err(ResilienceError::InsufficientNodes)));
+        let mut policy = ResiliencePolicy {
+            production: true,
+            min_nodes: 1,
+            require_kms: false,
+            backup_enabled: false,
+            regions: vec!["in-1".into()],
+        };
+        assert!(matches!(
+            validate_policy(&policy),
+            Err(ResilienceError::InsufficientNodes)
+        ));
         policy.min_nodes = 3;
-        assert!(matches!(validate_policy(&policy), Err(ResilienceError::KmsRequired)));
+        assert!(matches!(
+            validate_policy(&policy),
+            Err(ResilienceError::KmsRequired)
+        ));
         policy.require_kms = true;
-        assert!(matches!(validate_policy(&policy), Err(ResilienceError::BackupRequired)));
+        assert!(matches!(
+            validate_policy(&policy),
+            Err(ResilienceError::BackupRequired)
+        ));
         policy.backup_enabled = true;
         assert!(validate_policy(&policy).is_ok());
     }
@@ -163,7 +202,11 @@ mod tests {
 
     #[test]
     fn rollback_floor_and_release_monotonicity_are_enforced() {
-        let guard = UpgradeGuard { current_release: 10, minimum_rollback_release: 8, schema_version: 4 };
+        let guard = UpgradeGuard {
+            current_release: 10,
+            minimum_rollback_release: 8,
+            schema_version: 4,
+        };
         assert!(guard.validate_upgrade(11, 5).is_ok());
         assert!(guard.validate_upgrade(9, 5).is_err());
         assert!(guard.validate_rollback(8).is_ok());
