@@ -373,7 +373,7 @@ cmd_test() {
 
     # 3. Rust workspace build and tests
     info "[3/10] Rust workspace tests"
-    if cargo test --workspace 2>&1 | tail -5; then
+    if cargo test --workspace -- --test-threads=1 2>&1 | tail -5; then
         ok "Rust tests: passed"
     else
         err "Rust tests: FAILED"

@@ -38,7 +38,7 @@ jobs:
         env:
           CARGO_BUILD_JOBS: 2
       - name: Rust tests (unit + integration)
-        run: cargo test --workspace
+        run: cargo test --workspace -- --test-threads=1
         env:
           CARGO_BUILD_JOBS: 2
       - name: Build release binaries
