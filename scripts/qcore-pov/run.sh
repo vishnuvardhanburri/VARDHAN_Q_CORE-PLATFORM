@@ -24,7 +24,7 @@ RESULTS_DIR="${POV_DIR}/results"
 mkdir -p "$RESULTS_DIR"
 
 echo "============================================================"
-echo "  VARDHAN Q-CORE — LGT Financial-Services PoV"
+echo "  VARDHAN Q-CORE — Synthetic Financial-Services PoV"
 echo "  Started: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 echo "============================================================"
 
