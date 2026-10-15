@@ -20,6 +20,8 @@ jobs:
         run: |
           cargo install cargo-audit --locked
           cargo install cargo-deny --locked
+      - name: Enforce patched rustls release floor
+        run: python3 scripts/check_rustls_lock.py
       - name: Rust audit
         run: cargo audit
       - name: Cargo deny advisories

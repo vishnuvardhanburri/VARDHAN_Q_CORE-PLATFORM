@@ -971,12 +971,15 @@ mod aws_kms_tests {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CloudKmsKeyProtector
+// Requires the opt-in aws-kms-real feature; default builds must not pull the AWS SDK.
 // ─────────────────────────────────────────────────────────────────────────────
 
+#[cfg(feature = "aws-kms-real")]
 pub struct CloudKmsKeyProtector {
     inner: Box<dyn KeyProtector>,
 }
 
+#[cfg(feature = "aws-kms-real")]
 impl CloudKmsKeyProtector {
     pub fn new() -> Self {
         let _ = dotenvy::dotenv();
@@ -1012,6 +1015,7 @@ impl CloudKmsKeyProtector {
     }
 }
 
+#[cfg(feature = "aws-kms-real")]
 impl KeyProtector for CloudKmsKeyProtector {
     fn provider_name(&self) -> &'static str {
         self.inner.provider_name()
@@ -1033,11 +1037,13 @@ impl KeyProtector for CloudKmsKeyProtector {
     }
 }
 
+#[cfg(feature = "aws-kms-real")]
 struct AwsRealProtector {
     key_arn: String,
     client: aws_sdk_kms::Client,
     rt: tokio::runtime::Runtime,
 }
+#[cfg(feature = "aws-kms-real")]
 impl KeyProtector for AwsRealProtector {
     fn provider_name(&self) -> &'static str {
         "aws-kms"

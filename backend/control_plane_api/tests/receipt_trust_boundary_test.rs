@@ -56,10 +56,32 @@ fn now_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64
 }
 
-fn sign_hmac(secret: &str, timestamp: u64, nonce: &str, body: &[u8]) -> String {
-    let canonical = format!("{}.{}.{}", timestamp, nonce, String::from_utf8_lossy(body));
+fn canonical_request(organization_id: &str, service_id: &str, timestamp: u64, nonce: &str, body: &[u8]) -> Vec<u8> {
+    let path = format!("/api/v1/organizations/{organization_id}/qcore/receipts");
+    let timestamp = timestamp.to_string();
+    let fields: [&[u8]; 9] = [
+        b"VARDHAN-QCORE-RECEIPT-TRANSPORT-V2",
+        b"2",
+        b"POST",
+        path.as_bytes(),
+        organization_id.as_bytes(),
+        service_id.as_bytes(),
+        timestamp.as_bytes(),
+        nonce.as_bytes(),
+        body,
+    ];
+    let mut out = Vec::with_capacity(fields.iter().map(|field| 8 + field.len()).sum());
+    for field in fields {
+        out.extend_from_slice(&(field.len() as u64).to_be_bytes());
+        out.extend_from_slice(field);
+    }
+    out
+}
+
+fn sign_hmac(secret: &str, organization_id: &str, service_id: &str, timestamp: u64, nonce: &str, body: &[u8]) -> String {
+    let canonical = canonical_request(organization_id, service_id, timestamp, nonce, body);
     let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).unwrap();
-    mac.update(canonical.as_bytes());
+    mac.update(&canonical);
     hex::encode(mac.finalize().into_bytes())
 }
 
@@ -88,6 +110,12 @@ async fn test_receipt_trust_boundary_rejections() {
     
     let registry = ReceiptKeyRegistry::new(state.db.clone());
     registry.register(issuer.clone()).unwrap();
+    let mut alternate_org_issuer = issuer.clone();
+    alternate_org_issuer.organization_id = "org-2".to_string();
+    registry.register(alternate_org_issuer).unwrap();
+    let mut alternate_service_issuer = issuer.clone();
+    alternate_service_issuer.service_id = "qcore-2".to_string();
+    registry.register(alternate_service_issuer).unwrap();
 
     let make_receipt = |modifier: Box<dyn Fn(&mut vardhan_verifier::VerifiableReceipt, &SigningKey, &ml_dsa_87::PrivateKey)>| {
         let mut r = vardhan_verifier::VerifiableReceipt {
@@ -140,8 +168,9 @@ async fn test_receipt_trust_boundary_rejections() {
             let body = serde_json::to_vec(&r).unwrap();
             let ts = now_ms();
             let nonce = Uuid::new_v4().to_string();
-            let sig = sign_hmac("test-secret-123", ts, &nonce, &body);
+            let sig = sign_hmac("test-secret-123", &target_org, &sid, ts, &nonce, &body);
             client.post(format!("{}/api/v1/organizations/{}/qcore/receipts", base_url, target_org))
+                .header("x-vardhan-transport-version", "2")
                 .header("x-vardhan-service-id", sid)
                 .header("x-vardhan-timestamp", ts)
                 .header("x-vardhan-nonce", nonce)
@@ -155,6 +184,39 @@ async fn test_receipt_trust_boundary_rejections() {
     let valid = make_receipt(Box::new(|_, _, _| {}));
     let res = send(valid.clone(), org_id.to_string(), service_id.to_string()).await;
     assert_eq!(res.status(), StatusCode::OK);
+
+    // Scope binding: a signature for org-1 cannot be replayed at org-2.
+    let scope_receipt = make_receipt(Box::new(|_, _, _| {}));
+    let scope_body = serde_json::to_vec(&scope_receipt).unwrap();
+    let scope_timestamp = now_ms();
+    let scope_nonce = Uuid::new_v4().to_string();
+    let scope_signature = sign_hmac("test-secret-123", org_id, service_id, scope_timestamp, &scope_nonce, &scope_body);
+    let scoped_res = client.post(format!("{}/api/v1/organizations/org-2/qcore/receipts", base_url))
+        .header("x-vardhan-transport-version", "2")
+        .header("x-vardhan-service-id", service_id)
+        .header("x-vardhan-timestamp", scope_timestamp)
+        .header("x-vardhan-nonce", &scope_nonce)
+        .header("x-vardhan-signature", scope_signature)
+        .body(scope_body)
+        .send().await.unwrap();
+    assert_eq!(scoped_res.status(), StatusCode::UNAUTHORIZED, "Changing the organization path after signing must fail transport authentication");
+
+    // Service identity is also MAC-bound, even if the alternate service is registered
+    // with the same public key in this test fixture.
+    let service_receipt = make_receipt(Box::new(|_, _, _| {}));
+    let service_body = serde_json::to_vec(&service_receipt).unwrap();
+    let service_timestamp = now_ms();
+    let service_nonce = Uuid::new_v4().to_string();
+    let service_signature = sign_hmac("test-secret-123", org_id, service_id, service_timestamp, &service_nonce, &service_body);
+    let service_res = client.post(format!("{}/api/v1/organizations/{}/qcore/receipts", base_url, org_id))
+        .header("x-vardhan-transport-version", "2")
+        .header("x-vardhan-service-id", "qcore-2")
+        .header("x-vardhan-timestamp", service_timestamp)
+        .header("x-vardhan-nonce", &service_nonce)
+        .header("x-vardhan-signature", service_signature)
+        .body(service_body)
+        .send().await.unwrap();
+    assert_eq!(service_res.status(), StatusCode::UNAUTHORIZED, "Changing the service identity after signing must fail transport authentication");
 
     // 2. Replay of exactly identical receipt (idempotent acceptance)
     let res = send(valid.clone(), org_id.to_string(), service_id.to_string()).await;
