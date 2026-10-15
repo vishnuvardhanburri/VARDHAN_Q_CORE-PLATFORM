@@ -4,7 +4,7 @@
 
 The first local run reported **20 assertions passed and 0 failed**. The security test script has since been corrected because the original S15 concurrent-duplicate case only asserted that five responses returned; it did not assert one seal and four replay rejections as the report claimed.
 
-The updated S15 test now submits the same finding identifier to the same tenant route using independent one-time tokens and asserts exactly one SEALED response, four REJECTED_REPLAY responses, and that every response has an expected status. This adds two assertions, making **22 assertions expected** in the updated suite. A fresh run of the updated suite has not yet been recorded, so these are not new pass results.
+The updated S15 test now submits the same finding identifier to the same tenant route using independent one-time tokens and asserts exactly one SEALED response, four REJECTED_REPLAY responses, and that every response has an expected status. This adds two S15 assertions and two route/payload mismatch assertions, making **24 assertions expected** in the updated suite. The tenant-binding guard and updated test harness are on the follow-up branch; a fresh run has not yet been recorded, so these are not new pass results.
 
 All examples are synthetic. The previous LGT-labelled test hostnames and tenant label have been replaced in the test script with reserved synthetic names. No real LGT data, credentials, systems or endpoints are used.
 
