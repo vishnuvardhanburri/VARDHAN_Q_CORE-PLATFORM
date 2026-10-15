@@ -28,10 +28,16 @@ pub enum MfaError {
 }
 
 pub fn normalize_secret(secret: &str) -> Result<Vec<u8>, MfaError> {
-    let compact: String = secret.chars().filter(|c| !c.is_ascii_whitespace()).collect();
-    base32::decode(Alphabet::Rfc4648 { padding: false }, &compact.to_ascii_uppercase())
-        .filter(|v| !v.is_empty())
-        .ok_or(MfaError::InvalidSecret)
+    let compact: String = secret
+        .chars()
+        .filter(|c| !c.is_ascii_whitespace())
+        .collect();
+    base32::decode(
+        Alphabet::Rfc4648 { padding: false },
+        &compact.to_ascii_uppercase(),
+    )
+    .filter(|v| !v.is_empty())
+    .ok_or(MfaError::InvalidSecret)
 }
 
 pub fn verify_totp(secret: &str, code: &str) -> Result<bool, MfaError> {
@@ -39,9 +45,17 @@ pub fn verify_totp(secret: &str, code: &str) -> Result<bool, MfaError> {
         return Err(MfaError::InvalidCode);
     }
     let secret = normalize_secret(secret)?;
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|_| MfaError::Clock)?.as_secs() / STEP_SECS;
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| MfaError::Clock)?
+        .as_secs()
+        / STEP_SECS;
     for offset in -SKEW_STEPS..=SKEW_STEPS {
-        let counter = if offset < 0 { now.saturating_sub((-offset) as u64) } else { now.saturating_add(offset as u64) };
+        let counter = if offset < 0 {
+            now.saturating_sub((-offset) as u64)
+        } else {
+            now.saturating_add(offset as u64)
+        };
         let expected = hotp(&secret, counter)?;
         if expected.as_bytes().ct_eq(code.as_bytes()).into() {
             return Ok(true);
@@ -74,6 +88,9 @@ mod tests {
 
     #[test]
     fn malformed_code_rejected() {
-        assert!(matches!(verify_totp("JBSWY3DPEHPK3PXP", "12x456"), Err(MfaError::InvalidCode)));
+        assert!(matches!(
+            verify_totp("JBSWY3DPEHPK3PXP", "12x456"),
+            Err(MfaError::InvalidCode)
+        ));
     }
 }

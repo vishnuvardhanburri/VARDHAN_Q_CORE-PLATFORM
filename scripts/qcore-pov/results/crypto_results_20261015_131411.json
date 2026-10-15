@@ -1,0 +1,119 @@
+{
+  "ed25519": {
+    "1KB": {
+      "iterations": 10000,
+      "payload_size_bytes": 1024,
+      "sign": {
+        "median_us": 15.0,
+        "mean_us": 15.47,
+        "min_us": 14.542,
+        "max_us": 87.166,
+        "ops_per_second": 64642.9
+      },
+      "verify": {
+        "median_us": 40.959,
+        "mean_us": 42.432,
+        "min_us": 38.375,
+        "max_us": 65.083,
+        "ops_per_second": 23567.1
+      }
+    },
+    "10KB": {
+      "iterations": 10000,
+      "payload_size_bytes": 10240,
+      "sign": {
+        "median_us": 25.5,
+        "mean_us": 25.777,
+        "min_us": 25.166,
+        "max_us": 100.875,
+        "ops_per_second": 38793.7
+      },
+      "verify": {
+        "median_us": 45.833,
+        "mean_us": 46.008,
+        "min_us": 43.791,
+        "max_us": 83.542,
+        "ops_per_second": 21735.4
+      }
+    },
+    "100KB": {
+      "iterations": 10000,
+      "payload_size_bytes": 102400,
+      "sign": {
+        "median_us": 131.0,
+        "mean_us": 131.524,
+        "min_us": 130.541,
+        "max_us": 263.584,
+        "ops_per_second": 7603.2
+      },
+      "verify": {
+        "median_us": 98.375,
+        "mean_us": 98.814,
+        "min_us": 97.292,
+        "max_us": 187.875,
+        "ops_per_second": 10120.0
+      }
+    },
+    "signature_size_bytes": 64
+  },
+  "mldsa87": {
+    "sign": {
+      "measurement_scope": "Full vardhan-receipt validate-canonical subprocess; includes process startup, parsing, hashing, key access, sealing and serialization, not an isolated ML-DSA-87 primitive timing.",
+      "iterations": 100,
+      "successes": 100,
+      "median_ms": 13.379,
+      "mean_ms": 13.421,
+      "min_ms": 13.051,
+      "max_ms": 14.543,
+      "ops_per_second": 74.5
+    },
+    "verify": {
+      "measurement_scope": "Full vardhan-receipt verify subprocess for a receipt; not an isolated ML-DSA-87 primitive timing.",
+      "iterations": 100,
+      "median_ms": 1.112,
+      "mean_ms": 1.122,
+      "min_ms": 0.952,
+      "max_ms": 1.427,
+      "ops_per_second": 891.5
+    }
+  },
+  "blake3": {
+    "1KB": {
+      "iterations": 100000,
+      "payload_size_bytes": 1024,
+      "median_us": 1.042,
+      "mean_us": 1.06,
+      "min_us": 0.958,
+      "max_us": 57.375,
+      "throughput_mbps": 921.26
+    },
+    "10KB": {
+      "iterations": 10000,
+      "payload_size_bytes": 10240,
+      "median_us": 13.0,
+      "mean_us": 13.097,
+      "min_us": 12.875,
+      "max_us": 54.083,
+      "throughput_mbps": 745.64
+    },
+    "100KB": {
+      "iterations": 1000,
+      "payload_size_bytes": 102400,
+      "median_us": 139.292,
+      "mean_us": 139.856,
+      "min_us": 139.083,
+      "max_us": 155.834,
+      "throughput_mbps": 698.26
+    },
+    "1MB": {
+      "iterations": 100,
+      "payload_size_bytes": 1048576,
+      "median_us": 1428.417,
+      "mean_us": 1432.894,
+      "min_us": 1425.958,
+      "max_us": 1462.667,
+      "throughput_mbps": 697.89
+    }
+  },
+  "qcore_integration": {}
+}

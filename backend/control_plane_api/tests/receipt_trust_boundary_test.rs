@@ -1,26 +1,28 @@
-use control_plane_api::{ControlPlaneState, router};
-use control_plane_api::receipt_key_registry::{ReceiptKeyRegistry, ReceiptIssuerKey, KeyState};
-use auth_service::{AuthState, store::CredentialStore, session::SessionStore};
+use auth_service::{session::SessionStore, store::CredentialStore, AuthState};
+use control_plane_api::receipt_key_registry::{KeyState, ReceiptIssuerKey, ReceiptKeyRegistry};
+use control_plane_api::{router, ControlPlaneState};
+use ed25519_dalek::{Signer, SigningKey};
+use fips204::ml_dsa_87;
+use fips204::traits::{SerDes, Signer as PqSigner};
+use hmac::{Hmac, Mac};
+use reqwest::StatusCode;
+use sha2::Sha256;
 use sled::Config;
 use std::sync::Arc;
-use tower_http::cors::CorsLayer;
-use ed25519_dalek::{SigningKey, Signer};
-use fips204::ml_dsa_87;
-use fips204::traits::{Signer as PqSigner, SerDes};
 use std::time::{SystemTime, UNIX_EPOCH};
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
+use tower_http::cors::CorsLayer;
 use uuid::Uuid;
-use reqwest::StatusCode;
 
 async fn spawn_test_server() -> (String, ControlPlaneState) {
     let rand_id = Uuid::new_v4().to_string();
     let dir_path = format!("/tmp/vardhan_test_trust_{}", rand_id);
     std::fs::create_dir_all(&dir_path).unwrap();
 
-    let creds = Arc::new(CredentialStore::open(std::path::Path::new(&format!("{}/auth.db", dir_path))).unwrap());
+    let creds = Arc::new(
+        CredentialStore::open(std::path::Path::new(&format!("{}/auth.db", dir_path))).unwrap(),
+    );
     let sessions = Arc::new(SessionStore::new());
-    
+
     let auth_state = AuthState {
         credentials: creds,
         sessions,
@@ -32,19 +34,22 @@ async fn spawn_test_server() -> (String, ControlPlaneState) {
         admin_token: None,
     };
 
-    let db = Config::new().path(format!("{}/control_plane.db", dir_path)).open().unwrap();
-    let control_state = ControlPlaneState { 
+    let db = Config::new()
+        .path(format!("{}/control_plane.db", dir_path))
+        .open()
+        .unwrap();
+    let control_state = ControlPlaneState {
         db: Arc::new(db),
         aer_kep_q: None,
         auth: auth_state.clone(),
     };
 
     let app = router(control_state.clone(), auth_state, CorsLayer::permissive());
-    
+
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let base_url = format!("http://127.0.0.1:{}", port);
-    
+
     tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
     });
@@ -53,10 +58,19 @@ async fn spawn_test_server() -> (String, ControlPlaneState) {
 }
 
 fn now_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64
 }
 
-fn canonical_request(organization_id: &str, service_id: &str, timestamp: u64, nonce: &str, body: &[u8]) -> Vec<u8> {
+fn canonical_request(
+    organization_id: &str,
+    service_id: &str,
+    timestamp: u64,
+    nonce: &str,
+    body: &[u8],
+) -> Vec<u8> {
     let path = format!("/api/v1/organizations/{organization_id}/qcore/receipts");
     let timestamp = timestamp.to_string();
     let fields: [&[u8]; 9] = [
@@ -78,7 +92,14 @@ fn canonical_request(organization_id: &str, service_id: &str, timestamp: u64, no
     out
 }
 
-fn sign_hmac(secret: &str, organization_id: &str, service_id: &str, timestamp: u64, nonce: &str, body: &[u8]) -> String {
+fn sign_hmac(
+    secret: &str,
+    organization_id: &str,
+    service_id: &str,
+    timestamp: u64,
+    nonce: &str,
+    body: &[u8],
+) -> String {
     let canonical = canonical_request(organization_id, service_id, timestamp, nonce, body);
     let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).unwrap();
     mac.update(&canonical);
@@ -96,7 +117,7 @@ async fn test_receipt_trust_boundary_rejections() {
     let mut csprng = rand::rngs::OsRng;
     let ed_sk = SigningKey::generate(&mut csprng);
     let (pq_pk, pq_sk) = ml_dsa_87::try_keygen().unwrap();
-    
+
     let issuer = ReceiptIssuerKey {
         organization_id: org_id.to_string(),
         service_id: service_id.to_string(),
@@ -107,7 +128,7 @@ async fn test_receipt_trust_boundary_rejections() {
         issuer_key_fingerprint: blake3::hash(ed_sk.verifying_key().as_bytes()).to_string(),
         state: KeyState::Active,
     };
-    
+
     let registry = ReceiptKeyRegistry::new(state.db.clone());
     registry.register(issuer.clone()).unwrap();
     let mut alternate_org_issuer = issuer.clone();
@@ -117,7 +138,9 @@ async fn test_receipt_trust_boundary_rejections() {
     alternate_service_issuer.service_id = "qcore-2".to_string();
     registry.register(alternate_service_issuer).unwrap();
 
-    let make_receipt = |modifier: Box<dyn Fn(&mut vardhan_verifier::VerifiableReceipt, &SigningKey, &ml_dsa_87::PrivateKey)>| {
+    let make_receipt = |modifier: Box<
+        dyn Fn(&mut vardhan_verifier::VerifiableReceipt, &SigningKey, &ml_dsa_87::PrivateKey),
+    >| {
         let mut r = vardhan_verifier::VerifiableReceipt {
             receipt_id: format!("VQR-{}", Uuid::new_v4()),
             schema_version: "1.1".into(),
@@ -144,19 +167,21 @@ async fn test_receipt_trust_boundary_rejections() {
                 ed25519_key_id: "ed-1".into(),
                 ml_dsa_87_sig: String::new(),
                 ml_dsa_87_key_id: "pq-1".into(),
-            }
+            },
         };
-        
+
         modifier(&mut r, &ed_sk, &pq_sk);
 
         r.payload_hash = blake3::hash(&vardhan_verifier::canonical_receipt_payload(&r)).to_string();
-        
+
         // Auto-sign if not tampered in modifier
         if r.signatures.ed25519_sig.is_empty() {
-            r.signatures.ed25519_sig = hex::encode(ed_sk.sign(r.payload_hash.as_bytes()).to_bytes());
+            r.signatures.ed25519_sig =
+                hex::encode(ed_sk.sign(r.payload_hash.as_bytes()).to_bytes());
         }
         if r.signatures.ml_dsa_87_sig.is_empty() {
-            r.signatures.ml_dsa_87_sig = hex::encode(pq_sk.try_sign(r.payload_hash.as_bytes(), &[]).unwrap());
+            r.signatures.ml_dsa_87_sig =
+                hex::encode(pq_sk.try_sign(r.payload_hash.as_bytes(), &[]).unwrap());
         }
         r
     };
@@ -169,14 +194,20 @@ async fn test_receipt_trust_boundary_rejections() {
             let ts = now_ms();
             let nonce = Uuid::new_v4().to_string();
             let sig = sign_hmac("test-secret-123", &target_org, &sid, ts, &nonce, &body);
-            client.post(format!("{}/api/v1/organizations/{}/qcore/receipts", base_url, target_org))
+            client
+                .post(format!(
+                    "{}/api/v1/organizations/{}/qcore/receipts",
+                    base_url, target_org
+                ))
                 .header("x-vardhan-transport-version", "2")
                 .header("x-vardhan-service-id", sid)
                 .header("x-vardhan-timestamp", ts)
                 .header("x-vardhan-nonce", nonce)
                 .header("x-vardhan-signature", sig)
                 .body(body)
-                .send().await.unwrap()
+                .send()
+                .await
+                .unwrap()
         }
     };
 
@@ -190,16 +221,33 @@ async fn test_receipt_trust_boundary_rejections() {
     let scope_body = serde_json::to_vec(&scope_receipt).unwrap();
     let scope_timestamp = now_ms();
     let scope_nonce = Uuid::new_v4().to_string();
-    let scope_signature = sign_hmac("test-secret-123", org_id, service_id, scope_timestamp, &scope_nonce, &scope_body);
-    let scoped_res = client.post(format!("{}/api/v1/organizations/org-2/qcore/receipts", base_url))
+    let scope_signature = sign_hmac(
+        "test-secret-123",
+        org_id,
+        service_id,
+        scope_timestamp,
+        &scope_nonce,
+        &scope_body,
+    );
+    let scoped_res = client
+        .post(format!(
+            "{}/api/v1/organizations/org-2/qcore/receipts",
+            base_url
+        ))
         .header("x-vardhan-transport-version", "2")
         .header("x-vardhan-service-id", service_id)
         .header("x-vardhan-timestamp", scope_timestamp)
         .header("x-vardhan-nonce", &scope_nonce)
         .header("x-vardhan-signature", scope_signature)
         .body(scope_body)
-        .send().await.unwrap();
-    assert_eq!(scoped_res.status(), StatusCode::UNAUTHORIZED, "Changing the organization path after signing must fail transport authentication");
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        scoped_res.status(),
+        StatusCode::UNAUTHORIZED,
+        "Changing the organization path after signing must fail transport authentication"
+    );
 
     // Service identity is also MAC-bound, even if the alternate service is registered
     // with the same public key in this test fixture.
@@ -207,16 +255,33 @@ async fn test_receipt_trust_boundary_rejections() {
     let service_body = serde_json::to_vec(&service_receipt).unwrap();
     let service_timestamp = now_ms();
     let service_nonce = Uuid::new_v4().to_string();
-    let service_signature = sign_hmac("test-secret-123", org_id, service_id, service_timestamp, &service_nonce, &service_body);
-    let service_res = client.post(format!("{}/api/v1/organizations/{}/qcore/receipts", base_url, org_id))
+    let service_signature = sign_hmac(
+        "test-secret-123",
+        org_id,
+        service_id,
+        service_timestamp,
+        &service_nonce,
+        &service_body,
+    );
+    let service_res = client
+        .post(format!(
+            "{}/api/v1/organizations/{}/qcore/receipts",
+            base_url, org_id
+        ))
         .header("x-vardhan-transport-version", "2")
         .header("x-vardhan-service-id", "qcore-2")
         .header("x-vardhan-timestamp", service_timestamp)
         .header("x-vardhan-nonce", &service_nonce)
         .header("x-vardhan-signature", service_signature)
         .body(service_body)
-        .send().await.unwrap();
-    assert_eq!(service_res.status(), StatusCode::UNAUTHORIZED, "Changing the service identity after signing must fail transport authentication");
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        service_res.status(),
+        StatusCode::UNAUTHORIZED,
+        "Changing the service identity after signing must fail transport authentication"
+    );
 
     // 2. Replay of exactly identical receipt (idempotent acceptance)
     let res = send(valid.clone(), org_id.to_string(), service_id.to_string()).await;
@@ -226,10 +291,16 @@ async fn test_receipt_trust_boundary_rejections() {
     let mut conflict = valid.clone();
     conflict.decision = "REJECTED".into();
     // Resign so signature passes but payload differs from recorded telemetry
-    conflict.payload_hash = blake3::hash(&vardhan_verifier::canonical_receipt_payload(&conflict)).to_string();
-    conflict.signatures.ed25519_sig = hex::encode(ed_sk.sign(conflict.payload_hash.as_bytes()).to_bytes());
-    conflict.signatures.ml_dsa_87_sig = hex::encode(pq_sk.try_sign(conflict.payload_hash.as_bytes(), &[]).unwrap());
-    
+    conflict.payload_hash =
+        blake3::hash(&vardhan_verifier::canonical_receipt_payload(&conflict)).to_string();
+    conflict.signatures.ed25519_sig =
+        hex::encode(ed_sk.sign(conflict.payload_hash.as_bytes()).to_bytes());
+    conflict.signatures.ml_dsa_87_sig = hex::encode(
+        pq_sk
+            .try_sign(conflict.payload_hash.as_bytes(), &[])
+            .unwrap(),
+    );
+
     let res = send(conflict, org_id.to_string(), service_id.to_string()).await;
     assert_eq!(res.status(), StatusCode::CONFLICT);
 
@@ -237,56 +308,113 @@ async fn test_receipt_trust_boundary_rejections() {
     let mut wrong_tenant = make_receipt(Box::new(|_, _, _| {}));
     wrong_tenant.tenant_id = "org-2".into();
     // Re-sign to avoid verification failure obscuring the tenant check
-    wrong_tenant.payload_hash = blake3::hash(&vardhan_verifier::canonical_receipt_payload(&wrong_tenant)).to_string();
-    wrong_tenant.signatures.ed25519_sig = hex::encode(ed_sk.sign(wrong_tenant.payload_hash.as_bytes()).to_bytes());
-    wrong_tenant.signatures.ml_dsa_87_sig = hex::encode(pq_sk.try_sign(wrong_tenant.payload_hash.as_bytes(), &[]).unwrap());
-    
-    let res = send(wrong_tenant.clone(), org_id.to_string(), service_id.to_string()).await;
+    wrong_tenant.payload_hash =
+        blake3::hash(&vardhan_verifier::canonical_receipt_payload(&wrong_tenant)).to_string();
+    wrong_tenant.signatures.ed25519_sig =
+        hex::encode(ed_sk.sign(wrong_tenant.payload_hash.as_bytes()).to_bytes());
+    wrong_tenant.signatures.ml_dsa_87_sig = hex::encode(
+        pq_sk
+            .try_sign(wrong_tenant.payload_hash.as_bytes(), &[])
+            .unwrap(),
+    );
+
+    let res = send(
+        wrong_tenant.clone(),
+        org_id.to_string(),
+        service_id.to_string(),
+    )
+    .await;
     assert_eq!(res.status(), StatusCode::BAD_REQUEST);
 
     // 4. Unknown issuer
     let valid_unknown = make_receipt(Box::new(|_, _, _| {}));
-    let res = send(valid_unknown.clone(), org_id.to_string(), "unknown-service".to_string()).await;
+    let res = send(
+        valid_unknown.clone(),
+        org_id.to_string(),
+        "unknown-service".to_string(),
+    )
+    .await;
     assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
 
     // 5. Inactive/revoked key
-    registry.set_state(org_id, service_id, KeyState::Revoked).unwrap();
+    registry
+        .set_state(org_id, service_id, KeyState::Revoked)
+        .unwrap();
     let valid_revoked = make_receipt(Box::new(|_, _, _| {}));
-    let res = send(valid_revoked.clone(), org_id.to_string(), service_id.to_string()).await;
+    let res = send(
+        valid_revoked.clone(),
+        org_id.to_string(),
+        service_id.to_string(),
+    )
+    .await;
     assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
-    registry.set_state(org_id, service_id, KeyState::Active).unwrap();
+    registry
+        .set_state(org_id, service_id, KeyState::Active)
+        .unwrap();
 
     // 6. Fingerprint mismatch
-    let bad_fingerprint = make_receipt(Box::new(|r, _, _| { r.issuer_key_fingerprint = "bad".into(); }));
-    let res = send(bad_fingerprint.clone(), org_id.to_string(), service_id.to_string()).await;
+    let bad_fingerprint = make_receipt(Box::new(|r, _, _| {
+        r.issuer_key_fingerprint = "bad".into();
+    }));
+    let res = send(
+        bad_fingerprint.clone(),
+        org_id.to_string(),
+        service_id.to_string(),
+    )
+    .await;
     assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     // 7. Key ID mismatch
-    let bad_key_id = make_receipt(Box::new(|r, _, _| { r.signatures.ed25519_key_id = "bad".into(); }));
-    let res = send(bad_key_id.clone(), org_id.to_string(), service_id.to_string()).await;
+    let bad_key_id = make_receipt(Box::new(|r, _, _| {
+        r.signatures.ed25519_key_id = "bad".into();
+    }));
+    let res = send(
+        bad_key_id.clone(),
+        org_id.to_string(),
+        service_id.to_string(),
+    )
+    .await;
     assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     // 8. Invalid Ed25519 signature
-    let bad_ed_sig = make_receipt(Box::new(|r, _, _| { r.signatures.ed25519_sig = hex::encode([0u8; 64]); }));
-    let res = send(bad_ed_sig.clone(), org_id.to_string(), service_id.to_string()).await;
+    let bad_ed_sig = make_receipt(Box::new(|r, _, _| {
+        r.signatures.ed25519_sig = hex::encode([0u8; 64]);
+    }));
+    let res = send(
+        bad_ed_sig.clone(),
+        org_id.to_string(),
+        service_id.to_string(),
+    )
+    .await;
     assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     // 9. Invalid ML-DSA-87 signature
-    let bad_ml_sig = make_receipt(Box::new(|r, sk, pq| { 
+    let bad_ml_sig = make_receipt(Box::new(|r, sk, pq| {
         r.signatures.ed25519_sig = hex::encode(sk.sign(r.payload_hash.as_bytes()).to_bytes());
-        r.signatures.ml_dsa_87_sig = hex::encode(pq.try_sign(b"wrong", &[]).unwrap()); 
+        r.signatures.ml_dsa_87_sig = hex::encode(pq.try_sign(b"wrong", &[]).unwrap());
     }));
-    let res = send(bad_ml_sig.clone(), org_id.to_string(), service_id.to_string()).await;
+    let res = send(
+        bad_ml_sig.clone(),
+        org_id.to_string(),
+        service_id.to_string(),
+    )
+    .await;
     assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     // 10. Malformed canonical payload (tampered field after signing)
     let bad_payload = make_receipt(Box::new(|r, sk, pq| {
         r.signatures.ed25519_sig = hex::encode(sk.sign(r.payload_hash.as_bytes()).to_bytes());
-        r.signatures.ml_dsa_87_sig = hex::encode(pq.try_sign(r.payload_hash.as_bytes(), &[]).unwrap());
+        r.signatures.ml_dsa_87_sig =
+            hex::encode(pq.try_sign(r.payload_hash.as_bytes(), &[]).unwrap());
         // tamper
         r.decision = "REJECTED".into();
     }));
-    let res = send(bad_payload.clone(), org_id.to_string(), service_id.to_string()).await;
+    let res = send(
+        bad_payload.clone(),
+        org_id.to_string(),
+        service_id.to_string(),
+    )
+    .await;
     assert_eq!(res.status(), StatusCode::UNPROCESSABLE_ENTITY);
 
     // 11. Lineage fields are part of the signed payload.  A valid signature over

@@ -60,6 +60,12 @@ pub enum KeyProtectionError {
 
     #[error("Decryption failed: ciphertext is malformed or key is incorrect")]
     DecryptionFailed,
+
+    #[error("Configuration error: {0}")]
+    ConfigurationError(String),
+
+    #[error("Network error during key protection: {0}")]
+    NetworkError(String),
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -417,7 +423,23 @@ impl EnvironmentKeyProtectionProvider {
         match env.to_lowercase().as_str() {
             "production" | "prod" => {
                 // Production MUST use a real KMS/HSM-backed provider.
-                // Do not fall back to DevelopmentLocalProtection.
+                #[cfg(feature = "vault")]
+                {
+                    if crate::vault::VaultKeyProtectionProvider::configured() {
+                        tracing::info!("Production key protection: using Vault transit engine");
+                        return Ok(Box::new(crate::vault::VaultKeyProtectionProvider));
+                    }
+                }
+                #[cfg(not(feature = "vault"))]
+                {
+                    if std::env::var("VARDHAN_VAULT_ADDR").is_ok() {
+                        tracing::error!(
+                            "Vault configuration detected but vardhan_keystore was not built \
+                             with the 'vault' feature. Enable it with --features vardhan_keystore/vault"
+                        );
+                    }
+                }
+                // Fall back to KMS-backed envelope protection
                 if let Ok(provider) = ProductionEnvelopeProtection::from_env_kms() {
                     tracing::info!(
                         "Production key protection: using KMS-backed provider '{}'",

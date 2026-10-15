@@ -55,7 +55,9 @@ pub trait BillingProviderAdapter: Send + Sync {
 pub struct HmacBillingProvider;
 
 impl BillingProviderAdapter for HmacBillingProvider {
-    fn name(&self) -> &'static str { "hmac" }
+    fn name(&self) -> &'static str {
+        "hmac"
+    }
 
     fn verify_signature(&self, payload: &[u8], signature: &str, secret: &[u8]) -> bool {
         let supplied = match hex::decode(signature.trim()) {
@@ -72,7 +74,10 @@ impl BillingProviderAdapter for HmacBillingProvider {
 }
 
 pub fn now_secs() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs()
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs()
 }
 
 pub fn verify_timestamp(timestamp: u64, now: u64) -> bool {
@@ -94,7 +99,8 @@ pub fn accept_event_once(db: &Db, event_id: &str, timestamp: u64) -> Result<bool
     if db.get(&key).map_err(|e| e.to_string())?.is_some() {
         return Ok(false);
     }
-    db.insert(key, timestamp.to_be_bytes().as_slice()).map_err(|e| e.to_string())?;
+    db.insert(key, timestamp.to_be_bytes().as_slice())
+        .map_err(|e| e.to_string())?;
     db.flush().map_err(|e| e.to_string())?;
     Ok(true)
 }

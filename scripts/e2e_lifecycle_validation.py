@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-REPO_ROOT = Path("/Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main")
+REPO_ROOT = Path(__file__).resolve().parent.parent
 BINARY = str(REPO_ROOT / "target" / "release" / "control_plane_api")
 RECEIPT_BIN = str(REPO_ROOT / "target" / "release" / "vardhan-receipt")
 PORT = 18090
@@ -178,31 +178,40 @@ def main():
         check("Admin can read org2 (is owner)", 200, status)
 
         print("\n[9] Submitting valid Q-Core contract")
-        # Use registered tenant
+        # The receipt API binds URL org_id to contract org_id (tenant binding).
+        # Use org-vardhan-intelligence consistently in both URL and contract.
         contract = build_valid_contract(org_id="org-vardhan-intelligence")
-        status, body, token = api_request("POST", f"/api/v1/organizations/{org1_id}/security/validate", token, contract)
+        status, body, token = api_request("POST", f"/api/v1/organizations/org-vardhan-intelligence/security/validate", token, contract)
         check("Valid contract sealing", 200, status)
         receipt_status = body.get("status", "")
         check("Receipt status SEALED", "SEALED", receipt_status)
         receipt_json = json.dumps(body, indent=2)
 
         print("\n[10] Testing replay rejection")
-        status, body, token = api_request("POST", f"/api/v1/organizations/{org1_id}/security/validate", token, contract)
+        status, body, token = api_request("POST", f"/api/v1/organizations/org-vardhan-intelligence/security/validate", token, contract)
         check("Replay rejected", 200, status)
         check("Replay status REJECTED_REPLAY", "REJECTED_REPLAY", body.get("status", ""))
 
         print("\n[11] Trust Boundary: Malformed Hash")
         bad_contract = build_valid_contract(finding_id="find-e2e-malformed", org_id="org-vardhan-intelligence")
         bad_contract["contract"]["evidence_refs"][0]["content_hash"] = "deadbeef"
-        status, body, token = api_request("POST", f"/api/v1/organizations/{org1_id}/security/validate", token, bad_contract)
+        status, body, token = api_request("POST", f"/api/v1/organizations/org-vardhan-intelligence/security/validate", token, bad_contract)
         check("Malformed hash rejected", 200, status)
         check("Malformed hash status not SEALED", False, body.get("status") == "SEALED")
 
         print("\n[12] Unauthorized Actor")
         unauth_contract = build_valid_contract(finding_id="find-e2e-unauth", actor="svc:attacker-service:evil-01", org_id="org-vardhan-intelligence")
-        status, body, token = api_request("POST", f"/api/v1/organizations/{org1_id}/security/validate", token, unauth_contract)
+        status, body, token = api_request("POST", f"/api/v1/organizations/org-vardhan-intelligence/security/validate", token, unauth_contract)
         check("Unauthorized actor rejected", 200, status)
         check("Unauthorized actor status not SEALED", False, body.get("status") == "SEALED")
+
+        # [12b] Spoofed issuer prefix — actor contains registered issuer name
+        # but as a substring, not a prefix match. This tests the deny-by-default
+        # principle: only exact prefix matches are authorized.
+        spoof_contract = build_valid_contract(finding_id="find-e2e-spoof", actor="svc:vardhan-intelligence-spoofed:evil-01", org_id="org-vardhan-intelligence")
+        status, body, token = api_request("POST", f"/api/v1/organizations/org-vardhan-intelligence/security/validate", token, spoof_contract)
+        check("Spoofed issuer prefix rejected", 200, status)
+        check("Spoofed issuer status not SEALED", False, body.get("status") == "SEALED")
 
         print("\n[13] Independent Receipt Verification")
         rc, output = verify_receipt(receipt_json)
@@ -255,12 +264,12 @@ def main():
         token = body.get("token", token)
         status, body, token = api_request("GET", f"/api/v1/organizations/{org1_id}", token)
         check("Org persists after restart", 200, status)
-        status, body, token = api_request("POST", f"/api/v1/organizations/{org1_id}/security/validate", token, contract)
+        status, body, token = api_request("POST", f"/api/v1/organizations/org-vardhan-intelligence/security/validate", token, contract)
         check("Replay still rejected after restart", 200, status)
         check("Replay status REJECTED_REPLAY", "REJECTED_REPLAY", body.get("status", ""))
 
         print("\n[20] Malformed Request")
-        status, body, token = api_request("POST", f"/api/v1/organizations/{org1_id}/security/validate", token, {"contract": {"schema_version": "bad"}, "actor_workload_id": "test"})
+        status, body, token = api_request("POST", f"/api/v1/organizations/org-vardhan-intelligence/security/validate", token, {"contract": {"schema_version": "bad"}, "actor_workload_id": "test"})
         check("Malformed contract rejected", 200, status)
         check("Malformed contract status not SEALED", False, body.get("status") == "SEALED")
 

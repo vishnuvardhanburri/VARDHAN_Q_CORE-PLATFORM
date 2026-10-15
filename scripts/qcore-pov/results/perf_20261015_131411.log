@@ -1,0 +1,111 @@
+======================================================================
+  VARDHAN Q-CORE — Performance Benchmark Suite (PoV)
+======================================================================
+
+--- P1: Contract Sealing (Protected HTTP API Path) ---
+  1KB payload, concurrency=1, measured requests=100...
+    p50=4.477ms, p95=5.998ms, p99=6.671ms, success=100/100
+  1KB payload, concurrency=10, measured requests=100...
+    p50=15.566ms, p95=21.722ms, p99=24.777ms, success=100/100
+  1KB payload, concurrency=50, measured requests=500...
+    p50=101.459ms, p95=168.909ms, p99=194.989ms, success=500/500
+  1KB payload, concurrency=100, measured requests=1000...
+    p50=209.735ms, p95=344.067ms, p99=420.9ms, success=1000/1000
+  10KB payload, concurrency=1, measured requests=100...
+    p50=13.829ms, p95=15.093ms, p99=16.388ms, success=100/100
+  10KB payload, concurrency=10, measured requests=100...
+    p50=21.087ms, p95=27.333ms, p99=31.422ms, success=100/100
+  10KB payload, concurrency=50, measured requests=500...
+    p50=142.537ms, p95=229.554ms, p99=254.191ms, success=500/500
+  10KB payload, concurrency=100, measured requests=1000...
+    p50=194.243ms, p95=360.399ms, p99=420.703ms, success=1000/1000
+  100KB payload, concurrency=1, measured requests=100...
+    p50=14.001ms, p95=14.383ms, p99=14.733ms, success=100/100
+  100KB payload, concurrency=10, measured requests=100...
+    p50=21.22ms, p95=26.018ms, p99=27.366ms, success=100/100
+  100KB payload, concurrency=50, measured requests=500...
+    p50=103.959ms, p95=154.542ms, p99=173.194ms, success=500/500
+  100KB payload, concurrency=100, measured requests=1000...
+    p50=198.593ms, p95=341.212ms, p99=413.561ms, success=1000/1000
+
+--- P2: Receipt Verification (via vardhan-receipt verify) ---
+    p50=1.097ms, p95=1.232ms, p99=1.262ms, success=100/100
+    p50=5.263ms, p95=9.487ms, p99=10.503ms, success=100/100
+    p50=18.796ms, p95=38.722ms, p99=48.79ms, success=500/500
+    p50=37.162ms, p95=88.281ms, p99=117.174ms, success=1000/1000
+
+--- P3: Login Latency ---
+    p50=71.321ms, p95=76.936ms, p99=94.609ms, success=100/100
+    p50=139.751ms, p95=243.477ms, p99=330.703ms, success=100/100
+    p50=659.521ms, p95=1100.116ms, p99=1208.266ms, success=500/500
+    p50=1302.465ms, p95=2544.559ms, p99=2929.234ms, success=1000/1000
+
+--- P4: Audit Retrieval ---
+  concurrency=1, measured requests=100...
+    p50=0.262ms, p95=0.327ms, p99=0.336ms, success=100/100
+  concurrency=10, measured requests=100...
+    p50=2.471ms, p95=4.139ms, p99=4.701ms, success=100/100
+  concurrency=50, measured requests=500...
+    p50=10.21ms, p95=18.676ms, p99=22.916ms, success=500/500
+  concurrency=100, measured requests=1000...
+    p50=20.709ms, p95=36.024ms, p99=42.871ms, success=1000/1000
+
+--- P5: Full E2E Workflow ---
+  concurrency=1, measured requests=100...
+    p50=15.151ms, p95=15.65ms, p99=16.331ms, success=100/100
+  concurrency=10, measured requests=100...
+    p50=26.702ms, p95=38.539ms, p99=44.372ms, success=100/100
+  concurrency=50, measured requests=500...
+    p50=115.929ms, p95=176.551ms, p99=210.395ms, success=500/500
+
+--- P6: Baseline (Direct Subprocess — No HTTP API Overhead) ---
+  concurrency=1, measured requests=100...
+    p50=13.352ms, p95=13.747ms, p99=14.398ms, success=100/100, throughput=73.57 successful req/s, max active=1
+  concurrency=10, measured requests=100...
+    p50=19.62ms, p95=25.216ms, p99=27.135ms, success=100/100, throughput=448.05 successful req/s, max active=10
+  concurrency=50, measured requests=500...
+    p50=91.162ms, p95=211.069ms, p99=268.973ms, success=500/500, throughput=439.46 successful req/s, max active=50
+  concurrency=100, measured requests=1000...
+    p50=174.696ms, p95=463.583ms, p99=667.227ms, success=1000/1000, throughput=430.99 successful req/s, max active=100
+
+======================================================================
+  Performance Benchmark Summary
+======================================================================
+
+Operation                                 Conc   p50 (ms)   p95 (ms)   p99 (ms)    OK
+------------------------------------------------------------------------------------------
+contract_seal_1KB_c1                         1      4.477      5.998      6.671   100
+contract_seal_1KB_c10                       10     15.566     21.722     24.777   100
+contract_seal_1KB_c50                       50    101.459    168.909    194.989   500
+contract_seal_1KB_c100                     100    209.735    344.067    420.900  1000
+contract_seal_10KB_c1                        1     13.829     15.093     16.388   100
+contract_seal_10KB_c10                      10     21.087     27.333     31.422   100
+contract_seal_10KB_c50                      50    142.537    229.554    254.191   500
+contract_seal_10KB_c100                    100    194.243    360.399    420.703  1000
+contract_seal_100KB_c1                       1     14.001     14.383     14.733   100
+contract_seal_100KB_c10                     10     21.220     26.018     27.366   100
+contract_seal_100KB_c50                     50    103.959    154.542    173.194   500
+contract_seal_100KB_c100                   100    198.593    341.212    413.561  1000
+receipt_verify_c1                            1      1.097      1.232      1.262   100
+receipt_verify_c10                          10      5.263      9.487     10.503   100
+receipt_verify_c50                          50     18.796     38.722     48.790   500
+receipt_verify_c100                        100     37.162     88.281    117.174  1000
+login_c1                                     1     71.321     76.936     94.609   100
+login_c10                                   10    139.751    243.477    330.703   100
+login_c50                                   50    659.521   1100.116   1208.266   500
+login_c100                                 100   1302.465   2544.559   2929.234  1000
+audit_retrieve_c1                            1      0.262      0.327      0.336   100
+audit_retrieve_c10                          10      2.471      4.139      4.701   100
+audit_retrieve_c50                          50     10.210     18.676     22.916   500
+audit_retrieve_c100                        100     20.709     36.024     42.871  1000
+e2e_submit_verify_c1                         1     15.151     15.650     16.331   100
+e2e_submit_verify_c10                       10     26.702     38.539     44.372   100
+e2e_submit_verify_c50                       50    115.929    176.551    210.395   500
+baseline_direct_c1                           1     13.352     13.747     14.398   100
+baseline_direct_c10                         10     19.620     25.216     27.135   100
+baseline_direct_c50                         50     91.162    211.069    268.973   500
+baseline_direct_c100                       100    174.696    463.583    667.227  1000
+
+Results written to /tmp/perf_results.json
+
+PASS: all benchmark groups completed every measured request successfully.

@@ -47,12 +47,22 @@ pub fn record(
     controls: Vec<String>,
     previous_evidence_hash: Option<String>,
 ) -> Result<EvidenceRecord, EvidenceError> {
-    if organization_id.trim().is_empty() { return Err(EvidenceError::MissingOrganization); }
-    if source_ref.trim().is_empty() { return Err(EvidenceError::MissingSource); }
+    if organization_id.trim().is_empty() {
+        return Err(EvidenceError::MissingOrganization);
+    }
+    if source_ref.trim().is_empty() {
+        return Err(EvidenceError::MissingSource);
+    }
     let content_hash = hash_content(content);
-    if content_hash.len() != 64 { return Err(EvidenceError::InvalidHash); }
-    let collected_at_ms = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|_| EvidenceError::InvalidHash)?.as_millis() as u64;
-    let seed = format!("{organization_id}:{category}:{source_ref}:{content_hash}:{collected_at_ms}");
+    if content_hash.len() != 64 {
+        return Err(EvidenceError::InvalidHash);
+    }
+    let collected_at_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| EvidenceError::InvalidHash)?
+        .as_millis() as u64;
+    let seed =
+        format!("{organization_id}:{category}:{source_ref}:{content_hash}:{collected_at_ms}");
     let evidence_id = blake3::hash(seed.as_bytes()).to_hex().to_string();
     Ok(EvidenceRecord {
         evidence_id,
@@ -71,22 +81,41 @@ pub fn build_manifest(
     release_ref: &str,
     records: Vec<EvidenceRecord>,
 ) -> Result<EvidenceManifest, EvidenceError> {
-    if organization_id.trim().is_empty() { return Err(EvidenceError::MissingOrganization); }
-    if release_ref.trim().is_empty() { return Err(EvidenceError::MissingRelease); }
-    if records.iter().any(|record| record.organization_id != organization_id) {
+    if organization_id.trim().is_empty() {
         return Err(EvidenceError::MissingOrganization);
     }
-    let generated_at_ms = SystemTime::now().duration_since(UNIX_EPOCH).map_err(|_| EvidenceError::InvalidHash)?.as_millis() as u64;
-    let canonical = serde_json::to_vec(&(organization_id, release_ref, generated_at_ms, &records)).map_err(|_| EvidenceError::InvalidHash)?;
+    if release_ref.trim().is_empty() {
+        return Err(EvidenceError::MissingRelease);
+    }
+    if records
+        .iter()
+        .any(|record| record.organization_id != organization_id)
+    {
+        return Err(EvidenceError::MissingOrganization);
+    }
+    let generated_at_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|_| EvidenceError::InvalidHash)?
+        .as_millis() as u64;
+    let canonical = serde_json::to_vec(&(organization_id, release_ref, generated_at_ms, &records))
+        .map_err(|_| EvidenceError::InvalidHash)?;
     let manifest_hash = blake3::hash(&canonical).to_hex().to_string();
-    Ok(EvidenceManifest { organization_id: organization_id.to_owned(), release_ref: release_ref.to_owned(), generated_at_ms, records, manifest_hash })
+    Ok(EvidenceManifest {
+        organization_id: organization_id.to_owned(),
+        release_ref: release_ref.to_owned(),
+        generated_at_ms,
+        records,
+        manifest_hash,
+    })
 }
 
 pub fn verify_manifest(manifest: &EvidenceManifest) -> bool {
     if manifest.organization_id.trim().is_empty() || manifest.release_ref.trim().is_empty() {
         return false;
     }
-    if manifest.records.iter().any(|record| record.organization_id != manifest.organization_id || record.content_hash.len() != 64) {
+    if manifest.records.iter().any(|record| {
+        record.organization_id != manifest.organization_id || record.content_hash.len() != 64
+    }) {
         return false;
     }
     let canonical = match serde_json::to_vec(&(
@@ -107,7 +136,15 @@ mod tests {
 
     #[test]
     fn manifest_is_tenant_bound_and_tamper_evident() {
-        let first = record("org-a", "release", "commit:abc", b"artifact", vec!["SC-1".into()], None).unwrap();
+        let first = record(
+            "org-a",
+            "release",
+            "commit:abc",
+            b"artifact",
+            vec!["SC-1".into()],
+            None,
+        )
+        .unwrap();
         let manifest = build_manifest("org-a", "abc", vec![first]).unwrap();
         assert!(verify_manifest(&manifest));
 
@@ -122,8 +159,27 @@ mod tests {
 
     #[test]
     fn cross_tenant_records_are_rejected() {
-        let a = record("org-a", "access_review", "review:1", b"review", vec!["AC-2".into()], None).unwrap();
-        let b = record("org-b", "policy_history", "policy:1", b"policy", vec!["CM-3".into()], None).unwrap();
-        assert!(matches!(build_manifest("org-a", "release", vec![a, b]), Err(EvidenceError::MissingOrganization)));
+        let a = record(
+            "org-a",
+            "access_review",
+            "review:1",
+            b"review",
+            vec!["AC-2".into()],
+            None,
+        )
+        .unwrap();
+        let b = record(
+            "org-b",
+            "policy_history",
+            "policy:1",
+            b"policy",
+            vec!["CM-3".into()],
+            None,
+        )
+        .unwrap();
+        assert!(matches!(
+            build_manifest("org-a", "release", vec![a, b]),
+            Err(EvidenceError::MissingOrganization)
+        ));
     }
 }

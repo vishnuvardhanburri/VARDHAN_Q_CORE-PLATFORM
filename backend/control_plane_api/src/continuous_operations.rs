@@ -12,7 +12,12 @@ use crate::{
     ControlPlaneState,
 };
 use auth_service::AuthenticatedUser;
-use axum::{extract::{Path, State}, http::StatusCode, response::{IntoResponse, Response}, Extension, Json};
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Extension, Json,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sled::Db;
@@ -291,7 +296,8 @@ impl ContinuousOperationsStore {
         if input.title.trim().is_empty() {
             return Err(ContinuousOperationsError::EmptyTitle);
         }
-        if input.evidence_refs.is_empty() || input.evidence_refs.iter().any(|v| v.trim().is_empty()) {
+        if input.evidence_refs.is_empty() || input.evidence_refs.iter().any(|v| v.trim().is_empty())
+        {
             return Err(ContinuousOperationsError::MissingEvidence);
         }
         let alert_id = format!(
@@ -333,7 +339,10 @@ impl ContinuousOperationsStore {
         Ok(alert)
     }
 
-    pub fn alerts(&self, organization_id: &str) -> Result<Vec<SecurityAlert>, ContinuousOperationsError> {
+    pub fn alerts(
+        &self,
+        organization_id: &str,
+    ) -> Result<Vec<SecurityAlert>, ContinuousOperationsError> {
         validate_org(organization_id)?;
         let prefix = format!(
             "{}{}:",
@@ -427,15 +436,19 @@ impl ContinuousOperationsStore {
         validate_org(organization_id)?;
         validate_policy_identity(&input.policy_id, &input.policy_version)?;
         let observed_hash = canonical_hash(&input.policy);
-        let baseline = self.db.get(baseline_key(organization_id, input.policy_id.trim()))?;
+        let baseline = self
+            .db
+            .get(baseline_key(organization_id, input.policy_id.trim()))?;
         let baseline = baseline
             .map(|value| serde_json::from_slice::<PolicyBaseline>(&value))
             .transpose()
             .map_err(|e| ContinuousOperationsError::Serialization(e.to_string()))?;
         let (status, baseline_version, baseline_hash) = match baseline {
-            Some(ref b) if b.policy_hash == observed_hash => {
-                ("in_sync".to_owned(), Some(b.policy_version.clone()), Some(b.policy_hash.clone()))
-            }
+            Some(ref b) if b.policy_hash == observed_hash => (
+                "in_sync".to_owned(),
+                Some(b.policy_version.clone()),
+                Some(b.policy_hash.clone()),
+            ),
             Some(ref b) => (
                 "drifted".to_owned(),
                 Some(b.policy_version.clone()),
@@ -481,7 +494,10 @@ impl ContinuousOperationsStore {
         Ok(record)
     }
 
-    pub fn policy_drift(&self, organization_id: &str) -> Result<Vec<PolicyDriftRecord>, ContinuousOperationsError> {
+    pub fn policy_drift(
+        &self,
+        organization_id: &str,
+    ) -> Result<Vec<PolicyDriftRecord>, ContinuousOperationsError> {
         validate_org(organization_id)?;
         let prefix = format!(
             "{}{}:",
@@ -512,7 +528,9 @@ impl ContinuousOperationsStore {
         if action != "ACKNOWLEDGE_INCIDENT" && action != "REVALIDATE_POLICY" {
             return Err(ContinuousOperationsError::UnsupportedRemediation);
         }
-        if action == "ACKNOWLEDGE_INCIDENT" && input.incident_id.as_deref().unwrap_or("").trim().is_empty() {
+        if action == "ACKNOWLEDGE_INCIDENT"
+            && input.incident_id.as_deref().unwrap_or("").trim().is_empty()
+        {
             return Err(ContinuousOperationsError::MissingIncident);
         }
         if input.rationale.trim().is_empty() {
@@ -569,7 +587,10 @@ impl ContinuousOperationsStore {
             })
     }
 
-    pub fn remediations(&self, organization_id: &str) -> Result<Vec<RemediationAction>, ContinuousOperationsError> {
+    pub fn remediations(
+        &self,
+        organization_id: &str,
+    ) -> Result<Vec<RemediationAction>, ContinuousOperationsError> {
         validate_org(organization_id)?;
         let prefix = format!(
             "{}{}:",
@@ -610,7 +631,7 @@ impl ContinuousOperationsStore {
                     return Err(ContinuousOperationsError::SelfApprovalForbidden);
                 }
                 item.approved_by = Some(actor.to_owned());
-            },
+            }
             ("proposed", "rejected") => {}
             ("approved", "completed") => {}
             ("approved", "failed") => {}
@@ -657,7 +678,8 @@ pub async fn operations(
         Err(error) => (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(json!({"status":"unavailable","error":error.to_string()})),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -697,8 +719,13 @@ pub async fn alerts(
             "items": items,
             "total": items.len(),
             "data_state": if items.is_empty() { "not_populated" } else { "populated" },
-        })).into_response(),
-        Err(error) => (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+        }))
+        .into_response(),
+        Err(error) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"status":"unavailable","error":error.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -712,8 +739,16 @@ pub async fn ingest_monitoring_signal(
         return denied();
     }
     match ContinuousOperationsStore::new(state.db.clone()).record_monitoring_signal(&id, &input) {
-        Ok(alert) => (StatusCode::ACCEPTED, Json(json!({"status":"observed","alert":alert}))).into_response(),
-        Err(error) => (StatusCode::BAD_REQUEST, Json(json!({"status":"rejected","error":error.to_string()}))).into_response(),
+        Ok(alert) => (
+            StatusCode::ACCEPTED,
+            Json(json!({"status":"observed","alert":alert})),
+        )
+            .into_response(),
+        Err(error) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"status":"rejected","error":error.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -726,11 +761,22 @@ pub async fn transition_alert(
     if !can_operate(&state, &id, &user) {
         return denied();
     }
-    match ContinuousOperationsStore::new(state.db.clone())
-        .transition_alert(&id, &alert_id, &input.status, now_ms())
-    {
-        Ok(alert) => (StatusCode::OK, Json(json!({"status":"updated","alert":alert}))).into_response(),
-        Err(error) => (StatusCode::BAD_REQUEST, Json(json!({"status":"rejected","error":error.to_string()}))).into_response(),
+    match ContinuousOperationsStore::new(state.db.clone()).transition_alert(
+        &id,
+        &alert_id,
+        &input.status,
+        now_ms(),
+    ) {
+        Ok(alert) => (
+            StatusCode::OK,
+            Json(json!({"status":"updated","alert":alert})),
+        )
+            .into_response(),
+        Err(error) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"status":"rejected","error":error.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -743,11 +789,22 @@ pub async fn baseline_policy(
     if !can_operate(&state, &id, &user) {
         return denied();
     }
-    match ContinuousOperationsStore::new(state.db.clone())
-        .register_policy_baseline(&id, &input, &user.username, now_ms())
-    {
-        Ok(baseline) => (StatusCode::CREATED, Json(json!({"status":"registered","baseline":baseline}))).into_response(),
-        Err(error) => (StatusCode::BAD_REQUEST, Json(json!({"status":"rejected","error":error.to_string()}))).into_response(),
+    match ContinuousOperationsStore::new(state.db.clone()).register_policy_baseline(
+        &id,
+        &input,
+        &user.username,
+        now_ms(),
+    ) {
+        Ok(baseline) => (
+            StatusCode::CREATED,
+            Json(json!({"status":"registered","baseline":baseline})),
+        )
+            .into_response(),
+        Err(error) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"status":"rejected","error":error.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -778,7 +835,10 @@ pub async fn observe_policy(
                         observation.baseline_hash.as_deref().unwrap_or("unknown"),
                     ),
                     evidence_refs: vec![
-                        format!("baseline:{}", observation.baseline_hash.as_deref().unwrap_or("unknown")),
+                        format!(
+                            "baseline:{}",
+                            observation.baseline_hash.as_deref().unwrap_or("unknown")
+                        ),
                         format!("observed:{}", observation.observed_hash),
                     ],
                     correlation_id: Some(observation.drift_id.clone()),
@@ -788,7 +848,8 @@ pub async fn observe_policy(
                     return (
                         StatusCode::SERVICE_UNAVAILABLE,
                         Json(json!({"status":"unavailable","error":error.to_string()})),
-                    ).into_response();
+                    )
+                        .into_response();
                 }
                 alert_created = true;
                 remediation = match store.propose_remediation(
@@ -826,12 +887,14 @@ pub async fn observe_policy(
                     },
                     "remediation": remediation
                 })),
-            ).into_response()
+            )
+                .into_response()
         }
         Err(error) => (
             StatusCode::BAD_REQUEST,
             Json(json!({"status":"rejected","error":error.to_string()})),
-        ).into_response(),
+        )
+            .into_response(),
     }
 }
 
@@ -849,8 +912,13 @@ pub async fn policy_drift(
             "items": items,
             "total": items.len(),
             "data_state": if items.is_empty() { "not_populated" } else { "populated" },
-        })).into_response(),
-        Err(error) => (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+        }))
+        .into_response(),
+        Err(error) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"status":"unavailable","error":error.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -868,8 +936,13 @@ pub async fn remediations(
             "items": items,
             "total": items.len(),
             "data_state": if items.is_empty() { "not_populated" } else { "populated" },
-        })).into_response(),
-        Err(error) => (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+        }))
+        .into_response(),
+        Err(error) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"status":"unavailable","error":error.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -882,11 +955,22 @@ pub async fn propose_remediation(
     if !can_operate(&state, &id, &user) {
         return denied();
     }
-    match ContinuousOperationsStore::new(state.db.clone())
-        .propose_remediation(&id, &input, &user.username, now_ms())
-    {
-        Ok(remediation) => (StatusCode::CREATED, Json(json!({"status":"proposed","remediation":remediation}))).into_response(),
-        Err(error) => (StatusCode::BAD_REQUEST, Json(json!({"status":"rejected","error":error.to_string()}))).into_response(),
+    match ContinuousOperationsStore::new(state.db.clone()).propose_remediation(
+        &id,
+        &input,
+        &user.username,
+        now_ms(),
+    ) {
+        Ok(remediation) => (
+            StatusCode::CREATED,
+            Json(json!({"status":"proposed","remediation":remediation})),
+        )
+            .into_response(),
+        Err(error) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"status":"rejected","error":error.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -906,8 +990,16 @@ pub async fn transition_remediation(
         &user.username,
         now_ms(),
     ) {
-        Ok(remediation) => (StatusCode::OK, Json(json!({"status":"updated","remediation":remediation}))).into_response(),
-        Err(error) => (StatusCode::BAD_REQUEST, Json(json!({"status":"rejected","error":error.to_string()}))).into_response(),
+        Ok(remediation) => (
+            StatusCode::OK,
+            Json(json!({"status":"updated","remediation":remediation})),
+        )
+            .into_response(),
+        Err(error) => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"status":"rejected","error":error.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -921,7 +1013,11 @@ pub async fn crypto_posture(
     }
     match build_crypto_posture(&state, &id) {
         Ok(posture) => Json(posture).into_response(),
-        Err(error) => (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+        Err(error) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({"status":"unavailable","error":error.to_string()})),
+        )
+            .into_response(),
     }
 }
 
@@ -936,15 +1032,33 @@ pub async fn audit(
     let operations = ContinuousOperationsStore::new(state.db.clone());
     let alerts = match operations.alerts(&id) {
         Ok(value) => value,
-        Err(error) => return (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+        Err(error) => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({"status":"unavailable","error":error.to_string()})),
+            )
+                .into_response()
+        }
     };
     let drift = match operations.policy_drift(&id) {
         Ok(value) => value,
-        Err(error) => return (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+        Err(error) => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({"status":"unavailable","error":error.to_string()})),
+            )
+                .into_response()
+        }
     };
     let remediations = match operations.remediations(&id) {
         Ok(value) => value,
-        Err(error) => return (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"status":"unavailable","error":error.to_string()}))).into_response(),
+        Err(error) => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({"status":"unavailable","error":error.to_string()})),
+            )
+                .into_response()
+        }
     };
     Json(json!({
         "organization_id": id,
@@ -1043,22 +1157,33 @@ pub fn build_snapshot(
             total_observations: drift.len(),
             drifted: drift.iter().filter(|d| d.status == "drifted").count(),
             in_sync: drift.iter().filter(|d| d.status == "in_sync").count(),
-            baseline_missing: drift.iter().filter(|d| d.status == "baseline_missing").count(),
+            baseline_missing: drift
+                .iter()
+                .filter(|d| d.status == "baseline_missing")
+                .count(),
         },
         crypto_posture: crypto,
         aer_kep_q: aer,
         incidents: IncidentSummary {
             total: incidents.len(),
             open: open_incidents,
-            acknowledged: incidents.iter().filter(|i| i.status == "acknowledged").count(),
+            acknowledged: incidents
+                .iter()
+                .filter(|i| i.status == "acknowledged")
+                .count(),
             resolved: incidents.iter().filter(|i| i.status == "resolved").count(),
         },
     })
 }
 
-fn build_crypto_posture(state: &ControlPlaneState, organization_id: &str) -> Result<CryptoPosture, ContinuousOperationsError> {
+fn build_crypto_posture(
+    state: &ControlPlaneState,
+    organization_id: &str,
+) -> Result<CryptoPosture, ContinuousOperationsError> {
     let registry = ReceiptKeyRegistry::new(state.db.clone());
-    let keys = registry.list(organization_id).map_err(|e| ContinuousOperationsError::KeyRegistry(e.to_string()))?;
+    let keys = registry
+        .list(organization_id)
+        .map_err(|e| ContinuousOperationsError::KeyRegistry(e.to_string()))?;
     let mut issuers = Vec::with_capacity(keys.len());
     let mut active = 0;
     let mut rotating = 0;
@@ -1084,13 +1209,45 @@ fn build_crypto_posture(state: &ControlPlaneState, organization_id: &str) -> Res
     let receipts = QCoreTelemetryStore::new(state.db.clone())
         .receipts(organization_id)
         .map_err(|e| ContinuousOperationsError::Telemetry(e.to_string()))?;
-    let verified = receipts.iter().filter(|r| matches!(r.verification, crate::qcore_telemetry::ReceiptVerificationState::Verified)).count();
-    let pending = receipts.iter().filter(|r| matches!(r.verification, crate::qcore_telemetry::ReceiptVerificationState::PendingVerification)).count();
-    let rejected = receipts.iter().filter(|r| matches!(r.verification, crate::qcore_telemetry::ReceiptVerificationState::Rejected)).count();
+    let verified = receipts
+        .iter()
+        .filter(|r| {
+            matches!(
+                r.verification,
+                crate::qcore_telemetry::ReceiptVerificationState::Verified
+            )
+        })
+        .count();
+    let pending = receipts
+        .iter()
+        .filter(|r| {
+            matches!(
+                r.verification,
+                crate::qcore_telemetry::ReceiptVerificationState::PendingVerification
+            )
+        })
+        .count();
+    let rejected = receipts
+        .iter()
+        .filter(|r| {
+            matches!(
+                r.verification,
+                crate::qcore_telemetry::ReceiptVerificationState::Rejected
+            )
+        })
+        .count();
     Ok(CryptoPosture {
-        status: if keys.is_empty() && receipts.is_empty() { "not_populated".into() } else { "available".into() },
+        status: if keys.is_empty() && receipts.is_empty() {
+            "not_populated".into()
+        } else {
+            "available".into()
+        },
         key_registry: KeyRegistryPosture {
-            status: if keys.is_empty() { "not_populated".into() } else { "available".into() },
+            status: if keys.is_empty() {
+                "not_populated".into()
+            } else {
+                "available".into()
+            },
             total: keys.len(),
             active,
             rotating,
@@ -1100,7 +1257,11 @@ fn build_crypto_posture(state: &ControlPlaneState, organization_id: &str) -> Res
             issuers,
         },
         receipt_verification: ReceiptVerificationPosture {
-            status: if receipts.is_empty() { "not_populated".into() } else { "available".into() },
+            status: if receipts.is_empty() {
+                "not_populated".into()
+            } else {
+                "available".into()
+            },
             total_receipts: receipts.len(),
             verified,
             pending_verification: pending,
@@ -1163,7 +1324,10 @@ fn validate_org(organization_id: &str) -> Result<(), ContinuousOperationsError> 
 }
 
 fn validate_source(source: &str) -> Result<(), ContinuousOperationsError> {
-    if matches!(source.trim().to_ascii_lowercase().as_str(), "intelligence" | "q_core" | "monitoring" | "operator" | "system") {
+    if matches!(
+        source.trim().to_ascii_lowercase().as_str(),
+        "intelligence" | "q_core" | "monitoring" | "operator" | "system"
+    ) {
         Ok(())
     } else {
         Err(ContinuousOperationsError::InvalidSource)
@@ -1172,14 +1336,20 @@ fn validate_source(source: &str) -> Result<(), ContinuousOperationsError> {
 
 fn normalize_severity(value: &str) -> Result<String, ContinuousOperationsError> {
     let value = value.trim().to_ascii_lowercase();
-    if matches!(value.as_str(), "critical" | "high" | "medium" | "low" | "info") {
+    if matches!(
+        value.as_str(),
+        "critical" | "high" | "medium" | "low" | "info"
+    ) {
         Ok(value)
     } else {
         Err(ContinuousOperationsError::InvalidSeverity)
     }
 }
 
-fn validate_policy_identity(policy_id: &str, version: &str) -> Result<(), ContinuousOperationsError> {
+fn validate_policy_identity(
+    policy_id: &str,
+    version: &str,
+) -> Result<(), ContinuousOperationsError> {
     if policy_id.trim().is_empty() || version.trim().is_empty() {
         Err(ContinuousOperationsError::InvalidPolicy)
     } else {
@@ -1256,12 +1426,19 @@ fn now_ms() -> u64 {
 }
 
 fn denied() -> Response {
-    (StatusCode::FORBIDDEN, Json(json!({"error":"Organization access denied."}))).into_response()
+    (
+        StatusCode::FORBIDDEN,
+        Json(json!({"error":"Organization access denied."})),
+    )
+        .into_response()
 }
 
 fn can_operate(state: &ControlPlaneState, org_id: &str, user: &AuthenticatedUser) -> bool {
     matches!(
-        crate::member_role(&state.db, org_id, &user.username).ok().flatten().as_deref(),
+        crate::member_role(&state.db, org_id, &user.username)
+            .ok()
+            .flatten()
+            .as_deref(),
         Some("owner" | "security_admin" | "operator")
     )
 }
@@ -1299,7 +1476,11 @@ mod tests {
         let second = store.record_monitoring_signal("org-a", &signal()).unwrap();
         assert_eq!(first, second);
         assert_eq!(store.alerts("org-a").unwrap().len(), 1);
-        assert!(store.record_monitoring_signal("org-b", &signal()).unwrap().alert_id.starts_with("ALR-"));
+        assert!(store
+            .record_monitoring_signal("org-b", &signal())
+            .unwrap()
+            .alert_id
+            .starts_with("ALR-"));
         assert_eq!(store.alerts("org-a").unwrap().len(), 1);
         assert_eq!(store.alerts("org-b").unwrap().len(), 1);
     }
@@ -1308,51 +1489,59 @@ mod tests {
     fn policy_observation_detects_drift_without_fabricating_a_baseline() {
         let db = db();
         let store = ContinuousOperationsStore::new(db);
-        let missing = store.policy_observation(
-            "org-a",
-            &PolicyObservationInput {
-                policy_id: "p1".into(),
-                policy_version: "1".into(),
-                policy: json!({"threshold": 10}),
-                observed_at_ms: 1,
-            },
-            "operator",
-        ).unwrap();
+        let missing = store
+            .policy_observation(
+                "org-a",
+                &PolicyObservationInput {
+                    policy_id: "p1".into(),
+                    policy_version: "1".into(),
+                    policy: json!({"threshold": 10}),
+                    observed_at_ms: 1,
+                },
+                "operator",
+            )
+            .unwrap();
         assert_eq!(missing.status, "baseline_missing");
 
-        let baseline = store.register_policy_baseline(
-            "org-a",
-            &PolicyBaselineInput {
-                policy_id: "p2".into(),
-                policy_version: "1".into(),
-                policy: json!({"enabled": true, "threshold": 10}),
-            },
-            "operator",
-            2,
-        ).unwrap();
-        let synced = store.policy_observation(
-            "org-a",
-            &PolicyObservationInput {
-                policy_id: "p2".into(),
-                policy_version: "1".into(),
-                policy: json!({"enabled": true, "threshold": 10}),
-                observed_at_ms: 3,
-            },
-            "operator",
-        ).unwrap();
+        let baseline = store
+            .register_policy_baseline(
+                "org-a",
+                &PolicyBaselineInput {
+                    policy_id: "p2".into(),
+                    policy_version: "1".into(),
+                    policy: json!({"enabled": true, "threshold": 10}),
+                },
+                "operator",
+                2,
+            )
+            .unwrap();
+        let synced = store
+            .policy_observation(
+                "org-a",
+                &PolicyObservationInput {
+                    policy_id: "p2".into(),
+                    policy_version: "1".into(),
+                    policy: json!({"enabled": true, "threshold": 10}),
+                    observed_at_ms: 3,
+                },
+                "operator",
+            )
+            .unwrap();
         assert_eq!(synced.status, "in_sync");
         assert_eq!(synced.baseline_hash, Some(baseline.policy_hash));
 
-        let drifted = store.policy_observation(
-            "org-a",
-            &PolicyObservationInput {
-                policy_id: "p2".into(),
-                policy_version: "2".into(),
-                policy: json!({"enabled": false, "threshold": 10}),
-                observed_at_ms: 4,
-            },
-            "operator",
-        ).unwrap();
+        let drifted = store
+            .policy_observation(
+                "org-a",
+                &PolicyObservationInput {
+                    policy_id: "p2".into(),
+                    policy_version: "2".into(),
+                    policy: json!({"enabled": false, "threshold": 10}),
+                    observed_at_ms: 4,
+                },
+                "operator",
+            )
+            .unwrap();
         assert_eq!(drifted.status, "drifted");
     }
 
@@ -1360,22 +1549,42 @@ mod tests {
     fn remediation_requires_approval_and_has_no_backward_transition() {
         let db = db();
         let store = ContinuousOperationsStore::new(db);
-        let proposed = store.propose_remediation(
-            "org-a",
-            &RemediationInput {
-                action: "REVALIDATE_POLICY".into(),
-                finding_id: Some("f-1".into()),
-                incident_id: None,
-                rationale: "Policy observation is stale.".into(),
-            },
-            "operator",
-            1,
-        ).unwrap();
+        let proposed = store
+            .propose_remediation(
+                "org-a",
+                &RemediationInput {
+                    action: "REVALIDATE_POLICY".into(),
+                    finding_id: Some("f-1".into()),
+                    incident_id: None,
+                    rationale: "Policy observation is stale.".into(),
+                },
+                "operator",
+                1,
+            )
+            .unwrap();
         assert_eq!(proposed.status, "proposed");
-        let approved = store.transition_remediation("org-a", &proposed.remediation_id, "approved", "security_admin", 2).unwrap();
+        let approved = store
+            .transition_remediation(
+                "org-a",
+                &proposed.remediation_id,
+                "approved",
+                "security_admin",
+                2,
+            )
+            .unwrap();
         assert_eq!(approved.status, "approved");
-        assert!(store.transition_remediation("org-a", &proposed.remediation_id, "proposed", "operator", 3).is_err());
-        let completed = store.transition_remediation("org-a", &proposed.remediation_id, "completed", "security_admin", 4).unwrap();
+        assert!(store
+            .transition_remediation("org-a", &proposed.remediation_id, "proposed", "operator", 3)
+            .is_err());
+        let completed = store
+            .transition_remediation(
+                "org-a",
+                &proposed.remediation_id,
+                "completed",
+                "security_admin",
+                4,
+            )
+            .unwrap();
         assert_eq!(completed.status, "completed");
     }
 
@@ -1398,13 +1607,7 @@ mod tests {
             .unwrap();
 
         assert!(store
-            .transition_remediation(
-                "org-a",
-                &proposed.remediation_id,
-                "approved",
-                "operator",
-                2,
-            )
+            .transition_remediation("org-a", &proposed.remediation_id, "approved", "operator", 2,)
             .is_err());
 
         let approved = store
@@ -1423,22 +1626,24 @@ mod tests {
     fn acknowledge_incident_remediation_moves_incident_to_acknowledged() {
         let db = db();
         let telemetry = QCoreTelemetryStore::new(db.clone());
-        telemetry.record_receipt(&QCoreReceiptTelemetry {
-            organization_id: "org-a".into(),
-            receipt_id: "VQR-1".into(),
-            transaction_id: "tx-1".into(),
-            tenant_id: "org-a".into(),
-            status: "SEALED".into(),
-            decision: "AUTHORIZED".into(),
-            outcome_code: "SUCCESS".into(),
-            policy_id: "p1".into(),
-            policy_version: "1".into(),
-            ledger_commit_index: 1,
-            timestamp_ms: 1,
-            payload_hash: "hash".into(),
-            issuer_key_fingerprint: "fp".into(),
-            verification: ReceiptVerificationState::Verified,
-        }).unwrap();
+        telemetry
+            .record_receipt(&QCoreReceiptTelemetry {
+                organization_id: "org-a".into(),
+                receipt_id: "VQR-1".into(),
+                transaction_id: "tx-1".into(),
+                tenant_id: "org-a".into(),
+                status: "SEALED".into(),
+                decision: "AUTHORIZED".into(),
+                outcome_code: "SUCCESS".into(),
+                policy_id: "p1".into(),
+                policy_version: "1".into(),
+                ledger_commit_index: 1,
+                timestamp_ms: 1,
+                payload_hash: "hash".into(),
+                issuer_key_fingerprint: "fp".into(),
+                verification: ReceiptVerificationState::Verified,
+            })
+            .unwrap();
         let security = SecurityOperationsStore::new(db.clone());
         let finding = crate::security_operations::SecurityFindingInput {
             finding_id: "f-1".into(),
@@ -1453,21 +1658,44 @@ mod tests {
         security.record_finding("org-a", &finding).unwrap();
         let incident_id = security.incidents("org-a").unwrap()[0].incident_id.clone();
         let store = ContinuousOperationsStore::new(db);
-        let remediation = store.propose_remediation(
-            "org-a",
-            &RemediationInput {
-                action: "ACKNOWLEDGE_INCIDENT".into(),
-                finding_id: Some("f-1".into()),
-                incident_id: Some(incident_id.clone()),
-                rationale: "Operator-approved acknowledgement.".into(),
-            },
-            "operator",
-            3,
-        ).unwrap();
-        store.transition_remediation("org-a", &remediation.remediation_id, "approved", "security_admin", 4).unwrap();
-        let completed = store.transition_remediation("org-a", &remediation.remediation_id, "completed", "security_admin", 5).unwrap();
+        let remediation = store
+            .propose_remediation(
+                "org-a",
+                &RemediationInput {
+                    action: "ACKNOWLEDGE_INCIDENT".into(),
+                    finding_id: Some("f-1".into()),
+                    incident_id: Some(incident_id.clone()),
+                    rationale: "Operator-approved acknowledgement.".into(),
+                },
+                "operator",
+                3,
+            )
+            .unwrap();
+        store
+            .transition_remediation(
+                "org-a",
+                &remediation.remediation_id,
+                "approved",
+                "security_admin",
+                4,
+            )
+            .unwrap();
+        let completed = store
+            .transition_remediation(
+                "org-a",
+                &remediation.remediation_id,
+                "completed",
+                "security_admin",
+                5,
+            )
+            .unwrap();
         assert_eq!(completed.status, "completed");
-        let incident = security.incidents("org-a").unwrap().into_iter().find(|i: &SecurityIncident| i.incident_id == incident_id).unwrap();
+        let incident = security
+            .incidents("org-a")
+            .unwrap()
+            .into_iter()
+            .find(|i: &SecurityIncident| i.incident_id == incident_id)
+            .unwrap();
         assert_eq!(incident.status, "acknowledged");
     }
 }

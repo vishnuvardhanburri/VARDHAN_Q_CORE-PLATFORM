@@ -200,7 +200,11 @@ impl CredentialStore {
     }
 
     /// Revoke an API key by ID.
-    pub fn revoke_api_key(&self, id: &str, caller_username: &str) -> Result<ApiKeyView, ApiKeyError> {
+    pub fn revoke_api_key(
+        &self,
+        id: &str,
+        caller_username: &str,
+    ) -> Result<ApiKeyView, ApiKeyError> {
         let key = Self::apikey_key(id);
         let raw = self
             .db

@@ -41,23 +41,41 @@ async fn spawn_test_server() -> (
     let app = auth_router(state.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
-    tokio::spawn(async move { axum::serve(listener, app).await.unwrap(); });
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
     (format!("http://{}", addr), state, dir, Some(ledger_file))
 }
 
 #[tokio::test]
 async fn test_login_success_and_session_info() {
     let (base_url, _state, _dir, _ledger) = spawn_test_server().await;
-    _state.credentials.set_phc_sync("alice", &auth_service::credentials::hash_password("password123").unwrap()).unwrap();
+    _state
+        .credentials
+        .set_phc_sync(
+            "alice",
+            &auth_service::credentials::hash_password("password123").unwrap(),
+        )
+        .unwrap();
 
     let client = reqwest::Client::new();
-    let login_res = client.post(format!("{}/api/v1/auth/login", base_url)).json(&serde_json::json!({"username":"admin","password":"super_secret_admin_pass_123"})).send().await.unwrap();
+    let login_res = client
+        .post(format!("{}/api/v1/auth/login", base_url))
+        .json(&serde_json::json!({"username":"admin","password":"super_secret_admin_pass_123"}))
+        .send()
+        .await
+        .unwrap();
     assert_eq!(login_res.status(), reqwest::StatusCode::OK);
     let body: serde_json::Value = login_res.json().await.unwrap();
     let token = body["token"].as_str().expect("token must be a string");
     assert_eq!(token.len(), 64);
     assert_eq!(body["expires_in"], 28800);
-    let session_res = client.get(format!("{}/api/v1/auth/session", base_url)).header("Authorization", format!("Bearer {}", token)).send().await.unwrap();
+    let session_res = client
+        .get(format!("{}/api/v1/auth/session", base_url))
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await
+        .unwrap();
     assert_eq!(session_res.status(), reqwest::StatusCode::OK);
     let session_body: serde_json::Value = session_res.json().await.unwrap();
     assert_eq!(session_body["username"], "admin");
@@ -67,10 +85,21 @@ async fn test_login_success_and_session_info() {
 #[tokio::test]
 async fn test_login_wrong_password_rejected() {
     let (base_url, _state, _dir, _ledger) = spawn_test_server().await;
-    _state.credentials.set_phc_sync("alice", &auth_service::credentials::hash_password("password123").unwrap()).unwrap();
+    _state
+        .credentials
+        .set_phc_sync(
+            "alice",
+            &auth_service::credentials::hash_password("password123").unwrap(),
+        )
+        .unwrap();
 
     let client = reqwest::Client::new();
-    let res = client.post(format!("{}/api/v1/auth/login", base_url)).json(&serde_json::json!({"username":"admin","password":"wrong_password_123"})).send().await.unwrap();
+    let res = client
+        .post(format!("{}/api/v1/auth/login", base_url))
+        .json(&serde_json::json!({"username":"admin","password":"wrong_password_123"}))
+        .send()
+        .await
+        .unwrap();
     assert_eq!(res.status(), reqwest::StatusCode::UNAUTHORIZED);
     let body: serde_json::Value = res.json().await.unwrap();
     assert_eq!(body["error"], "Invalid credentials");
@@ -79,10 +108,21 @@ async fn test_login_wrong_password_rejected() {
 #[tokio::test]
 async fn test_login_unknown_user_rejected() {
     let (base_url, _state, _dir, _ledger) = spawn_test_server().await;
-    _state.credentials.set_phc_sync("alice", &auth_service::credentials::hash_password("password123").unwrap()).unwrap();
+    _state
+        .credentials
+        .set_phc_sync(
+            "alice",
+            &auth_service::credentials::hash_password("password123").unwrap(),
+        )
+        .unwrap();
 
     let client = reqwest::Client::new();
-    let res = client.post(format!("{}/api/v1/auth/login", base_url)).json(&serde_json::json!({"username":"non_existent_user","password":"any_password_123"})).send().await.unwrap();
+    let res = client
+        .post(format!("{}/api/v1/auth/login", base_url))
+        .json(&serde_json::json!({"username":"non_existent_user","password":"any_password_123"}))
+        .send()
+        .await
+        .unwrap();
     assert_eq!(res.status(), reqwest::StatusCode::UNAUTHORIZED);
     let body: serde_json::Value = res.json().await.unwrap();
     assert_eq!(body["error"], "Invalid credentials");
@@ -91,51 +131,117 @@ async fn test_login_unknown_user_rejected() {
 #[tokio::test]
 async fn test_rate_limiter_triggers_429_after_10_failures() {
     let (base_url, _state, _dir, _ledger) = spawn_test_server().await;
-    _state.credentials.set_phc_sync("alice", &auth_service::credentials::hash_password("password123").unwrap()).unwrap();
+    _state
+        .credentials
+        .set_phc_sync(
+            "alice",
+            &auth_service::credentials::hash_password("password123").unwrap(),
+        )
+        .unwrap();
 
     let client = reqwest::Client::new();
     let attacking_ip = "198.51.100.42";
     for _ in 0..10 {
-        let res = client.post(format!("{}/api/v1/auth/login", base_url)).header("X-Forwarded-For", attacking_ip).json(&serde_json::json!({"username":"admin","password":"bad_password"})).send().await.unwrap();
+        let res = client
+            .post(format!("{}/api/v1/auth/login", base_url))
+            .header("X-Forwarded-For", attacking_ip)
+            .json(&serde_json::json!({"username":"admin","password":"bad_password"}))
+            .send()
+            .await
+            .unwrap();
         assert_eq!(res.status(), reqwest::StatusCode::UNAUTHORIZED);
     }
-    let blocked_res = client.post(format!("{}/api/v1/auth/login", base_url)).header("X-Forwarded-For", attacking_ip).json(&serde_json::json!({"username":"admin","password":"super_secret_admin_pass_123"})).send().await.unwrap();
+    let blocked_res = client
+        .post(format!("{}/api/v1/auth/login", base_url))
+        .header("X-Forwarded-For", attacking_ip)
+        .json(&serde_json::json!({"username":"admin","password":"super_secret_admin_pass_123"}))
+        .send()
+        .await
+        .unwrap();
     assert_eq!(blocked_res.status(), reqwest::StatusCode::TOO_MANY_REQUESTS);
     let body: serde_json::Value = blocked_res.json().await.unwrap();
     assert_eq!(body["error"], "Too many attempts. Try again later.");
-    let innocent_res = client.post(format!("{}/api/v1/auth/login", base_url)).header("X-Forwarded-For", "198.51.100.43").json(&serde_json::json!({"username":"admin","password":"super_secret_admin_pass_123"})).send().await.unwrap();
+    let innocent_res = client
+        .post(format!("{}/api/v1/auth/login", base_url))
+        .header("X-Forwarded-For", "198.51.100.43")
+        .json(&serde_json::json!({"username":"admin","password":"super_secret_admin_pass_123"}))
+        .send()
+        .await
+        .unwrap();
     assert_eq!(innocent_res.status(), reqwest::StatusCode::OK);
 }
 
 #[tokio::test]
 async fn test_logout_revokes_session() {
     let (base_url, _state, _dir, _ledger) = spawn_test_server().await;
-    _state.credentials.set_phc_sync("alice", &auth_service::credentials::hash_password("password123").unwrap()).unwrap();
+    _state
+        .credentials
+        .set_phc_sync(
+            "alice",
+            &auth_service::credentials::hash_password("password123").unwrap(),
+        )
+        .unwrap();
 
     let client = reqwest::Client::new();
-    let login_res = client.post(format!("{}/api/v1/auth/login", base_url)).json(&serde_json::json!({"username":"admin","password":"super_secret_admin_pass_123"})).send().await.unwrap();
+    let login_res = client
+        .post(format!("{}/api/v1/auth/login", base_url))
+        .json(&serde_json::json!({"username":"admin","password":"super_secret_admin_pass_123"}))
+        .send()
+        .await
+        .unwrap();
     let body: serde_json::Value = login_res.json().await.unwrap();
     let token = body["token"].as_str().unwrap();
-    let logout_res = client.post(format!("{}/api/v1/auth/logout", base_url)).header("Authorization", format!("Bearer {}", token)).send().await.unwrap();
+    let logout_res = client
+        .post(format!("{}/api/v1/auth/logout", base_url))
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await
+        .unwrap();
     assert_eq!(logout_res.status(), reqwest::StatusCode::OK);
     let logout_body: serde_json::Value = logout_res.json().await.unwrap();
     assert_eq!(logout_body["status"], "logged_out");
-    let session_res = client.get(format!("{}/api/v1/auth/session", base_url)).header("Authorization", format!("Bearer {}", token)).send().await.unwrap();
+    let session_res = client
+        .get(format!("{}/api/v1/auth/session", base_url))
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await
+        .unwrap();
     assert_eq!(session_res.status(), reqwest::StatusCode::UNAUTHORIZED);
 }
 
 #[tokio::test]
 async fn test_audit_events_persisted_to_ledger() {
     let (base_url, _state, _dir, ledger_path) = spawn_test_server().await;
-    _state.credentials.set_phc_sync("alice", &auth_service::credentials::hash_password("password123").unwrap()).unwrap();
+    _state
+        .credentials
+        .set_phc_sync(
+            "alice",
+            &auth_service::credentials::hash_password("password123").unwrap(),
+        )
+        .unwrap();
 
     let client = reqwest::Client::new();
     let ledger_file = ledger_path.unwrap();
-    let _ = client.post(format!("{}/api/v1/auth/login", base_url)).json(&serde_json::json!({"username":"admin","password":"bad_password"})).send().await.unwrap();
-    let login_res = client.post(format!("{}/api/v1/auth/login", base_url)).json(&serde_json::json!({"username":"admin","password":"super_secret_admin_pass_123"})).send().await.unwrap();
+    let _ = client
+        .post(format!("{}/api/v1/auth/login", base_url))
+        .json(&serde_json::json!({"username":"admin","password":"bad_password"}))
+        .send()
+        .await
+        .unwrap();
+    let login_res = client
+        .post(format!("{}/api/v1/auth/login", base_url))
+        .json(&serde_json::json!({"username":"admin","password":"super_secret_admin_pass_123"}))
+        .send()
+        .await
+        .unwrap();
     let body: serde_json::Value = login_res.json().await.unwrap();
     let token = body["token"].as_str().unwrap();
-    let _ = client.post(format!("{}/api/v1/auth/logout", base_url)).header("Authorization", format!("Bearer {}", token)).send().await.unwrap();
+    let _ = client
+        .post(format!("{}/api/v1/auth/logout", base_url))
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await
+        .unwrap();
     let content = std::fs::read_to_string(&ledger_file).unwrap();
     let lines: Vec<&str> = content.lines().filter(|l| !l.trim().is_empty()).collect();
     assert_eq!(lines.len(), 3, "Expected 3 audit events in ledger");
@@ -153,7 +259,13 @@ async fn test_audit_events_persisted_to_ledger() {
 #[tokio::test]
 async fn test_rbac_finding_a_and_b() {
     let (base_url, _state, _tempdir, _path) = spawn_test_server().await;
-    _state.credentials.set_phc_sync("alice", &auth_service::credentials::hash_password("password123").unwrap()).unwrap();
+    _state
+        .credentials
+        .set_phc_sync(
+            "alice",
+            &auth_service::credentials::hash_password("password123").unwrap(),
+        )
+        .unwrap();
     // Explicitly set Alice's role to 'user' (not default 'ciso_admin')
     let mut alice_profile = _state.credentials.get_profile("alice").unwrap();
     alice_profile.role = "user".to_string();
@@ -161,33 +273,72 @@ async fn test_rbac_finding_a_and_b() {
 
     let client = reqwest::Client::new();
 
-    let login1 = client.post(format!("{}/api/v1/auth/login", base_url)).json(&serde_json::json!({"username":"alice","password":"password123"})).send().await.unwrap();
-    let alice_token = login1.json::<serde_json::Value>().await.unwrap()["token"].as_str().unwrap().to_string();
+    let login1 = client
+        .post(format!("{}/api/v1/auth/login", base_url))
+        .json(&serde_json::json!({"username":"alice","password":"password123"}))
+        .send()
+        .await
+        .unwrap();
+    let alice_token = login1.json::<serde_json::Value>().await.unwrap()["token"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
-    let api_keys_res = client.get(format!("{}/api/v1/admin/api-keys", base_url))
+    let api_keys_res = client
+        .get(format!("{}/api/v1/admin/api-keys", base_url))
         .header("Authorization", format!("Bearer {}", alice_token))
-        .send().await.unwrap();
-    assert_eq!(api_keys_res.status(), reqwest::StatusCode::FORBIDDEN, "Non-admin should get 403 Forbidden");
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        api_keys_res.status(),
+        reqwest::StatusCode::FORBIDDEN,
+        "Non-admin should get 403 Forbidden"
+    );
 
-    let admin_login = client.post(format!("{}/api/v1/auth/login", base_url))
+    let admin_login = client
+        .post(format!("{}/api/v1/auth/login", base_url))
         .json(&serde_json::json!({"username":"admin","password":"super_secret_admin_pass_123"}))
-        .send().await.unwrap();
-    let admin_token = admin_login.json::<serde_json::Value>().await.unwrap()["token"].as_str().unwrap().to_string();
+        .send()
+        .await
+        .unwrap();
+    let admin_token = admin_login.json::<serde_json::Value>().await.unwrap()["token"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
-    let create_key_res = client.post(format!("{}/api/v1/admin/api-keys", base_url))
+    let create_key_res = client
+        .post(format!("{}/api/v1/admin/api-keys", base_url))
         .header("Authorization", format!("Bearer {}", admin_token))
         .json(&serde_json::json!({"name":"admin_key","expires_in_days":30}))
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
     assert_eq!(create_key_res.status(), reqwest::StatusCode::CREATED);
-    
+
     let key_body: serde_json::Value = create_key_res.json().await.unwrap();
     let key_id = key_body["id"].as_str().unwrap().to_string();
 
-    let login2 = client.post(format!("{}/api/v1/auth/login", base_url)).json(&serde_json::json!({"username":"alice","password":"password123"})).send().await.unwrap();
-    let alice_token2 = login2.json::<serde_json::Value>().await.unwrap()["token"].as_str().unwrap().to_string();
-    
-    let revoke_res = client.delete(format!("{}/api/v1/admin/api-keys/{}", base_url, key_id))
+    let login2 = client
+        .post(format!("{}/api/v1/auth/login", base_url))
+        .json(&serde_json::json!({"username":"alice","password":"password123"}))
+        .send()
+        .await
+        .unwrap();
+    let alice_token2 = login2.json::<serde_json::Value>().await.unwrap()["token"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let revoke_res = client
+        .delete(format!("{}/api/v1/admin/api-keys/{}", base_url, key_id))
         .header("Authorization", format!("Bearer {}", alice_token2))
-        .send().await.unwrap();
-    assert_eq!(revoke_res.status(), reqwest::StatusCode::FORBIDDEN, "Alice cannot revoke Admin's API key");
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        revoke_res.status(),
+        reqwest::StatusCode::FORBIDDEN,
+        "Alice cannot revoke Admin's API key"
+    );
 }

@@ -1,4 +1,0 @@
-{
-  "contract": { "schema_version": "bad", "finding_id": "bad" },
-  "actor_workload_id": "svc:test"
-}

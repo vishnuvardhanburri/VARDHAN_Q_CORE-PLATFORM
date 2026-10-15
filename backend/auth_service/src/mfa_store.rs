@@ -15,7 +15,9 @@ pub struct MfaStore {
 }
 
 impl MfaStore {
-    pub fn open(db: Arc<sled::Db>) -> Self { Self { db } }
+    pub fn open(db: Arc<sled::Db>) -> Self {
+        Self { db }
+    }
 
     fn key(username: &str) -> Vec<u8> {
         let mut key = PREFIX.to_vec();
@@ -29,17 +31,23 @@ impl MfaStore {
         if ciphertext.len() < 16 {
             return Err("encrypted MFA secret is too short".into());
         }
-        self.db.insert(Self::key(username), ciphertext)
+        self.db
+            .insert(Self::key(username), ciphertext)
             .map(|_| ())
             .map_err(|e| format!("MFA state write failed: {e}"))
     }
 
     pub fn get_encrypted_secret(&self, username: &str) -> Option<Zeroizing<Vec<u8>>> {
-        self.db.get(Self::key(username)).ok().flatten().map(|v| Zeroizing::new(v.to_vec()))
+        self.db
+            .get(Self::key(username))
+            .ok()
+            .flatten()
+            .map(|v| Zeroizing::new(v.to_vec()))
     }
 
     pub fn remove(&self, username: &str) -> Result<bool, String> {
-        self.db.remove(Self::key(username))
+        self.db
+            .remove(Self::key(username))
             .map(|v| v.is_some())
             .map_err(|e| format!("MFA state removal failed: {e}"))
     }

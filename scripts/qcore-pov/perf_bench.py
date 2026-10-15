@@ -77,6 +77,7 @@ def register_tenant(tenant_id):
             raise RuntimeError("PoV auth config must be a JSON object")
         config.setdefault("tenants", [])
         config.setdefault("policies", [])
+        config.setdefault("issuers", [])
     else:
         config = {
             "tenants": [
@@ -89,6 +90,12 @@ def register_tenant(tenant_id):
                 "policy_version": "1.0",
                 "governed_actions": ["SEAL_VERIFIED_FINDING"],
                 "authorized_actor_prefixes": ["svc:vardhan-intelligence:"],
+            }],
+            "issuers": [{
+                "workload_prefix": "svc:vardhan-intelligence:",
+                "issuer": "dev-local",
+                "jwks_url": None,
+                "active": True,
             }],
         }
 
@@ -197,8 +204,14 @@ def create_session(worker_id=None):
     register_tenant(org_id)
     return token, org_id
 
-def benchmark_with_sessions(label, func, concurrency, requests, warmup):
-    """Measure a session-backed operation with setup and warm-up excluded."""
+def benchmark_with_sessions(label, func, concurrency, requests, warmup, use_event=False):
+    """Measure a session-backed operation with setup and warm-up excluded.
+
+    If use_event=True, all worker threads are held on a threading.Event
+    barrier and released simultaneously, which maximizes observed concurrency
+    for fast operations (HTTP-only or short subprocess spawns). If
+    use_event=False, threads start immediately after creation.
+    """
     sessions = {}
     for i in range(concurrency):
         token, org_id = create_session(worker_id=i)
@@ -266,8 +279,25 @@ def benchmark_with_sessions(label, func, concurrency, requests, warmup):
 
     threads = [threading.Thread(target=worker, args=(i,)) for i in range(concurrency)]
     wall_start = time.monotonic()
-    for thread in threads:
-        thread.start()
+    if use_event:
+        # Use a threading.Event so all threads are ready and released
+        # simultaneously — critical for fast HTTP-only benchmarks (audit)
+        # where request latency (~1ms) is shorter than thread-start overhead.
+        start_signal = threading.Event()
+        def worker_with_signal(worker_idx):
+            start_signal.wait()
+            worker(worker_idx)
+        threads = [threading.Thread(target=worker_with_signal, args=(i,)) for i in range(concurrency)]
+        for t in threads:
+            t.start()
+        time.sleep(0.01)  # Give all threads time to register and wait
+        start_signal.set()
+    else:
+        # Start all threads immediately. The vardhan-receipt anti-tamper timing
+        # check is disabled in development mode (anti_tamper.rs), so concurrent
+        # subprocess spawning no longer triggers false-positive exits.
+        for thread in threads:
+            thread.start()
     for thread in threads:
         thread.join()
     duration = max(time.monotonic() - wall_start, 1e-9)
@@ -372,10 +402,25 @@ def run_concurrent_raw(label, func, concurrency, requests, warmup):
             outcomes.append(ok)
 
     wall_start = time.monotonic()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
-        futures = [executor.submit(run_one, i) for i in range(requests)]
-        for future in concurrent.futures.as_completed(futures):
-            future.result()
+
+    # Use Event-based simultaneous start to maximize observed concurrency.
+    # This mirrors the benchmark_with_sessions approach: create exactly
+    # `concurrency` threads, each processing requests/concurrency items,
+    # and hold them all on an Event until every thread is ready, then release.
+    start_signal = threading.Event()
+
+    def run_with_signal(worker_idx):
+        start_signal.wait()
+        for idx in range(worker_idx, requests, concurrency):
+            run_one(idx)
+
+    threads = [threading.Thread(target=run_with_signal, args=(i,)) for i in range(concurrency)]
+    for t in threads:
+        t.start()
+    time.sleep(0.01)  # Give all threads time to register and wait
+    start_signal.set()
+    for t in threads:
+        t.join()
     duration = max(time.monotonic() - wall_start, 1e-9)
 
     latencies.sort()
@@ -425,7 +470,8 @@ def main():
             result = benchmark_with_sessions(
                 f"contract_seal_{payload_name}_c{c}",
                 lambda idx, tok, oid, pb=payload_bytes: make_contract_request(idx, tok, oid, pb),
-                c, request_count_for(c), WARMUP_REQUESTS
+                c, request_count_for(c), WARMUP_REQUESTS,
+                use_event=True
             )
             if result:
                 print(f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "
@@ -489,7 +535,8 @@ def main():
         result = benchmark_with_sessions(
             f"audit_retrieve_c{c}",
             make_audit_request,
-            c, request_count_for(c), WARMUP_REQUESTS
+            c, request_count_for(c), WARMUP_REQUESTS,
+            use_event=True
         )
         if result:
             print(f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "
@@ -503,7 +550,8 @@ def main():
         result = benchmark_with_sessions(
             f"e2e_submit_verify_c{c}",
             make_e2e_request,
-            c, request_count_for(c, TEST_E2E_REQUESTS), WARMUP_REQUESTS
+            c, request_count_for(c, TEST_E2E_REQUESTS), WARMUP_REQUESTS,
+            use_event=True
         )
         if result:
             print(f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "

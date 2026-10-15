@@ -50,12 +50,16 @@ pub async fn require_session(
 
     let token = SessionToken::from_str(token_str);
 
-    let (username, new_token) = state.sessions.validate_and_rotate(&token).await.ok_or_else(|| {
-        (
-            StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({ "error": "Invalid or expired session" })),
-        )
-    })?;
+    let (username, new_token) = state
+        .sessions
+        .validate_and_rotate(&token)
+        .await
+        .ok_or_else(|| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({ "error": "Invalid or expired session" })),
+            )
+        })?;
 
     // Authorization must come from persisted role state. Never synthesize an
     // administrative role from the mere existence of a valid session.
@@ -66,7 +70,8 @@ pub async fn require_session(
         )
     })?;
 
-    req.extensions_mut().insert(AuthenticatedUser::new_user(username, role));
+    req.extensions_mut()
+        .insert(AuthenticatedUser::new_user(username, role));
     req.extensions_mut().insert(new_token.clone());
 
     let mut response = next.run(req).await;

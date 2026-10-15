@@ -63,13 +63,17 @@ pub async fn publish_receipt(
     let base_url = required_env(TRANSPORT_URL_ENV)?;
 
     if organization_id.trim().is_empty() {
-        return Err(PublishError::InvalidReceipt("organization_id is empty".into()));
+        return Err(PublishError::InvalidReceipt(
+            "organization_id is empty".into(),
+        ));
     }
 
     let body = serde_json::to_vec(receipt)
         .map_err(|e| PublishError::InvalidReceipt(format!("serialization failed: {e}")))?;
     if body.len() > MAX_RECEIPT_BYTES {
-        return Err(PublishError::InvalidReceipt("receipt exceeds transport size limit".into()));
+        return Err(PublishError::InvalidReceipt(
+            "receipt exceeds transport size limit".into(),
+        ));
     }
 
     if receipt.tenant_id != organization_id {
@@ -135,7 +139,13 @@ fn required_env(name: &'static str) -> Result<String, PublishError> {
         .ok_or(PublishError::NotConfigured(name))
 }
 
-fn canonical_request(organization_id: &str, service_id: &str, timestamp: u64, nonce: &str, body: &[u8]) -> Vec<u8> {
+fn canonical_request(
+    organization_id: &str,
+    service_id: &str,
+    timestamp: u64,
+    nonce: &str,
+    body: &[u8],
+) -> Vec<u8> {
     let path = format!("/api/v1/organizations/{organization_id}/qcore/receipts");
     let timestamp = timestamp.to_string();
     let fields: [&[u8]; 9] = [

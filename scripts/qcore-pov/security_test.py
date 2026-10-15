@@ -42,6 +42,7 @@ def register_tenant(tenant_id):
             raise RuntimeError("PoV auth config must be a JSON object")
         config.setdefault("tenants", [])
         config.setdefault("policies", [])
+        config.setdefault("issuers", [])
     else:
         config = {
             "tenants": [
@@ -54,6 +55,12 @@ def register_tenant(tenant_id):
                 "policy_version": "1.0",
                 "governed_actions": ["SEAL_VERIFIED_FINDING"],
                 "authorized_actor_prefixes": ["svc:vardhan-intelligence:"],
+            }],
+            "issuers": [{
+                "workload_prefix": "svc:vardhan-intelligence:",
+                "issuer": "dev-local",
+                "jwks_url": None,
+                "active": True,
             }],
         }
 

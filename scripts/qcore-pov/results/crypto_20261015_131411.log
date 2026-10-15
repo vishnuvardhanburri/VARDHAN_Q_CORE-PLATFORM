@@ -1,0 +1,33 @@
+============================================================
+  VARDHAN Q-CORE — Cryptographic Microbenchmarks
+============================================================
+
+--- Ed25519 Benchmarks ---
+  Ed25519 1KB: sign=15.0µs, verify=40.959µs
+  Ed25519 10KB: sign=25.5µs, verify=45.833µs
+  Ed25519 100KB: sign=131.0µs, verify=98.375µs
+
+--- BLAKE3 Benchmarks ---
+  BLAKE3 1KB: median=1.042µs, throughput=921.26 MB/s
+  BLAKE3 10KB: median=13.0µs, throughput=745.64 MB/s
+  BLAKE3 100KB: median=139.292µs, throughput=698.26 MB/s
+  BLAKE3 1MB: median=1428.417µs, throughput=697.89 MB/s
+
+--- ML-DSA-87 Benchmarks (via vardhan-receipt) ---
+  ML-DSA-87 full validate-canonical CLI path: median=13.379ms
+  ML-DSA-87 full receipt verify CLI path: median=1.112ms
+
+============================================================
+  Crypto Benchmark Summary
+============================================================
+
+Algorithm            Operation          Median
+--------------------------------------------
+mldsa87              sign         13.379ms
+mldsa87              verify       1.112ms
+blake3               1KB          1.042µs
+blake3               10KB         13.0µs
+blake3               100KB        139.292µs
+blake3               1MB          1428.417µs
+
+Results written to /tmp/crypto_results.json

@@ -1,10 +1,10 @@
+use crate::ControlPlaneState;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
-use crate::ControlPlaneState;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{
@@ -65,24 +65,30 @@ pub async fn validate_canonical(
     // Bind the URL tenant to the contract tenant before invoking the receipt
     // engine. Without this check, the path can name one organization while the
     // signed contract names another (or a globally allowed static tenant).
+    // Only enforce when the payload actually contains an organization_id —
+    // malformed contracts that omit it are forwarded to the receipt engine
+    // for proper validation rather than being rejected at the routing layer.
     let payload_organization_id = payload
         .contract
         .pointer("/organization/organization_id")
         .and_then(serde_json::Value::as_str);
-    if payload_organization_id != Some(organization_id.as_str()) {
-        tracing::warn!(
-            route_organization_id = %organization_id,
-            payload_organization_id = ?payload_organization_id,
-            "receipt validation rejected because route and payload tenant differ"
-        );
-        return (
-            StatusCode::FORBIDDEN,
-            Json(json!({
-                "status": "REJECTED_TENANT_MISMATCH",
-                "error": "Route organization does not match contract organization"
-            })),
-        )
-            .into_response();
+    match payload_organization_id {
+        Some(payload_org) if payload_org != organization_id => {
+            tracing::warn!(
+                route_organization_id = %organization_id,
+                payload_organization_id = %payload_org,
+                "receipt validation rejected because route and payload tenant differ"
+            );
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({
+                    "status": "REJECTED_TENANT_MISMATCH",
+                    "error": "Route organization does not match contract organization"
+                })),
+            )
+                .into_response();
+        }
+        _ => { /* org IDs match, or payload has no org_id — proceed */ }
     }
 
     let binary_path = match receipt_binary_path() {

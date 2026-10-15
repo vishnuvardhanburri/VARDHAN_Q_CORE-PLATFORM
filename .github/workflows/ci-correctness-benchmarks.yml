@@ -50,6 +50,65 @@ jobs:
       - name: Run E2E lifecycle validation
         run: python3 scripts/e2e_lifecycle_validation.py
 
+  # ── Phase 8b: Adversarial Security Regression Tests ───────────────────────
+  adversarial-security:
+    name: Adversarial Security — Phase 8b Hardening
+    runs-on: ubuntu-latest
+    needs: correctness
+    steps:
+      - uses: actions/checkout@v4
+      - name: Provision swap (prevents OOM on heavy crates)
+        run: |
+          sudo swapon --show 2>/dev/null | grep -q /swapfile && (sudo swapoff /swapfile || true)
+          sudo rm -f /swapfile
+          sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+      - uses: dtolnay/rust-toolchain@stable
+      - name: System dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev python3 jq
+      - name: Release build (receipt engine + control plane)
+        run: |
+          cargo build --release -p vardhan_receipt
+          cargo build --release -p control_plane_api
+      - name: Adversarial — issuer binding (DENY_ISSUER_UNBOUND)
+        run: |
+          cargo test -p vardhan_receipt --bin vardhan-receipt \
+            -- t12_spoofed_issuer_prefix_is_denied t11_empty_tenant_is_denied \
+            t14_dot_separator_is_denied
+
+      # ── Audit Trail Tamper Detection ─────────────────────────────────────
+      - name: Adversarial — audit trail tamper detection
+        run: |
+          cargo test -p vardhan_receipt --bin vardhan-receipt \
+            -- audit_trail::tests
+
+      # ── Vault KMS Provider (with vault feature) ──────────────────────────
+      - name: Adversarial — Vault KMS key protection
+        run: |
+          cargo test -p vardhan_keystore --features vault \
+            -- vault::tests
+
+      # ── TLS feature compiles ──────────────────────────────────────────────
+      - name: Secure Transport — TLS feature compiles
+        run: |
+          cargo build -p control_plane_api --features tls
+
+      # ── Full regression + tenant isolation ────────────────────────────────
+      - name: Regression — all existing tests pass
+        run: |
+          cargo test -p control_plane_api --test org_lifecycle_edge_cases
+          cargo test -p control_plane_api --test tenant_isolation_test
+
+      # ── Lab demo (5/5 checks) ────────────────────────────────────────────
+      - name: Lab demo verification
+        run: bash lab_demo_verify.sh
+
+      # ── E2E lifecycle (31/31 checks) ─────────────────────────────────────
+      - name: E2E lifecycle validation
+        run: python3 scripts/e2e_lifecycle_validation.py
+
   # ── Controlled Performance Benchmark ──────────────────────────────────────
   benchmark:
     name: Performance benchmark (controlled)

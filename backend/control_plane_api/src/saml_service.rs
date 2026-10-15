@@ -5,15 +5,20 @@
 //! defenses. IdP metadata is pinned to an operator-supplied certificate and SAML
 //! replay keys are persisted atomically in the control-plane sled store.
 
-use axum::{extract::{Form, State}, http::StatusCode, response::IntoResponse, Json};
-use serde::Deserialize;
-use serde_json::json;
-use std::{time::{Duration, SystemTime, UNIX_EPOCH}};
+use axum::{
+    extract::{Form, State},
+    http::StatusCode,
+    response::IntoResponse,
+    Json,
+};
 use saml_rs::{
     AcsEndpoint, AuthnRequestSigningPolicy, BrowserInput, CertificatePem, EntityId, FormField,
     IdpDescriptor, MetadataTrustPolicy, ReplayCache, ReplayKey, ReplayPolicy, Saml, SamlError,
     SamlValidationContext, Sp, SpConfig, SpValidationPolicy, SsoResponse,
 };
+use serde::Deserialize;
+use serde_json::json;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::{is_member, ControlPlaneState};
 use auth_service::AdminProfile;
@@ -33,11 +38,7 @@ struct SledReplayCache<'a> {
 }
 
 impl<'a> ReplayCache for SledReplayCache<'a> {
-    fn check_and_store(
-        &mut self,
-        key: ReplayKey,
-        expires_at: SystemTime,
-    ) -> Result<(), SamlError> {
+    fn check_and_store(&mut self, key: ReplayKey, expires_at: SystemTime) -> Result<(), SamlError> {
         let cache_key = key.cache_key();
         let storage_key = {
             let mut out = REPLAY_PREFIX.to_vec();
@@ -71,11 +72,17 @@ impl<'a> ReplayCache for SledReplayCache<'a> {
             ) {
                 Ok(Ok(())) => return Ok(()),
                 Ok(Err(_)) => continue,
-                Err(e) => return Err(SamlError::Invalid(format!("SAML replay cache CAS failed: {e}"))),
+                Err(e) => {
+                    return Err(SamlError::Invalid(format!(
+                        "SAML replay cache CAS failed: {e}"
+                    )))
+                }
             }
         }
 
-        Err(SamlError::Invalid("SAML replay cache contention exceeded retry budget".into()))
+        Err(SamlError::Invalid(
+            "SAML replay cache contention exceeded retry budget".into(),
+        ))
     }
 }
 
@@ -102,7 +109,8 @@ fn build_sp() -> Result<Saml<Sp>, String> {
         .filter(|v| !v.trim().is_empty())
         .unwrap_or_else(|| "https://vardhan.example.com/api/v1/auth/saml/acs".into());
 
-    let entity = EntityId::try_new(entity_id).map_err(|e| format!("invalid SAML SP entity ID: {e}"))?;
+    let entity =
+        EntityId::try_new(entity_id).map_err(|e| format!("invalid SAML SP entity ID: {e}"))?;
     let acs = AcsEndpoint::post(acs_url).map_err(|e| format!("invalid SAML ACS URL: {e}"))?;
 
     // This endpoint accepts unsolicited SSO responses, so it has no outbound
@@ -124,12 +132,22 @@ fn build_sp() -> Result<Saml<Sp>, String> {
 
 fn build_idp() -> Result<IdpDescriptor, String> {
     let entity_id = env_required_value("VARDHAN_SAML_IDP_ENTITY_ID")?;
-    let metadata = if let Some(value) = std::env::var("VARDHAN_SAML_IDP_METADATA_XML").ok().filter(|v| !v.trim().is_empty()) {
+    let metadata = if let Some(value) = std::env::var("VARDHAN_SAML_IDP_METADATA_XML")
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+    {
         value
-    } else if let Some(path) = std::env::var("VARDHAN_SAML_IDP_METADATA_PATH").ok().filter(|v| !v.trim().is_empty()) {
-        std::fs::read_to_string(path).map_err(|e| format!("failed to read SAML IdP metadata: {e}"))?
+    } else if let Some(path) = std::env::var("VARDHAN_SAML_IDP_METADATA_PATH")
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+    {
+        std::fs::read_to_string(path)
+            .map_err(|e| format!("failed to read SAML IdP metadata: {e}"))?
     } else {
-        return Err("VARDHAN_SAML_IDP_METADATA_XML or VARDHAN_SAML_IDP_METADATA_PATH is not configured".into());
+        return Err(
+            "VARDHAN_SAML_IDP_METADATA_XML or VARDHAN_SAML_IDP_METADATA_PATH is not configured"
+                .into(),
+        );
     };
     let cert = env_required_value("VARDHAN_SAML_IDP_METADATA_CERT_PEM")?;
     let certificate = CertificatePem::new(cert);
@@ -138,7 +156,9 @@ fn build_idp() -> Result<IdpDescriptor, String> {
     IdpDescriptor::from_metadata_xml_for(
         EntityId::try_new(entity_id).map_err(|e| format!("invalid SAML IdP entity ID: {e}"))?,
         &metadata,
-        MetadataTrustPolicy::RequireSignature { trusted_certificates: &certificates },
+        MetadataTrustPolicy::RequireSignature {
+            trusted_certificates: &certificates,
+        },
     )
     .map_err(|e| format!("SAML IdP metadata trust verification failed: {e}"))
 }
@@ -169,11 +189,23 @@ pub async fn saml_acs(
 
     let sp = match build_sp() {
         Ok(value) => value,
-        Err(error) => return (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error": error}))).into_response(),
+        Err(error) => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({"error": error})),
+            )
+                .into_response()
+        }
     };
     let idp = match build_idp() {
         Ok(value) => value,
-        Err(error) => return (StatusCode::SERVICE_UNAVAILABLE, Json(json!({"error": error}))).into_response(),
+        Err(error) => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({"error": error})),
+            )
+                .into_response()
+        }
     };
 
     let mut replay_cache = SledReplayCache { db: &state.db };
@@ -211,7 +243,10 @@ pub async fn saml_acs(
     }
 
     if !is_member(&state.db, &expected_org, &username).unwrap_or(false) {
-        if std::env::var("VARDHAN_SAML_AUTO_PROVISION").map(|v| v == "true").unwrap_or(false) {
+        if std::env::var("VARDHAN_SAML_AUTO_PROVISION")
+            .map(|v| v == "true")
+            .unwrap_or(false)
+        {
             if let Err(error) = state.db.insert(
                 crate::key(crate::MEMBER_PREFIX, &format!("{expected_org}:{username}")),
                 b"viewer",
@@ -228,10 +263,17 @@ pub async fn saml_acs(
                 display_name: username.clone(),
                 email: username.clone(),
                 role: "user".into(),
-                updated_at_ms: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or_default(),
+                updated_at_ms: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .map(|d| d.as_millis())
+                    .unwrap_or_default(),
             };
             if state.auth.credentials.save_profile(&profile).is_err() {
-                return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({"error": "SAML authorization profile provisioning failed"}))).into_response();
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"error": "SAML authorization profile provisioning failed"})),
+                )
+                    .into_response();
             }
         } else {
             return (
@@ -241,15 +283,28 @@ pub async fn saml_acs(
                 .into_response();
         }
     }
-    if state.auth.credentials.authoritative_role(&username).is_none() {
-        return (StatusCode::FORBIDDEN, Json(json!({"error": "SAML identity has no authoritative authorization profile"}))).into_response();
+    if state
+        .auth
+        .credentials
+        .authoritative_role(&username)
+        .is_none()
+    {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(json!({"error": "SAML identity has no authoritative authorization profile"})),
+        )
+            .into_response();
     }
 
     let ip = std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED);
     let issued = state
         .auth
         .sessions
-        .create_with_node(&username, ip, state.auth.node_id.as_deref().unwrap_or("control-plane"))
+        .create_with_node(
+            &username,
+            ip,
+            state.auth.node_id.as_deref().unwrap_or("control-plane"),
+        )
         .await;
 
     Json(json!({
@@ -262,7 +317,6 @@ pub async fn saml_acs(
     }))
     .into_response()
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -291,5 +345,4 @@ mod tests {
         std::env::remove_var("VARDHAN_SAML_IDP_METADATA_CERT_PEM");
         assert!(build_idp().is_err());
     }
-
 }

@@ -26,28 +26,38 @@
    TPM) that would cryptographically bind the actor identity to an execution environment.
    The authorization-to-execution traceability is internal to the prototype.
 
-2. **No production transport security**: The API runs over plain HTTP. TLS is not
-   configured. The `VARDHAN_QCORE_SERVICE_SECRET` that enables authenticated service
+2. **Production transport security available but not default**: TLS is implemented via
+   rustls behind the `tls` feature flag (`cargo build --features tls`). It is **not enabled
+   by default** and requires `VARDHAN_TLS_CERT_PATH`/`VARDHAN_TLS_KEY_PATH` to be set.
+   The `VARDHAN_QCORE_SERVICE_SECRET` that enables authenticated service
    transport is not set in the test environment.
 
-3. **No production key custody**: Keys are stored in a development keystore with a
-   development KEK. No HSM or KMS provider is configured. The `VARDHAN_PRODUCTION_KEK`
-   and `VARDHAN_KMS_PROVIDER` environment variables are not set.
+3. **HSM/KMS integration available but not default**: A Vault transit engine provider
+   (`VaultKeyProtectionProvider`) is implemented behind the `vault` feature flag
+   (`cargo build --features vardhan_keystore/vault`). It is wired into
+   `EnvironmentKeyProtectionProvider::select()` for production mode. However, this has
+   not been tested against a live Vault instance (the tests are unit tests for config
+   detection and provider attributes). The `VARDHAN_PRODUCTION_KEK` and
+   `VARDHAN_KMS_PROVIDER` environment variables are not set.
 
-4. **No multi-node replay protection**: Idempotency is implemented via local file-based
-   flag files (single-process). In a multi-node deployment, this would be vulnerable to
-   race conditions and split-brain scenarios.
+4. **No multi-node replay protection**: Idempotency is implemented via atomic file
+   creation (`O_CREAT|O_EXCL` + `fsync`) — single-process. In a multi-node deployment,
+   this would be vulnerable to race conditions and split-brain scenarios. A distributed
+   coordination service (sled cluster, Redis with Redlock, or Raft/etcd) is needed.
 
 5. **No independent security assessment**: No third-party audit, penetration test, or
-   certification (e.g., SOC 2, ISO 27001, FIPS 140-3) has been performed.
+   certification (e.g., SOC 2, ISO 27001, FIPS 140-3) has been performed. The
+   adversarial tests included in Phase 8b are developer-authored.
 
-6. **No audit ledger publication**: The audit ledger produces BLAKE3 hash chains with
-   ML-DSA-87 signatures, but publication to an external log sink is not configured.
-   Audit events are logged to tracing only.
+6. **Audit trail integrity is local**: The audit trail (`audit_trail.rs`) produces
+   BLAKE3 hash chains with ML-DSA-87 signatures and `fsync` durability, but publication
+   to an external log sink (e.g., CloudTrail, SIEM) is not configured. Audit events are
+   written to a local JSONL file and logged to tracing.
 
-7. **No Q-Core issuer registry integration**: The `VARDHAN_QCORE_ISSUER_REGISTRY_JSON`
-   environment variable is not set, so the Q-Core issuer registry is not bootstrapped.
-   This means there is no integration with the Q-Core trust framework.
+7. **Issuer registry uses dev config only**: The `IssuerRegistry` with
+   `DENY_ISSUER_UNBOUND` enforcement is operational. In development mode, the registry
+   is `default_for_development()` which includes `svc:vardhan-intelligence:` → `dev-local`.
+   In production, the registry must be configured via `VARDHAN_QCORE_ISSUER_REGISTRY_JSON`.
 
 8. **No AER-KEP-Q runtime**: The `VARDHAN_AER_KEP_Q_VAULT_PASS` environment variable is
    not set, so no aerospace-grade quantum-safe cryptographic runtime is attached.

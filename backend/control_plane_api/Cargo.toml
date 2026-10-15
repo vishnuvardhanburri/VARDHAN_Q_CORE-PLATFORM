@@ -35,6 +35,14 @@ tower-http = { version = "0.6", features = ["cors", "request-id", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 uuid = { version = "1", features = ["v4", "serde", "v5"] }
+# TLS support (optional, enabled via feature flag)
+tokio-rustls = { version = "0.24", optional = true }
+rustls = { version = "0.21", optional = true }
+rustls-pemfile = { version = "1", optional = true }
+
+[features]
+default = []
+tls = ["tokio-rustls", "rustls", "rustls-pemfile"]
 
 [dev-dependencies]
 tower = "0.5"

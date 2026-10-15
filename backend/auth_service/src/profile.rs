@@ -261,14 +261,19 @@ mod tests {
 
         assert_eq!(store.authoritative_role("alice"), None);
 
-        store.save_profile(&AdminProfile {
-            username: "alice".to_string(),
-            display_name: "Alice".to_string(),
-            email: "alice@example.com".to_string(),
-            role: "user".to_string(),
-            updated_at_ms: 1,
-        }).unwrap();
-        assert_eq!(store.authoritative_role("alice"), Some(crate::authorization::Role::User));
+        store
+            .save_profile(&AdminProfile {
+                username: "alice".to_string(),
+                display_name: "Alice".to_string(),
+                email: "alice@example.com".to_string(),
+                role: "user".to_string(),
+                updated_at_ms: 1,
+            })
+            .unwrap();
+        assert_eq!(
+            store.authoritative_role("alice"),
+            Some(crate::authorization::Role::User)
+        );
     }
 
     #[test]
@@ -279,7 +284,10 @@ mod tests {
         store.set_phc_sync("admin", &phc).unwrap();
         store.ensure_bootstrap_profile("admin").unwrap();
 
-        assert_eq!(store.authoritative_role("admin"), Some(crate::authorization::Role::Admin));
+        assert_eq!(
+            store.authoritative_role("admin"),
+            Some(crate::authorization::Role::Admin)
+        );
     }
 
     #[test]
