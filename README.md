@@ -293,31 +293,113 @@ flowchart LR
 
 Production claims require runtime evidence in addition to compilation. Deployment-specific HSM/KMS, HA/DR and external assurance remain separate gates.
 
+## Quick Start
+
+```bash
+# 1. Check your environment
+./qcore doctor
+
+# 2. Build and prepare dependencies
+./qcore setup
+
+# 3. Start the full local stack
+./qcore up
+
+# 4. Run all tests
+./qcore test
+
+# 5. Run the PoV security & benchmark suite
+./qcore pov
+```
+
+### Local service URLs
+
+| Service | URL | Notes |
+|---|---|---|
+| Control-plane API | http://localhost:8080 | Rust, JSON/HTTPS |
+| API health | http://localhost:8080/api/v1/platform/health | Returns `{"status":"operational"}` |
+| Intelligence Plane | http://localhost:3000 | React dev server |
+
+### `./qcore` commands
+
+| Command | Description |
+|---|---|
+| `./qcore help` | Show available commands |
+| `./qcore doctor` | Check prerequisites (OS, Rust, Docker, Node, Python, disk, ports) |
+| `./qcore setup` | Build Rust binaries, create dev auth config, prepare data directories |
+| `./qcore up` | Start control-plane + intelligence-plane via Docker Compose |
+| `./qcore status` | Show service health and container status |
+| `./qcore logs [service]` | Tail logs (optionally filter by service) |
+| `./qcore test` | Run formatting, Rust tests, frontend build, contract tests, security, E2E, resilience |
+| `./qcore pov` | Run the PoV security & benchmark suite (Docker), validate with `verify_results.py` |
+| `./qcore down` | Stop services and clean up stray processes |
+| `./qcore clean` | Remove build artifacts (preserves user data) |
+| `./qcore clean --destructive` | Also remove Docker volumes and persisted state (requires confirmation) |
+
+Configuration is read from `.env` (copy from `.env.example`). The canonical local development Compose file is `docker-compose.yml` at the repository root.
+
+---
+
 ## Repository Map
 
 ```text
 Vardhan Technologies
-├── backend/              Q Core Rust services + cryptographic substrate
-├── intelligence_plane/   Vardhan Intelligence + evidence/verification
-├── contracts/            Versioned platform contracts
-├── sdks/                 TypeScript + Python SDKs
-├── zk_engine/            Zero-knowledge engine
-├── runtime/              Operational status and reports
+├── backend/              Q Core Rust crates + cryptographic substrate
+│   ├── control_plane_api/  REST API server (port 8080, axum)
+│   ├── vardhan_receipt/    Receipt sealing + verification engine
+│   ├── core_crypto/        Ed25519, ML-DSA-87, BLAKE3, AER-KEP-Q
+│   ├── auth_service/       Authentication, sessions, MFA, RBAC
+│   ├── ha_cluster/         RAFT consensus + resilience tests
+│   ├── vardhan_keystore/   Key management (dev + Vault/KMS)
+│   ├── audit_ledger/       Immutable audit trail
+│   ├── enterprise_tenant/  Tenant, RBAC-SCIM, industry contracts
+│   ├── pq_shield/          Post-quantum ingress shield
+│   └── [more crates]       Libraries (not standalone services)
+├── intelligence_plane/   React/Vite frontend + server-side research
+├── scripts/              E2E, PoV, benchmarks, CI helpers
+├── scripts/qcore-pov/    Standalone PoV (Docker security + perf + crypto)
+├── sdk/                  First-party SDKs (TS, Python, Go, Java, Rust)
+├── sdks/                 Internal SDKs used by intelligence_plane
+├── zk_engine/            Zero-knowledge engine (separate Node.js monorepo)
+├── platform_web/          Static enterprise console (HTML)
+├── docker/               Non-eBPF Dockerfiles
 ├── docs/                 Architecture, assurance, roadmap, industry docs
-└── .github/              CI, security and release workflows
+├── evidence_pack/        Phase 8 evidence, reports, demo script
+├── .github/              CI, security and release workflows
+├── docker-compose.yml     Canonical local dev stack (control-plane + frontend)
+├── .env.example           Local development env template
+└── qcore                  Unified execution interface
 ```
 
 ## Validation
 
+The canonical validation path is `./qcore test`, which runs:
+
+1. Environment checks (`doctor`)
+2. `cargo fmt --all -- --check`
+3. `cargo test --workspace`
+4. Intelligence Plane build (`npm run build`)
+5. `scripts/check_rustls_lock.py`
+6. Tenant isolation + org lifecycle tests
+7. `lab_demo_verify.sh` (5 core security checks)
+8. `scripts/e2e_lifecycle_validation.py` (33 lifecycle checks)
+9. RAFT resilience tests (`ha_cluster`)
+
+For isolated PoV validation without the dev stack:
+
 ```bash
-cargo fmt --all -- --check
-cargo test --workspace
-cargo build --workspace --release
-cargo audit
-cargo deny check advisories
+./qcore pov
 ```
 
-For the Intelligence Plane, run its typecheck, trust-boundary tests and Vitest suite. Linux eBPF kernel/userspace compatibility is validated in CI.
+This runs the Docker-based security, performance, and cryptographic benchmark suite
+and validates results with `verify_results.py`.
+
+## Security
+
+- `.github/workflows/security.yml` runs `cargo audit`, `cargo deny check advisories`,
+  and a repository secret scan on every push/PR.
+- `scripts/check_rustls_lock.py` enforces the patched rustls release floor.
+- See `docs/pov/` for PoV security test results and threat model.
 
 ## Runtime Truth
 
