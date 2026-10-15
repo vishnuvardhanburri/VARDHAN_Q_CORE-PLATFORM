@@ -1,21 +1,34 @@
 # ===================================================================
-# VARDHAN Q-CORE — Intelligence Plane Frontend Dockerfile
+# VARDHAN Q-CORE — Intelligence Plane Frontend Image
+# Build context is the repository root so the local TypeScript SDK
+# dependency (../sdks/typescript/vardhan-qcore) is available.
 # ===================================================================
+
 FROM node:22-bookworm AS builder
+WORKDIR /workspace
 
-WORKDIR /app
+# Build the local SDK first: its package.json points consumers to dist/.
+COPY sdks/typescript/vardhan-qcore/ ./sdks/typescript/vardhan-qcore/
+WORKDIR /workspace/sdks/typescript/vardhan-qcore
+RUN npm ci && npm run build
 
-COPY intelligence_plane/package.json intelligence_plane/package-lock.json* ./
-RUN npm ci --frozen-lockfile 2>/dev/null || npm install
+# Install the frontend from the lockfile; the sibling SDK path is now present.
+WORKDIR /workspace/intelligence_plane
+COPY intelligence_plane/package.json intelligence_plane/package-lock.json ./
+RUN npm ci
 
+# Add frontend source after dependency installation for cache efficiency.
 COPY intelligence_plane/ ./
+ARG VITE_API_URL=http://localhost:8080
+ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
-# Runtime: serve the built assets with a lightweight static server
-FROM node:22-bookworm AS runtime
+# Runtime contains only the built static frontend and its server.
+FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
-RUN npm install -g serve
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/assets ./assets
+RUN npm install --global serve && npm cache clean --force
+COPY --from=builder --chown=node:node /workspace/intelligence_plane/dist ./dist
+ENV NODE_ENV=production
 EXPOSE 3000
+USER node
 CMD ["serve", "-s", "dist", "-l", "3000"]
