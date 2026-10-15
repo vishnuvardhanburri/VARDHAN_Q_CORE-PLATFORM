@@ -38,9 +38,16 @@ RUN_ID = f"pov{os.getpid()}"
 RECEIPT_BIN = os.environ.get("VARDHAN_RECEIPT_ENGINE_BIN", "/usr/local/bin/vardhan-receipt")
 
 CONCURRENCY_LEVELS = [1, 10, 50, 100]
-WARMUP_REQUESTS = 3
-TEST_REQUESTS = 50
-TEST_E2E_REQUESTS = 20
+WARMUP_REQUESTS = int(os.environ.get("QCORE_BENCH_WARMUP_REQUESTS", "3"))
+# Exercise each requested worker repeatedly; these defaults are configurable for CI.
+TEST_REQUESTS = int(os.environ.get("QCORE_BENCH_MIN_REQUESTS", "100"))
+REQUESTS_PER_WORKER = int(os.environ.get("QCORE_BENCH_REQUESTS_PER_WORKER", "10"))
+TEST_E2E_REQUESTS = int(os.environ.get("QCORE_BENCH_MIN_E2E_REQUESTS", "100"))
+
+def request_count_for(concurrency, minimum=None):
+    """Ensure request count is sufficient to exercise the requested concurrency."""
+    base = TEST_REQUESTS if minimum is None else minimum
+    return max(base, concurrency * REQUESTS_PER_WORKER)
 
 # Global counter for globally unique finding_ids across all benchmark groups
 global_counter = 0
@@ -137,90 +144,110 @@ def create_session(worker_id=None):
     return token, org_id
 
 def benchmark_with_sessions(label, func, concurrency, requests, warmup):
-    """
-    Run a benchmark where each worker thread gets its own login session.
-    Each thread processes its share of requests sequentially, with proper
-    token rotation within its own session.
-    """
-    # Create one session per worker thread
+    """Measure a session-backed operation with setup and warm-up excluded."""
     sessions = {}
     for i in range(concurrency):
         token, org_id = create_session(worker_id=i)
         if token is None:
-            print(f"  Error: failed to create session for worker {i}")
-            return None
+            raise RuntimeError(f"failed to create session for worker {i}")
         sessions[i] = {"token": token, "org_id": org_id}
-    
-    latencies = []
-    successes = 0
-    errors = 0
-    results_lock = threading.Lock()
-    
-    def worker(worker_idx):
-        """Each worker processes a batch of requests using its own session."""
-        nonlocal successes, errors
-        my_results = []
+
+    warmup_failures = 0
+    warmup_lock = threading.Lock()
+
+    def prime_worker(worker_idx):
+        nonlocal warmup_failures
         session = sessions[worker_idx]
-        token = session["token"]
-        org_id = session["org_id"]
-        
-        # Distribute requests: worker 0 gets 0, c, 2c, ...; worker 1 gets 1, c+1, ...
-        my_indices = list(range(worker_idx, requests, concurrency))
-        
-        # Warmup (only for first batch)
-        if worker_idx == 0:
-            for i in range(warmup):
-                c = build_contract(finding_id=next_finding_id("warmup"))
-                s, b, token = api_request("POST", f"/api/v1/organizations/{org_id}/security/validate", token, c)
-                if token:
-                    session["token"] = token
-            # Relogin after warmup
-            token, org_id = create_session(worker_id=worker_idx)
-            session["token"] = token
-            session["org_id"] = org_id
-        
-        for idx in my_indices:
+        token, org_id = session["token"], session["org_id"]
+        for j in range(warmup):
+            try:
+                new_token, ok = func(-((worker_idx + 1) * 100000 + j), token, org_id)
+                if new_token:
+                    token = new_token
+                if not ok:
+                    with warmup_lock:
+                        warmup_failures += 1
+            except Exception:
+                with warmup_lock:
+                    warmup_failures += 1
+        session["token"] = token
+
+    # Warm each session in parallel before starting the measurement clock.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
+        list(executor.map(prime_worker, range(concurrency)))
+
+    latencies = []
+    outcomes = []
+    results_lock = threading.Lock()
+    active_lock = threading.Lock()
+    active_now = 0
+    max_active = 0
+
+    def worker(worker_idx):
+        nonlocal active_now, max_active
+        session = sessions[worker_idx]
+        token, org_id = session["token"], session["org_id"]
+        my_results = []
+        for idx in range(worker_idx, requests, concurrency):
+            with active_lock:
+                active_now += 1
+                max_active = max(max_active, active_now)
             start = time.monotonic()
             try:
                 new_token, ok = func(idx, token, org_id)
-                elapsed = (time.monotonic() - start) * 1000
                 if new_token:
                     token = new_token
-                my_results.append((elapsed, ok))
+                elapsed = (time.monotonic() - start) * 1000
+                my_results.append((elapsed, bool(ok)))
             except Exception:
                 elapsed = (time.monotonic() - start) * 1000
                 my_results.append((elapsed, False))
-        
+            finally:
+                with active_lock:
+                    active_now -= 1
         with results_lock:
             latencies.extend(r[0] for r in my_results)
-            successes += sum(1 for r in my_results if r[1])
-            errors += sum(1 for r in my_results if not r[1])
-    
-    threads = []
-    for i in range(concurrency):
-        t = threading.Thread(target=worker, args=(i,))
-        threads.append(t)
-        t.start()
-    
-    for t in threads:
-        t.join()
-    
+            outcomes.extend(r[1] for r in my_results)
+        session["token"] = token
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(concurrency)]
+    wall_start = time.monotonic()
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    duration = max(time.monotonic() - wall_start, 1e-9)
+
     latencies.sort()
     n = len(latencies)
-    
+    successes = sum(outcomes)
+    errors = len(outcomes) - successes
+
+    def percentile(values, p):
+        if not values:
+            return 0
+        index = max(0, min(len(values) - 1, int(__import__("math").ceil(p * len(values)) - 1)))
+        return values[index]
+
     return {
         "label": label,
         "concurrency": concurrency,
         "requests": requests,
+        "measured_requests": n,
         "warmup": warmup,
+        "warmup_failures": warmup_failures,
         "successes": successes,
         "errors": errors,
         "latency_min_ms": round(min(latencies), 3) if latencies else 0,
         "latency_max_ms": round(max(latencies), 3) if latencies else 0,
         "latency_mean_ms": round(statistics.mean(latencies), 3) if latencies else 0,
         "latency_p50_ms": round(statistics.median(latencies), 3) if latencies else 0,
-        "latency_p95_ms": round(latencies[int(n * 0.95)] if n > 1 else latencies[0], 3) if latencies else 0,
-        "latency_p99_ms": round(latencies[min(int(n * 0.99), n-1)], 3) if latencies else 0,
+        "latency_p95_ms": round(percentile(latencies, 0.95), 3),
+        "latency_p99_ms": round(percentile(latencies, 0.99), 3),
+        "measured_duration_seconds": round(duration, 6),
+        "throughput_requests_per_second": round(n / duration, 2),
+        "throughput_successes_per_second": round(successes / duration, 2),
+        "max_concurrent_requests_observed": max_active,
     }
 
 def make_contract_request(idx, token, org_id, payload_size=1024):
@@ -256,44 +283,60 @@ def make_e2e_request(idx, token, org_id):
         return new_token, False
 
 def run_concurrent_raw(label, func, concurrency, requests, warmup):
-    """Run a benchmark where func takes no session args (e.g. login, verify)."""
-    # Warmup
+    """Measure raw operations with wall-clock throughput and observed concurrency."""
     for i in range(warmup):
         try:
-            func(i)
-        except:
+            func(-(i + 1))
+        except Exception:
             pass
-    
+
     latencies = []
-    successes = 0
-    errors = 0
-    
+    outcomes = []
+    lock = threading.Lock()
+    active_lock = threading.Lock()
+    active_now = 0
+    max_active = 0
+
     def run_one(idx):
+        nonlocal active_now, max_active
+        with active_lock:
+            active_now += 1
+            max_active = max(max_active, active_now)
         start = time.monotonic()
         try:
-            ok = func(idx)
-        except:
+            ok = bool(func(idx))
+        except Exception:
             ok = False
         elapsed = (time.monotonic() - start) * 1000
-        return (elapsed, ok)
-    
+        with active_lock:
+            active_now -= 1
+        with lock:
+            latencies.append(elapsed)
+            outcomes.append(ok)
+
+    wall_start = time.monotonic()
     with concurrent.futures.ThreadPoolExecutor(max_workers=concurrency) as executor:
         futures = [executor.submit(run_one, i) for i in range(requests)]
-        for f in concurrent.futures.as_completed(futures):
-            lat, ok = f.result()
-            latencies.append(lat)
-            if ok:
-                successes += 1
-            else:
-                errors += 1
-    
+        for future in concurrent.futures.as_completed(futures):
+            future.result()
+    duration = max(time.monotonic() - wall_start, 1e-9)
+
     latencies.sort()
     n = len(latencies)
-    
+    successes = sum(outcomes)
+    errors = len(outcomes) - successes
+
+    def percentile(values, p):
+        if not values:
+            return 0
+        index = max(0, min(len(values) - 1, int(__import__("math").ceil(p * len(values)) - 1)))
+        return values[index]
+
     return {
         "label": label,
         "concurrency": concurrency,
         "requests": requests,
+        "measured_requests": n,
         "warmup": warmup,
         "successes": successes,
         "errors": errors,
@@ -301,8 +344,12 @@ def run_concurrent_raw(label, func, concurrency, requests, warmup):
         "latency_max_ms": round(max(latencies), 3) if latencies else 0,
         "latency_mean_ms": round(statistics.mean(latencies), 3) if latencies else 0,
         "latency_p50_ms": round(statistics.median(latencies), 3) if latencies else 0,
-        "latency_p95_ms": round(latencies[int(n * 0.95)] if n > 1 else latencies[0], 3) if latencies else 0,
-        "latency_p99_ms": round(latencies[min(int(n * 0.99), n-1)], 3) if latencies else 0,
+        "latency_p95_ms": round(percentile(latencies, 0.95), 3),
+        "latency_p99_ms": round(percentile(latencies, 0.99), 3),
+        "measured_duration_seconds": round(duration, 6),
+        "throughput_requests_per_second": round(n / duration, 2),
+        "throughput_successes_per_second": round(successes / duration, 2),
+        "max_concurrent_requests_observed": max_active,
     }
 
 def main():
@@ -316,15 +363,15 @@ def main():
     print("\n--- P1: Contract Sealing (Protected HTTP API Path) ---")
     for payload_name, payload_bytes in [("1KB", 1024), ("10KB", 10240), ("100KB", 102400)]:
         for c in CONCURRENCY_LEVELS:
-            print(f"  {payload_name} payload, concurrency={c}...")
+            print(f"  {payload_name} payload, concurrency={c}, measured requests={request_count_for(c)}...")
             result = benchmark_with_sessions(
                 f"contract_seal_{payload_name}_c{c}",
                 lambda idx, tok, oid, pb=payload_bytes: make_contract_request(idx, tok, oid, pb),
-                c, TEST_REQUESTS, WARMUP_REQUESTS
+                c, request_count_for(c), WARMUP_REQUESTS
             )
             if result:
                 print(f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "
-                      f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{TEST_REQUESTS}")
+                      f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{result['requests']}")
                 result["payload_size_bytes"] = payload_bytes
                 all_results.append(result)
     
@@ -348,10 +395,10 @@ def main():
             return "Valid" in result.stdout
         
         result = run_concurrent_raw(
-            f"receipt_verify_c{c}", verify_one, c, TEST_REQUESTS, WARMUP_REQUESTS
+            f"receipt_verify_c{c}", verify_one, c, request_count_for(c), WARMUP_REQUESTS
         )
         print(f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "
-              f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{TEST_REQUESTS}")
+              f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{result['requests']}")
         all_results.append(result)
     
     # ── P3: Login Latency ─────────────────────────────────────────
@@ -363,95 +410,74 @@ def main():
             return s == 200
         
         result = run_concurrent_raw(
-            f"login_c{c}", login_raw, c, TEST_REQUESTS, WARMUP_REQUESTS
+            f"login_c{c}", login_raw, c, request_count_for(c), WARMUP_REQUESTS
         )
         print(f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "
-              f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{TEST_REQUESTS}")
+              f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{result['requests']}")
         all_results.append(result)
     
     # ── P4: Audit Retrieval ───────────────────────────────────────
     print("\n--- P4: Audit Retrieval ---")
     for c in CONCURRENCY_LEVELS:
-        print(f"  concurrency={c}...")
+        print(f"  concurrency={c}, measured requests={request_count_for(c)}...")
         result = benchmark_with_sessions(
             f"audit_retrieve_c{c}",
             make_audit_request,
-            c, TEST_REQUESTS, WARMUP_REQUESTS
+            c, request_count_for(c), WARMUP_REQUESTS
         )
         if result:
             print(f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "
-                  f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{TEST_REQUESTS}")
+                  f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{result['requests']}")
             all_results.append(result)
     
     # ── P5: Full E2E Workflow ────────────────────────────────────
     print("\n--- P5: Full E2E Workflow ---")
     for c in [1, 10, 50]:
-        print(f"  concurrency={c}...")
+        print(f"  concurrency={c}, measured requests={request_count_for(c)}...")
         result = benchmark_with_sessions(
-            f"e2e_workflow_c{c}",
+            f"e2e_submit_verify_c{c}",
             make_e2e_request,
-            c, 20, 3
+            c, request_count_for(c, TEST_E2E_REQUESTS), WARMUP_REQUESTS
         )
         if result:
             print(f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "
-                  f"p99={result['latency_p99_ms']}ms, success={result['successes']}/20")
+                  f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{result['requests']}")
             all_results.append(result)
     
-    # ── P6: Baseline (Direct Subprocess, No HTTP Overhead) ───────
+    # ── P6: Baseline (Direct Subprocess, No HTTP Overhead) ──
     print("\n--- P6: Baseline (Direct Subprocess — No HTTP API Overhead) ---")
     env = os.environ.copy()
     env["VARDHAN_ENV"] = "development"
-    
-    # Warmup
-    for i in range(3):
-        contract = build_contract(finding_id=next_finding_id("find-baseline-warmup"))
-        subprocess.run([RECEIPT_BIN, "validate-canonical"],
-                       input=json.dumps(contract).encode(),
-                       capture_output=True, env=env, timeout=30)
-    
+
+    def baseline_one(idx):
+        contract = build_contract(finding_id=next_finding_id("find-baseline"))
+        result = subprocess.run(
+            [RECEIPT_BIN, "validate-canonical"],
+            input=json.dumps(contract).encode(),
+            capture_output=True,
+            env=env,
+            timeout=30,
+        )
+        try:
+            body = json.loads(result.stdout.decode())
+            return result.returncode == 0 and body.get("status") == "SEALED"
+        except Exception:
+            return False
+
     for c in CONCURRENCY_LEVELS:
-        def baseline_one(idx):
-            contract = build_contract(finding_id=next_finding_id("find-baseline"))
-            start = time.monotonic()
-            result = subprocess.run([RECEIPT_BIN, "validate-canonical"],
-                                   input=json.dumps(contract).encode(),
-                                   capture_output=True, env=env, timeout=30)
-            elapsed = (time.monotonic() - start) * 1000
-            try:
-                body = json.loads(result.stdout.decode())
-                return (elapsed, body.get("status") == "SEALED")
-            except:
-                return (elapsed, False)
-        
-        latencies = []
-        successes = 0
-        with concurrent.futures.ThreadPoolExecutor(max_workers=c) as executor:
-            futures = [executor.submit(baseline_one, i) for i in range(TEST_REQUESTS)]
-            for f in concurrent.futures.as_completed(futures):
-                lat, ok = f.result()
-                latencies.append(lat)
-                if ok:
-                    successes += 1
-        
-        latencies.sort()
-        n = len(latencies)
-        result = {
-            "label": f"baseline_direct_c{c}",
-            "concurrency": c,
-            "requests": TEST_REQUESTS,
-            "successes": successes,
-            "errors": TEST_REQUESTS - successes,
-            "latency_min_ms": round(min(latencies), 3),
-            "latency_max_ms": round(max(latencies), 3),
-            "latency_mean_ms": round(statistics.mean(latencies), 3),
-            "latency_p50_ms": round(statistics.median(latencies), 3),
-            "latency_p95_ms": round(latencies[int(n * 0.95)] if n > 1 else latencies[0], 3),
-            "latency_p99_ms": round(latencies[min(int(n * 0.99), n-1)], 3),
-        }
-        print(f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "
-              f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{TEST_REQUESTS}")
+        count = request_count_for(c)
+        print(f"  concurrency={c}, measured requests={count}...")
+        result = run_concurrent_raw(
+            f"baseline_direct_c{c}", baseline_one, c, count, WARMUP_REQUESTS
+        )
+        print(
+            f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "
+            f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{result['requests']}, "
+            f"throughput={result['throughput_successes_per_second']} successful req/s, "
+            f"max active={result['max_concurrent_requests_observed']}"
+        )
         all_results.append(result)
-    
+
     # ── Summary ───────────────────────────────────────────────────
     print("\n" + "=" * 70)
     print("  Performance Benchmark Summary")
