@@ -4,8 +4,27 @@
 
 **Purpose:** Capture known limitations of the PoV test environment and provide remediation guidance for production deployment.
 
-**Date:** 2025-10-15  
-**Git HEAD:** `8d403fe551d388a79a7b88e855c987825c4d9985`
+**Original report date field:** 2025-10-15 (the actual execution date is not independently confirmed)  
+**Original Git HEAD:** `8d403fe551d388a79a7b88e855c987825c4d9985`  
+**Follow-up audit:** 2026-10-15 — corrected harness changes are on a follow-up branch; a fresh run is pending.
+
+---
+
+## 0. Follow-Up Evidence Audit (2026-10-15)
+
+The initial PoV evidence pack needs a corrected rerun before buyer-facing use:
+
+- The acceptance matrix lists AC-01 through AC-28 (28 criteria), although the summary said 26/26.
+- The original performance script used 50 total requests for requested concurrency 100 and 20 requests for the E2E concurrency-50 case. These cannot validate the named concurrency levels.
+- Throughput numbers in the first report were inferred from nominal concurrency and median latency rather than measured from wall-clock completion rate. Those throughput figures are withdrawn.
+- The original session-backed benchmark performed worker-0 warm-up while other workers could already be in the measured phase. The corrected script warms sessions before timing and records run duration, throughput, and observed concurrency.
+- The original S15 script did not assert the claimed one-SEALED/four-REJECTED_REPLAY distribution. The corrected check asserts the exact distribution, and the corrected security run is pending.
+- The original one-command runner suppressed the exit statuses of security and benchmark processes. The corrected runner records those failures and exits non-zero if a suite process fails. The performance script also exits non-zero when measured requests or warm-up operations fail.
+- The first report's displayed c1 medians (7.178 ms HTTP and 6.627 ms direct CLI) differ by 0.551 ms, not ~1.5 ms. Even 0.551 ms is only a difference between separate runs, not a definitive paired measurement of HTTP overhead.
+- The earlier phrase “Logistics Gateway Trust” was an invented expansion for LGT and is withdrawn. The scenario and its hostnames are synthetic; no LGT-specific requirements or problem have been validated.
+- The revised runner captures host/container environment metadata and samples Docker CPU/memory/network/block I/O/PIDs once per second. The first run did not capture these resource measurements.
+
+**Current evidence classification:** first-run results are provisional; corrected execution, raw artifact review, and CI validation remain required. See the updated acceptance matrix, performance benchmark report, security results, and decision report.
 
 ---
 
