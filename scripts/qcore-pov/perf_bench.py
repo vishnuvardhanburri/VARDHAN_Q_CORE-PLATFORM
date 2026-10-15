@@ -98,8 +98,7 @@ def api_request(method, path, token=None, body=None):
         return 0, {"error": str(e)}, token
 
 def build_contract(finding_id, payload_size=1024, actor="svc:vardhan-intelligence:perf-bench"):
-    """Build a Q-Core contract with configurable payload size."""
-    padding = "x" * max(0, payload_size - 800)
+    """Build a valid Q-Core contract with a target serialized HTTP body size."""
     contract = {
         "contract": {
             "schema_version": "1.1",
@@ -117,7 +116,7 @@ def build_contract(finding_id, payload_size=1024, actor="svc:vardhan-intelligenc
             "provenance_chain": {"expectation_id": "e1", "observation_ids": ["o1"], "differential_id": "d1", "hypothesis_id": "h1", "verification_contract_id": "v1"},
             "contradictory_evidence_ids": [],
             "uncertainty": [],
-            "benign_explanation": padding,
+            "benign_explanation": "",
             "authorization_context": {"requires_authorized_assessment": False},
             "decision_candidate": "SEAL_VERIFIED_FINDING",
             "policy_reference": "VARDHAN_CORE_INTELLIGENCE_POLICY_V1",
@@ -127,6 +126,10 @@ def build_contract(finding_id, payload_size=1024, actor="svc:vardhan-intelligenc
         },
         "actor_workload_id": actor
     }
+    # Size the complete serialized request body, not just the padding field.
+    # The mandatory schema may exceed the 1 KB target; record actual bytes.
+    base_bytes = len(json.dumps(contract).encode("utf-8"))
+    contract["contract"]["benign_explanation"] = "x" * max(0, payload_size - base_bytes)
     return contract
 
 POV_TENANT_ID = "org-vardhan-intelligence"
@@ -378,7 +381,13 @@ def main():
             if result:
                 print(f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "
                       f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{result['requests']}")
-                result["payload_size_bytes"] = payload_bytes
+                sample_contract = build_contract(
+                    finding_id=next_finding_id("size-probe"), payload_size=payload_bytes
+                )
+                actual_body_bytes = len(json.dumps(sample_contract).encode("utf-8"))
+                result["payload_size_target_bytes"] = payload_bytes
+                result["payload_size_bytes"] = actual_body_bytes
+                result["payload_size_target_met"] = actual_body_bytes == payload_bytes
                 all_results.append(result)
     
     # ── P2: Receipt Verification (Independent) ────────────────────

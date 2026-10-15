@@ -1,123 +1,71 @@
-# Phase 8b PoV Test Plan — Financial-Services Workflow
+# PoV Validation Plan — Synthetic Financial-Services Workflow
 
-## Objective
+## Status
 
-Validate that VARDHAN Q-Core can protect a realistic financial-services workflow:
-submitting a security finding from a bank's automated analysis pipeline, validating
-authenticity, integrity, non-replay, tenant scoping, and producing a verifiably
-cryptographically sealed receipt for audit.
+The initial Docker run reported passing security and performance results, but a review found invalid concurrency sample sizes, throughput inferred from p50 rather than measured wall-clock time, suppressed runner exit codes, and a concurrent-duplicate assertion that did not check the outcome distribution. A follow-up branch corrects these issues and adds route-to-payload tenant binding. **The corrected Docker suite has not yet been rerun; all corrected outcomes remain pending.**
 
-## Component Map
+This is a synthetic financial-services test case. LGT is only a prospective account hypothesis: there is no verified LGT requirement, use case, internal weakness, project, budget or buyer intent. The prior expansion “Logistics Gateway Trust” was invented and is withdrawn.
 
-### Components That Actually Execute
+## Components in the local test
 
-| Component | Binary | Port | Description |
-|---|---|---|---|
-| Control Plane API | `control_plane_api` | 8080 (configurable) | Axum HTTP API: auth, org management, receipt validation gateway |
-| Receipt Engine | `vardhan-receipt` | N/A (subprocess) | Spawned by control plane for `validate-canonical`; also has `verify`, `prove` subcommands |
-| Auth Service | (library, linked into control_plane_api) | N/A | Credential store, session management, token rotation |
-
-### Components That Are Mocks/Stubs/Unavailable
-
-| Component | Status | Notes |
+| Component | Role | Boundary |
 |---|---|---|
-| Intelligence Plane (TypeScript dashboard) | Not tested | React dev server; not needed for PoV |
-| eBPF Shield | Not built | Requires kernel headers; not in scope |
-| zk_engine | Not built | TypeScript; not needed for PoV |
-| AER-KEP-Q runtime | Not attached | `VARDHAN_AER_KEP_Q_VAULT_PASS` not set |
-| Q-Core issuer key registry | Bootstrap only | `VARDHAN_QCORE_ISSUER_REGISTRY_JSON` not set; dev defaults used |
-| Vault KMS | Feature-gated, not in Docker | `vault` feature not enabled in default Docker build |
-| TLS | Feature-gated, not in default Docker | `tls` feature not enabled; HTTP used for local testing |
+| `control_plane_api` | Local Axum API for authentication and receipt validation | Local HTTP only; no TLS/mTLS claim |
+| `vardhan-receipt` | Validates/seals input and verifies receipt evidence | Spawned as a child process for each request |
+| Policy / tenant registry | Checks configured actors, policy and tenant | Static development allowlist; dynamic organization creation does not automatically provision this registry |
+| Replay/idempotency store | Prevents repeated sealing | Local filesystem state; single-node only |
+| Python security/performance/crypto scripts | Exercises assertions and records metrics | Result counts and process exit statuses must be preserved |
 
-### Existing Test Evidence
+## Core workflow
 
-| Test | Count | Status |
-|---|---|---|
-| Lab demo | 5/5 | ✅ PASS |
-| E2E lifecycle | 33/33 | ✅ PASS |
-| Rust unit tests | 68/68 | ✅ PASS |
-| Regression tests | 13/13 | ✅ PASS |
-| Tenant isolation | 6/6 | ✅ PASS |
-| Audit trail tests | 5/5 | ✅ PASS |
-| Vault provider tests | 6/6 | ✅ PASS |
+1. Authenticate to the local API and obtain a token.
+2. Submit a synthetic contract whose URL tenant matches the contract's organization ID.
+3. Validate policy/tenant/actor and seal a receipt through the real receipt-engine binary.
+4. Verify receipt evidence independently.
+5. Submit invalid hash, unauthorized actor, unknown tenant and malformed inputs.
+6. Replay a sealed finding and submit simultaneous duplicates.
+7. Deliberately mismatch the URL tenant and payload tenant; require HTTP 403 and `REJECTED_TENANT_MISMATCH`.
+8. Retrieve audit evidence and run persistence checks where explicitly automated.
 
-## Shortest Viable E2E Workflow
+The test uses the pre-registered synthetic tenant. Organization creation is exercised separately, but dynamic provisioning into the policy tenant registry is not claimed as validated.
 
-1. Start `control_plane_api` with dev environment
-2. POST `/api/v1/auth/login` → get token
-3. POST `/api/v1/organizations` → create tenant
-4. POST `/api/v1/organizations/{id}/security/validate` → spawn `vardhan-receipt validate-canonical` → receive sealed receipt (Ed25519 + ML-DSA-87)
-5. GET `/api/v1/organizations/{id}/security/audit` → retrieve audit trail
-6. `vardhan-receipt verify` → independent receipt verification
-7. Replay same contract → `REJECTED_REPLAY`
-8. Submit with unauthorized actor → `DENY_ISSUER_UNBOUND`
-9. Tamper receipt signature → verification returns Invalid
+## Security acceptance tests
 
-## Test Plan Matrix
+The current follow-up harness is expected to record 24 explicit assertions covering setup, valid sealing, sequential replay, hash tampering, unauthorized actor, spoofed actor, tampered receipt signature, unknown tenant, malformed contract, route/payload mismatch, unauthenticated request, concurrent duplicate behavior, audit endpoint access and independent verification.
 
-### Security Tests
+For five simultaneous submissions using one finding ID and the same tenant route, the corrected test requires exactly one SEALED response and four REJECTED_REPLAY responses. A response count alone is insufficient.
 
-| # | Test | Threat | Expected Result |
-|---|---|---|---|
-| S1 | Valid contract sealing | N/A (baseline) | Status=SEALED, dual signatures present |
-| S2 | Replay identical contract | Replay attack | Status=REJECTED_REPLAY |
-| S3 | Tampered payload hash | Tampering | Status=REJECTED_TRUST_BOUNDARY |
-| S4 | Unauthorized actor | Impersonation | Status=REJECTED, not SEALED |
-| S5 | Spoofed issuer prefix | Impersonation via substring | Status=REJECTED, not SEALED |
-| S6 | Tampered receipt signature | Receipt forgery | Verification returns Invalid |
-| S7 | Unknown tenant | Tenant cross-access | Status=DENY_TENANT_UNKNOWN |
-| S8 | Empty tenant ID | Input validation | Status=DENY_TENANT_MISSING |
-| S9 | SQL injection in tenant | Injection | Status=DENY_TENANT_UNKNOWN (no crash) |
-| S10 | Malformed contract JSON | Input validation | Status=REJECTED (no crash/500) |
-| S11 | Oversized payload | DoS | Rejected gracefully (no OOM crash) |
-| S12 | Unauthenticated API access | Auth bypass | HTTP 401 |
-| S13 | Wrong role accessing org | RBAC bypass | HTTP 403 |
-| S14 | Service restart persistence | State loss | Replay still rejected, orgs persist |
-| S15 | Concurrent duplicate submissions | Race condition | At most one SEALED |
-| S16 | Audit trail tampering | Audit forgery | Hash chain mismatch detected |
+A fresh run must show all 24 assertions passed, zero failed, the exact source SHA, and raw JSON/log evidence. These are expected criteria, not a claim of current success.
 
-### Performance Tests
+## Performance protocol
 
-| # | Metric | Concurrency | Payload Size |
-|---|---|---|---|
-| P1 | Login latency (ms) | 1, 10, 50, 100 | N/A |
-| P2 | Org creation latency (ms) | 1, 10, 50, 100 | 1KB contract |
-| P3 | Contract sealing latency (ms) | 1, 10, 50, 100 | 1KB, 10KB, 100KB |
-| P4 | Receipt verification latency (ms) | 1, 10, 50, 100 | 1KB receipt |
-| P5 | Audit retrieval latency (ms) | 1, 10, 50, 100 | N/A |
-| P6 | E2E workflow latency (ms) | 1, 10, 50 | 1KB contract |
-| P7 | Replay rejection latency (ms) | 1, 10, 50 | 1KB contract |
-| P8 | Cold start vs warm | 1 | 1KB contract |
+- Concurrency levels: 1, 10, 50, 100.
+- Default sample size: at least 100 measured requests and at least 10 requests per worker; E2E follows the same requirement.
+- Session setup and warm-up must finish before the measured interval begins.
+- Latency: min, mean, p50, p95, p99, max.
+- Throughput: completed requests / measured wall-clock seconds and successful requests / measured wall-clock seconds.
+- Observed concurrency: maximum simultaneously active client calls.
+- Reliability: successful, failed, missing and warm-up request counts.
+- Payload sizing: report actual serialized request-body bytes and whether the requested target was achieved; a mandatory schema can exceed the nominal 1 KB target.
+- Resources: record Git HEAD, script checksums, Docker image identity, host OS/CPU/RAM, Docker resource limits and a timestamped Docker CPU/memory/network/block-I/O/PID sample series.
+- Baseline: compare equivalent inputs/work under matched concurrency and measurement intervals. Difference between separate p50 readings is not definitive HTTP overhead.
 
-### Cryptographic Benchmarks
+All measurements are lab-specific. Sustained throughput should only be claimed after a long-enough load test with explicit success/latency criteria. The default suite is a repeatable benchmark, not a production capacity certification.
 
-| # | Operation | Iterations |
-|---|---|---|
-| C1 | Ed25519 sign (SHA-512) | 10,000 |
-| C2 | Ed25519 verify | 10,000 |
-| C3 | ML-DSA-87 sign | 1,000 |
-| C4 | ML-DSA-87 verify | 1,000 |
-| C5 | BLAKE3 hash (1KB) | 100,000 |
-| C6 | BLAKE3 hash (100KB) | 10,000 |
+## Cryptographic benchmark interpretation
 
-## Identified Gaps
+Ed25519 timings from the Python cryptography library are primitive-level microbenchmarks. ML-DSA-87 timings produced by invoking `vardhan-receipt validate-canonical` and `vardhan-receipt verify` are full subprocess/receipt workflow timings, not isolated ML-DSA primitive timings. The report must keep these measurement scopes separate.
 
-1. **No production Dockerfile** — existing `docker/Dockerfile.ebpf` is for eBPF only; `docker-compose.yml` runs `cargo run` (slow dev mode).
-2. **No security test script** — must create from scratch.
-3. **No crypto benchmark harness** — must create standalone test binary.
-4. **No baseline comparison** — must implement a "no-Q-Core" baseline path.
-5. **TLS not enabled by default** — acceptable for local lab; documented as limitation.
-6. **Vault/KMS not in Docker** — feature-gated; documented as limitation.
-7. **No multi-instance deployment** — replay protection is single-process.
+## Not validated by this plan alone
 
-## Acceptance Criteria (Provisional)
+- Production TLS/mTLS or public-network security.
+- Dynamic tenant registration and complete route/payload/audit/key tenant isolation.
+- Distributed replay rejection across multiple nodes.
+- Production key management through KMS/HSM.
+- Backup/restore, HA/DR, rate limiting, long-duration endurance and recovery.
+- Independent penetration testing, cryptographic review or formal regulatory compliance.
+- Any LGT-specific problem, requirement, solution fit, ROI or readiness.
 
-| Metric | Proposed Target | Reason |
-|---|---|---|
-| Replay rejection | 100% | Security critical |
-| Unauthorized actor rejection | 100% | Security critical |
-| Tamper detection | 100% | Security critical |
-| p99 contract sealing latency | < 500ms | Financial services SLA |
-| Sustainable throughput | > 5 TPS | Reasonable for batch processing |
-| Error rate under load | < 1% | Quality of service |
-| Recovery after restart | 100% | Durability requirement |
+## Decision gate
+
+Treat the current evidence as **CONDITIONAL — further lab validation only** until the corrected Docker run completes and raw results are reviewed. The production release gate remains separate. Even a clean run is evidence for a narrow local workflow only; the buyer must validate the actual problem and acceptance criteria before this becomes a customer PoV.
