@@ -47,7 +47,7 @@ Status meanings:
 
 ## Additional security assertion
 
-The previous S15 concurrency test did not assert the reported response distribution. The corrected test now requires exactly one SEALED response and four REJECTED_REPLAY responses for five concurrent submissions of the same finding ID to the same tenant route, using separate one-time tokens. This produces 22 security assertions in total, assuming the test runs as written; the fresh result is pending.
+The previous S15 concurrency test did not assert the reported response distribution. The corrected test now requires exactly one SEALED response and four REJECTED_REPLAY responses for five concurrent submissions of the same finding ID to the same tenant route, using separate one-time tokens. It also tests that a route/payload tenant mismatch returns 403 and `REJECTED_TENANT_MISMATCH`. Including setup, negative cases and new assertions, 24 security assertions are expected; the fresh result is pending.
 
 ## Rerun acceptance rule
 
