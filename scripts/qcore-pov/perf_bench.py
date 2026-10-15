@@ -494,5 +494,20 @@ def main():
         json.dump(all_results, f, indent=2)
     print(f"\nResults written to {output_file}")
 
+    invalid = [
+        r for r in all_results
+        if r.get("errors", 0) > 0
+        or r.get("measured_requests", r.get("requests", 0)) != r.get("requests", 0)
+        or r.get("warmup_failures", 0) > 0
+    ]
+    if invalid:
+        print(f"\nFAIL: {len(invalid)} benchmark group(s) had failed requests or warm-up failures.")
+        for r in invalid:
+            print(f"  {r['label']}: requests={r.get('requests')} measured={r.get('measured_requests')} "
+                  f"errors={r.get('errors')} warmup_failures={r.get('warmup_failures', 0)}")
+        return 1
+    print("\nPASS: all benchmark groups completed every measured request successfully.")
+    return 0
+
 if __name__ == "__main__":
     sys.exit(main())
