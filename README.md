@@ -93,6 +93,16 @@ flowchart LR
 
 **In simple terms:** Intelligence discovers and proves what is happening. Q Core decides what is trusted, authorized, protected, executed, and provable.
 
+## Commercial Engagement Path
+
+Vardhan's target enterprise engagement sequence is buyer-gated: **£15K architecture/security discovery → £60K bounded proof of value → £500K production engagement**. These are target contract values, not booked revenue or a claim of production readiness. Each stage requires buyer evidence, written acceptance criteria, and an executed agreement before the next stage begins.
+
+- [Commercial path and stage gates](docs/commercial/README.md)
+- [£15K discovery scope](docs/commercial/DISCOVERY_15K_SCOPE.md)
+- [£60K proof-of-value scope](docs/commercial/POV_60K_SCOPE.md)
+- [£500K production scope](docs/commercial/PRODUCTION_500K_SCOPE.md)
+- [First buyer problem-validation outreach](docs/commercial/FIRST_BUYER_OUTREACH.md)
+
 ## Two-Pillar Architecture
 
 ### Vardhan Intelligence
