@@ -244,29 +244,38 @@ def main():
     print("\n--- S15: Concurrent Duplicate Submissions ---")
     concurrent_contract = build_contract(finding_id="find-pov-s15")
     results = []
-    
+
     def submit_concurrent(idx):
-        # Each concurrent thread gets its own login and org
-        s, b, t = api_request("POST", "/api/v1/auth/login",
-                              body={"username": ADMIN_USER, "password": ADMIN_PASS})
-        if s != 200: return "ERROR"
-        t = b.get("token", t)
-        s2, b2, t2 = api_request("POST", "/api/v1/organizations", t, {"name": f"Concurrent Tenant {idx}"})
-        if s2 not in (200, 201): return "ERROR"
-        oid = b2.get("organization", {}).get("id", "")
-        s3, b3, _ = api_request("POST", f"/api/v1/organizations/{oid}/security/validate",
-                                t2, concurrent_contract)
-        return b3.get("status", "ERROR")
-    
+        # Give each request an independent one-time token, but submit the same
+        # finding_id to the same tenant/path to test the atomic replay boundary.
+        login_status, login_body, _ = api_request(
+            "POST", "/api/v1/auth/login",
+            body={"username": ADMIN_USER, "password": ADMIN_PASS}
+        )
+        if login_status != 200:
+            return (login_status, "LOGIN_FAILED")
+        request_token = login_body.get("token", "")
+        status, body, _ = api_request(
+            "POST",
+            f"/api/v1/organizations/{org_id}/security/validate",
+            request_token,
+            concurrent_contract,
+        )
+        return (status, body.get("status", "ERROR"))
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = [executor.submit(submit_concurrent, i) for i in range(5)]
-        results = [f.result() for f in concurrent.futures.as_completed(futures)]
-    
-    sealed_count = sum(1 for r in results if r == "SEALED")
-    replay_count = sum(1 for r in results if r == "REJECTED_REPLAY")
+        results = [future.result() for future in concurrent.futures.as_completed(futures)]
+
+    sealed_count = sum(1 for status, result in results if status == 200 and result == "SEALED")
+    replay_count = sum(1 for status, result in results if status == 200 and result == "REJECTED_REPLAY")
     print(f"  Concurrent results: {sealed_count} sealed, {replay_count} replay-rejected")
-    # Note: since each uses a different org, all should seal. But if same org, only 1 should seal.
-    check("S15: All 5 concurrent submissions processed", 5, len(results))
+    check("S15: Exactly one concurrent submission seals", 1, sealed_count)
+    check("S15: Remaining concurrent submissions rejected as replay", 4, replay_count)
+    check("S15: All responses are expected", True, all(
+        status == 200 and result in ("SEALED", "REJECTED_REPLAY")
+        for status, result in results
+    ))
     
     # S16: Audit trail retrieval
     print("\n--- S16: Audit Trail Retrieval ---")
