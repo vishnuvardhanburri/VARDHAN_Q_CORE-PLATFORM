@@ -92,10 +92,10 @@ def build_contract(finding_id="find-pov-001", actor="svc:vardhan-intelligence:fi
             },
             "organization": {
                 "organization_id": org_id,
-                "canonical_domain": "lgt-bank.pov"
+                "canonical_domain": "synthetic-bank.invalid"
             },
             "affected_resource": {
-                "canonical_url": "https://api.lgt-bank.pov/security",
+                "canonical_url": "https://api.synthetic-bank.invalid/security",
                 "surface_type": "API_REST",
                 "entry_point_id": "ep-financial-01"
             },
@@ -107,7 +107,7 @@ def build_contract(finding_id="find-pov-001", actor="svc:vardhan-intelligence:fi
             "materiality": "HIGH",
             "evidence_refs": [{
                 "evidence_id": "ev-pov-001",
-                "public_url": "https://evidence.lgt-bank.pov",
+                "public_url": "https://evidence.synthetic-bank.invalid",
                 "temporal_status": "CURRENT",
                 "is_context_artifact": False,
                 "evidence_origin": "scan",
@@ -165,7 +165,7 @@ def main():
     # ── Create organization ──────────────────────────────────────
     print("\n[Setup] Creating organization...")
     status, body, token = api_request("POST", "/api/v1/organizations", token, 
-                                      {"name": "LGT PoC Tenant"})
+                                      {"name": "Synthetic Financial Services PoV Tenant"})
     check("Org creation", 201, status)
     org_id = body.get("organization", {}).get("id", "")
     check("Org ID present", True, bool(org_id))
