@@ -60,6 +60,48 @@ def next_finding_id(prefix="find"):
         global_counter += 1
         return f"{prefix}-{RUN_ID}-{global_counter}"
 
+def register_tenant(tenant_id):
+    """Provision a synthetic benchmark tenant into the receipt engine config."""
+    config_path = os.environ.get("VARDHAN_AUTH_CONFIG_PATH")
+    if not config_path:
+        config_path = os.path.join(
+            os.environ.get("VARDHAN_KEYSTORE_DIR", "/var/lib/vardhan/keystore"),
+            "auth_config.json",
+        )
+        os.environ["VARDHAN_AUTH_CONFIG_PATH"] = config_path
+
+    if os.path.exists(config_path):
+        with open(config_path, encoding="utf-8") as handle:
+            config = json.load(handle)
+        if not isinstance(config, dict):
+            raise RuntimeError("PoV auth config must be a JSON object")
+        config.setdefault("tenants", [])
+        config.setdefault("policies", [])
+    else:
+        config = {
+            "tenants": [
+                "org-vardhan-intelligence",
+                "org-acme-bank-poc",
+                "org-test-tenant-valid",
+            ],
+            "policies": [{
+                "policy_id": "VARDHAN_CORE_INTELLIGENCE_POLICY_V1",
+                "policy_version": "1.0",
+                "governed_actions": ["SEAL_VERIFIED_FINDING"],
+                "authorized_actor_prefixes": ["svc:vardhan-intelligence:"],
+            }],
+        }
+
+    if tenant_id not in config["tenants"]:
+        config["tenants"].append(tenant_id)
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    temp_path = f"{config_path}.{os.getpid()}.tmp"
+    with open(temp_path, "w", encoding="utf-8") as handle:
+        json.dump(config, handle, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temp_path, config_path)
+
 def api_request(method, path, token=None, body=None):
     """Make an API request, returning (status_code, response_json, new_token)."""
     url = f"{HOST}{path}"
@@ -97,14 +139,14 @@ def api_request(method, path, token=None, body=None):
     except Exception as e:
         return 0, {"error": str(e)}, token
 
-def build_contract(finding_id, payload_size=1024, actor="svc:vardhan-intelligence:perf-bench"):
+def build_contract(finding_id, payload_size=1024, actor="svc:vardhan-intelligence:perf-bench", org_id=None):
     """Build a valid Q-Core contract with a target serialized HTTP body size."""
     contract = {
         "contract": {
             "schema_version": "1.1",
             "finding_id": finding_id,
             "intelligence": {"engine_id": "perf-bench", "engine_version": "1.0.0", "run_id": "run-bench-001"},
-            "organization": {"organization_id": "org-vardhan-intelligence", "canonical_domain": "perf.vardhan.org"},
+            "organization": {"organization_id": org_id or "org-vardhan-intelligence", "canonical_domain": "perf.vardhan.org"},
             "affected_resource": {"canonical_url": "https://api.vardhan.org", "surface_type": "API_REST", "entry_point_id": "ep-bench-1"},
             "technical_area": "STATIC_ANALYSIS",
             "technical_mechanism": "SQLi",
@@ -132,10 +174,8 @@ def build_contract(finding_id, payload_size=1024, actor="svc:vardhan-intelligenc
     contract["contract"]["benign_explanation"] = "x" * max(0, payload_size - base_bytes)
     return contract
 
-POV_TENANT_ID = "org-vardhan-intelligence"
-
 def create_session(worker_id=None):
-    """Create a fresh login session for the pre-registered synthetic PoV tenant."""
+    """Create a fresh login session and explicitly provision its synthetic tenant."""
     status, body, _ = api_request(
         "POST", "/api/v1/auth/login",
         body={"username": ADMIN_USER, "password": ADMIN_PASS}
@@ -145,9 +185,17 @@ def create_session(worker_id=None):
     token = body.get("token", "")
     if not token:
         return None, None
-    # Dynamic organization creation is not wired to the static policy tenant
-    # registry in this PoV build. Route and contract IDs must match.
-    return token, POV_TENANT_ID
+    name = f"PoV-Bench-{RUN_ID}-{worker_id if worker_id is not None else next_finding_id('org')}"
+    org_status, org_body, token = api_request(
+        "POST", "/api/v1/organizations", token, {"name": name}
+    )
+    if org_status not in (200, 201):
+        return None, None
+    org_id = org_body.get("organization", {}).get("id", "")
+    if not org_id:
+        return None, None
+    register_tenant(org_id)
+    return token, org_id
 
 def benchmark_with_sessions(label, func, concurrency, requests, warmup):
     """Measure a session-backed operation with setup and warm-up excluded."""
@@ -254,11 +302,12 @@ def benchmark_with_sessions(label, func, concurrency, requests, warmup):
         "throughput_requests_per_second": round(n / duration, 2),
         "throughput_successes_per_second": round(successes / duration, 2),
         "max_concurrent_requests_observed": max_active,
+        "tenant_id": sessions[0]["org_id"] if sessions else None,
     }
 
 def make_contract_request(idx, token, org_id, payload_size=1024):
     """Submit a contract and return (new_token, success_bool)."""
-    contract = build_contract(finding_id=next_finding_id("find-perf"), payload_size=payload_size)
+    contract = build_contract(finding_id=next_finding_id("find-perf"), payload_size=payload_size, org_id=org_id)
     s, b, new_token = api_request("POST", f"/api/v1/organizations/{org_id}/security/validate",
                                 token, contract)
     return new_token, b.get("status") == "SEALED"
@@ -270,7 +319,7 @@ def make_audit_request(idx, token, org_id):
 
 def make_e2e_request(idx, token, org_id):
     """Full E2E: submit contract and verify receipt independently."""
-    contract = build_contract(finding_id=next_finding_id("find-e2e"))
+    contract = build_contract(finding_id=next_finding_id("find-e2e"), org_id=org_id)
     s, b, new_token = api_request("POST", f"/api/v1/organizations/{org_id}/security/validate",
                                 token, contract)
     if s != 200 or b.get("status") != "SEALED":
@@ -382,7 +431,9 @@ def main():
                 print(f"    p50={result['latency_p50_ms']}ms, p95={result['latency_p95_ms']}ms, "
                       f"p99={result['latency_p99_ms']}ms, success={result['successes']}/{result['requests']}")
                 sample_contract = build_contract(
-                    finding_id=next_finding_id("size-probe"), payload_size=payload_bytes
+                    finding_id=next_finding_id("size-probe"),
+                    payload_size=payload_bytes,
+                    org_id=result.get("tenant_id"),
                 )
                 actual_body_bytes = len(json.dumps(sample_contract).encode("utf-8"))
                 result["payload_size_target_bytes"] = payload_bytes
@@ -394,7 +445,7 @@ def main():
     print("\n--- P2: Receipt Verification (via vardhan-receipt verify) ---")
     # Generate a single valid receipt for verification benchmarking
     token, org_id = create_session(worker_id=0)
-    contract = build_contract(finding_id=next_finding_id("find-perf"))
+    contract = build_contract(finding_id=next_finding_id("find-perf"), org_id=org_id)
     s, b, _ = api_request("POST", f"/api/v1/organizations/{org_id}/security/validate", token, contract)
     receipt_json = json.dumps(b)
     
