@@ -8,6 +8,8 @@
 
 The product proposition to test with buyers is narrow: VARDHAN Q-CORE is intended to help enterprise systems validate evidence provenance, reject tampered or replayed submissions, and produce independently verifiable trust receipts. Whether this solves a material buyer problem remains a discovery hypothesis, not an established customer outcome.
 
+**Go-to-market principle: narrow offer, broad pipeline.** LGT is one target-account hypothesis, not the entire market or a qualified opportunity. Start with a coherent portfolio of regulated finance, financial-market infrastructure, communications/critical digital infrastructure, insurance, and selected public digital-service candidates. See [Target-market portfolio and qualification plan](TARGET_MARKET_PORTFOLIO.md). The portfolio is a research queue: public company context does not prove need, budget, or buyer intent.
+
 ## Stage gates
 
 | Stage | Value | Entry evidence | Exit evidence required before advancing |
@@ -32,13 +34,14 @@ See [Production scope](PRODUCTION_500K_SCOPE.md). £500K is a planning value unt
 
 ## Immediate execution sequence
 
-1. **Pick one target account and one buyer problem.** Use public evidence to form a question; do not infer internal architecture, incidents, budget, or intent.
-2. **Send a problem question, not a £15K proposal.** Use [first-buyer outreach](FIRST_BUYER_OUTREACH.md). For the existing LGT outreach target, use the [LGT buyer hypothesis and tailored brief](LGT_TARGET_HYPOTHESIS.md). The immediate objective is a response from a relevant buyer and a conversation to validate the problem.
-3. **Qualify the buying path.** Identify sponsor, technical owner, security/procurement route, access constraints, timing, budget path, and decision process. Keep unknowns marked UNKNOWN.
-4. **Offer discovery only when relevant.** Send the £15K scope and terms for acceptance. An unacknowledged lead or unaccepted proposal is not contracted.
-5. **End discovery with a signed PoV plan or a stop decision.** Do not start the £60K scope before access, feasibility, and acceptance criteria are agreed.
-6. **Convert a successful PoV into a production decision pack.** Map results to deployment, security remediation, support, procurement, and commercial terms.
-7. **Track facts separately:** target → buyer acknowledged → qualified → proposal sent → signed → delivery accepted → invoiced → paid. Pipeline is not cash.
+1. **Build a broad, qualified research queue.** Use [the target-market portfolio](TARGET_MARKET_PORTFOLIO.md) to investigate candidates across multiple regulated sectors. Verify public context and buyer-role routes; do not infer internal architecture, incidents, budget, or intent.
+2. **Prioritize the first five accounts.** Rank them on a dated problem signal, clarity of one workflow, buyer access, urgency/impact, and a plausible commercial path. LGT is one candidate among the portfolio, not the sole bet. Its tailored hypothesis is documented in [LGT buyer hypothesis](LGT_TARGET_HYPOTHESIS.md).
+3. **Send a problem question, not a £15K proposal.** Use [first-buyer outreach](FIRST_BUYER_OUTREACH.md), adapting it to the buyer's role and public context. Record the exact question, reply, and date.
+4. **Qualify the buying path.** Confirm the buyer-stated problem and impact, sponsor, technical owner, security/procurement route, access constraints, timing, budget path, and decision process. Keep unknowns marked UNKNOWN.
+5. **Offer discovery only when relevant.** Send the £15K scope and terms for acceptance after the buyer confirms a worthwhile problem and a plausible scope, sponsor, access route, and buying path. An unacknowledged lead or unaccepted proposal is not contracted.
+6. **End discovery with a signed PoV plan or a stop decision.** Do not start the £60K scope before access, feasibility, and acceptance criteria are agreed.
+7. **Convert a successful PoV into a production decision pack.** Map results to deployment, security remediation, support, procurement, and commercial terms.
+8. **Track facts separately:** target → buyer acknowledged → qualified → proposal sent → signed → delivery accepted → invoiced → paid. Pipeline is not cash.
 
 ## Buyer qualification record
 
