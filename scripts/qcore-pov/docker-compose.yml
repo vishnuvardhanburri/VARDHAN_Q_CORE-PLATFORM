@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  qcore-control-plane:
+    build:
+      context: ../..
+      dockerfile: scripts/qcore-pov/docker/Dockerfile.pov
+    container_name: vardhan_qcore_pov
+    hostname: qcore-pov
+    ports:
+      - "8080:8080"
+    environment:
+      - VARDHAN_ENV=development
+      - VARDHAN_CONTROL_PLANE_ADDR=0.0.0.0:8080
+      - VARDHAN_CONTROL_PLANE_DATA_DIR=/var/lib/vardhan/control-plane
+      - VARDHAN_KEYSTORE_DIR=/var/lib/vardhan/keystore
+      - VARDHAN_IDEMPOTENCY_DIR=/var/lib/vardhan/idempotency
+      - VARDHAN_NODE_ID=pov-validation-node
+      - VARDHAN_ADMIN_USERNAME=admin
+      - QCORE_HOST=http://localhost:8080
+      - VARDHAN_RECEIPT_ENGINE_BIN=/usr/local/bin/vardhan-receipt
+    secrets:
+      - admin_password
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/api/v1/platform/health", "|", "grep", "operational"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 10s
+    restart: unless-stopped
+
+secrets:
+  admin_password:
+    file: ./secrets/admin_password.txt
