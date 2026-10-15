@@ -31,8 +31,17 @@ CFG
     chmod 600 "$VARDHAN_AUTH_CONFIG_PATH"
 fi
 
-# If no admin password is configured, bootstrap a dev one.
-if [ -z "${VARDHAN_ADMIN_PASSWORD_FILE:-}" ] && [ -z "${VARDHAN_ADMIN_PASSWORD:-}" ]; then
+# Bootstrap admin password file.
+# The auth service reads from VARDHAN_ADMIN_PASSWORD_FILE (preferred).
+# If only VARDHAN_ADMIN_PASSWORD is provided, convert it to a file.
+# If neither is set, create a default dev password file.
+if [ -n "${VARDHAN_ADMIN_PASSWORD:-}" ]; then
+    TEMP_PW_FILE=$(mktemp /tmp/admin_pw_XXXXXX)
+    echo "$VARDHAN_ADMIN_PASSWORD" > "$TEMP_PW_FILE"
+    chmod 600 "$TEMP_PW_FILE"
+    export VARDHAN_ADMIN_PASSWORD_FILE="$TEMP_PW_FILE"
+    unset VARDHAN_ADMIN_PASSWORD
+elif [ -z "${VARDHAN_ADMIN_PASSWORD_FILE:-}" ]; then
     TEMP_PW_FILE=$(mktemp /tmp/admin_pw_XXXXXX)
     echo "dev-strong-password-12345" > "$TEMP_PW_FILE"
     chmod 600 "$TEMP_PW_FILE"

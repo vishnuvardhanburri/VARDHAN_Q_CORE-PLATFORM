@@ -58,6 +58,7 @@ ENV QCORE_HOST=http://localhost:8080
 
 # Bootstrap auth config and keystore on container start
 COPY --chown=appuser:appuser docker/dev-entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 8080
 
