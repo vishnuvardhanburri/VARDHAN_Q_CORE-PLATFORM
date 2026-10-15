@@ -1,0 +1,107 @@
+{
+  "tests": [
+    {
+      "status": "PASS",
+      "test": "Login succeeds",
+      "detail": "expected=200, got=200"
+    },
+    {
+      "status": "PASS",
+      "test": "Token present",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "Org creation",
+      "detail": "expected=201, got=201"
+    },
+    {
+      "status": "PASS",
+      "test": "Org ID present",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S1: Valid contract returns 200",
+      "detail": "expected=200, got=200"
+    },
+    {
+      "status": "PASS",
+      "test": "S1: Status is SEALED",
+      "detail": "expected=SEALED, got=SEALED"
+    },
+    {
+      "status": "PASS",
+      "test": "S1: Ed25519 signature present",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S1: ML-DSA-87 signature present",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S2: Replay returns 200",
+      "detail": "expected=200, got=200"
+    },
+    {
+      "status": "PASS",
+      "test": "S2: Status is REJECTED_REPLAY",
+      "detail": "expected=REJECTED_REPLAY, got=REJECTED_REPLAY"
+    },
+    {
+      "status": "PASS",
+      "test": "S3: Tampered hash not SEALED",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S4: Unauthorized actor not SEALED",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S5: Spoofed prefix not SEALED",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S6: Tampered sig verification returns Invalid",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S7: Unknown tenant not SEALED",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S8: Malformed contract not SEALED",
+      "detail": "expected=True, got=True"
+    },
+    {
+      "status": "PASS",
+      "test": "S12: Unauthenticated denied (401)",
+      "detail": "expected=401, got=401"
+    },
+    {
+      "status": "PASS",
+      "test": "S15: All 5 concurrent submissions processed",
+      "detail": "expected=5, got=5"
+    },
+    {
+      "status": "PASS",
+      "test": "S16: Audit endpoint accessible (200)",
+      "detail": "expected=200, got=200"
+    },
+    {
+      "status": "PASS",
+      "test": "S16b: Valid receipt verifies",
+      "detail": "expected=True, got=True"
+    }
+  ],
+  "passed": 20,
+  "failed": 0,
+  "total": 20
+}

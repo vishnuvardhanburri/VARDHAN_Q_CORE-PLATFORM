@@ -1,0 +1,12 @@
+{
+  "container_restart": "PASS",
+  "receipt_verification_after_restart": "PASS",
+  "idempotency_persistence_after_restart": "PASS",
+  "new_contract_after_restart": "PASS",
+  "findings": {
+    "receipt_still_valid": true,
+    "replay_rejected_after_restart": true,
+    "new_contract_sealed": true,
+    "signatures_present": true
+  }
+}
