@@ -16,12 +16,15 @@ Private signing keys are not transported. The receipt contains key identifiers a
 
 The producer sends:
 
+- `X-Vardhan-Transport-Version: 2`
 - `X-Vardhan-Service-Id`
 - `X-Vardhan-Timestamp` (milliseconds since Unix epoch)
 - `X-Vardhan-Nonce` (unique per request)
-- `X-Vardhan-Signature` (hex HMAC-SHA256 over `timestamp.nonce.raw_json_body`)
+- `X-Vardhan-Signature` (hex HMAC-SHA256)
 
-The control plane rejects missing/invalid authentication, stale timestamps, duplicate nonces, unknown or inactive issuer identities, cross-tenant receipts, malformed receipts, and invalid Ed25519/ML-DSA-87 signatures.
+Transport version 2 signs a domain-separated, length-prefixed sequence containing the protocol version, HTTP method, exact organization route, organization ID, service ID, timestamp, nonce, and the **raw request-body bytes**. This prevents a valid request signature from being reused after changing the route tenant or service identity, and avoids ambiguous delimiter/string-decoding representations. Version 1 signatures are not accepted by the v2 endpoint; upgrade the producer and control plane together.
+
+The control plane rejects missing/unsupported protocol versions, invalid authentication, stale timestamps, duplicate nonces, oversized receipt bodies, unknown or inactive issuer identities, cross-tenant receipts, malformed receipts, and invalid Ed25519/ML-DSA-87 signatures. This HMAC transport check is separate from the receipt's Ed25519 + ML-DSA-87 signature verification.
 
 ## Operational publisher
 

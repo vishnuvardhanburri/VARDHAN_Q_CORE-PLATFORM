@@ -22,15 +22,15 @@ hkdf = "0.12"
 sha3 = "0.10"
 tracing = "0.1"
 
-# P3.5.1: Optional real AWS KMS client (behind feature flag so default builds stay lean)
-aws-sdk-kms    = "1.0"
-aws-config     = "1.0"
+# P3.5.1: Keep the real AWS KMS client and its TLS dependency graph opt-in.
+aws-sdk-kms = { version = "1.0", optional = true }
+aws-config = { version = "1.0", optional = true }
 tokio          = { version = "1.38", features = ["full"] }
 dotenvy = "0.15.0"
 
 [features]
 default = []
-aws-kms-real = []
+aws-kms-real = ["dep:aws-sdk-kms", "dep:aws-config"]
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["async_tokio"] }
