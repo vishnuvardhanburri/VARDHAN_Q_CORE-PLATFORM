@@ -256,6 +256,22 @@ cmd_up() {
         return 1
     fi
 
+    # Kill any stale native control_plane_api/vardhan-receipt processes that
+    # might be holding the configured ports before we start Docker.
+    local pids
+    pids=$(lsof -ti ":${CONTROL_PLANE_PORT}" 2>/dev/null | grep -v "$(docker compose -f "$COMPOSE_FILE" ps --format '{{.ID}}' 2>/dev/null)" || true)
+    if [ -n "$pids" ]; then
+        warn "Killing stale process(es) on port ${CONTROL_PLANE_PORT}: $pids"
+        kill $pids 2>/dev/null || true
+        sleep 2
+    fi
+    pids=$(lsof -ti ":${INTELLIGENCE_PORT}" 2>/dev/null | grep -v "$(docker compose -f "$COMPOSE_FILE" ps --format '{{.ID}}' 2>/dev/null)" || true)
+    if [ -n "$pids" ]; then
+        warn "Killing stale process(es) on port ${INTELLIGENCE_PORT}: $pids"
+        kill $pids 2>/dev/null || true
+        sleep 2
+    fi
+
     info "Building and starting services..."
     docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d
 
@@ -478,6 +494,16 @@ cmd_pov() {
 cmd_down() {
     info "Stopping VARDHAN Q-CORE services..."
     docker compose -f "$COMPOSE_FILE" down 2>/dev/null || true
+
+    # Kill any stale native processes that may still be holding ports
+    for port in "$CONTROL_PLANE_PORT" "$INTELLIGENCE_PORT"; do
+        local pids
+        pids=$(lsof -ti ":$port" 2>/dev/null || true)
+        if [ -n "$pids" ]; then
+            warn "Killing stale process(es) on port $port: $pids"
+            kill $pids 2>/dev/null || true
+        fi
+    done
 
     ok "Services stopped"
 }
