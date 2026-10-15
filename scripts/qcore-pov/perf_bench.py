@@ -287,11 +287,13 @@ def make_e2e_request(idx, token, org_id):
 
 def run_concurrent_raw(label, func, concurrency, requests, warmup):
     """Measure raw operations with wall-clock throughput and observed concurrency."""
+    warmup_failures = 0
     for i in range(warmup):
         try:
-            func(-(i + 1))
+            if not func(-(i + 1)):
+                warmup_failures += 1
         except Exception:
-            pass
+            warmup_failures += 1
 
     latencies = []
     outcomes = []
@@ -341,6 +343,7 @@ def run_concurrent_raw(label, func, concurrency, requests, warmup):
         "requests": requests,
         "measured_requests": n,
         "warmup": warmup,
+        "warmup_failures": warmup_failures,
         "successes": successes,
         "errors": errors,
         "latency_min_ms": round(min(latencies), 3) if latencies else 0,
