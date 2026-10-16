@@ -119,10 +119,40 @@ No new cryptanalysis in Phase 8; live handshake / custody proofs remain gated.
 - **G4** (HSM/KMS binding + rotation drill, S-08) — OPEN.
 - **S-01b** (credential rotation + history purge + force-push coordination) — OPEN.
 
-## §10 Verdict (Phase 8 scope)
+## §10 Verdict (Phase 10 — FINAL, evidence-backed)
 
-- **Phase 8 documentation-governance: COMPLETE** — L-09 corrected to
-  `af241e6` reality; this report created; no code or ports changed.
-- **Release decision: DEFERRED to Phase 10.** Current posture is **BLOCKED**
-  on S-01b + G1–G4. No owners, dates, or results are invented in this report;
-  each gate requires its own evidence before any production claim.
+**Release status: BLOCKED.**
+
+Grounds (all verified, none invented):
+- **S-01b OPEN** — secret-bearing blobs remain in history (`02707f8` add;
+  `372b69a`/`9b92d49` legacy). Untracked-and-ignored at HEAD is NOT rotation,
+  NOT purge, NOT proof of non-exposure. Required: credential rotation +
+  `filter-repo`/BFG purge + force-push coordination + fresh-clone grep proof.
+  A RELEASE CANDIDATE requires clean secret history or documented owner
+  risk-acceptance — neither exists.
+- **G1 OPEN** — no independent pentest / ISO 27001 evidence. Internal tests
+  (lab 5/5, adversarial 10/10, receipt tamper/replay) are behavior evidence
+  only, not assurance or certification.
+- **G2 OPEN** — multi-node idempotency UNSUPPORTED (single-process durable
+  path only; split-brain across in-mem / `qcore:event:` / file unresolved).
+  Required: single durable path + failover/concurrency test.
+- **G3 OPEN** — mTLS handshake proof absent (plaintext default; :8443 example
+  only). Required: handshake logs / enforced-TLS test.
+- **G4 OPEN** — software-only keystore, no HSM/KMS custody. Required: HSM/KMS
+  binding + rotation drill.
+- Unsupported topologies: multi-node / multi-region / zero-downtime;
+  eBPF SIMULATED on macOS; backup/restore + graceful-shutdown
+  IMPLEMENTED-UNTESTED; rate-limit UNVERIFIED; frontend pricing/entities
+  contract UNVERIFIED (separate repo, NOT RUN in clean-room).
+- Rollback/recovery (`docs/ROLLBACK_AND_RECOVERY.md`): procedure is
+  actionable for single-node (down → checkout prior SHA → rebuild → lab
+  re-run → status check) but restore drill is UNTESTED — no RPO/RTO promised.
+
+What passes today: 33-crate workspace builds; 9/9 CI green at `af241e6`
+(Leader-verified 2026-10-16); clean-room at `e6ffb8a` fully green in executed
+scope (guard/rustls/fmt, builds, lab 5/5, idempotency 20/20, receipt+verifier
+72/72, contract 13/13, adversarial 10/10, zero failures).
+
+**No PRODUCTION-READY claim is made. Not a RELEASE CANDIDATE (S-01b bars it).
+No independent certification is claimed. Owner designations: UNASSIGNED —
+requires owner designation for every gate above.**

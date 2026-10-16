@@ -90,8 +90,21 @@
 | Scope | Docs-only. No workflows, no source, no CI re-run, no rotation, no history rewrite, no push. Per brief: CI NOT re-verified in Phase 8. |
 | Release ref | Commit `af241e6`; repo `https://github.com/vishnuvardhanburri/VARDHAN_Q_CORE-PLATFORM`; 33 workspace crates; deployment model single-node Linux (Docker) + macOS dev-sim; frontend is a SEPARATE folder (`Vardhan-Q-Core-_-Frontend--main`), not in this backend repo. Full manifest: `docs/RELEASE_MANIFEST.md`. |
 | CI posture | 9/9 green **as verified 2026-10-16 by Leader** (reproduced in `docs/RELEASE_MANIFEST.md` with per-workflow table; NOT claimed as Phase 8 re-verification). Workflows untouched. |
-| Secret guard | Guard PASS (forward-looking gate). `admin_password.txt` still TRACKED (`02707f8`); history purge still OPEN as S-01b (`02707f8`, `372b69a`, `9b92d49` — rotation + `filter-repo`/BFG + fresh-clone grep required). No secret values read or recorded. |
+| Secret guard | Guard PASS (exit 0). `admin_password.txt` UNTRACKED at HEAD (removed from index via `git rm --cached` in `af241e6`; present on disk, ignored). History purge still OPEN as S-01b (`02707f8` add; `372b69a`/`9b92d49` legacy — rotation + `filter-repo`/BFG + force-push coordination required). Untracked-and-ignored is NOT rotation, NOT purge, NOT proof of non-exposure. No secret values read or recorded. |
 | Fmt gate | fmt PASS (per Leader-verified CI; not re-run in Phase 8). |
 | Files created | (1) NEW `docs/KNOWN_LIMITATIONS.md` — L-01…L-13 with status labels (G2 UNSUPPORTED, G3/G4/G1 PLANNED, eBPF SIMULATED on macOS, RAFT EXPERIMENTAL, backup/restore + graceful shutdown IMPLEMENTED-UNTESTED, 8080 collision KNOWN, pricing/entities contract UNVERIFIED, rate-limit UNVERIFIED). (2) NEW `docs/RELEASE_MANIFEST.md` — commit/URL/CI table/crate count/docs index/artifacts-none (UNVERIFIED provenance). |
 | README verdict | UNTOUCHED — full 411-line audit found no contradicting claim: assurance badges already labelled Target/Planned (§9–24), commercial path explicitly "not … a claim of production readiness" (§98), AER-KEP-Q disclaims new-primitive/proof claims (§206), HA/DR + HSM/KMS + pentest/ISO appear only as roadmap/future-gate items (§59/133/254–267/294). No "production-ready" / "HA" / "multi-node" release claim present. |
 | Residual risks | G1 (pentest/ISO) + G2 (idempotency split-brain, multi-node) + G3 (mTLS) + G4 (HSM) + S-01b (credential history purge). Release attestation remains BLOCKED on S-01/S-02 rotation + purge; G1–G4 require their gate evidence before any production-security claim. |
+
+---
+
+## 7. Phase 10 Entry (2026-10-16) — Evidence-based release decision: BLOCKED
+
+| Item | Detail |
+|---|---|
+| Decision | **BLOCKED** (single status; not RELEASE CANDIDATE — S-01b credential-history finding bars candidacy without clean history or owner risk-acceptance, neither present; no PRODUCTION-READY claim; no certification claimed). |
+| Evidence for | 9/9 CI green at `af241e6` (Leader-verified 2026-10-16; Phase 8/9 doc commits did not re-run CI — stated honestly). Clean-room at `e6ffb8a` (`e6ffb8aff0d`): guard/rustls/fmt PASS; `vardhan_receipt` + `receipt_generator` builds PASS; lab 5/5 REAL PASS; idempotency 20/20 (7+7+6+0); receipt+verifier 72/72 (2+69+1+0+0); contract `org_lifecycle_edge_cases` 13/13; adversarial 10/10 PASS; zero failures in executed scope. Full record: `docs/CLEAN_ROOM_VERIFICATION.md`. |
+| Evidence against | S-01b OPEN (history blobs `02707f8`/`372b69a`/`9b92d49`; rotation unproven). G1/G2/G3/G4 all OPEN (see report §9). Unsupported: multi-node/multi-region/zero-downtime; backup/restore + shutdown IMPLEMENTED-UNTESTED; rate-limit UNVERIFIED; frontend contract UNVERIFIED + NOT RUN in clean-room; fuzz NOT RUN; docker compose up NOT RUN in clean-room. |
+| Corrections in this phase | §6 Phase 8 entry "Secret guard" line corrected (was stale: said TRACKED; reality at HEAD is UNTRACKED via `rm --cached`, purge still open). Report §10 rewritten from Phase-8-deferred to Phase-10-final verdict. |
+| Owners | **UNASSIGNED — requires owner designation** for S-01b rotation/purge and gates G1–G4. No owner names invented. |
+| Approvals required | Rotation + `filter-repo`/BFG purge + force-push coordination (S-01b); pentest commission (G1); durable-path + failover test (G2); mTLS proof (G3); HSM/KMS binding + drill (G4). No history rewrite, rotation, deploy, or release publish performed — all need explicit authorization. |
