@@ -80,3 +80,18 @@
 | check-ignore caveat (recorded explicitly) | `git check-ignore` on an already-TRACKED file returns nothing even after adding ignore rules — the new `.gitignore` lines stop FUTURE accidental commits, but `scripts/qcore-pov/secrets/admin_password.txt` stays TRACKED until it is untracked (needs owner approval). An ignore rule is not a purge. |
 | Follow-up recommendation | Upgrade `security.yml` `Repository secret scan` to gitleaks or trufflehog (or extend the `git grep` pattern to generic password/secret filenames) so S-01-class findings fail CI; wire `scripts/check_no_tracked_secrets.sh` into CI as a second gate. S-04 status moves to PARTIAL (ignore rules added, tracked file + history purge still open). |
 | Verdict | Release still **BLOCKED** on rotation + purge decision (S-01, S-02 OPEN; S-04 PARTIAL).
+
+---
+
+## 6. Phase 8 Entry (2026-10-16) — Documentation + release governance, NO source/workflow changes
+
+| Item | Detail |
+|---|---|
+| Scope | Docs-only. No workflows, no source, no CI re-run, no rotation, no history rewrite, no push. Per brief: CI NOT re-verified in Phase 8. |
+| Release ref | Commit `af241e6`; repo `https://github.com/vishnuvardhanburri/VARDHAN_Q_CORE-PLATFORM`; 33 workspace crates; deployment model single-node Linux (Docker) + macOS dev-sim; frontend is a SEPARATE folder (`Vardhan-Q-Core-_-Frontend--main`), not in this backend repo. Full manifest: `docs/RELEASE_MANIFEST.md`. |
+| CI posture | 9/9 green **as verified 2026-10-16 by Leader** (reproduced in `docs/RELEASE_MANIFEST.md` with per-workflow table; NOT claimed as Phase 8 re-verification). Workflows untouched. |
+| Secret guard | Guard PASS (forward-looking gate). `admin_password.txt` still TRACKED (`02707f8`); history purge still OPEN as S-01b (`02707f8`, `372b69a`, `9b92d49` — rotation + `filter-repo`/BFG + fresh-clone grep required). No secret values read or recorded. |
+| Fmt gate | fmt PASS (per Leader-verified CI; not re-run in Phase 8). |
+| Files created | (1) NEW `docs/KNOWN_LIMITATIONS.md` — L-01…L-13 with status labels (G2 UNSUPPORTED, G3/G4/G1 PLANNED, eBPF SIMULATED on macOS, RAFT EXPERIMENTAL, backup/restore + graceful shutdown IMPLEMENTED-UNTESTED, 8080 collision KNOWN, pricing/entities contract UNVERIFIED, rate-limit UNVERIFIED). (2) NEW `docs/RELEASE_MANIFEST.md` — commit/URL/CI table/crate count/docs index/artifacts-none (UNVERIFIED provenance). |
+| README verdict | UNTOUCHED — full 411-line audit found no contradicting claim: assurance badges already labelled Target/Planned (§9–24), commercial path explicitly "not … a claim of production readiness" (§98), AER-KEP-Q disclaims new-primitive/proof claims (§206), HA/DR + HSM/KMS + pentest/ISO appear only as roadmap/future-gate items (§59/133/254–267/294). No "production-ready" / "HA" / "multi-node" release claim present. |
+| Residual risks | G1 (pentest/ISO) + G2 (idempotency split-brain, multi-node) + G3 (mTLS) + G4 (HSM) + S-01b (credential history purge). Release attestation remains BLOCKED on S-01/S-02 rotation + purge; G1–G4 require their gate evidence before any production-security claim. |
