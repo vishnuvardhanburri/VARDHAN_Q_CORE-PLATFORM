@@ -1,0 +1,201 @@
+# Mission F — Docker bank lab (Mission F = isolated synthetic bank-profile lab).
+#
+# Synthetic, local-only lab. Bank names (hsbc/jpmorgan/lgt/swift) are RESEARCH
+# LABELS for synthetic profiles only — no real customer data, no external
+# targets. All services share one isolated bridge network (`banklab`).
+#
+# Pattern mirrors scripts/qcore-pov/docker-compose.yml: same Dockerfile.pov
+# build, same env pattern + VARDHAN_NODE_ID=banklab-<profile>, service port
+# 8080 remapped per profile (18081-18084). No new Dockerfile.
+#
+# Auth bootstrap: no secret files are mounted, so the PoV entrypoint falls
+# back to its synthetic lab-only default admin password inside each
+# container (see scripts/qcore-pov/entrypoint.sh). The attacker uses that
+# same synthetic credential via BANKLAB_ADMIN_USER/PASS below. Never reuse
+# these values outside this local lab.
+
+name: vardhan-banklab
+
+services:
+  qcore-hsbc:
+    build:
+      context: ../..
+      dockerfile: scripts/qcore-pov/docker/Dockerfile.pov
+    container_name: vardhan_banklab_hsbc
+    hostname: qcore-hsbc
+    ports:
+      - "18081:8080"
+    environment:
+      - VARDHAN_ENV=development
+      - VARDHAN_CONTROL_PLANE_ADDR=0.0.0.0:8080
+      - VARDHAN_CONTROL_PLANE_DATA_DIR=/var/lib/vardhan/control-plane
+      - VARDHAN_KEYSTORE_DIR=/var/lib/vardhan/keystore
+      - VARDHAN_IDEMPOTENCY_DIR=/var/lib/vardhan/idempotency
+      - VARDHAN_NODE_ID=banklab-hsbc
+      - VARDHAN_ADMIN_USERNAME=admin
+      - QCORE_HOST=http://localhost:8080
+      - VARDHAN_RECEIPT_ENGINE_BIN=/usr/local/bin/vardhan-receipt
+    volumes:
+      - banklab-hsbc-data:/var/lib/vardhan
+    networks:
+      - banklab
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/v1/platform/health | grep -q operational"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+    restart: unless-stopped
+
+  qcore-jpmorgan:
+    build:
+      context: ../..
+      dockerfile: scripts/qcore-pov/docker/Dockerfile.pov
+    container_name: vardhan_banklab_jpmorgan
+    hostname: qcore-jpmorgan
+    ports:
+      - "18082:8080"
+    environment:
+      - VARDHAN_ENV=development
+      - VARDHAN_CONTROL_PLANE_ADDR=0.0.0.0:8080
+      - VARDHAN_CONTROL_PLANE_DATA_DIR=/var/lib/vardhan/control-plane
+      - VARDHAN_KEYSTORE_DIR=/var/lib/vardhan/keystore
+      - VARDHAN_IDEMPOTENCY_DIR=/var/lib/vardhan/idempotency
+      - VARDHAN_NODE_ID=banklab-jpmorgan
+      - VARDHAN_ADMIN_USERNAME=admin
+      - QCORE_HOST=http://localhost:8080
+      - VARDHAN_RECEIPT_ENGINE_BIN=/usr/local/bin/vardhan-receipt
+    volumes:
+      - banklab-jpmorgan-data:/var/lib/vardhan
+    networks:
+      - banklab
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/v1/platform/health | grep -q operational"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+    restart: unless-stopped
+
+  qcore-lgt:
+    build:
+      context: ../..
+      dockerfile: scripts/qcore-pov/docker/Dockerfile.pov
+    container_name: vardhan_banklab_lgt
+    hostname: qcore-lgt
+    ports:
+      - "18083:8080"
+    environment:
+      - VARDHAN_ENV=development
+      - VARDHAN_CONTROL_PLANE_ADDR=0.0.0.0:8080
+      - VARDHAN_CONTROL_PLANE_DATA_DIR=/var/lib/vardhan/control-plane
+      - VARDHAN_KEYSTORE_DIR=/var/lib/vardhan/keystore
+      - VARDHAN_IDEMPOTENCY_DIR=/var/lib/vardhan/idempotency
+      - VARDHAN_NODE_ID=banklab-lgt
+      - VARDHAN_ADMIN_USERNAME=admin
+      - QCORE_HOST=http://localhost:8080
+      - VARDHAN_RECEIPT_ENGINE_BIN=/usr/local/bin/vardhan-receipt
+    volumes:
+      - banklab-lgt-data:/var/lib/vardhan
+    networks:
+      - banklab
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/v1/platform/health | grep -q operational"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+    restart: unless-stopped
+
+  qcore-swift:
+    build:
+      context: ../..
+      dockerfile: scripts/qcore-pov/docker/Dockerfile.pov
+    container_name: vardhan_banklab_swift
+    hostname: qcore-swift
+    ports:
+      - "18084:8080"
+    environment:
+      - VARDHAN_ENV=development
+      - VARDHAN_CONTROL_PLANE_ADDR=0.0.0.0:8080
+      - VARDHAN_CONTROL_PLANE_DATA_DIR=/var/lib/vardhan/control-plane
+      - VARDHAN_KEYSTORE_DIR=/var/lib/vardhan/keystore
+      - VARDHAN_IDEMPOTENCY_DIR=/var/lib/vardhan/idempotency
+      - VARDHAN_NODE_ID=banklab-swift
+      - VARDHAN_ADMIN_USERNAME=admin
+      - QCORE_HOST=http://localhost:8080
+      - VARDHAN_RECEIPT_ENGINE_BIN=/usr/local/bin/vardhan-receipt
+    volumes:
+      - banklab-swift-data:/var/lib/vardhan
+    networks:
+      - banklab
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/v1/platform/health | grep -q operational"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+    restart: unless-stopped
+
+  # Adversarial runner host: stdlib-only python, curls qcore-<profile>:8080
+  # over the isolated network. Started sleeping; run_bank_lab.sh execs the
+  # matrix per profile into it.
+  attacker:
+    image: python:3.12-slim
+    container_name: vardhan_banklab_attacker
+    hostname: attacker
+    working_dir: /work
+    volumes:
+      - ./attacker:/work
+    command: ["sleep", "infinity"]
+    environment:
+      - VAULT_ADDR=http://vault:8200
+      # Synthetic lab-only dev token (vault -dev default boundary). Local only.
+      - VAULT_TOKEN=banklab-dev-root
+      - BANKLAB_ADMIN_USER=admin
+      # Synthetic lab-only default (matches PoV entrypoint fallback). Local only.
+      - BANKLAB_ADMIN_PASS=P0V-Str0ng-P@ssw0rd-2025!
+    networks:
+      - banklab
+    restart: unless-stopped
+
+  # Result collector: runs /work/collect.py AFTER the matrix (invoked by
+  # run_bank_lab.sh via --profile collect, so plain `up -d` skips it).
+  collector:
+    image: python:3.12-slim
+    container_name: vardhan_banklab_collector
+    working_dir: /work
+    volumes:
+      - ./attacker:/work
+    command: ["python3", "/work/collect.py"]
+    profiles:
+      - collect
+    networks:
+      - banklab
+
+  # G4-analog rotation scenario: Vault dev server, local only.
+  vault:
+    image: hashicorp/vault:1.18
+    container_name: vardhan_banklab_vault
+    hostname: vault
+    ports:
+      - "18200:8200"
+    environment:
+      - VAULT_ADDR=http://127.0.0.1:8200
+    command: ["server", "-dev", "-dev-root-token-id=banklab-dev-root", "-dev-listen-address=0.0.0.0:8200"]
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - banklab
+    restart: unless-stopped
+
+networks:
+  banklab:
+    name: banklab
+    driver: bridge
+
+volumes:
+  banklab-hsbc-data:
+  banklab-jpmorgan-data:
+  banklab-lgt-data:
+  banklab-swift-data:
