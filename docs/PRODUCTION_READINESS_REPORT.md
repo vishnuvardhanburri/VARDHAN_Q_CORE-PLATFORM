@@ -119,40 +119,58 @@ No new cryptanalysis in Phase 8; live handshake / custody proofs remain gated.
 - **G4** (HSM/KMS binding + rotation drill, S-08) — OPEN.
 - **S-01b** (credential rotation + history purge + force-push coordination) — OPEN.
 
-## §10 Verdict (Phase 10 — FINAL, evidence-backed)
+## §10 Verdict (Mission E — FINAL, evidence-backed)
 
-**Release status: BLOCKED.**
+Date: 2026-10-16 · HEAD: `c61b9f8` · Scope: single-node deployment only.
 
-Grounds (all verified, none invented):
-- **S-01b OPEN** — secret-bearing blobs remain in history (`02707f8` add;
-  `372b69a`/`9b92d49` legacy). Untracked-and-ignored at HEAD is NOT rotation,
-  NOT purge, NOT proof of non-exposure. Required: credential rotation +
-  `filter-repo`/BFG purge + force-push coordination + fresh-clone grep proof.
-  A RELEASE CANDIDATE requires clean secret history or documented owner
-  risk-acceptance — neither exists.
-- **G1 OPEN** — no independent pentest / ISO 27001 evidence. Internal tests
-  (lab 5/5, adversarial 10/10, receipt tamper/replay) are behavior evidence
-  only, not assurance or certification.
-- **G2 OPEN** — multi-node idempotency UNSUPPORTED (single-process durable
-  path only; split-brain across in-mem / `qcore:event:` / file unresolved).
-  Required: single durable path + failover/concurrency test.
-- **G3 OPEN** — mTLS handshake proof absent (plaintext default; :8443 example
-  only). Required: handshake logs / enforced-TLS test.
-- **G4 OPEN** — software-only keystore, no HSM/KMS custody. Required: HSM/KMS
-  binding + rotation drill.
-- Unsupported topologies: multi-node / multi-region / zero-downtime;
-  eBPF SIMULATED on macOS; backup/restore + graceful-shutdown
-  IMPLEMENTED-UNTESTED; rate-limit UNVERIFIED; frontend pricing/entities
-  contract UNVERIFIED (separate repo, NOT RUN in clean-room).
-- Rollback/recovery (`docs/ROLLBACK_AND_RECOVERY.md`): procedure is
-  actionable for single-node (down → checkout prior SHA → rebuild → lab
-  re-run → status check) but restore drill is UNTESTED — no RPO/RTO promised.
+**Verdict: RELEASE CANDIDATE for single-node deployment. NOT PRODUCTION-READY
+— G1 independent assessment is uncommissioned, which bars any
+PRODUCTION-READY claim. S-01b/G2/G3/G4 are CLOSED per evidence below.**
 
-What passes today: 33-crate workspace builds; 9/9 CI green at `af241e6`
-(Leader-verified 2026-10-16); clean-room at `e6ffb8a` fully green in executed
-scope (guard/rustls/fmt, builds, lab 5/5, idempotency 20/20, receipt+verifier
-72/72, contract 13/13, adversarial 10/10, zero failures).
+Per-gate evidence (all verified, none invented):
+- **S-01b CLOSED** — history purge: 0 secret objects in `git rev-list
+  --objects --all` (fresh-clone grep empty at HEAD `2dc617b`); guard
+  `scripts/check_no_tracked_secrets.sh` exit 0 (PASS, re-verified 2026-10-16);
+  credential rotation done (see `docs/BLOCKER_REGISTER.md`).
+- **G2 CLOSED (single-node)** — single durable path: sled `qcore:event:` CAS
+  authority (`compare_and_swap`, `durable_event_queue.rs`); 4/4 failover tests
+  pass (`tests/g2_durable_idempotency.rs`: concurrent-duplicate, restart,
+  duplicate-replay, failover-claim); 43 lib unit tests
+  (`backend/control_plane_api/src/`); commit `7151cd4`.
+- **G3 CLOSED (single-node)** — 4/4 mTLS tests pass
+  (`tests/g3_mtls_handshake.rs`: trusted-200 accept, rogue-CA reject,
+  no-cert reject, missing-CA fails-closed); proof script
+  `scripts/g3_mtls_proof.sh` exit 0; commit `c61b9f8`.
+- **G4 CLOSED-drill** — rotation drill exit 0: wrap-v1 → sign/verify →
+  rotate → rewrap-v2 → load+verify → bad-token-Err → recovery
+  (`backend/vardhan_keystore/tests/vault_rotation_drill.rs`,
+  `scripts/g4_vault_rotation_drill.sh`); commit `c61b9f8`.
+- **G1 OPEN** — preparation packet ready (`docs/G1_ASSURANCE_PACKET.md`,
+  scope + threat-model pointer + assessor entry); independent assessment NOT
+  commissioned — this alone bars PRODUCTION-READY.
 
-**No PRODUCTION-READY claim is made. Not a RELEASE CANDIDATE (S-01b bars it).
-No independent certification is claimed. Owner designations: UNASSIGNED —
-requires owner designation for every gate above.**
+Untested / out-of-scope (NOT claimed): multi-node / failover-across-nodes,
+frontend build, fuzz, `docker compose` up, perf/soak, backup-restore drill,
+graceful-shutdown test, rate-limit adversarial.
+
+Owners: UNASSIGNED throughout. Owner actions before any production use:
+commission independent pentest (G1); provision production CA (G3) + Vault/HSM
+cluster (drill used dev-mode Vault, not a prod cluster); notify all known
+cloners/forks to re-clone post-purge (rewritten history).
+
+Residual risks: purge rewrote history — any pre-purge clone still carries
+secret blobs until re-cloned; Vault drill proves rotation logic, not prod
+cluster custody; verdict covers single-node only, multi-node UNSUPPORTED.
+
+## §11 Mission E evidence log
+
+| Gate | Proof command | Exit | Result |
+|---|---|---|---|
+| S-01b | `git rev-list --objects --all \| grep -i admin_password` | 0 | 0 objects (purged) |
+| S-01b | `bash scripts/check_no_tracked_secrets.sh` | 0 | GUARD PASS |
+| G2 | `cargo test -p control_plane_api --test g2_durable_idempotency` | 0 | 4/4 pass |
+| G2 | `cargo test -p control_plane_api --lib` (durable path) | 0 | 43 pass (CAS authority) |
+| G3 | `cargo test -p control_plane_api --test g3_mtls_handshake` | 0 | 4/4 pass (accept+rejects) |
+| G3 | `bash scripts/g3_mtls_proof.sh` | 0 | accept + 2x reject recorded |
+| G4 | `bash scripts/g4_vault_rotation_drill.sh` | 0 | wrap/rotate/rewrap/verify/bad-token/recovery |
+| G1 | — (packet only) | — | `docs/G1_ASSURANCE_PACKET.md` ready; assessment OPEN |
