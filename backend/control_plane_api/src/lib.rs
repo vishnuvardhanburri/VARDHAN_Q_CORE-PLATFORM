@@ -415,6 +415,8 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
 #[cfg(feature = "tls")]
 use axum::serve::Listener;
 #[cfg(feature = "tls")]
+use rustls::server::AllowAnyAuthenticatedClient;
+#[cfg(feature = "tls")]
 use rustls::{Certificate, PrivateKey, ServerConfig};
 #[cfg(feature = "tls")]
 use std::sync::Arc as StdArc;
@@ -435,8 +437,20 @@ async fn health() -> Json<Value> {
         "authentication": "server_enforced",
         "demo_authentication": false,
         "transport": transport_secure,
-        "tls_enabled": tls_enabled
+        "tls_enabled": tls_enabled,
+        "client_auth": client_auth_mode()
     }))
+}
+
+/// Client-certificate requirement advertised by [`health`].
+///
+/// `mtls_required` when `VARDHAN_TLS_CLIENT_CA_PATH` names a trust anchor,
+/// `none` otherwise. Pure env read so health reflects deployment intent.
+fn client_auth_mode() -> &'static str {
+    match std::env::var("VARDHAN_TLS_CLIENT_CA_PATH") {
+        Ok(v) if !v.is_empty() => "mtls_required",
+        _ => "none",
+    }
 }
 async fn catalog() -> Json<&'static [Plan]> {
     Json(PLANS)
@@ -652,6 +666,90 @@ impl Listener for TlsListener {
     }
 }
 
+/// Build a rustls [`ServerConfig`] from PEM files on disk.
+///
+/// When `client_ca_path` is `Some`, the PEM certificates it contains become
+/// the only trust anchors for client-certificate verification and mutual TLS
+/// is enforced via
+/// [`AllowAnyAuthenticatedClient`](rustls::server::AllowAnyAuthenticatedClient).
+/// When `None`, no client authentication is requested (existing behaviour).
+///
+/// Errors are fail-closed: missing/empty/unreadable files or an empty trust
+/// store return `Err` so callers can refuse to start.
+#[cfg(feature = "tls")]
+pub fn build_server_config(
+    cert_path: &std::path::Path,
+    key_path: &std::path::Path,
+    client_ca_path: Option<&std::path::Path>,
+) -> Result<ServerConfig, std::io::Error> {
+    let invalid = |msg: &str| std::io::Error::new(std::io::ErrorKind::InvalidData, msg);
+    let cert_bytes = std::fs::read(cert_path).map_err(|e| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("TLS cert read failed ({}): {e}", cert_path.display()),
+        )
+    })?;
+    let key_bytes = std::fs::read(key_path).map_err(|e| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("TLS key read failed ({}): {e}", key_path.display()),
+        )
+    })?;
+
+    // rustls-pemfile 1.x: certs() returns Result<Vec<Vec<u8>>, io::Error>
+    let cert_chain: Vec<Certificate> = rustls_pemfile::certs(&mut cert_bytes.as_slice())
+        .map_err(|e| invalid(&format!("TLS cert parse failed: {e}")))?
+        .into_iter()
+        .map(Certificate)
+        .collect();
+
+    let mut keys: Vec<PrivateKey> = rustls_pemfile::pkcs8_private_keys(&mut key_bytes.as_slice())
+        .map_err(|e| invalid(&format!("TLS key parse failed: {e}")))?
+        .into_iter()
+        .map(PrivateKey)
+        .collect();
+
+    if cert_chain.is_empty() || keys.is_empty() {
+        return Err(invalid("TLS cert or key is empty"));
+    }
+    let key = keys.remove(0);
+
+    match client_ca_path {
+        Some(ca_path) => {
+            let ca_bytes = std::fs::read(ca_path).map_err(|e| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("TLS client CA read failed ({}): {e}", ca_path.display()),
+                )
+            })?;
+            let mut roots = rustls::RootCertStore::empty();
+            let mut added = 0usize;
+            for der in rustls_pemfile::certs(&mut ca_bytes.as_slice())
+                .map_err(|e| invalid(&format!("TLS client CA parse failed: {e}")))?
+            {
+                roots
+                    .add(&Certificate(der))
+                    .map_err(|e| invalid(&format!("TLS client CA rejected: {e}")))?;
+                added += 1;
+            }
+            if added == 0 {
+                return Err(invalid("TLS client CA file contains no certificates"));
+            }
+            let verifier = AllowAnyAuthenticatedClient::new(roots);
+            ServerConfig::builder()
+                .with_safe_defaults()
+                .with_client_cert_verifier(verifier.boxed())
+                .with_single_cert(cert_chain, key)
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+        }
+        None => ServerConfig::builder()
+            .with_safe_defaults()
+            .with_no_client_auth()
+            .with_single_cert(cert_chain, key)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e)),
+    }
+}
+
 pub async fn serve(
     state: ControlPlaneState,
     auth: AuthState,
@@ -665,6 +763,42 @@ pub async fn serve(
     // Check for TLS configuration
     let cert_path = std::env::var("VARDHAN_TLS_CERT_PATH").ok();
     let key_path = std::env::var("VARDHAN_TLS_KEY_PATH").ok();
+    // mTLS explicitly requested when VARDHAN_TLS_CLIENT_CA_PATH is set (non-empty).
+    let client_ca_path = std::env::var("VARDHAN_TLS_CLIENT_CA_PATH")
+        .ok()
+        .filter(|v| !v.is_empty());
+
+    // Fail closed: mTLS was explicitly requested but TLS material is unusable.
+    #[cfg(not(feature = "tls"))]
+    if let Some(ref ca) = client_ca_path {
+        let _ = ca;
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "VARDHAN_TLS_CLIENT_CA_PATH is set but the 'tls' feature is not enabled; \
+             refusing plaintext fallback when mTLS was explicitly requested",
+        ));
+    }
+    #[cfg(feature = "tls")]
+    if let Some(ref ca) = client_ca_path {
+        let missing_tls_material = cert_path.as_ref().map_or(true, |v| v.is_empty())
+            || key_path.as_ref().map_or(true, |v| v.is_empty())
+            || !cert_path
+                .as_ref()
+                .map(|p| std::path::Path::new(p).exists())
+                .unwrap_or(false)
+            || !key_path
+                .as_ref()
+                .map(|p| std::path::Path::new(p).exists())
+                .unwrap_or(false)
+            || !std::path::Path::new(ca).exists();
+        if missing_tls_material {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "VARDHAN_TLS_CLIENT_CA_PATH is set but TLS cert/key/CA material is missing; \
+                 refusing plaintext fallback when mTLS was explicitly requested",
+            ));
+        }
+    }
 
     match (cert_path, key_path) {
         (Some(cert), Some(key))
@@ -677,37 +811,14 @@ pub async fn serve(
             #[cfg(feature = "tls")]
             {
                 tracing::info!("TLS enabled using cert from {}", cert);
-                let cert_bytes = std::fs::read(&cert)
-                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-                let key_bytes = std::fs::read(&key)
-                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-
-                // rustls-pemfile 1.x: certs() returns Result<Vec<Vec<u8>>, io::Error>
-                let cert_chain: Vec<Certificate> =
-                    rustls_pemfile::certs(&mut cert_bytes.as_slice())?
-                        .into_iter()
-                        .map(Certificate)
-                        .collect();
-
-                let mut keys: Vec<PrivateKey> =
-                    rustls_pemfile::pkcs8_private_keys(&mut key_bytes.as_slice())?
-                        .into_iter()
-                        .map(PrivateKey)
-                        .collect();
-
-                if cert_chain.is_empty() || keys.is_empty() {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "TLS cert or key is empty",
-                    ));
+                let config = build_server_config(
+                    std::path::Path::new(&cert),
+                    std::path::Path::new(&key),
+                    client_ca_path.as_deref().map(std::path::Path::new),
+                )?;
+                if client_ca_path.is_some() {
+                    tracing::info!("mTLS client-certificate verification enabled");
                 }
-
-                let key = keys.remove(0);
-                let config = ServerConfig::builder()
-                    .with_safe_defaults()
-                    .with_no_client_auth()
-                    .with_single_cert(cert_chain, key)
-                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
 
                 let tls_acceptor = TlsAcceptor::from(StdArc::new(config));
                 let tls_listener = TlsListener {
