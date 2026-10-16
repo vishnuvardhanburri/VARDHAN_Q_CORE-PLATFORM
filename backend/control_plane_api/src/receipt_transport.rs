@@ -86,11 +86,16 @@ pub async fn ingest_receipt(
             .into_response();
     }
 
+    // G2 durable-idempotency: nonce claim value carries claim time (ms since
+    // epoch, big-endian u64) so a future TTL/GC pass can reap stale replay
+    // keys. Single-node sled CAS remains the authority for replay.
     let replay_key = replay_key(&id, &service_id, &nonce);
-    match state
-        .db
-        .compare_and_swap(&replay_key, None as Option<&[u8]>, Some(b"used"))
-    {
+    let claim_value = now_ms().to_be_bytes();
+    match state.db.compare_and_swap(
+        &replay_key,
+        None as Option<&[u8]>,
+        Some(claim_value.as_slice()),
+    ) {
         Ok(Ok(_)) => {}
         Ok(Err(_)) => {
             return (

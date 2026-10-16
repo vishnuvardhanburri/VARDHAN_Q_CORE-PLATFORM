@@ -109,17 +109,25 @@ impl DurableEventQueue {
         let key = event_key(organization_id, &event_id);
         let encoded =
             serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?;
-        if let Some(existing) = self.db.get(&key)? {
-            let previous: DurableEvent = serde_json::from_slice(&existing)
-                .map_err(|e| QueueError::Serialization(e.to_string()))?;
-            if previous.payload_hash == event.payload_hash && previous.kind == event.kind {
-                return Ok(event_id);
+        match self
+            .db
+            .compare_and_swap(&key, None as Option<&[u8]>, Some(encoded.as_slice()))
+        {
+            Ok(Ok(_)) => {
+                self.db.flush()?;
+                Ok(event_id)
             }
-            return Err(QueueError::Conflict);
+            Ok(Err(_)) => {
+                let existing = self.db.get(&key)?.ok_or(QueueError::NotFound)?;
+                let previous: DurableEvent = serde_json::from_slice(&existing)
+                    .map_err(|e| QueueError::Serialization(e.to_string()))?;
+                if previous.payload_hash == event.payload_hash && previous.kind == event.kind {
+                    return Ok(event_id);
+                }
+                Err(QueueError::Conflict)
+            }
+            Err(error) => Err(QueueError::Storage(error)),
         }
-        self.db.insert(key, encoded)?;
-        self.db.flush()?;
-        Ok(event_id)
     }
 
     pub fn claim_next(
@@ -195,10 +203,17 @@ impl DurableEventQueue {
             event.last_error = Some(error.to_owned());
         }
         let state = event.state.clone();
-        self.db.insert(
-            key,
-            serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?,
-        )?;
+        let previous = value.clone();
+        let next_bytes =
+            serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?;
+        match self
+            .db
+            .compare_and_swap(&key, Some(previous.as_ref()), Some(next_bytes.as_slice()))
+        {
+            Ok(Ok(_)) => {}
+            Ok(Err(_)) => return Err(QueueError::NotClaimable),
+            Err(error) => return Err(QueueError::Storage(error)),
+        }
         self.db.flush()?;
         Ok(state)
     }
@@ -228,10 +243,17 @@ impl DurableEventQueue {
         }
         event.state = next;
         event.last_error = error;
-        self.db.insert(
-            key,
-            serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?,
-        )?;
+        let previous = value.clone();
+        let next_bytes =
+            serde_json::to_vec(&event).map_err(|e| QueueError::Serialization(e.to_string()))?;
+        match self
+            .db
+            .compare_and_swap(&key, Some(previous.as_ref()), Some(next_bytes.as_slice()))
+        {
+            Ok(Ok(_)) => {}
+            Ok(Err(_)) => return Err(QueueError::NotClaimable),
+            Err(error) => return Err(QueueError::Storage(error)),
+        }
         self.db.flush()?;
         Ok(())
     }
