@@ -189,6 +189,30 @@ cmd_doctor() {
         ok "Working tree is clean"
     fi
 
+    # ── Phase 2: service port occupancy warnings (advisory only) ──────────
+    # Warn-only: never fail hard, never kill processes. Every probe is
+    # guarded with `|| true` so `set -euo pipefail` cannot abort doctor.
+    # See docs/SERVICE_PORT_REGISTRY.md for the full registry + 8080 rule.
+    _qcore_port_in_use() {
+        local _port="$1"
+        # Probe 1: lsof (macOS/Linux, if installed)
+        if command -v lsof &>/dev/null; then
+            if lsof -ti :"$_port" &>/dev/null; then
+                return 0
+            fi
+        fi
+        # Probe 2: bash /dev/tcp (Linux/macOS bash; guarded — failure is "free")
+        if (echo > "/dev/tcp/127.0.0.1/$_port") &>/dev/null; then
+            return 0
+        fi
+        return 1
+    }
+    for _port in 8080 3000 9090 18080 18090 8081; do
+        if _qcore_port_in_use "$_port"; then
+            warn "Port $_port appears in use — see docs/SERVICE_PORT_REGISTRY.md (8080 collision rule); overrides documented, no action taken"
+        fi
+    done || true
+
     echo ""
     if [ "$errors" -gt 0 ]; then
         err "$errors hard blocker(s) detected — fix before ./qcore up"
@@ -329,6 +353,11 @@ cmd_status() {
         ok "Intelligence Plane: healthy (port ${INTELLIGENCE_PORT})"
     else
         warn "Intelligence Plane: unhealthy or stopped"
+    fi
+
+    # Platform note: eBPF/XDP is Linux-only (sim mode elsewhere)
+    if [ "$(uname -s)" != "Linux" ]; then
+        warn "NOTICE: $(uname -s) detected — eBPF/XDP unavailable (sim mode)"
     fi
 
     echo ""

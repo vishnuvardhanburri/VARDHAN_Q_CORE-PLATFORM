@@ -39,3 +39,5 @@ jobs:
             echo "Potential credential material detected in tracked repository files." >&2
             exit 1
           fi
+      - name: Tracked secret guard (fail-closed)
+        run: bash scripts/check_no_tracked_secrets.sh

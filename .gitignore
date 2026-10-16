@@ -104,3 +104,10 @@ sdks/python/vardhan_qcore/*.egg-info/
 
 # ZK engine
 zk_engine/package-lock.json
+
+# Phase 1 secret hygiene (2026-10-16) — ignored but already-TRACKED files stay tracked until untracked with owner approval
+scripts/qcore-pov/secrets/*
+!scripts/qcore-pov/secrets/README.md
+**/admin_password.txt
+lab_keys/
+vardhan_receipt_idempotency*
