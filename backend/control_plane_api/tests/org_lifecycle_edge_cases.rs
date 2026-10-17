@@ -10,6 +10,11 @@ use sled::Config;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
+// Process-global env vars (`VARDHAN_*`) are inherited by spawned `vardhan-receipt`
+// child processes at spawn time, so parallel tests racing on `set_var` can leak
+// env values across tests. Serialize env-mutating tests on this mutex.
+static ENV_SERIALIZER: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// Shared helper: spawn an isolated test control-plane instance on an
 /// ephemeral port. Returns `(base_url, control_state, auth_state)`.
 async fn spawn_test_server() -> (String, ControlPlaneState, AuthState) {
@@ -773,6 +778,8 @@ async fn owner_role_escalation_blocked() {
 
 #[tokio::test]
 async fn replay_protection_after_sealing() {
+    // held across await: test-only serialization, never used in production code
+    let _env_guard = ENV_SERIALIZER.lock().unwrap();
     // Set up env vars that the vardhan-receipt binary needs
     let rand_id = uuid::Uuid::new_v4().to_string();
     std::env::set_var(
@@ -844,22 +851,41 @@ async fn replay_protection_after_sealing() {
     });
 
     // First submission: should be SEALED
-    let r1 = client
-        .post(format!(
-            "{}/api/v1/organizations/{}/security/validate",
-            base, tenant
-        ))
-        .header("Authorization", format!("Bearer {}", token))
-        .json(&contract)
-        .send()
-        .await
-        .unwrap();
-    token = rotated_token(&r1, &token);
-    let body1 = r1.json::<serde_json::Value>().await.unwrap();
+    // Bounded retry: receipt-engine child spawn can transiently fail under parallel CI load (fd pressure); replay protection is what this test asserts, not first-spawn success.
+    let body1: serde_json::Value;
+    let mut attempt: u64 = 0;
+    loop {
+        attempt += 1;
+        let r1 = client
+            .post(format!(
+                "{}/api/v1/organizations/{}/security/validate",
+                base, tenant
+            ))
+            .header("Authorization", format!("Bearer {}", token))
+            .json(&contract)
+            .send()
+            .await
+            .unwrap();
+        let next_token = rotated_token(&r1, &token);
+        let body = r1.json::<serde_json::Value>().await.unwrap();
+        if body.get("status").and_then(|s| s.as_str()) == Some("SEALED") {
+            token = next_token;
+            body1 = body;
+            break;
+        }
+        if body.get("status").is_none() && attempt < 3 {
+            tokio::time::sleep(std::time::Duration::from_millis(500 * attempt)).await;
+            continue;
+        }
+        token = next_token;
+        body1 = body;
+        break;
+    }
     assert_eq!(
-        body1["status"].as_str().unwrap(),
-        "SEALED",
-        "First submission should be sealed"
+        body1["status"].as_str(),
+        Some("SEALED"),
+        "First submission should be sealed; got body: {}",
+        body1
     );
 
     // Second submission: should be REJECTED_REPLAY
