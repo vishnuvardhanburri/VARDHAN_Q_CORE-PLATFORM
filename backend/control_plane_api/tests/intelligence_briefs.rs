@@ -203,6 +203,70 @@ async fn intelligence_briefs_flow() {
     std::env::remove_var("VARDHAN_BRIEFS_PATH");
 }
 
+/// Stage 7 contract-defect regression — the REAL production ranked.json.
+///
+/// History: the sweep writer once emitted full-brief camelCase entries
+/// (domain/runId/verdictReason/whyNow/...) without the snake_case keys
+/// signal_url/why_now/buyer_role. BriefSummary has no #[serde(default)],
+/// so every entry failed to parse and list_briefs returned 500
+/// BRIEFS_INVALID on the real file while fixture-seeded tests stayed
+/// green. This test loads the committed artifact via an absolute repo
+/// path and asserts list returns 200 with 4 items, each carrying
+/// company/verdict/score keys (no hardcoded verdict values — the engine
+/// owns those; the contract owns the keys).
+#[tokio::test]
+async fn intelligence_briefs_real_ranked_json_contract() {
+    let _env_guard = lock_test_env();
+    let (base, _state, auth) = spawn_test_server().await;
+    let client = reqwest::Client::new();
+    let token = login_token(&client, &base, &auth).await;
+
+    // Absolute repo-relative path: control_plane_api → repo root →
+    // intelligence_plane/.research/briefs/ranked.json. The file is
+    // committed, so a missing file is a hard failure (no graceful skip).
+    let real_path = format!(
+        "{}/../../intelligence_plane/.research/briefs/ranked.json",
+        env!("CARGO_MANIFEST_DIR")
+    );
+    assert!(
+        std::path::Path::new(&real_path).exists(),
+        "committed ranked.json must exist at {}",
+        real_path
+    );
+    std::env::set_var("VARDHAN_BRIEFS_PATH", &real_path);
+
+    let list = client
+        .get(format!("{}/v1/intelligence/briefs", base))
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(list.status(), 200);
+    let briefs = list.json::<serde_json::Value>().await.unwrap();
+    assert!(briefs.is_array(), "list must be a JSON array");
+    let items = briefs.as_array().unwrap();
+    assert_eq!(items.len(), 4);
+    for item in items {
+        assert!(
+            item.get("company").and_then(|v| v.as_str()).is_some(),
+            "each brief must carry a company key: {}",
+            item
+        );
+        assert!(
+            item.get("verdict").and_then(|v| v.as_str()).is_some(),
+            "each brief must carry a verdict key: {}",
+            item
+        );
+        assert!(
+            item.get("score").and_then(|v| v.as_u64()).is_some(),
+            "each brief must carry a score key: {}",
+            item
+        );
+    }
+
+    std::env::remove_var("VARDHAN_BRIEFS_PATH");
+}
+
 /// Stage 8 helper — log in an arbitrary username (tenant-isolation coverage).
 /// Mirrors `login_token` without touching its behaviour.
 async fn login_user_token(

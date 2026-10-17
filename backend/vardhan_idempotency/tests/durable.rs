@@ -2,12 +2,22 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use vardhan_idempotency::IdempotencyKey;
 use vardhan_idempotency::durable::DurableIdempotencyRegistry;
 
+static DURABLE_TEST_COUNTER: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
+
 fn temp_path() -> std::path::PathBuf {
+    // Unique per call (nanos + atomic sequence + pid): parallel tests must
+    // never share a registry file. Same-tick nanos collisions previously let
+    // one test's records (e.g. tx-0) leak into another test's store.
     let stamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    std::env::temp_dir().join(format!("vardhan-idempotency-{stamp}.json"))
+    let seq = DURABLE_TEST_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    std::env::temp_dir().join(format!(
+        "vardhan-idempotency-{stamp}-{seq}-{}.json",
+        std::process::id()
+    ))
 }
 
 #[test]

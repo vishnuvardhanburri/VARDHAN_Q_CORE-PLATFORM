@@ -16,8 +16,9 @@
  *   npx tsx scripts/build-ranked-briefs.ts
  *
  * Outputs:
- *   - .research/briefs/ranked.json        (Rust BriefSummary array: company,
- *     verdict, score, signal_url, why_now, buyer_role)
+ *   - .research/briefs/ranked.json        (ranked contract set: full
+ *     SweepBrief fields PLUS Rust BriefSummary keys company, verdict,
+ *     score, signal_url, why_now, buyer_role — superset parses in Rust)
  *   - .research/briefs/<slug>.json        (full SweepBrief per company)
  *
  * Purity: ranking/drafting reuse briefForCompany + rankBriefs from
@@ -31,6 +32,8 @@ import { fileURLToPath } from 'url';
 import {
   briefForCompany,
   rankBriefs,
+  toRankedBrief,
+  type RankedBrief,
   type SweepBrief,
 } from '../src/server/commercial/SweepBriefing.ts';
 import type {
@@ -63,16 +66,6 @@ interface CuratedRow {
   claim: string;
   confidence: VerifiedSource['confidence'];
   corroboratedBy: string[];
-}
-
-/** Rust BriefSummary shape (backend/control_plane_api/src/intelligence_briefs.rs). */
-interface BriefSummary {
-  company: string;
-  verdict: 'GO' | 'HOLD' | 'DROP';
-  score: number;
-  signal_url: string | null;
-  why_now: string | null;
-  buyer_role: string | null;
 }
 
 function readJsonFile(filePath: string): CompanyResearchResult {
@@ -269,20 +262,6 @@ const SWIFT_ROWS: readonly CuratedRow[] = [
   },
 ];
 
-/** Map a full SweepBrief to the Rust BriefSummary contract. */
-function toBriefSummary(brief: SweepBrief): BriefSummary {
-  const signalUrl: string | null =
-    brief.signals[0]?.sourceUrls[0] ?? brief.publicFacts[0]?.sourceUrl ?? null;
-  return {
-    company: brief.company,
-    verdict: brief.verdict,
-    score: brief.score,
-    signal_url: signalUrl,
-    why_now: brief.whyNow?.event ?? null,
-    buyer_role: brief.buyerRole.function ?? null,
-  };
-}
-
 function main(): void {
   // 1. Load evidence: 1 live HSBC run + 3 honest-empty throttled runs.
   const hsbcLive: CompanyResearchResult = readJsonFile(
@@ -347,9 +326,10 @@ function main(): void {
     }
   }
 
-  // 4. Write ranked.json (Rust contract) + per-company full briefs.
+  // 4. Write ranked.json (ranked contract: full brief spread + contract
+  //    keys, superset of the Rust BriefSummary consumer) + per-company full briefs.
   fs.mkdirSync(BRIEFS_DIR, { recursive: true });
-  const ranked: BriefSummary[] = briefs.map(toBriefSummary);
+  const ranked: RankedBrief[] = briefs.map(toRankedBrief);
   fs.writeFileSync(path.join(BRIEFS_DIR, 'ranked.json'), `${JSON.stringify(ranked, null, 2)}\n`);
   const slugs: Record<string, string> = { HSBC: 'hsbc', JPMorgan: 'jpmorgan', LGT: 'lgt', Swift: 'swift' };
   for (const brief of briefs) {
@@ -359,8 +339,8 @@ function main(): void {
 
   // 5. Report.
   for (const brief of briefs) {
-    const summary: BriefSummary | undefined = ranked.find(
-      (entry: BriefSummary): boolean => entry.company === brief.company,
+    const summary: RankedBrief | undefined = ranked.find(
+      (entry: RankedBrief): boolean => entry.company === brief.company,
     );
     console.log(
       `${brief.company} | ${brief.domain} | ${brief.runId} | verdict=${brief.verdict} ` +

@@ -26,6 +26,8 @@ import {
   briefForCompany,
   dropBrief,
   rankBriefs,
+  toRankedBrief,
+  type RankedBrief,
   type SweepBrief,
   type SweepTarget,
 } from '../src/server/commercial/SweepBriefing.ts';
@@ -150,7 +152,11 @@ async function main(): Promise<void> {
     const ranked: SweepBrief[] = rankBriefs(briefs);
     const outPath: string = path.resolve(process.cwd(), args.out);
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
-    fs.writeFileSync(outPath, JSON.stringify(ranked, null, 2), 'utf8');
+    // Contract shape: full brief fields PLUS snake_case API keys
+    // (signal_url/why_now/buyer_role, null never undefined) for the Rust
+    // BriefSummary consumer (no #[serde(default)] — missing keys = BRIEFS_INVALID).
+    const rankedContract: RankedBrief[] = ranked.map(toRankedBrief);
+    fs.writeFileSync(outPath, JSON.stringify(rankedContract, null, 2), 'utf8');
     for (const brief of ranked) {
       const slug: string = slugify(brief.domain || brief.company);
       const perCompany: string = path.resolve(process.cwd(), '.research', 'briefs', `${slug}.json`);

@@ -108,6 +108,38 @@ export interface SweepBrief {
   stats: CompanyResearchStats;
 }
 
+/** Ranked brief JSON consumed by the Rust API (part A): full SweepBrief
+ * fields PLUS the snake_case API-contract keys (BriefSummary shape in
+ * backend/control_plane_api/src/intelligence_briefs.rs). The contract keys
+ * must always be PRESENT (null, never undefined) because the Rust struct
+ * has no #[serde(default)] — a missing key fails the whole file with
+ * BRIEFS_INVALID. JSON.stringify emits null but omits undefined, so the
+ * mapper below normalises every contract key with ?? null. */
+export interface RankedBrief extends SweepBrief {
+  signal_url: string | null;
+  why_now: string | null;
+  buyer_role: string | null;
+}
+
+/**
+ * Map a full SweepBrief to the ranked.json contract shape: every existing
+ * field untouched (spread) plus the three API-contract keys.
+ *   signal_url ← first verified publicFacts[0].sourceUrl ?? null
+ *     (publicFacts are fetch-verified HTTP-200 only, so [0] is the first
+ *     verified fact; empty → null, never undefined).
+ *   why_now ← whyNow.event ?? null.
+ *   buyer_role ← buyerRole.function ?? null.
+ * Draft path unaffected: draft / draftBlockedReason pass through via spread.
+ */
+export function toRankedBrief(brief: SweepBrief): RankedBrief {
+  return {
+    ...brief,
+    signal_url: brief.publicFacts[0]?.sourceUrl ?? null,
+    why_now: brief.whyNow?.event ?? null,
+    buyer_role: brief.buyerRole?.function ?? null,
+  };
+}
+
 /** Derive a banking workflow phrase from the top signal category. */
 export function workflowForSignalCategory(category: string | undefined): string {
   switch ((category ?? '').toUpperCase()) {
