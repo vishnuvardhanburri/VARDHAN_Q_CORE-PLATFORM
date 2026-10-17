@@ -28,6 +28,28 @@ use ha_cluster::{
 };
 use tokio::sync::RwLock;
 
+static BYZANTINE_TEST_COUNTER: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
+
+fn unique_byzantine_paths() -> (PathBuf, PathBuf, PathBuf) {
+    // Unique per cluster instance (nanos + atomic sequence + pid): the 8 tests
+    // in this file run in parallel and previously shared 3 fixed /tmp paths,
+    // so one test's persisted entries leaked into another test's freshly-built
+    // node at load time (flaky `log.len() == 1` vs `== 0` assertions).
+    // Same isolation class as the vardhan_idempotency durable.rs fix.
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let seq = BYZANTINE_TEST_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let tag = format!("{stamp}-{seq}-{}", std::process::id());
+    (
+        std::env::temp_dir().join(format!("p8_byzantine_a-{tag}.json")),
+        std::env::temp_dir().join(format!("p8_byzantine_b-{tag}.json")),
+        std::env::temp_dir().join(format!("p8_byzantine_c-{tag}.json")),
+    )
+}
+
 fn test_config() -> RaftConfig {
     RaftConfig {
         election_timeout_min_ms: 200,
@@ -45,11 +67,8 @@ type ClusterMap = Arc<RwLock<HashMap<ha_cluster::NodeId, Arc<RaftNode>>>>;
 /// we inject messages directly via byzantine_* helpers to simulate a
 /// Byzantine sender.
 async fn make_cluster() -> (ClusterMap, Arc<RaftNode>, Arc<RaftNode>, Arc<RaftNode>) {
-    for f in &[
-        "/tmp/p8_byzantine_a.json",
-        "/tmp/p8_byzantine_b.json",
-        "/tmp/p8_byzantine_c.json",
-    ] {
+    let (path_a, path_b, path_c) = unique_byzantine_paths();
+    for f in [&path_a, &path_b, &path_c] {
         std::fs::remove_file(f).ok();
     }
 
@@ -63,19 +82,19 @@ async fn make_cluster() -> (ClusterMap, Arc<RaftNode>, Arc<RaftNode>, Arc<RaftNo
 
     let node_a = Arc::new(RaftNode::with_config(
         id_a.clone(),
-        PathBuf::from("/tmp/p8_byzantine_a.json"),
+        path_a,
         rpc_client.clone(),
         config.clone(),
     ));
     let node_b = Arc::new(RaftNode::with_config(
         id_b.clone(),
-        PathBuf::from("/tmp/p8_byzantine_b.json"),
+        path_b,
         rpc_client.clone(),
         config.clone(),
     ));
     let node_c = Arc::new(RaftNode::with_config(
         id_c.clone(),
-        PathBuf::from("/tmp/p8_byzantine_c.json"),
+        path_c,
         rpc_client.clone(),
         config,
     ));

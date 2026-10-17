@@ -1,7 +1,7 @@
 # JPMorgan — live company research
 
 - Domain: jpmorgan.com
-- Run: run_20261017_75a48bb2 (2026-10-17T10:12:33.962Z → 2026-10-17T10:12:43.245Z)
+- Run: run_20261017_9d7773f7 (2026-10-17T12:11:58.808Z → 2026-10-17T12:12:08.120Z)
 - Sources: 0 retrieved / 0 attempted (duplicate rate 0.0%, claims-with-evidence 0.0%)
 
 ## Top sources
