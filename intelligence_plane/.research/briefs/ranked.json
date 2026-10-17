@@ -2,7 +2,7 @@
   {
     "company": "HSBC",
     "domain": "hsbc.com",
-    "runId": "run_20261017_93640ac8",
+    "runId": "run_20261017_4aa3b732",
     "verdict": "HOLD",
     "verdictReason": "No WHY_NOW trigger: GO requires a dated, sourced trigger event.",
     "score": 70,
@@ -81,6 +81,14 @@
       },
       {
         "category": "GENERAL_TECH",
+        "statement": "HSBC Bank USA — Skip page header and navigation HSBC Logon Logoff HSBC HSBC Logon Logoff If you still haven&#39;t received your verification code, you can request a new one.&lt",
+        "sourceUrls": [
+          "https://www.us.hsbc.com/security/manageSecurity"
+        ],
+        "verified": true
+      },
+      {
+        "category": "GENERAL_TECH",
         "statement": "Secure email communications | HSBC Holdings plc — Secure email communications | HSBC Holdings plc Skip to: Skip to Primary navigation Skip to Main content Skip to Footer Menu Who we are Skip to Investors Who we",
         "sourceUrls": [
           "https://www.hsbc.com/online-security/secure-email-communications"
@@ -97,81 +105,33 @@
       },
       {
         "category": "GENERAL_TECH",
-        "statement": "HSBC Safeguard: Fraud Protection | HSBC USA — HSBC Safeguard: Fraud Protection | HSBC USA Skip to content Personal Private Bank Corporate and Institutional Banking USA Insights Products &amp; Solutions Inno",
+        "statement": "HSBC Safeguard: Fraud Protection | HSBC USA — ",
         "sourceUrls": [
           "https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard"
         ],
-        "verified": true
-      },
-      {
-        "category": "GENERAL_TECH",
-        "statement": "HSBC Safeguard | Security - HSBC Expat — ",
-        "sourceUrls": [
-          "https://www.expat.hsbc.com/help/security/hsbc-safeguard"
-        ],
         "verified": false
       },
       {
         "category": "GENERAL_TECH",
-        "statement": "Security Centre | Help and Support - HSBC IN — ",
+        "statement": "Our strategy - built on trust, accelerated with AI | Views | HSBC ... — ",
         "sourceUrls": [
-          "https://www.hsbc.bank.in/help/security-centre"
-        ],
-        "verified": false
-      },
-      {
-        "category": "CRYPTO_PQC",
-        "statement": "The time is now to build quantum defences | Views | HSBC — ",
-        "sourceUrls": [
-          "https://www.hsbc.com/news-and-views/views/hsbc-views/the-time-is-now-to-build-quantum-defences"
-        ],
-        "verified": false
-      },
-      {
-        "category": "CRYPTO_PQC",
-        "statement": "Beyond the Algorithm: Governance as the Foundation of Quantum ... - Medium — ",
-        "sourceUrls": [
-          "https://medium.com/@vijayalaxmiit01/beyond-the-algorithm-governance-as-the-foundation-of-quantum-transformation-0961b966db82"
-        ],
-        "verified": false
-      },
-      {
-        "category": "CRYPTO_PQC",
-        "statement": "The Industries Racing Toward Post‑Quantum Cryptography - Medium — ",
-        "sourceUrls": [
-          "https://medium.com/@vijayalaxmiit01/the-industries-racing-toward-post-quantum-cryptography-and-how-theyre-getting-there-12dbda64343d"
-        ],
-        "verified": false
-      },
-      {
-        "category": "CRYPTO_PQC",
-        "statement": "How Banks Adapt to Quantum Computing Advances - LinkedIn — ",
-        "sourceUrls": [
-          "https://www.linkedin.com/top-content/technology/quantum-computing-applications/how-banks-adapt-to-quantum-computing-advances"
+          "https://www.hsbc.com/news-and-views/views/hsbc-views/our-strategy-built-on-trust-accelerated-with-ai"
         ],
         "verified": false
       }
     ],
     "limitations": [
-      "Search-only source not fetch-verified (beyond verifyTop=6): https://www.expat.hsbc.com/help/security/hsbc-safeguard",
-      "Search-only source not fetch-verified (beyond verifyTop=6): https://www.hsbc.bank.in/help/security-centre",
-      "Search-only source not fetch-verified (beyond verifyTop=6): https://www.hsbc.com/news-and-views/views/hsbc-views/the-time-is-now-to-build-quantum-defences",
-      "Search-only source not fetch-verified (beyond verifyTop=6): https://medium.com/@vijayalaxmiit01/beyond-the-algorithm-governance-as-the-foundation-of-quantum-transformation-0961b966db82",
-      "Search-only source not fetch-verified (beyond verifyTop=6): https://medium.com/@vijayalaxmiit01/the-industries-racing-toward-post-quantum-cryptography-and-how-theyre-getting-there-12dbda64343d",
-      "Search-only source not fetch-verified (beyond verifyTop=6): https://www.linkedin.com/top-content/technology/quantum-computing-applications/how-banks-adapt-to-quantum-computing-advances",
-      "Unverified source (HTTP 0, excerpt 0 chars): https://www.expat.hsbc.com/help/security/hsbc-safeguard",
-      "Unverified source (HTTP 0, excerpt 0 chars): https://www.hsbc.bank.in/help/security-centre",
-      "Unverified source (HTTP 0, excerpt 0 chars): https://www.hsbc.com/news-and-views/views/hsbc-views/the-time-is-now-to-build-quantum-defences",
-      "Unverified source (HTTP 0, excerpt 0 chars): https://medium.com/@vijayalaxmiit01/beyond-the-algorithm-governance-as-the-foundation-of-quantum-transformation-0961b966db82",
-      "Unverified source (HTTP 0, excerpt 0 chars): https://medium.com/@vijayalaxmiit01/the-industries-racing-toward-post-quantum-cryptography-and-how-theyre-getting-there-12dbda64343d",
-      "Unverified source (HTTP 0, excerpt 0 chars): https://www.linkedin.com/top-content/technology/quantum-computing-applications/how-banks-adapt-to-quantum-computing-advances",
+      "Search-only source not fetch-verified (beyond verifyTop=6): https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard",
+      "Search-only source not fetch-verified (beyond verifyTop=6): https://www.hsbc.com/news-and-views/views/hsbc-views/our-strategy-built-on-trust-accelerated-with-ai",
+      "Unverified source (HTTP 0, excerpt 0 chars): https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard",
+      "Unverified source (HTTP 0, excerpt 0 chars): https://www.hsbc.com/news-and-views/views/hsbc-views/our-strategy-built-on-trust-accelerated-with-ai",
       "No fresh corroborated MEDIUM+ trigger found — HOLD per engine rules (GO requires a dated, sourced WHY_NOW ≤180d)."
     ],
     "stats": {
-      "sourcesRetrieved": 12,
+      "sourcesRetrieved": 8,
       "sourcesAttempted": 12,
       "duplicateRate": 0,
-      "claimsWithEvidencePct": 50
+      "claimsWithEvidencePct": 75
     },
     "signal_url": "https://www.us.hsbc.com/help/security/protection-measures",
     "why_now": null,
@@ -180,7 +140,7 @@
   {
     "company": "JPMorgan",
     "domain": "jpmorgan.com",
-    "runId": "run_20261017_75a48bb2",
+    "runId": "run_20261017_73111493",
     "verdict": "HOLD",
     "verdictReason": "No WHY_NOW trigger: GO requires a dated, sourced trigger event.",
     "score": 60,
@@ -219,27 +179,14 @@
     },
     "draft": null,
     "draftBlockedReason": "Brief-without-email: verdict is HOLD; outreach drafts require GO.",
-    "signals": [
-      {
-        "category": "CRYPTO_PQC",
-        "statement": "JPMorgan Chase quantum-network research programme (FLARE QKD trial + quantum-resistant ledger research, curated register evidence).",
-        "sourceUrls": [
-          "https://www.jpmorganchase.com/newsroom/press-releases/2022/jpmc-toshiba-ciena-build-first-quantum-key-distribution-network",
-          "https://www.jpmorgan.com/technology/technology-blog/jpmc-toshiba-ciena-build-first-quantum-key-distribution-network-critical-blockchain-application",
-          "https://www.jpmorganchase.com/content/dam/jpm/cib/complex/content/technology/publications/qkd-research-prototype-project-5-1.pdf",
-          "https://cointelegraph.com/news/jpmorgan-unveils-research-on-quantum-resistant-blockchain-network"
-        ],
-        "verified": false
-      }
-    ],
+    "signals": [],
     "limitations": [
       "No search results returned for JPMorgan (jpmorgan.com) across 8 queries — honest empty run.",
-      "Live DDG sweep throttled (HTTP 202 challenge) — brief built from curated SOURCE_REGISTER; re-run live sweep before outreach",
       "No fresh corroborated MEDIUM+ trigger found — HOLD per engine rules (GO requires a dated, sourced WHY_NOW ≤180d)."
     ],
     "stats": {
-      "sourcesRetrieved": 4,
-      "sourcesAttempted": 4,
+      "sourcesRetrieved": 0,
+      "sourcesAttempted": 0,
       "duplicateRate": 0,
       "claimsWithEvidencePct": 0
     },
@@ -250,7 +197,7 @@
   {
     "company": "LGT",
     "domain": "lgt.com",
-    "runId": "run_20261017_909ee989",
+    "runId": "run_20261017_7950706e",
     "verdict": "HOLD",
     "verdictReason": "No WHY_NOW trigger: GO requires a dated, sourced trigger event.",
     "score": 60,
@@ -289,27 +236,14 @@
     },
     "draft": null,
     "draftBlockedReason": "Brief-without-email: verdict is HOLD; outreach drafts require GO.",
-    "signals": [
-      {
-        "category": "CUSTODY",
-        "statement": "LGT Bank digital-asset custody offering via SEBA broker-custodian (curated register evidence).",
-        "sourceUrls": [
-          "https://www.lgt.com/global-en/about-lgt/lgt-news/lgt-now-offering-direct-investments-in-cryptocurrencies-19414",
-          "https://bitcoinnews.ch/30393/lgt-bank-selects-seba-bank-to-provide-digital-asset-custody-and-brokerage-services/",
-          "https://en.wikipedia.org/wiki/LGT_Group",
-          "https://www.lgt.com"
-        ],
-        "verified": false
-      }
-    ],
+    "signals": [],
     "limitations": [
       "No search results returned for LGT (lgt.com) across 8 queries — honest empty run.",
-      "Live DDG sweep throttled (HTTP 202 challenge) — brief built from curated SOURCE_REGISTER; re-run live sweep before outreach",
       "No fresh corroborated MEDIUM+ trigger found — HOLD per engine rules (GO requires a dated, sourced WHY_NOW ≤180d)."
     ],
     "stats": {
-      "sourcesRetrieved": 4,
-      "sourcesAttempted": 4,
+      "sourcesRetrieved": 0,
+      "sourcesAttempted": 0,
       "duplicateRate": 0,
       "claimsWithEvidencePct": 0
     },
@@ -320,7 +254,7 @@
   {
     "company": "Swift",
     "domain": "swift.com",
-    "runId": "run_20261017_6e0e0b07",
+    "runId": "run_20261017_3007c308",
     "verdict": "HOLD",
     "verdictReason": "No WHY_NOW trigger: GO requires a dated, sourced trigger event.",
     "score": 60,
@@ -359,27 +293,14 @@
     },
     "draft": null,
     "draftBlockedReason": "Brief-without-email: verdict is HOLD; outreach drafts require GO.",
-    "signals": [
-      {
-        "category": "ASSURANCE",
-        "statement": "Swift Customer Security Programme mandatory-controls regime with attestation (curated register evidence).",
-        "sourceUrls": [
-          "https://en.wikipedia.org/wiki/Society_for_Worldwide_Interbank_Financial_Telecommunication",
-          "https://www.isaca.org/resources/isaca-journal/issues/2022/volume-1/swifts-customer-security-program-lessons-for-the-cybersecurity-community",
-          "https://worldinformatixcs.com/2026/05/27/ten-years-on-swift-csp-cybersecurity/",
-          "https://en.wikipedia.org/wiki/Bangladesh_Bank_robbery"
-        ],
-        "verified": false
-      }
-    ],
+    "signals": [],
     "limitations": [
       "No search results returned for Swift (swift.com) across 8 queries — honest empty run.",
-      "Live DDG sweep throttled (HTTP 202 challenge) — brief built from curated SOURCE_REGISTER; re-run live sweep before outreach",
       "No fresh corroborated MEDIUM+ trigger found — HOLD per engine rules (GO requires a dated, sourced WHY_NOW ≤180d)."
     ],
     "stats": {
-      "sourcesRetrieved": 4,
-      "sourcesAttempted": 4,
+      "sourcesRetrieved": 0,
+      "sourcesAttempted": 0,
       "duplicateRate": 0,
       "claimsWithEvidencePct": 0
     },

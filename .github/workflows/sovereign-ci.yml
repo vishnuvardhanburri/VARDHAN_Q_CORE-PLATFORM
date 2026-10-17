@@ -134,6 +134,28 @@ jobs:
         working-directory: ./intelligence_plane
         run: npm install && npm run build
 
+  intelligence-real-artifact-gate:
+    name: Intelligence Real-Artifact Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Producer → schema → consumer: generates ranked.json through the real
+      # TS serialisation path, then loads it through the real Rust endpoint.
+      # Fixture unit tests alone cannot replace this gate (Mission I §3).
+      - name: Producer-to-consumer gate (deterministic, zero network)
+        working-directory: ./intelligence_plane
+        run: npm install && npx tsx scripts/real-artifact-gate.ts
+      # Static injection guard: pipeline constructions require explicit fakes.
+      - name: Explicit provider-injection guard
+        working-directory: ./intelligence_plane
+        run: npx vitest run tests/explicitProviderInjection.test.ts
+
   ebpf-build:
     name: Build eBPF Linux Production Path
     runs-on: ubuntu-latest
