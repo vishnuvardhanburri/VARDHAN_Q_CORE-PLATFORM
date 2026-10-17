@@ -28,8 +28,7 @@ use ha_cluster::{
 };
 use tokio::sync::RwLock;
 
-static BYZANTINE_TEST_COUNTER: std::sync::atomic::AtomicU64 =
-    std::sync::atomic::AtomicU64::new(0);
+static BYZANTINE_TEST_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 fn unique_byzantine_paths() -> (PathBuf, PathBuf, PathBuf) {
     // Unique per cluster instance (nanos + atomic sequence + pid): the 8 tests
