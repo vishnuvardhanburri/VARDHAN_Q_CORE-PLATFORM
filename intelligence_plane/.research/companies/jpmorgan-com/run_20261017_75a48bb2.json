@@ -1,0 +1,61 @@
+{
+  "runId": "run_20261017_75a48bb2",
+  "company": "JPMorgan",
+  "domain": "jpmorgan.com",
+  "startedAt": "2026-10-17T10:12:33.962Z",
+  "finishedAt": "2026-10-17T10:12:43.245Z",
+  "queriesExecuted": [
+    {
+      "query": "\"JPMorgan\" jpmorgan.com security strategy",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"JPMorgan\" jpmorgan.com post-quantum cryptography crypto-agility PQC",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"JPMorgan\" jpmorgan.com regulatory compliance programme",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"JPMorgan\" jpmorgan.com audit attestation assurance",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"JPMorgan\" jpmorgan.com custody digital assets",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"JPMorgan\" jpmorgan.com operational resilience vendor outage",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"JPMorgan\" jpmorgan.com technology partnership",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"JPMorgan\" jpmorgan.com procurement tender programme",
+      "results": 0,
+      "cached": false
+    }
+  ],
+  "sources": [],
+  "signals": [],
+  "contradictions": [],
+  "limitations": [
+    "No search results returned for JPMorgan (jpmorgan.com) across 8 queries — honest empty run."
+  ],
+  "stats": {
+    "sourcesRetrieved": 0,
+    "sourcesAttempted": 0,
+    "duplicateRate": 0,
+    "claimsWithEvidencePct": 0
+  }
+}

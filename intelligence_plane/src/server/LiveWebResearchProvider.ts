@@ -118,9 +118,12 @@ export class LiveWebResearchProvider {
     const queriesExecuted: { query: string; results: number; cached: boolean }[] = [];
     const errors: string[] = [];
 
+    // Explicit-injection only: KeylessSearchProvider must be passed in via
+    // options.searchProvider (see scripts/live-company-research.ts). The default
+    // fallback stays Serper (keyed) → Null terminator so offline/mock/fake-fetcher
+    // callers never trigger live DDG HTTP implicitly (Mission H Stage 3 fix).
     let searchProvider: SearchProvider | undefined = options.searchProvider;
     if (!searchProvider || !searchProvider.available) {
-      // Attempt to use Serper if API key is present, otherwise fallback to Null
       const serper = new SerperWebSearchProvider();
       searchProvider = serper.available ? serper : new NullSearchProvider();
     }

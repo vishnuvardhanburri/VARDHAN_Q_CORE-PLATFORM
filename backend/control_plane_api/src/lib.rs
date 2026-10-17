@@ -29,6 +29,7 @@ pub mod durable_event_queue;
 pub mod enterprise_api;
 pub mod enterprise_integrations;
 pub mod enterprise_sso;
+pub mod intelligence_briefs;
 pub mod operations_api;
 pub mod passport_api;
 pub mod qcore_telemetry;
@@ -345,6 +346,7 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
             "/api/v1/auth/webauthn/register/finish",
             post(webauthn_api::registration_finish),
         )
+        .merge(intelligence_briefs::routes())
         .layer(middleware::from_fn_with_state(
             auth.clone(),
             auth_service::require_session,

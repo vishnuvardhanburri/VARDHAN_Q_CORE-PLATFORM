@@ -1,0 +1,61 @@
+{
+  "runId": "run_20261017_6e0e0b07",
+  "company": "Swift",
+  "domain": "swift.com",
+  "startedAt": "2026-10-17T10:16:52.746Z",
+  "finishedAt": "2026-10-17T10:17:01.989Z",
+  "queriesExecuted": [
+    {
+      "query": "\"Swift\" swift.com security strategy",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"Swift\" swift.com post-quantum cryptography crypto-agility PQC",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"Swift\" swift.com regulatory compliance programme",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"Swift\" swift.com audit attestation assurance",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"Swift\" swift.com custody digital assets",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"Swift\" swift.com operational resilience vendor outage",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"Swift\" swift.com technology partnership",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"Swift\" swift.com procurement tender programme",
+      "results": 0,
+      "cached": false
+    }
+  ],
+  "sources": [],
+  "signals": [],
+  "contradictions": [],
+  "limitations": [
+    "No search results returned for Swift (swift.com) across 8 queries — honest empty run."
+  ],
+  "stats": {
+    "sourcesRetrieved": 0,
+    "sourcesAttempted": 0,
+    "duplicateRate": 0,
+    "claimsWithEvidencePct": 0
+  }
+}

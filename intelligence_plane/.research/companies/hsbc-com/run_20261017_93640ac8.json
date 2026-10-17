@@ -1,0 +1,338 @@
+{
+  "runId": "run_20261017_93640ac8",
+  "company": "HSBC",
+  "domain": "hsbc.com",
+  "startedAt": "2026-10-17T10:08:14.936Z",
+  "finishedAt": "2026-10-17T10:08:38.004Z",
+  "queriesExecuted": [
+    {
+      "query": "\"HSBC\" hsbc.com security strategy",
+      "results": 8,
+      "cached": false
+    },
+    {
+      "query": "\"HSBC\" hsbc.com post-quantum cryptography crypto-agility PQC",
+      "results": 4,
+      "cached": false
+    },
+    {
+      "query": "\"HSBC\" hsbc.com regulatory compliance programme",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"HSBC\" hsbc.com audit attestation assurance",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"HSBC\" hsbc.com custody digital assets",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"HSBC\" hsbc.com operational resilience vendor outage",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"HSBC\" hsbc.com technology partnership",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"HSBC\" hsbc.com procurement tender programme",
+      "results": 0,
+      "cached": false
+    }
+  ],
+  "sources": [
+    {
+      "canonicalUrl": "https://www.us.hsbc.com/help/security/protection-measures",
+      "publisher": "www.us.hsbc.com",
+      "sourceType": "OFFICIAL_COMPANY",
+      "title": "Protection Measures - Security - HSBC Bank USA",
+      "excerpt": "Protection Measures - Security - HSBC Bank USA Online and mobile banking maintenance Close Online and mobile banking may be unavailable between 11:30pm ET on Saturday 17 October and 7am ET on Sunday 18 October. We're sorry for any inconvenience this may cause. For anything urgent our customer service team will be available to help. We have detected your browser is out of date. For more information, please see our Supported Browsers page. Click to dismiss this message FDIC-Insured - Backed by the",
+      "retrievedAt": "2026-10-17T10:08:30.605Z",
+      "httpStatus": 200,
+      "corroboratedBy": [
+        "https://www.us.hsbc.com/help/security",
+        "https://www.hsbc.com/online-security",
+        "https://www.hsbcnet.com/online-security/security-measures",
+        "https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "canonicalUrl": "https://www.us.hsbc.com/help/security",
+      "publisher": "www.us.hsbc.com",
+      "sourceType": "OFFICIAL_COMPANY",
+      "title": "Security Center | Privacy & Security - HSBC Bank USA",
+      "excerpt": "Security Center | Privacy &amp; Security - HSBC Bank USA Online and mobile banking maintenance Close Online and mobile banking may be unavailable between 11:30pm ET on Saturday 17 October and 7am ET on Sunday 18 October. We're sorry for any inconvenience this may cause. For anything urgent our customer service team will be available to help. We have detected your browser is out of date. For more information, please see our Supported Browsers page. Click to dismiss this message FDIC-Insured - Bac",
+      "retrievedAt": "2026-10-17T10:08:32.387Z",
+      "httpStatus": 200,
+      "corroboratedBy": [
+        "https://www.us.hsbc.com/help/security/protection-measures",
+        "https://www.hsbc.com/online-security",
+        "https://www.hsbcnet.com/online-security/security-measures",
+        "https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "canonicalUrl": "https://www.hsbc.com/online-security",
+      "publisher": "www.hsbc.com",
+      "sourceType": "OFFICIAL_COMPANY",
+      "title": "Stay informed on Online security matters | HSBC Holdings plc",
+      "excerpt": "Stay informed on Online security matters | HSBC Holdings plc Skip to: Skip to Primary navigation Skip to Main content Skip to Footer Menu Who we are Skip to Investors Who we are Founded in 1865, HSBC is one of the world’s largest banking and financial services organisations. Go to this section Main menu Who we are HSBC at a glance Our strategy and values Main menu Who we are Our strategy and values Overview Our strategy Our values Our history Our conduct Our culture Our people Main menu Who we a",
+      "retrievedAt": "2026-10-17T10:08:33.049Z",
+      "httpStatus": 200,
+      "corroboratedBy": [
+        "https://www.us.hsbc.com/help/security/protection-measures",
+        "https://www.us.hsbc.com/help/security",
+        "https://www.hsbc.com/online-security/secure-email-communications",
+        "https://www.hsbcnet.com/online-security/security-measures",
+        "https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "canonicalUrl": "https://www.hsbc.com/online-security/secure-email-communications",
+      "publisher": "www.hsbc.com",
+      "sourceType": "OFFICIAL_COMPANY",
+      "title": "Secure email communications | HSBC Holdings plc",
+      "excerpt": "Secure email communications | HSBC Holdings plc Skip to: Skip to Primary navigation Skip to Main content Skip to Footer Menu Who we are Skip to Investors Who we are Founded in 1865, HSBC is one of the world’s largest banking and financial services organisations. Go to this section Main menu Who we are HSBC at a glance Our strategy and values Main menu Who we are Our strategy and values Overview Our strategy Our values Our history Our conduct Our culture Our people Main menu Who we are Our people",
+      "retrievedAt": "2026-10-17T10:08:33.613Z",
+      "httpStatus": 200,
+      "corroboratedBy": [
+        "https://www.hsbc.com/online-security",
+        "https://www.hsbcnet.com/online-security/security-measures",
+        "https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "canonicalUrl": "https://www.hsbcnet.com/online-security/security-measures",
+      "publisher": "www.hsbcnet.com",
+      "sourceType": "CREDIBLE_REPORTING",
+      "title": "Security Measures | HSBCnet | HSBC",
+      "excerpt": "Security Measures | HSBCnet | HSBC Commercial Bank About HSBCnet services Online security Customer support Getting started Troubleshooting 从中国登录 Menu Log on to HSBCnet Skip to main content About HSBCnet services Online security Customer support Getting started Troubleshooting 从中国登录 Security Measures Effective: March 2024 This document (the Security Measures) sets out mandatory security requirements (as amended from time to time) relating to any E-Channel Profile. For the avoidance of doubt, the ",
+      "retrievedAt": "2026-10-17T10:08:36.192Z",
+      "httpStatus": 200,
+      "corroboratedBy": [
+        "https://www.us.hsbc.com/help/security/protection-measures",
+        "https://www.us.hsbc.com/help/security",
+        "https://www.hsbc.com/online-security",
+        "https://www.hsbc.com/online-security/secure-email-communications",
+        "https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "canonicalUrl": "https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard",
+      "publisher": "www.business.us.hsbc.com",
+      "sourceType": "OFFICIAL_COMPANY",
+      "title": "HSBC Safeguard: Fraud Protection | HSBC USA",
+      "excerpt": "HSBC Safeguard: Fraud Protection | HSBC USA Skip to content Personal Private Bank Corporate and Institutional Banking USA Insights Products &amp; Solutions Innovation Banking Help Center Contact Us Log on HSBC Safeguard Protecting you from fraud and financial crime In today's increasingly connected world, it's more important than ever to ensure your security especially when it comes to banking. That's why we're introducing HSBC Safeguard - a series of initiatives designed to provide better prote",
+      "retrievedAt": "2026-10-17T10:08:37.999Z",
+      "httpStatus": 200,
+      "corroboratedBy": [
+        "https://www.us.hsbc.com/help/security/protection-measures",
+        "https://www.us.hsbc.com/help/security",
+        "https://www.hsbc.com/online-security",
+        "https://www.hsbc.com/online-security/secure-email-communications",
+        "https://www.hsbcnet.com/online-security/security-measures"
+      ],
+      "confidence": "HIGH"
+    },
+    {
+      "canonicalUrl": "https://www.expat.hsbc.com/help/security/hsbc-safeguard",
+      "publisher": "www.expat.hsbc.com",
+      "sourceType": "OFFICIAL_COMPANY",
+      "title": "HSBC Safeguard | Security - HSBC Expat",
+      "excerpt": "",
+      "retrievedAt": "2026-10-17T10:08:24.970Z",
+      "httpStatus": 0,
+      "corroboratedBy": [],
+      "confidence": "LOW"
+    },
+    {
+      "canonicalUrl": "https://www.hsbc.bank.in/help/security-centre",
+      "publisher": "www.hsbc.bank.in",
+      "sourceType": "CREDIBLE_REPORTING",
+      "title": "Security Centre | Help and Support - HSBC IN",
+      "excerpt": "",
+      "retrievedAt": "2026-10-17T10:08:24.970Z",
+      "httpStatus": 0,
+      "corroboratedBy": [],
+      "confidence": "LOW"
+    },
+    {
+      "canonicalUrl": "https://www.hsbc.com/news-and-views/views/hsbc-views/the-time-is-now-to-build-quantum-defences",
+      "publisher": "www.hsbc.com",
+      "sourceType": "OFFICIAL_COMPANY",
+      "title": "The time is now to build quantum defences | Views | HSBC",
+      "excerpt": "",
+      "retrievedAt": "2026-10-17T10:08:24.970Z",
+      "httpStatus": 0,
+      "corroboratedBy": [],
+      "confidence": "LOW"
+    },
+    {
+      "canonicalUrl": "https://medium.com/@vijayalaxmiit01/beyond-the-algorithm-governance-as-the-foundation-of-quantum-transformation-0961b966db82",
+      "publisher": "medium.com",
+      "sourceType": "CREDIBLE_REPORTING",
+      "title": "Beyond the Algorithm: Governance as the Foundation of Quantum ... - Medium",
+      "excerpt": "",
+      "retrievedAt": "2026-10-17T10:08:24.970Z",
+      "httpStatus": 0,
+      "corroboratedBy": [
+        "https://medium.com/@vijayalaxmiit01/the-industries-racing-toward-post-quantum-cryptography-and-how-theyre-getting-there-12dbda64343d"
+      ],
+      "confidence": "LOW"
+    },
+    {
+      "canonicalUrl": "https://medium.com/@vijayalaxmiit01/the-industries-racing-toward-post-quantum-cryptography-and-how-theyre-getting-there-12dbda64343d",
+      "publisher": "medium.com",
+      "sourceType": "CREDIBLE_REPORTING",
+      "title": "The Industries Racing Toward Post‑Quantum Cryptography - Medium",
+      "excerpt": "",
+      "retrievedAt": "2026-10-17T10:08:24.970Z",
+      "httpStatus": 0,
+      "corroboratedBy": [
+        "https://medium.com/@vijayalaxmiit01/beyond-the-algorithm-governance-as-the-foundation-of-quantum-transformation-0961b966db82"
+      ],
+      "confidence": "LOW"
+    },
+    {
+      "canonicalUrl": "https://www.linkedin.com/top-content/technology/quantum-computing-applications/how-banks-adapt-to-quantum-computing-advances",
+      "publisher": "www.linkedin.com",
+      "sourceType": "CREDIBLE_REPORTING",
+      "title": "How Banks Adapt to Quantum Computing Advances - LinkedIn",
+      "excerpt": "",
+      "retrievedAt": "2026-10-17T10:08:24.970Z",
+      "httpStatus": 0,
+      "corroboratedBy": [],
+      "confidence": "LOW"
+    }
+  ],
+  "signals": [
+    {
+      "category": "GENERAL_TECH",
+      "statement": "Protection Measures - Security - HSBC Bank USA — Protection Measures - Security - HSBC Bank USA Online and mobile banking maintenance Close Online and mobile banking may be unavailable between 11:30pm ET on Sa",
+      "sourceUrls": [
+        "https://www.us.hsbc.com/help/security/protection-measures"
+      ],
+      "verified": true
+    },
+    {
+      "category": "GENERAL_TECH",
+      "statement": "Security Center | Privacy & Security - HSBC Bank USA — Security Center | Privacy &amp; Security - HSBC Bank USA Online and mobile banking maintenance Close Online and mobile banking may be unavailable between 11:30p",
+      "sourceUrls": [
+        "https://www.us.hsbc.com/help/security"
+      ],
+      "verified": true
+    },
+    {
+      "category": "GENERAL_TECH",
+      "statement": "Stay informed on Online security matters | HSBC Holdings plc — Stay informed on Online security matters | HSBC Holdings plc Skip to: Skip to Primary navigation Skip to Main content Skip to Footer Menu Who we are Skip to Inv",
+      "sourceUrls": [
+        "https://www.hsbc.com/online-security"
+      ],
+      "verified": true
+    },
+    {
+      "category": "GENERAL_TECH",
+      "statement": "Secure email communications | HSBC Holdings plc — Secure email communications | HSBC Holdings plc Skip to: Skip to Primary navigation Skip to Main content Skip to Footer Menu Who we are Skip to Investors Who we",
+      "sourceUrls": [
+        "https://www.hsbc.com/online-security/secure-email-communications"
+      ],
+      "verified": true
+    },
+    {
+      "category": "GENERAL_TECH",
+      "statement": "Security Measures | HSBCnet | HSBC — Security Measures | HSBCnet | HSBC Commercial Bank About HSBCnet services Online security Customer support Getting started Troubleshooting 从中国登录 Menu Log on to ",
+      "sourceUrls": [
+        "https://www.hsbcnet.com/online-security/security-measures"
+      ],
+      "verified": true
+    },
+    {
+      "category": "GENERAL_TECH",
+      "statement": "HSBC Safeguard: Fraud Protection | HSBC USA — HSBC Safeguard: Fraud Protection | HSBC USA Skip to content Personal Private Bank Corporate and Institutional Banking USA Insights Products &amp; Solutions Inno",
+      "sourceUrls": [
+        "https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard"
+      ],
+      "verified": true
+    },
+    {
+      "category": "GENERAL_TECH",
+      "statement": "HSBC Safeguard | Security - HSBC Expat — ",
+      "sourceUrls": [
+        "https://www.expat.hsbc.com/help/security/hsbc-safeguard"
+      ],
+      "verified": false
+    },
+    {
+      "category": "GENERAL_TECH",
+      "statement": "Security Centre | Help and Support - HSBC IN — ",
+      "sourceUrls": [
+        "https://www.hsbc.bank.in/help/security-centre"
+      ],
+      "verified": false
+    },
+    {
+      "category": "CRYPTO_PQC",
+      "statement": "The time is now to build quantum defences | Views | HSBC — ",
+      "sourceUrls": [
+        "https://www.hsbc.com/news-and-views/views/hsbc-views/the-time-is-now-to-build-quantum-defences"
+      ],
+      "verified": false
+    },
+    {
+      "category": "CRYPTO_PQC",
+      "statement": "Beyond the Algorithm: Governance as the Foundation of Quantum ... - Medium — ",
+      "sourceUrls": [
+        "https://medium.com/@vijayalaxmiit01/beyond-the-algorithm-governance-as-the-foundation-of-quantum-transformation-0961b966db82"
+      ],
+      "verified": false
+    },
+    {
+      "category": "CRYPTO_PQC",
+      "statement": "The Industries Racing Toward Post‑Quantum Cryptography - Medium — ",
+      "sourceUrls": [
+        "https://medium.com/@vijayalaxmiit01/the-industries-racing-toward-post-quantum-cryptography-and-how-theyre-getting-there-12dbda64343d"
+      ],
+      "verified": false
+    },
+    {
+      "category": "CRYPTO_PQC",
+      "statement": "How Banks Adapt to Quantum Computing Advances - LinkedIn — ",
+      "sourceUrls": [
+        "https://www.linkedin.com/top-content/technology/quantum-computing-applications/how-banks-adapt-to-quantum-computing-advances"
+      ],
+      "verified": false
+    }
+  ],
+  "contradictions": [],
+  "limitations": [
+    "Search-only source not fetch-verified (beyond verifyTop=6): https://www.expat.hsbc.com/help/security/hsbc-safeguard",
+    "Search-only source not fetch-verified (beyond verifyTop=6): https://www.hsbc.bank.in/help/security-centre",
+    "Search-only source not fetch-verified (beyond verifyTop=6): https://www.hsbc.com/news-and-views/views/hsbc-views/the-time-is-now-to-build-quantum-defences",
+    "Search-only source not fetch-verified (beyond verifyTop=6): https://medium.com/@vijayalaxmiit01/beyond-the-algorithm-governance-as-the-foundation-of-quantum-transformation-0961b966db82",
+    "Search-only source not fetch-verified (beyond verifyTop=6): https://medium.com/@vijayalaxmiit01/the-industries-racing-toward-post-quantum-cryptography-and-how-theyre-getting-there-12dbda64343d",
+    "Search-only source not fetch-verified (beyond verifyTop=6): https://www.linkedin.com/top-content/technology/quantum-computing-applications/how-banks-adapt-to-quantum-computing-advances",
+    "Unverified source (HTTP 0, excerpt 0 chars): https://www.expat.hsbc.com/help/security/hsbc-safeguard",
+    "Unverified source (HTTP 0, excerpt 0 chars): https://www.hsbc.bank.in/help/security-centre",
+    "Unverified source (HTTP 0, excerpt 0 chars): https://www.hsbc.com/news-and-views/views/hsbc-views/the-time-is-now-to-build-quantum-defences",
+    "Unverified source (HTTP 0, excerpt 0 chars): https://medium.com/@vijayalaxmiit01/beyond-the-algorithm-governance-as-the-foundation-of-quantum-transformation-0961b966db82",
+    "Unverified source (HTTP 0, excerpt 0 chars): https://medium.com/@vijayalaxmiit01/the-industries-racing-toward-post-quantum-cryptography-and-how-theyre-getting-there-12dbda64343d",
+    "Unverified source (HTTP 0, excerpt 0 chars): https://www.linkedin.com/top-content/technology/quantum-computing-applications/how-banks-adapt-to-quantum-computing-advances"
+  ],
+  "stats": {
+    "sourcesRetrieved": 12,
+    "sourcesAttempted": 12,
+    "duplicateRate": 0,
+    "claimsWithEvidencePct": 50
+  }
+}

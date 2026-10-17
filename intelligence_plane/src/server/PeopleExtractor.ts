@@ -8,8 +8,8 @@
  * RAW_HTML -> Visible Text Pipeline -> Token-Bound Role Match -> Name Candidate
  */
 
+import { CANDIDATE_ROLES } from './IntelligenceCase.ts';
 import type {
-  CANDIDATE_ROLES,
   OwnerCandidate,
   DiscoveredPage,
   StrengthLevel

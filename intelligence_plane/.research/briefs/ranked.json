@@ -1,0 +1,34 @@
+[
+  {
+    "company": "HSBC",
+    "verdict": "HOLD",
+    "score": 70,
+    "signal_url": "https://www.us.hsbc.com/help/security/protection-measures",
+    "why_now": null,
+    "buyer_role": "Payments Operations / Trade Finance Operations"
+  },
+  {
+    "company": "JPMorgan",
+    "verdict": "HOLD",
+    "score": 60,
+    "signal_url": "https://www.jpmorganchase.com/newsroom/press-releases/2022/jpmc-toshiba-ciena-build-first-quantum-key-distribution-network",
+    "why_now": null,
+    "buyer_role": "Payments Operations / Trade Finance Operations"
+  },
+  {
+    "company": "LGT",
+    "verdict": "HOLD",
+    "score": 60,
+    "signal_url": "https://www.lgt.com/global-en/about-lgt/lgt-news/lgt-now-offering-direct-investments-in-cryptocurrencies-19414",
+    "why_now": null,
+    "buyer_role": "Payments Operations / Trade Finance Operations"
+  },
+  {
+    "company": "Swift",
+    "verdict": "HOLD",
+    "score": 60,
+    "signal_url": "https://en.wikipedia.org/wiki/Society_for_Worldwide_Interbank_Financial_Telecommunication",
+    "why_now": null,
+    "buyer_role": "Payments Operations / Trade Finance Operations"
+  }
+]
