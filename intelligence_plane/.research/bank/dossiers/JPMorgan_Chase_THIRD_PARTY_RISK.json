@@ -1,0 +1,165 @@
+{
+  "id": "DOSSIER-JPMorganChase-THIRD_PARTY_RISK-2026",
+  "institution": "JPMorgan Chase",
+  "businessArea": "USA (Global) banking operations",
+  "problemType": "THIRD_PARTY_RISK",
+  "generatedAt": "2026-10-13T19:59:42.659Z",
+  "gitHead": "unknown",
+  "classification": "AUTHORIZATION_REQUIRED — Internal Vardhan Intelligence Use Only",
+  "section1_institution": {
+    "name": "JPMorgan Chase",
+    "jurisdiction": "USA (Global)",
+    "businessArea": "JPMorganChase requires independently-verifiable third-party security audit commitments and real-time verification, not just documented compliance.",
+    "website": "https://www.jpmorganchase.com",
+    "evidence": [
+      {
+        "claim": "Global Technology Leadership Team: JPMorganChase recommends establishing contractual requirements for security notifications, right-to-audit provisions, and recovery objectives with third parties, verifying commitments are met rather than merely documented.",
+        "sourceUrl": "https://www.jpmorganchase.com/about/technology/blog/fortifying-the-enterprise-10-actions-to-take-now-for-ai-ready-cyber-resilience",
+        "date": "2026-04-17"
+      }
+    ]
+  },
+  "section2_verifiedEvidence": [
+    {
+      "excerpt": "Establish contractual requirements for timely security notifications, right-to-audit provisions, and defined recovery objectives, and verify these commitments are being met, not just documented.",
+      "sourceUrl": "https://www.jpmorganchase.com/about/technology/blog/fortifying-the-enterprise-10-actions-to-take-now-for-ai-ready-cyber-resilience",
+      "sourceType": "TECHNICAL_BLOG",
+      "publishedDate": "2026-04-17",
+      "sourceTitle": "Fortifying the enterprise: 10 actions to take now for AI-ready cyber resilience",
+      "provenance": "DOCUMENTED_FACT (bank-specific)"
+    }
+  ],
+  "section3_problemHypothesis": {
+    "hypothesis": "JPMorganChase requires independently-verifiable third-party security audit commitments and real-time verification, not just documented compliance.",
+    "observedFact": "JPMorganChase recommends establishing contractual requirements for security notifications, right-to-audit provisions, and recovery objectives with third parties, verifying commitments are met rather than merely documented.",
+    "technicalInference": "VARDHAN_INFERENCE: Third-party risk verification is critical to JPMorganChase, and the firm values independently-verifiable audit commitments — a gap that Vardhan's sealed receipt and audit ledger can help address.",
+    "problemType": "THIRD_PARTY_RISK",
+    "supportingReasoning": "Observed facts:\n  1. JPMorganChase recommends establishing contractual requirements for security notifications, right-to-audit provisions, and recovery objectives with third parties, verifying commitments are met rather than merely documented.\n\nTechnical inferences (VARDHAN_INFERENCE — not observed facts):\n  1. VARDHAN_INFERENCE: Third-party risk verification is critical to JPMorganChase, and the firm values independently-verifiable audit commitments — a gap that Vardhan's sealed receipt and audit ledger can help address.\n\nThese facts and inferences converge on the hypothesis that the institution has an active initiative in the relevant problem domain."
+  },
+  "section4_confidence": {
+    "level": "HIGH",
+    "rationale": "Signals from the bank's own technical/engineering blog (authoritative source). Evidence gaps remain: No information on specific third-party vendors or procurement processes. Internal prioritization score: 70/100 (P1 tier). Commercial readiness: NOT_ASSESSED (40/100) — NOT ASSESSED unless buying-process evidence exists.",
+    "unresolvedQuestions": [
+      "How are third-party security commitments currently verified and audited?"
+    ],
+    "evidenceGaps": [
+      "No information on specific third-party vendors or procurement processes"
+    ],
+    "scoreBreakdown": {
+      "evidenceQuality": 9,
+      "capabilityRelevance": 20,
+      "disclosedInitiative": 0,
+      "unmetProblemEvidence": 4,
+      "technicalSponsor": 15,
+      "evaluationFeasibility": 12,
+      "measurableCriteria": 10,
+      "total": 70
+    },
+    "totalScore": 70,
+    "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
+    "scoreNote": "This score measures evidence of a disclosed initiative with a technically-addressable problem. It does NOT indicate commercial readiness or buying intent. See commercialReadiness below.",
+    "commercialReadiness": {
+      "total": 40,
+      "label": "NOT_ASSESSED",
+      "buyingProcessEvidence": 0,
+      "sponsorAccess": 30,
+      "problemSpecificity": 10
+    }
+  },
+  "section5_vardhanCapability": [
+    {
+      "capability": "AUDIT_LEDGER",
+      "name": "Durable Audit Ledger",
+      "description": "Append-only, crash-safe audit ledger with BLAKE3 hash chaining and ML-DSA-87 signature on every entry, with Raft-committed signed Merkle checkpoints.",
+      "technicalMechanism": "BLAKE3 canonical hash chain, JSONL persistence with fsync, Merkle root verification",
+      "relevanceToProblem": "Relevant to AUDIT_LIFECYCLE, COMPLIANCE_AUTOMATION, INCIDENT_RESPONSE, VERIFICATION_INFRASTRUCTURE, THIRD_PARTY_RISK",
+      "evidenceUrl": "backend/audit_ledger/src/lib.rs"
+    },
+    {
+      "capability": "SIGNED_RECEIPT",
+      "name": "Canonical Payload Integrity — Sealed Receipt",
+      "description": "Multi-field sealed receipt with dual ML-DSA-87 + Ed25519 signatures, 10-field canonical payload, independently verifiable.",
+      "technicalMechanism": "10-field canonical payload, dual signature (ML-DSA-87 + Ed25519), BLAKE3 hashing",
+      "relevanceToProblem": "Relevant to AUDIT_LIFECYCLE, TRUST_BOUNDARY, VERIFICATION_INFRASTRUCTURE, COMPLIANCE_AUTOMATION, THIRD_PARTY_RISK",
+      "evidenceUrl": "docs/VARDHAN_INVENTION_SHORTLIST.md#6-canonical-payload-integrity"
+    },
+    {
+      "capability": "VERIFICATION_INFRASTRUCTURE",
+      "name": "Independent Verification Infrastructure",
+      "description": "Canonical payload integrity with ML-DSA-87 + Ed25519 dual signatures, enabling independent verification of sealed receipts and audit entries from issuer.",
+      "technicalMechanism": "10-field canonical payload, dual signature (ML-DSA-87 + Ed25519), BLAKE3 hash chaining, independent verifier reconstruction",
+      "relevanceToProblem": "Relevant to VERIFICATION_INFRASTRUCTURE, AUDIT_LIFECYCLE, TRUST_BOUNDARY, THIRD_PARTY_RISK, COMPLIANCE_AUTOMATION",
+      "evidenceUrl": "docs/VARDHAN_INVENTION_SHORTLIST.md#6-canonical-payload-integrity"
+    }
+  ],
+  "section6_evaluationProposal": {
+    "title": "[Diagnostic] JPMorgan Chase — THIRD_PARTY_RISK assessment using synthetic data",
+    "scope": "Synthetic-data assessment of the institution's third-party audit-commitment verification against Vardhan's Audit Ledger and Signed Receipt.",
+    "methodology": "Provide a synthetic vendor-commitment dataset (20-100 vendors) mirroring SLA/security commitments. Run Vardhan's ThirdPartyTrustVerifier. Demonstrate independent attestation of meeting vs. documented compliance.",
+    "duration": "5 working days",
+    "estimatedCost": "£15,000 (diagnostic) / £50,000 (proof-of-value)",
+    "deliverables": [
+      "Third-party commitment verification report",
+      "Audit-commitment attestation model",
+      "SLA verification demonstration on synthetic data",
+      "Verification gaps vs. documented compliance"
+    ],
+    "dataHandling": "All evaluation data is synthetic — no production bank data, credentials, or customer information are used. All evidence is derived from public sources only."
+  },
+  "section7_successMetrics": [
+    {
+      "metric": "Third-party commitment verification rate",
+      "acceptanceCriteria": ">85% of synthetic vendor commitments independently verifiable via signed receipts",
+      "baseline": "Unknown — diagnostic establishes baseline",
+      "measurementMethod": "Run Vardhan ThirdPartyTrustVerifier against synthetic 100-vendor dataset"
+    }
+  ],
+  "section8_sponsorRoles": [
+    {
+      "role": "Head of Cryptography",
+      "department": "Global Technology Applied Research",
+      "evidenceUrl": "https://www.jpmorganchase.com/about/technology/research/applied-research",
+      "validationScope": "Validate post-quantum cryptography research priorities, migration planning, and algorithm selection for quantum-safe key establishment.",
+      "confidence": "HIGH",
+      "notes": "Role referenced indirectly via \"Quantum Computing\" research area within Global Technology Applied Research. Specific title not publicly confirmed."
+    },
+    {
+      "role": "CISO / Chief Information Security Officer",
+      "department": "Technology Security & Resilience",
+      "evidenceUrl": "https://www.jpmorganchase.com/about/technology/blog/fortifying-the-enterprise-10-actions-to-take-now-for-ai-ready-cyber-resilience",
+      "validationScope": "Validate enterprise cyber-resilience strategy, third-party security commitments, and auditability requirements for security-patch pipelines.",
+      "confidence": "HIGH",
+      "notes": "Authorship of the cyber-resilience article is attributed to \"JPMorganChase Global Technology Leadership Team\". Specific CISO name not disclosed in source."
+    },
+    {
+      "role": "Head of Blockchain / Digital Assets",
+      "department": "Global Technology Applied Research (Blockchain and Privacy)",
+      "evidenceUrl": "https://www.jpmorganchase.com/about/technology/research/applied-research",
+      "validationScope": "Validate quantum-resistant blockchain adaptation timeline and migration approach for distributed ledger systems.",
+      "confidence": "MEDIUM",
+      "notes": "Blockchain research area is disclosed; specific head title not named publicly."
+    },
+    {
+      "role": "VP Engineering / Engineering Leadership",
+      "department": "Global Technology",
+      "evidenceUrl": "https://www.jpmorganchase.com/technology",
+      "validationScope": "Validate operational deployment of quantum-safe cryptography across engineering teams.",
+      "confidence": "MEDIUM",
+      "notes": "VP Engineering role implied by org structure; specific name not disclosed."
+    }
+  ],
+  "section9_barriers": [
+    {
+      "category": "Procurement",
+      "description": "Third-party risk vendors are typically selected via centralised procurement processes.",
+      "evidence": "JPMorgan Chase blog mentions contractual requirements and approval gates in patch lifecycle.",
+      "mitigation": "Frame as advisory diagnostic, not a vendor replacement."
+    }
+  ],
+  "section10_nextAction": {
+    "action": "Hold for human approval — do not initiate outbound contact.",
+    "rationale": "Opportunity scored 70/100 (P1). Meets qualification threshold but requires human review before any external outreach.",
+    "gate": "HUMAN_APPROVAL_REQUIRED",
+    "estimatedTimeline": "Within 2 business days of human approval"
+  }
+}

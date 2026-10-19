@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "industry": "government",
+  "name": "Government and Public Sector",
+  "compliance": ["FISMA", "NIST RMF", "FedRAMP", "CJIS"],
+  "assets": ["cui", "classified_system", "citizen_data", "public_service_application", "government_network", "contractor_system"],
+  "threats": ["nation_state_apt", "cui_exposure", "credential_compromise", "supply_chain_compromise", "insider_threat", "service_disruption"],
+  "risk": {"factors": ["mission_impact", "national_security_impact", "citizen_impact", "regulatory_exposure", "availability"], "weights": {"mission_impact": 5, "national_security_impact": 5, "citizen_impact": 4, "regulatory_exposure": 4, "availability": 5}},
+  "policies": ["cui_handling", "classified_boundary", "least_privilege", "supply_chain_assurance", "cryptographic_lifecycle"],
+  "workflows": ["apt_exposure_scan", "cui_exposure_review", "contractor_risk_review", "privileged_access_review", "mission_impact_incident_review"],
+  "controls": ["zero_trust_access", "segmentation", "hardware_backed_keys", "immutable_audit", "dual_control", "continuous_attestation"],
+  "integrations": ["federal_iam", "siem_soc", "itsm", "cloud_security", "hsm_kms", "endpoint_security"],
+  "deployment": {"modes": ["managed", "sovereign_cloud", "air_gapped"], "requires_hsm_for_private_keys": true, "telemetry": "tenant_bound_qcore"},
+  "qcore_services": ["trust_boundary", "authority_policy", "transaction_state", "signed_receipt", "audit_ledger", "independent_verification", "pq_crypto", "aer_kep_q"]
+}

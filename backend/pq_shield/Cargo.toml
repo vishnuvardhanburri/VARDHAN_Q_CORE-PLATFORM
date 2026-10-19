@@ -1,0 +1,47 @@
+[package]
+name = "pq_shield"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ha_cluster = { path = "../ha_cluster" }
+auth_service = { path = "../auth_service" }
+ledger_sync = { path = "../ledger_sync" }
+tokio = { version = "1.38", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+core_crypto = { path = "../core_crypto" }
+proxy_engine = { path = "../proxy_engine" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dashmap = "6.2.1"
+axum = { version = "0.8.9", features = ["tokio"] }
+tokio-stream = { version = "0.1.19", features = ["sync"] }
+tower-http = { version = "0.7.1", features = ["cors", "limit"] }
+hdrhistogram = "7.6.0"
+uuid = { version = "1.26.0", features = ["v4", "fast-rng"] }
+fastrand = "2.5.0"
+hex = "0.4.3"
+subtle = "2.6.1"
+audit_ledger = { path = "../audit_ledger" }
+clap = { version = "4", features = ["derive"] }
+prometheus = "0.14"
+opentelemetry = { version = "0.32", features = ["trace"] }
+opentelemetry_sdk = { version = "0.32", features = ["trace", "rt-tokio"] }
+opentelemetry-otlp = { version = "0.32", features = ["trace", "http-proto"] }
+tracing-opentelemetry = "0.33"
+opentelemetry-proto = { version = "0.32", features = ["gen-tonic-messages", "trace"] }
+prost = "0.14"
+rand = "0.8"
+
+[features]
+default = []
+aws-kms-real = ["core_crypto/aws-kms-real"]
+
+[dev-dependencies]
+tempfile = "3"
+reqwest = { version = "0.13", features = ["json"] }
+
+[[bench]]
+name = "ingress_throughput"
+harness = false

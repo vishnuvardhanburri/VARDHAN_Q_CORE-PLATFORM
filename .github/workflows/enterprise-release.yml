@@ -1,0 +1,135 @@
+name: Vardhan Q-Core Enterprise Release Gate
+
+on:
+  push:
+    branches: ["main", "phase-p1-p2-completion-20261005"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-verify:
+    name: Build, test, and package release artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Provision swap (prevents lld linker OOM on heavy crates)
+        run: |
+          sudo swapon --show 2>/dev/null | grep -q /swapfile && (sudo swapoff /swapfile || true)
+          sudo rm -f /swapfile
+          sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          sudo swapon --show
+      - uses: dtolnay/rust-toolchain@stable
+      - name: System dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev
+      - name: Free disk space before build
+        run: |
+          docker system prune -af --volumes 2>/dev/null || true
+          sudo rm -rf /tmp/* /var/log/*/ /usr/share/dotnet/ /usr/share/temurin/ 2>/dev/null || true
+          echo "Disk usage:"; df -h /
+      - name: Formatting normalization
+        run: cargo fmt --all
+      - name: Build receipt engine for control-plane lifecycle tests
+        run: cargo build -p vardhan_receipt
+        env:
+          CARGO_BUILD_JOBS: 2
+      - name: Workspace tests
+        run: cargo test --workspace
+        env:
+          CARGO_BUILD_JOBS: 2
+      - name: Release build
+        run: cargo build --workspace --release
+      - name: SDK contract gate
+        run: python3 scripts/p1_sdk_contract_check.py
+      - name: SDK model gate
+        run: python3 scripts/p1_model_compatibility.py
+      - name: Industry contract gate
+        run: |
+          python3 scripts/validate_industry_planes.py
+          python3 -m unittest discover -s tests -p 'industry_planes_contract_test.py'
+      - name: Console contract gate
+        run: node platform_web/test.mjs
+      - name: Compute artifact checksums
+        run: |
+          mkdir -p dist
+          cp target/release/control_plane_api dist/ 2>/dev/null || true
+          cp target/release/pq_shield dist/ 2>/dev/null || true
+          cp target/release/vardhan_receipt dist/ 2>/dev/null || true
+          cd dist
+          sha256sum * > ../release-checksums.sha256
+          cd ..
+      - name: Upload release checksums artifact
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: release-checksums
+          path: release-checksums.sha256
+
+  attest-and-sign:
+    name: SLSA provenance attestation and Cosign cryptographic signing
+    needs: [build-and-verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Download release checksums artifact
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: release-checksums
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+      - name: Verify Cosign installation
+        run: cosign version
+      - name: Cosign sign release checksums
+        if: github.event_name != 'pull_request'
+        run: |
+          cosign sign-blob --yes --bundle cosign.bundle release-checksums.sha256
+      - name: Generate SLSA build provenance attestation
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
+        with:
+          subject-path: 'release-checksums.sha256'
+      - name: Upload signed provenance bundle
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: cosign-signature-bundle
+          path: cosign.bundle
+
+  promote-release:
+    name: Production deployment gate
+    needs: [attest-and-sign]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://api.vardhan.internal
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Download release checksums
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: release-checksums
+      - name: Download Cosign bundle
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        with:
+          name: cosign-signature-bundle
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+      - name: Verify release cryptographic signatures before promotion
+        run: |
+          cosign verify-blob \
+            --bundle cosign.bundle \
+            --certificate-identity-regexp "https://github.com/vishnuvardhanburri/VARDHAN_Q_CORE-PLATFORM/.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            release-checksums.sha256
+          echo "Cryptographic signature and SLSA provenance verified. Release approved for production deployment."

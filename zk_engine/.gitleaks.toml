@@ -1,0 +1,44 @@
+# Gitleaks configuration for the ZK proof engine repository.
+#
+# Keeps ALL upstream default secret rules ([extend] useDefault = true) and
+# only narrows the "no real secret" edges of this repo's crypto test suite.
+# Comment every allowlist entry with its justification — removing an entry
+# must always be safe (the files below contain no real key material).
+
+title = "ZK Proof Engine gitleaks config"
+
+[extend]
+# Inherit the complete default rule set (private keys, GH tokens, API keys,
+# AWS, etc.). Never trim rules here without reviewing effect on the gate.
+useDefault = true
+
+[allowlist]
+# 1) DER/PEM marker strings exercised by the @zkpe/keys unit tests: literal
+#    "-----BEGIN PRIVATE KEY-----" markers and PEM round-trips; no real key
+#    bytes exist in the test suite.
+# 2) Dashboard demo gate reports: keyId is a made-up sample id, and the
+#    64-hex hashes are fabricated circuit/hash values, never credentials.
+# 3) Committed public credential material (no secrets — all values are
+#    PUBLIC by design and deterministic):
+#    - .gitgate/gate-envelope.json: Ed25519 signature value over the demo
+#      envelope (public; the private signing key stays offline).
+#    - circuit-lib build/*.manifest.json: certified artifact digests and the
+#      vkHash (public verification key hash; manifests are the committed
+#      contract per ADR-0008).
+# 4) Technical documentation and CLI integration tests containing synthetic
+#    idempotency keys or build artifact path extensions ("r1cs/zkey/wasm"):
+#    - CHANGELOG.md: Describes circom build outputs.
+#    - packages/cli/test/production-validation.test.ts: Mock idempotency key string.
+paths = [
+  "packages/keys/test/envelope.test.ts",
+  "packages/keys/test/keypair.test.ts",
+  "packages/dashboard/data/gatekeeper/2026-08-09-expired-blocked.json",
+  "packages/dashboard/data/gatekeeper/2026-08-09-revoked-blocked.json",
+  "packages/dashboard/data/gatekeeper/2026-08-09-registered.json",
+  "packages/dashboard/data/gatekeeper/gate-report-example.json",
+  ".gitgate/gate-envelope.json",
+  "packages/circuit-lib/build/merkle-inclusion.manifest.json",
+  "packages/circuit-lib/build/poseidon-preimage.manifest.json",
+  "CHANGELOG.md",
+  "packages/cli/test/production-validation.test.ts",
+]

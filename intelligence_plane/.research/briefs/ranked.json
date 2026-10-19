@@ -1,0 +1,311 @@
+[
+  {
+    "company": "HSBC",
+    "domain": "hsbc.com",
+    "runId": "run_20261017_4aa3b732",
+    "verdict": "HOLD",
+    "verdictReason": "No WHY_NOW trigger: GO requires a dated, sourced trigger event.",
+    "score": 70,
+    "whyNow": null,
+    "publicFacts": [
+      {
+        "fact": "Protection Measures - Security - HSBC Bank USA — Protection Measures - Security - HSBC Bank USA Online and mobile banking maintenance Close Online and mobile banking may be unavailable between 11:30pm ET on Saturday 17 October and 7am ET on Sunday 18 October. We're sor",
+        "sourceUrl": "https://www.us.hsbc.com/help/security/protection-measures"
+      },
+      {
+        "fact": "Security Center | Privacy & Security - HSBC Bank USA — Security Center | Privacy &amp; Security - HSBC Bank USA Online and mobile banking maintenance Close Online and mobile banking may be unavailable between 11:30pm ET on Saturday 17 October and 7am ET on Sunday 18 October.",
+        "sourceUrl": "https://www.us.hsbc.com/help/security"
+      },
+      {
+        "fact": "Stay informed on Online security matters | HSBC Holdings plc — Stay informed on Online security matters | HSBC Holdings plc Skip to: Skip to Primary navigation Skip to Main content Skip to Footer Menu Who we are Skip to Investors Who we are Founded in 1865, HSBC is one of the world’",
+        "sourceUrl": "https://www.hsbc.com/online-security"
+      }
+    ],
+    "capabilityMappings": [
+      {
+        "capability": "sealed-receipts",
+        "evidenceRef": {
+          "sourceFile": "backend/vardhan_receipt",
+          "testName": "validate-canonical"
+        },
+        "level": "DEMONSTRATED"
+      },
+      {
+        "capability": "replay-idempotency",
+        "evidenceRef": {
+          "sourceFile": "backend/vardhan_idempotency",
+          "testName": "g2-replay-idempotency"
+        },
+        "level": "DEMONSTRATED"
+      },
+      {
+        "capability": "ed25519-signing",
+        "evidenceRef": {
+          "sourceFile": "backend/vault/license",
+          "testName": "ed25519-unit"
+        },
+        "level": "PARTIAL"
+      }
+    ],
+    "buyerRole": {
+      "function": "Payments Operations / Trade Finance Operations",
+      "why": "Owns payment review capacity and trade-finance operations throughput.",
+      "buyerType": "CHAMPION"
+    },
+    "draft": null,
+    "draftBlockedReason": "Brief-without-email: verdict is HOLD; outreach drafts require GO.",
+    "signals": [
+      {
+        "category": "GENERAL_TECH",
+        "statement": "Protection Measures - Security - HSBC Bank USA — Protection Measures - Security - HSBC Bank USA Online and mobile banking maintenance Close Online and mobile banking may be unavailable between 11:30pm ET on Sa",
+        "sourceUrls": [
+          "https://www.us.hsbc.com/help/security/protection-measures"
+        ],
+        "verified": true
+      },
+      {
+        "category": "GENERAL_TECH",
+        "statement": "Security Center | Privacy & Security - HSBC Bank USA — Security Center | Privacy &amp; Security - HSBC Bank USA Online and mobile banking maintenance Close Online and mobile banking may be unavailable between 11:30p",
+        "sourceUrls": [
+          "https://www.us.hsbc.com/help/security"
+        ],
+        "verified": true
+      },
+      {
+        "category": "GENERAL_TECH",
+        "statement": "Stay informed on Online security matters | HSBC Holdings plc — Stay informed on Online security matters | HSBC Holdings plc Skip to: Skip to Primary navigation Skip to Main content Skip to Footer Menu Who we are Skip to Inv",
+        "sourceUrls": [
+          "https://www.hsbc.com/online-security"
+        ],
+        "verified": true
+      },
+      {
+        "category": "GENERAL_TECH",
+        "statement": "HSBC Bank USA — Skip page header and navigation HSBC Logon Logoff HSBC HSBC Logon Logoff If you still haven&#39;t received your verification code, you can request a new one.&lt",
+        "sourceUrls": [
+          "https://www.us.hsbc.com/security/manageSecurity"
+        ],
+        "verified": true
+      },
+      {
+        "category": "GENERAL_TECH",
+        "statement": "Secure email communications | HSBC Holdings plc — Secure email communications | HSBC Holdings plc Skip to: Skip to Primary navigation Skip to Main content Skip to Footer Menu Who we are Skip to Investors Who we",
+        "sourceUrls": [
+          "https://www.hsbc.com/online-security/secure-email-communications"
+        ],
+        "verified": true
+      },
+      {
+        "category": "GENERAL_TECH",
+        "statement": "Security Measures | HSBCnet | HSBC — Security Measures | HSBCnet | HSBC Commercial Bank About HSBCnet services Online security Customer support Getting started Troubleshooting 从中国登录 Menu Log on to ",
+        "sourceUrls": [
+          "https://www.hsbcnet.com/online-security/security-measures"
+        ],
+        "verified": true
+      },
+      {
+        "category": "GENERAL_TECH",
+        "statement": "HSBC Safeguard: Fraud Protection | HSBC USA — ",
+        "sourceUrls": [
+          "https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard"
+        ],
+        "verified": false
+      },
+      {
+        "category": "GENERAL_TECH",
+        "statement": "Our strategy - built on trust, accelerated with AI | Views | HSBC ... — ",
+        "sourceUrls": [
+          "https://www.hsbc.com/news-and-views/views/hsbc-views/our-strategy-built-on-trust-accelerated-with-ai"
+        ],
+        "verified": false
+      }
+    ],
+    "limitations": [
+      "Search-only source not fetch-verified (beyond verifyTop=6): https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard",
+      "Search-only source not fetch-verified (beyond verifyTop=6): https://www.hsbc.com/news-and-views/views/hsbc-views/our-strategy-built-on-trust-accelerated-with-ai",
+      "Unverified source (HTTP 0, excerpt 0 chars): https://www.business.us.hsbc.com/en/regulations/hsbc-safeguard",
+      "Unverified source (HTTP 0, excerpt 0 chars): https://www.hsbc.com/news-and-views/views/hsbc-views/our-strategy-built-on-trust-accelerated-with-ai",
+      "No fresh corroborated MEDIUM+ trigger found — HOLD per engine rules (GO requires a dated, sourced WHY_NOW ≤180d)."
+    ],
+    "stats": {
+      "sourcesRetrieved": 8,
+      "sourcesAttempted": 12,
+      "duplicateRate": 0,
+      "claimsWithEvidencePct": 75
+    },
+    "signal_url": "https://www.us.hsbc.com/help/security/protection-measures",
+    "why_now": null,
+    "buyer_role": "Payments Operations / Trade Finance Operations"
+  },
+  {
+    "company": "JPMorgan",
+    "domain": "jpmorgan.com",
+    "runId": "run_20261017_73111493",
+    "verdict": "HOLD",
+    "verdictReason": "No WHY_NOW trigger: GO requires a dated, sourced trigger event.",
+    "score": 60,
+    "whyNow": null,
+    "publicFacts": [],
+    "capabilityMappings": [
+      {
+        "capability": "sealed-receipts",
+        "evidenceRef": {
+          "sourceFile": "backend/vardhan_receipt",
+          "testName": "validate-canonical"
+        },
+        "level": "DEMONSTRATED"
+      },
+      {
+        "capability": "replay-idempotency",
+        "evidenceRef": {
+          "sourceFile": "backend/vardhan_idempotency",
+          "testName": "g2-replay-idempotency"
+        },
+        "level": "DEMONSTRATED"
+      },
+      {
+        "capability": "ed25519-signing",
+        "evidenceRef": {
+          "sourceFile": "backend/vault/license",
+          "testName": "ed25519-unit"
+        },
+        "level": "PARTIAL"
+      }
+    ],
+    "buyerRole": {
+      "function": "Payments Operations / Trade Finance Operations",
+      "why": "Owns payment review capacity and trade-finance operations throughput.",
+      "buyerType": "CHAMPION"
+    },
+    "draft": null,
+    "draftBlockedReason": "Brief-without-email: verdict is HOLD; outreach drafts require GO.",
+    "signals": [],
+    "limitations": [
+      "No search results returned for JPMorgan (jpmorgan.com) across 8 queries — honest empty run.",
+      "No fresh corroborated MEDIUM+ trigger found — HOLD per engine rules (GO requires a dated, sourced WHY_NOW ≤180d)."
+    ],
+    "stats": {
+      "sourcesRetrieved": 0,
+      "sourcesAttempted": 0,
+      "duplicateRate": 0,
+      "claimsWithEvidencePct": 0
+    },
+    "signal_url": null,
+    "why_now": null,
+    "buyer_role": "Payments Operations / Trade Finance Operations"
+  },
+  {
+    "company": "LGT",
+    "domain": "lgt.com",
+    "runId": "run_20261017_7950706e",
+    "verdict": "HOLD",
+    "verdictReason": "No WHY_NOW trigger: GO requires a dated, sourced trigger event.",
+    "score": 60,
+    "whyNow": null,
+    "publicFacts": [],
+    "capabilityMappings": [
+      {
+        "capability": "sealed-receipts",
+        "evidenceRef": {
+          "sourceFile": "backend/vardhan_receipt",
+          "testName": "validate-canonical"
+        },
+        "level": "DEMONSTRATED"
+      },
+      {
+        "capability": "replay-idempotency",
+        "evidenceRef": {
+          "sourceFile": "backend/vardhan_idempotency",
+          "testName": "g2-replay-idempotency"
+        },
+        "level": "DEMONSTRATED"
+      },
+      {
+        "capability": "ed25519-signing",
+        "evidenceRef": {
+          "sourceFile": "backend/vault/license",
+          "testName": "ed25519-unit"
+        },
+        "level": "PARTIAL"
+      }
+    ],
+    "buyerRole": {
+      "function": "Payments Operations / Trade Finance Operations",
+      "why": "Owns payment review capacity and trade-finance operations throughput.",
+      "buyerType": "CHAMPION"
+    },
+    "draft": null,
+    "draftBlockedReason": "Brief-without-email: verdict is HOLD; outreach drafts require GO.",
+    "signals": [],
+    "limitations": [
+      "No search results returned for LGT (lgt.com) across 8 queries — honest empty run.",
+      "No fresh corroborated MEDIUM+ trigger found — HOLD per engine rules (GO requires a dated, sourced WHY_NOW ≤180d)."
+    ],
+    "stats": {
+      "sourcesRetrieved": 0,
+      "sourcesAttempted": 0,
+      "duplicateRate": 0,
+      "claimsWithEvidencePct": 0
+    },
+    "signal_url": null,
+    "why_now": null,
+    "buyer_role": "Payments Operations / Trade Finance Operations"
+  },
+  {
+    "company": "Swift",
+    "domain": "swift.com",
+    "runId": "run_20261017_3007c308",
+    "verdict": "HOLD",
+    "verdictReason": "No WHY_NOW trigger: GO requires a dated, sourced trigger event.",
+    "score": 60,
+    "whyNow": null,
+    "publicFacts": [],
+    "capabilityMappings": [
+      {
+        "capability": "sealed-receipts",
+        "evidenceRef": {
+          "sourceFile": "backend/vardhan_receipt",
+          "testName": "validate-canonical"
+        },
+        "level": "DEMONSTRATED"
+      },
+      {
+        "capability": "replay-idempotency",
+        "evidenceRef": {
+          "sourceFile": "backend/vardhan_idempotency",
+          "testName": "g2-replay-idempotency"
+        },
+        "level": "DEMONSTRATED"
+      },
+      {
+        "capability": "ed25519-signing",
+        "evidenceRef": {
+          "sourceFile": "backend/vault/license",
+          "testName": "ed25519-unit"
+        },
+        "level": "PARTIAL"
+      }
+    ],
+    "buyerRole": {
+      "function": "Payments Operations / Trade Finance Operations",
+      "why": "Owns payment review capacity and trade-finance operations throughput.",
+      "buyerType": "CHAMPION"
+    },
+    "draft": null,
+    "draftBlockedReason": "Brief-without-email: verdict is HOLD; outreach drafts require GO.",
+    "signals": [],
+    "limitations": [
+      "No search results returned for Swift (swift.com) across 8 queries — honest empty run.",
+      "No fresh corroborated MEDIUM+ trigger found — HOLD per engine rules (GO requires a dated, sourced WHY_NOW ≤180d)."
+    ],
+    "stats": {
+      "sourcesRetrieved": 0,
+      "sourcesAttempted": 0,
+      "duplicateRate": 0,
+      "claimsWithEvidencePct": 0
+    },
+    "signal_url": null,
+    "why_now": null,
+    "buyer_role": "Payments Operations / Trade Finance Operations"
+  }
+]

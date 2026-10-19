@@ -1,0 +1,128 @@
+name: Gatekeeper
+
+# Trust boundary (M8): `pull_request_target` runs this workflow from the BASE
+# branch. The trusted gate logic (action, scripts, allow-list, circuit-lib)
+# is checked out from the base ref; the PR head is checked out read-only into
+# a separate directory and ONLY its proof envelope is read — PR code is never
+# executed and secrets never reach PR-controlled steps.
+on:
+  pull_request_target:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gatekeeper-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ZK_GATE_ENVELOPE: ${{ vars.ZK_GATE_ENVELOPE || '.gitgate/gate-envelope.json' }}
+  ZK_GATE_CIRCUIT: ${{ vars.ZK_GATE_CIRCUIT || 'poseidon-preimage' }}
+  ZK_REGISTRY_RPC: ${{ vars.ZK_REGISTRY_RPC_URL }}
+  ZK_REGISTRY_ADDRESS: ${{ vars.ZK_REGISTRY_ADDRESS }}
+  ZK_GATE_MAX_AGE: ${{ vars.ZK_GATE_MAX_AGE || '0' }}
+  ZK_VERIFY_API_URL: ${{ vars.ZK_VERIFY_API_URL }}
+  ZK_VERIFY_CLIENT_ID: ${{ secrets.ZK_VERIFY_CLIENT_ID }}
+  ZK_VERIFY_CLIENT_SECRET: ${{ secrets.ZK_VERIFY_CLIENT_SECRET }}
+
+jobs:
+  gate:
+    name: zk-verify gate (signed proof + artifact binding + on-chain)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout trusted base ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Download PR envelope (read-only)
+        if: ${{ github.event_name == 'pull_request_target' }}
+        env:
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "${{ runner.temp }}/zk-pr-head/$(dirname "$ZK_GATE_ENVELOPE")"
+          gh api -H "Accept: application/vnd.github.v3.raw" \
+            "/repos/$HEAD_REPO/contents/$ZK_GATE_ENVELOPE?ref=$HEAD_SHA" \
+            > "${{ runner.temp }}/zk-pr-head/$ZK_GATE_ENVELOPE" || echo "No envelope found in PR"
+
+      - name: Build trusted gate code
+        run: |
+          npm ci
+          npm run build
+
+      - name: zk-verify gate
+        id: gate
+        uses: ./.github/actions/zk-verify
+        with:
+          envelope: >-
+            ${{ github.event_name == 'pull_request_target' &&
+            format('{0}/{1}', runner.temp, format('zk-pr-head/{0}', env.ZK_GATE_ENVELOPE)) ||
+            env.ZK_GATE_ENVELOPE }}
+          circuit: ${{ env.ZK_GATE_CIRCUIT }}
+          public-key: ${{ secrets.ZK_GATEKEEPER_PUBLIC_KEY }}
+          require-signed: 'true'
+          vk-allowlist: ${{ vars.ZK_VK_ALLOWLIST }}
+          artifact-dir: ${{ github.workspace }}/packages/circuit-lib/build
+          rpc-url: ${{ env.ZK_REGISTRY_RPC }}
+          registry-address: ${{ env.ZK_REGISTRY_ADDRESS }}
+          max-age: ${{ env.ZK_GATE_MAX_AGE }}
+          api-url: ${{ env.ZK_VERIFY_API_URL }}
+          client-id: ${{ env.ZK_VERIFY_CLIENT_ID }}
+          client-secret: ${{ env.ZK_VERIFY_CLIENT_SECRET }}
+
+      - name: Gate report
+        if: always()
+        shell: bash
+        run: |
+          cat "${{ runner.temp }}/zk-gate/report.json" 2>/dev/null || echo "(report missing)"
+
+      - name: Annotate rejection (PR comment)
+        if: ${{ failure() && github.event_name == 'pull_request_target' }}
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require('node:fs');
+            let body = '**zk-verify gate: blocked** :no_entry_sign:';
+            try {
+              const report = JSON.parse(fs.readFileSync(
+                `${{ runner.temp }}/zk-gate/report.json`, 'utf8'));
+              body += '\n\n<details><summary>gate report</summary>\n\n```json\n' +
+                JSON.stringify(report, null, 2) + '\n```\n</details>';
+            } catch {}
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+  gate-negative:
+    name: gate rejects bypass attempts (negative suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout trusted base ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build + run negative gate tests
+        run: |
+          npm ci
+          npm run build
+          npx vitest run packages/cli/test/gatekeeper.test.ts

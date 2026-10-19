@@ -1,0 +1,46 @@
+[Unit]
+Description=Vardhan Q-Core Enterprise Control Plane API
+Documentation=https://github.com/vishnuvardhanburri/VARDHAN_Q_CORE-PLATFORM
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=vardhan
+Group=vardhan
+WorkingDirectory=/var/lib/vardhan
+ExecStart=/usr/local/bin/control_plane_api
+Restart=always
+RestartSec=5s
+
+# Security and Sandboxing
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/vardhan /var/log/vardhan
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictRealtime=true
+NoNewPrivileges=true
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+# Environment Configuration
+Environment=VARDHAN_ENV=production
+Environment=VARDHAN_CONTROL_PLANE_ADDR=127.0.0.1:8080
+Environment=VARDHAN_CONTROL_PLANE_DATA_DIR=/var/lib/vardhan/control-plane
+Environment=VARDHAN_KEYSTORE_DIR=/var/lib/vardhan/keystore
+Environment=VARDHAN_IDEMPOTENCY_DIR=/var/lib/vardhan/idempotency
+Environment=VARDHAN_AUTH_CONFIG_PATH=/var/lib/vardhan/auth_config/auth_config.json
+Environment=VARDHAN_RECEIPT_BIN=/usr/local/bin/vardhan-receipt
+Environment=VARDHAN_RECEIPT_ENGINE_BIN=/usr/local/bin/vardhan-receipt
+Environment=VARDHAN_TLS_TERMINATION=ingress
+EnvironmentFile=-/etc/vardhan/qcore.env
+
+# Resource Management
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryHigh=3500M
+MemoryMax=4000M
+
+[Install]
+WantedBy=multi-user.target

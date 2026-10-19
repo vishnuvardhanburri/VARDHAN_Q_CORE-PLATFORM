@@ -1,0 +1,23 @@
+[package]
+name = "ledger_sync"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+core_crypto  = { path = "../core_crypto" }
+proxy_engine = { path = "../proxy_engine" }
+tokio        = { version = "1", features = ["full"] }
+tokio-util   = { version = "0.7", features = ["codec"] }
+bytes        = "1"
+blake3       = "1.5"
+serde        = { version = "1", features = ["derive"] }
+serde_json   = "1"
+thiserror    = "1"
+tracing      = "0.1"
+zeroize      = { version = "1", features = ["zeroize_derive"] }
+# futures-util provides SinkExt (sink feature) and StreamExt (stream feature)
+futures-util = { version = "0.3", features = ["sink"] }
+
+[dev-dependencies]
+tokio              = { version = "1", features = ["full", "test-util"] }
+tracing-subscriber = "0.3"

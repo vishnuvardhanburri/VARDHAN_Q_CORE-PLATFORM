@@ -1,0 +1,172 @@
+name: Sovereign Platform CI (Unified)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  quantum-core-build:
+    name: Build Rust Quantum Core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev
+      - name: Build Core
+        run: cargo build --workspace --release
+
+  sdk-contract:
+    name: Verify First-Party SDK Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify OpenAPI SDK coverage
+        run: python3 scripts/p1_sdk_contract_check.py
+      - name: Verify generated-model compatibility
+        run: python3 scripts/p1_model_compatibility.py
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Test Rust SDK
+        run: cargo test --manifest-path sdk/rust/Cargo.toml
+      - name: Setup Go
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+        with:
+          go-version: '1.23'
+      - name: Test Go SDK
+        working-directory: ./sdk/go
+        run: go test ./...
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: '22'
+      - name: Test TypeScript SDK
+        working-directory: ./sdk/typescript
+        run: npm install && npm run build && npm test
+      - name: Test Python SDK syntax
+        run: python3 -m compileall -q sdk/python
+      - name: Test Java SDK
+        working-directory: ./sdk/java
+        run: mvn -q test
+
+  industry-plane-contract:
+    name: Validate Seven Industry Plane Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Validate industry plane contracts
+        run: python3 scripts/validate_industry_planes.py
+      - name: Run industry plane contract test
+        run: python3 -m unittest discover -s tests -p 'industry_planes_contract_test.py'
+
+  control-plane-contract:
+    name: Run Control Plane API Contract Tests
+    runs-on: ubuntu-latest
+    needs: [quantum-core-build]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev curl
+      - name: Build control plane
+        run: cargo build -p control_plane_api
+      - name: Start control plane
+        env:
+          VARDHAN_CONTROL_PLANE_DATA_DIR: /tmp/vardhan-control-plane-contract
+          VARDHAN_CONTROL_PLANE_ADDR: 127.0.0.1:18080
+          VARDHAN_ADMIN_USERNAME: contract@example.com
+          VARDHAN_ADMIN_PASSWORD_FILE: /tmp/vardhan-admin-password
+        run: |
+          rm -rf /tmp/vardhan-control-plane-contract
+          echo -n "contract-test-password-1234" > /tmp/vardhan-admin-password
+          VARDHAN_CONTROL_PLANE_DATA_DIR=/tmp/vardhan-control-plane-contract \
+          VARDHAN_CONTROL_PLANE_ADDR=127.0.0.1:18080 \
+          VARDHAN_ADMIN_USERNAME=contract@example.com \
+          VARDHAN_ADMIN_PASSWORD_FILE=/tmp/vardhan-admin-password \
+          ./target/debug/control_plane_api > /tmp/control-plane.log 2>&1 &
+          echo $! > /tmp/control-plane.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18080/api/v1/platform/health >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/control-plane.log
+          exit 1
+      - name: Exercise running control plane
+        env:
+          CONTROL_PLANE_BASE_URL: http://127.0.0.1:18080
+          CONTROL_PLANE_USERNAME: contract@example.com
+          CONTROL_PLANE_PASSWORD: contract-test-password-1234
+        run: python3 scripts/control_plane_contract_test.py
+      - name: Stop control plane
+        if: always()
+        run: if [ -f /tmp/control-plane.pid ]; then kill "$(cat /tmp/control-plane.pid)" || true; fi
+
+  zk-engine-build:
+    name: Build Zero-Knowledge Engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: '22'
+      - name: Build ZK
+        working-directory: ./zk_engine
+        run: npm install && npm run build
+
+  intelligence-plane-build:
+    name: Build Intelligence Plane
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: '22'
+      - name: Build UI
+        working-directory: ./intelligence_plane
+        run: npm install && npm run build
+
+  intelligence-real-artifact-gate:
+    name: Intelligence Real-Artifact Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Setup Node.js
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: '22'
+      # Producer → schema → consumer: generates ranked.json through the real
+      # TS serialisation path, then loads it through the real Rust endpoint.
+      # Fixture unit tests alone cannot replace this gate (Mission I §3).
+      - name: Producer-to-consumer gate (deterministic, zero network)
+        working-directory: ./intelligence_plane
+        run: npm install && npx tsx scripts/real-artifact-gate.ts
+      # Static injection guard: pipeline constructions require explicit fakes.
+      - name: Explicit provider-injection guard
+        working-directory: ./intelligence_plane
+        run: npx vitest run tests/explicitProviderInjection.test.ts
+
+  ebpf-build:
+    name: Build eBPF Linux Production Path
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install clang, llvm, libelf-dev, and missing asm headers
+        run: sudo apt-get update && sudo apt-get install -y clang llvm libelf-dev gcc-multilib linux-libc-dev libbpf-dev
+      - name: Compile eBPF kernel C code
+        run: clang -O2 -g -target bpf -I/usr/include/x86_64-linux-gnu -c backend/ebpf_engine/ebpf_kernel/src/vardhan_firewall.c -o vardhan_firewall.o
+      - name: Build Rust user-space loader
+        working-directory: ./backend/ebpf_engine/ebpf_user
+        run: cargo build

@@ -1,0 +1,67 @@
+{
+  "company": "JPMorgan",
+  "domain": "jpmorgan.com",
+  "runId": "run_20261017_75a48bb2",
+  "verdict": "HOLD",
+  "verdictReason": "No WHY_NOW trigger: GO requires a dated, sourced trigger event.",
+  "score": 60,
+  "whyNow": null,
+  "publicFacts": [],
+  "capabilityMappings": [
+    {
+      "capability": "sealed-receipts",
+      "evidenceRef": {
+        "sourceFile": "backend/vardhan_receipt",
+        "testName": "validate-canonical"
+      },
+      "level": "DEMONSTRATED"
+    },
+    {
+      "capability": "replay-idempotency",
+      "evidenceRef": {
+        "sourceFile": "backend/vardhan_idempotency",
+        "testName": "g2-replay-idempotency"
+      },
+      "level": "DEMONSTRATED"
+    },
+    {
+      "capability": "ed25519-signing",
+      "evidenceRef": {
+        "sourceFile": "backend/vault/license",
+        "testName": "ed25519-unit"
+      },
+      "level": "PARTIAL"
+    }
+  ],
+  "buyerRole": {
+    "function": "Payments Operations / Trade Finance Operations",
+    "why": "Owns payment review capacity and trade-finance operations throughput.",
+    "buyerType": "CHAMPION"
+  },
+  "draft": null,
+  "draftBlockedReason": "Brief-without-email: verdict is HOLD; outreach drafts require GO.",
+  "signals": [
+    {
+      "category": "CRYPTO_PQC",
+      "statement": "JPMorgan Chase quantum-network research programme (FLARE QKD trial + quantum-resistant ledger research, curated register evidence).",
+      "sourceUrls": [
+        "https://www.jpmorganchase.com/newsroom/press-releases/2022/jpmc-toshiba-ciena-build-first-quantum-key-distribution-network",
+        "https://www.jpmorgan.com/technology/technology-blog/jpmc-toshiba-ciena-build-first-quantum-key-distribution-network-critical-blockchain-application",
+        "https://www.jpmorganchase.com/content/dam/jpm/cib/complex/content/technology/publications/qkd-research-prototype-project-5-1.pdf",
+        "https://cointelegraph.com/news/jpmorgan-unveils-research-on-quantum-resistant-blockchain-network"
+      ],
+      "verified": false
+    }
+  ],
+  "limitations": [
+    "No search results returned for JPMorgan (jpmorgan.com) across 8 queries — honest empty run.",
+    "Live DDG sweep throttled (HTTP 202 challenge) — brief built from curated SOURCE_REGISTER; re-run live sweep before outreach",
+    "No fresh corroborated MEDIUM+ trigger found — HOLD per engine rules (GO requires a dated, sourced WHY_NOW ≤180d)."
+  ],
+  "stats": {
+    "sourcesRetrieved": 4,
+    "sourcesAttempted": 4,
+    "duplicateRate": 0,
+    "claimsWithEvidencePct": 0
+  }
+}

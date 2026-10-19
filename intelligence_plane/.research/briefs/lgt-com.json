@@ -1,0 +1,54 @@
+{
+  "company": "LGT",
+  "domain": "lgt.com",
+  "runId": "run_20261017_7950706e",
+  "verdict": "HOLD",
+  "verdictReason": "No WHY_NOW trigger: GO requires a dated, sourced trigger event.",
+  "score": 60,
+  "whyNow": null,
+  "publicFacts": [],
+  "capabilityMappings": [
+    {
+      "capability": "sealed-receipts",
+      "evidenceRef": {
+        "sourceFile": "backend/vardhan_receipt",
+        "testName": "validate-canonical"
+      },
+      "level": "DEMONSTRATED"
+    },
+    {
+      "capability": "replay-idempotency",
+      "evidenceRef": {
+        "sourceFile": "backend/vardhan_idempotency",
+        "testName": "g2-replay-idempotency"
+      },
+      "level": "DEMONSTRATED"
+    },
+    {
+      "capability": "ed25519-signing",
+      "evidenceRef": {
+        "sourceFile": "backend/vault/license",
+        "testName": "ed25519-unit"
+      },
+      "level": "PARTIAL"
+    }
+  ],
+  "buyerRole": {
+    "function": "Payments Operations / Trade Finance Operations",
+    "why": "Owns payment review capacity and trade-finance operations throughput.",
+    "buyerType": "CHAMPION"
+  },
+  "draft": null,
+  "draftBlockedReason": "Brief-without-email: verdict is HOLD; outreach drafts require GO.",
+  "signals": [],
+  "limitations": [
+    "No search results returned for LGT (lgt.com) across 8 queries — honest empty run.",
+    "No fresh corroborated MEDIUM+ trigger found — HOLD per engine rules (GO requires a dated, sourced WHY_NOW ≤180d)."
+  ],
+  "stats": {
+    "sourcesRetrieved": 0,
+    "sourcesAttempted": 0,
+    "duplicateRate": 0,
+    "claimsWithEvidencePct": 0
+  }
+}

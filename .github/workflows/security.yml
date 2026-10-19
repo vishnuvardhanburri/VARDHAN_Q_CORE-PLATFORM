@@ -1,0 +1,47 @@
+name: Supply Chain Security
+
+on:
+  push:
+    branches: ["main", "phase-p1-p2-completion-20261005"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  supply-chain:
+    name: Dependency and supply-chain verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install security tooling
+        run: |
+          cargo install cargo-audit --locked
+          cargo install cargo-deny --locked
+      - name: Enforce patched rustls release floor
+        run: python3 scripts/check_rustls_lock.py
+      - name: Rust audit
+        run: cargo audit
+      - name: Cargo deny advisories
+        run: cargo deny check advisories
+      - name: Verify CycloneDX SBOM (cargo sbom)
+        run: |
+          test -f bom.json || { echo "bom.json missing"; exit 1; }
+          python3 -c "import json; data=json.load(open('bom.json')); assert data.get('bomFormat') == 'CycloneDX', 'Invalid SBOM format'; assert len(data.get('components', [])) > 0, 'Empty SBOM components'"
+      - name: Repository secret scan
+        run: |
+          set -euo pipefail
+          matches="$(git grep -nIE 'AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----' -- \
+            . \
+            ':(exclude).github/workflows/security.yml' \
+            ':(exclude)zk_engine/.gitleaks.toml' \
+            ':(exclude)zk_engine/packages/keys/test/*' || true)"
+          if [ -n "$matches" ]; then
+            echo "$matches"
+            echo "Potential credential material detected in tracked repository files." >&2
+            exit 1
+          fi
+      - name: Tracked secret guard (fail-closed)
+        run: bash scripts/check_no_tracked_secrets.sh

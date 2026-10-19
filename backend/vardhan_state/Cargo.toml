@@ -1,0 +1,16 @@
+[package]
+name = "vardhan_state"
+version = "0.1.0"
+edition = "2021"
+description = "Vardhan Enterprise State Fabric — L04 runtime: Tenant, Entity, Relationship, VardhanEvent, Observation, StateSnapshot, StateVersion, StateTransitionRecord"
+license = "Proprietary — Vardhan Quantum"
+
+[dependencies]
+vardhan_model = { path = "../vardhan_model" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+blake3 = "1.8"
+uuid = { version = "1", features = ["v4", "serde"] }
+thiserror = "2.0"
+chrono = { version = "0.4", features = ["serde"] }
+hex = "0.4"

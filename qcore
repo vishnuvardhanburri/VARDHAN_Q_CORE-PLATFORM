@@ -1,0 +1,598 @@
+#!/usr/bin/env bash
+# ===================================================================
+# ./qcore — VARDHAN Q-CORE Unified Execution Interface
+# ===================================================================
+# One command surface for the entire VARDHAN system.
+#
+# Usage:
+#   ./qcore help       Show available commands
+#   ./qcore doctor     Check prerequisites
+#   ./qcore setup      Prepare the local environment
+#   ./qcore up         Start the full local stack
+#   ./qcore status     Show service health
+#   ./qcore logs       Tail service logs
+#   ./qcore test       Run the full validation suite
+#   ./qcore pov        Run the PoV security & benchmark suite
+#   ./qcore down       Stop and remove services
+#   ./qcore clean      Remove build/runtime caches (preserves user data)
+#
+# Environment variables:
+#   VARDHAN_CONTROL_PLANE_PORT  (default: 8080)
+#   VARDHAN_INTELLIGENCE_PORT   (default: 3000)
+# ===================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$SCRIPT_DIR"
+cd "$REPO_ROOT"
+
+CONTROL_PLANE_PORT="${VARDHAN_CONTROL_PLANE_PORT:-8080}"
+INTELLIGENCE_PORT="${VARDHAN_INTELLIGENCE_PORT:-3000}"
+COMPOSE_FILE="$REPO_ROOT/docker-compose.yml"
+ENV_FILE="$REPO_ROOT/.env"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+info()  { echo -e "${BLUE}ℹ${NC} $*"; }
+ok()    { echo -e "${GREEN}✓${NC} $*"; }
+warn()  { echo -e "${YELLOW}⚠${NC} $*"; }
+err()   { echo -e "${RED}✗${NC} $*" >&2; }
+
+# ── Helper: ensure .env exists ───────────────────────────────────
+ensure_env() {
+    if [ ! -f "$ENV_FILE" ]; then
+        if [ -f "$REPO_ROOT/.env.example" ]; then
+            cp "$REPO_ROOT/.env.example" "$ENV_FILE"
+            ok "Created .env from .env.example"
+        else
+            warn "No .env.example found; using defaults"
+            touch "$ENV_FILE"
+        fi
+    fi
+}
+
+# ── Help ─────────────────────────────────────────────────────────
+cmd_help() {
+    cat << 'HELP'
+VARDHAN Q-CORE — Unified Execution Interface
+
+USAGE:
+  ./qcore help       Show this help
+  ./qcore doctor     Check prerequisites
+  ./qcore setup      Prepare the local environment (builds binaries, installs deps)
+  ./qcore up         Start the full local stack (control-plane + intelligence-plane)
+  ./qcore status     Show service health
+  ./qcore logs       Tail logs (optionally: ./qcore logs control-plane)
+  ./qcore test       Run the full validation suite
+  ./qcore pov        Run the PoV security & benchmark suite
+  ./qcore preflight  Run enterprise server pre-flight diagnostics
+  ./qcore package    Build offline air-gapped enterprise bundle
+  ./qcore down       Stop and remove services
+  ./qcore clean      Remove build/runtime caches (preserves user data)
+
+ENVIRONMENT:
+  VARDHAN_CONTROL_PLANE_PORT   Port for control-plane API (default: 8080)
+  VARDHAN_INTELLIGENCE_PORT    Port for intelligence-plane frontend (default: 3000)
+
+CONFIGURATION:
+  Local development uses docker-compose.yml at the repository root.
+  Copy .env.example to .env and adjust ports/paths as needed.
+  For the benchmark-only PoV (no local dev stack), use ./qcore pov.
+
+QUICK START:
+  ./qcore doctor
+  ./qcore setup
+  ./qcore up
+HELP
+}
+
+# ── Doctor ───────────────────────────────────────────────────────
+cmd_doctor() {
+    local errors=0
+
+    echo "=== VARDHAN Q-CORE — Environment Diagnosis ==="
+    echo ""
+
+    # OS / architecture
+    local os arch
+    os="$(uname -s)"
+    arch="$(uname -m)"
+    ok "OS: $os / Arch: $arch"
+
+    # Bash
+    if command -v bash &>/dev/null; then
+        ok "Bash: $(bash --version | head -1)"
+    else
+        err "Bash not found"
+        ((errors++))
+    fi
+
+    # Git
+    if command -v git &>/dev/null; then
+        ok "Git: $(git --version)"
+    else
+        err "Git not found"
+        ((errors++))
+    fi
+
+    # Rust
+    if command -v rustc &>/dev/null; then
+        ok "Rust: $(rustc --version)"
+        ok "Cargo: $(cargo --version)"
+    else
+        err "Rust toolchain not found — install from https://rustup.rs"
+        ((errors++))
+    fi
+
+    # Rust edition check
+    if command -v rustc &>/dev/null; then
+        local rust_version
+        rust_version=$(rustc --version | sed 's/rustc \([0-9]*\)\.\([0-9]*\)\..*/\1.\2/')
+        local major minor
+        major=$(echo "$rust_version" | cut -d. -f1)
+        minor=$(echo "$rust_version" | cut -d. -f2)
+        if [ "$major" -gt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -ge 82 ]; }; then
+            ok "Rust $rust_version supports edition 2024 (required for this workspace)"
+        else
+            err "Rust $rust_version does not support edition 2024 (need >= 1.82)"
+            ((errors++))
+        fi
+    fi
+
+    # Docker
+    if command -v docker &>/dev/null; then
+        ok "Docker: $(docker --version)"
+        if docker info &>/dev/null; then
+            ok "Docker daemon: running"
+        else
+            err "Docker daemon not running"
+            ((errors++))
+        fi
+        # Docker Compose
+        if docker compose version &>/dev/null; then
+            ok "Docker Compose: $(docker compose version --short)"
+        else
+            err "Docker Compose plugin not found (install Docker Compose v2)"
+            ((errors++))
+        fi
+    else
+        err "Docker not found — required for ./qcore up"
+        ((errors++))
+    fi
+
+    # Node.js (optional — needed for intelligence_plane)
+    if command -v node &>/dev/null; then
+        ok "Node.js: $(node --version)"
+    else
+        warn "Node.js not found — required for intelligence_plane frontend build"
+    fi
+
+    # Python (optional — needed for PoV and E2E tests)
+    if command -v python3 &>/dev/null; then
+        ok "Python: $(python3 --version)"
+    else
+        warn "Python3 not found — required for PoV and E2E tests"
+    fi
+
+    # Disk space
+    local free_space
+    free_space=$(df -h "$REPO_ROOT" | awk 'NR==2 {print $4}')
+    ok "Free disk at repo root: $free_space"
+
+    # Working tree changes
+    if [ -n "$(git status --porcelain)" ]; then
+        warn "Working tree has uncommitted changes"
+    else
+        ok "Working tree is clean"
+    fi
+
+    # ── Phase 2: service port occupancy warnings (advisory only) ──────────
+    # Warn-only: never fail hard, never kill processes. Every probe is
+    # guarded with `|| true` so `set -euo pipefail` cannot abort doctor.
+    # See docs/SERVICE_PORT_REGISTRY.md for the full registry + 8080 rule.
+    _qcore_port_in_use() {
+        local _port="$1"
+        # Probe 1: lsof (macOS/Linux, if installed)
+        if command -v lsof &>/dev/null; then
+            if lsof -ti :"$_port" &>/dev/null; then
+                return 0
+            fi
+        fi
+        # Probe 2: bash /dev/tcp (Linux/macOS bash; guarded — failure is "free")
+        if (echo > "/dev/tcp/127.0.0.1/$_port") &>/dev/null; then
+            return 0
+        fi
+        return 1
+    }
+    for _port in 8080 3000 9090 18080 18090 8081; do
+        if _qcore_port_in_use "$_port"; then
+            warn "Port $_port appears in use — see docs/SERVICE_PORT_REGISTRY.md (8080 collision rule); overrides documented, no action taken"
+        fi
+    done || true
+
+    echo ""
+    if [ "$errors" -gt 0 ]; then
+        err "$errors hard blocker(s) detected — fix before ./qcore up"
+        return 1
+    fi
+    ok "All hard prerequisites satisfied"
+}
+
+# ── Setup ────────────────────────────────────────────────────────
+cmd_setup() {
+    info "Setting up VARDHAN Q-CORE local environment..."
+
+    ensure_env
+
+    # Build Rust binaries if not already built
+    local target="$REPO_ROOT/target/release"
+    if [ ! -f "$target/control_plane_api" ] || [ ! -f "$target/vardhan-receipt" ]; then
+        info "Building release binaries (this may take a while)..."
+        (cd "$REPO_ROOT" && cargo build --release -p control_plane_api -p vardhan_receipt)
+        ok "Release binaries built"
+    else
+        ok "Release binaries already present"
+    fi
+
+    # Create data directories from .env
+    local data_dir
+    data_dir=$(grep -oP 'VARDHAN_CONTROL_PLANE_DATA_DIR=\K.*' "$ENV_FILE" 2>/dev/null || echo ".vardhan_data/control-plane")
+    mkdir -p "$data_dir" "$REPO_ROOT/.vardhan_data/keystore" "$REPO_ROOT/.vardhan_data/idempotency" "$REPO_ROOT/.vardhan_data/auth_config"
+    ok "Data directories created"
+
+    # Create dev auth config if it doesn't exist
+    local auth_config
+    auth_config=$(grep -oP 'VARDHAN_AUTH_CONFIG_PATH=\K.*' "$ENV_FILE" 2>/dev/null || echo ".vardhan_data/auth_config/auth_config.json")
+    if [ ! -f "$auth_config" ]; then
+        mkdir -p "$(dirname "$auth_config")"
+        cat > "$auth_config" << 'CFG'
+{
+    "tenants": {
+        "org-vardhan-intelligence": {
+            "issuers": ["svc:vardhan-intelligence"],
+            "role_claims": {
+                "svc:vardhan-intelligence": ["q_core", "audit"]
+            }
+        }
+    }
+}
+CFG
+        ok "Dev auth config created at $auth_config"
+    fi
+
+    ok "Setup complete. Run: ./qcore up"
+}
+
+# ── Up ───────────────────────────────────────────────────────────
+cmd_up() {
+    info "Starting VARDHAN Q-CORE local stack..."
+    ensure_env
+
+    if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+        err "Docker is unavailable. Run ./qcore doctor and start Docker Desktop/Engine."
+        return 1
+    fi
+    if ! docker compose version >/dev/null 2>&1; then
+        err "Docker Compose v2 is required. Install the Docker Compose plugin."
+        return 1
+    fi
+
+    # Kill any stale native control_plane_api/vardhan-receipt processes that
+    # might be holding the configured ports before we start Docker.
+    local pids
+    pids=$(lsof -ti ":${CONTROL_PLANE_PORT}" 2>/dev/null | grep -v "$(docker compose -f "$COMPOSE_FILE" ps --format '{{.ID}}' 2>/dev/null)" || true)
+    if [ -n "$pids" ]; then
+        warn "Killing stale process(es) on port ${CONTROL_PLANE_PORT}: $pids"
+        kill $pids 2>/dev/null || true
+        sleep 2
+    fi
+    pids=$(lsof -ti ":${INTELLIGENCE_PORT}" 2>/dev/null | grep -v "$(docker compose -f "$COMPOSE_FILE" ps --format '{{.ID}}' 2>/dev/null)" || true)
+    if [ -n "$pids" ]; then
+        warn "Killing stale process(es) on port ${INTELLIGENCE_PORT}: $pids"
+        kill $pids 2>/dev/null || true
+        sleep 2
+    fi
+
+    info "Building and starting services..."
+    docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d
+
+    info "Waiting for both services to respond..."
+    local max_wait=120
+    local elapsed=0
+    local control_ready=false
+    local frontend_ready=false
+    while [ "$elapsed" -lt "$max_wait" ]; do
+        control_ready=false
+        frontend_ready=false
+        if curl -fsS "http://localhost:${CONTROL_PLANE_PORT}/api/v1/platform/health" 2>/dev/null | grep -q operational; then
+            control_ready=true
+        fi
+        if curl -fsS "http://localhost:${INTELLIGENCE_PORT}/" >/dev/null 2>&1; then
+            frontend_ready=true
+        fi
+        if [ "$control_ready" = true ] && [ "$frontend_ready" = true ]; then
+            break
+        fi
+        sleep 3
+        elapsed=$((elapsed + 3))
+    done
+
+    if [ "$control_ready" != true ] || [ "$frontend_ready" != true ]; then
+        err "The full stack did not become ready within ${max_wait}s."
+        err "Control plane ready: ${control_ready}; Intelligence Plane ready: ${frontend_ready}"
+        docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps || true
+        docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --no-color --tail=80 || true
+        err "Use './qcore logs' for follow-up diagnostics."
+        return 1
+    fi
+
+    echo ""
+    ok "VARDHAN Q-CORE local stack is running"
+    echo "  Control-plane API: http://localhost:${CONTROL_PLANE_PORT}"
+    echo "  Intelligence Plane: http://localhost:${INTELLIGENCE_PORT}"
+}
+
+
+# ── Status ───────────────────────────────────────────────────────
+cmd_status() {
+    echo "=== VARDHAN Q-CORE — Service Status ==="
+    echo ""
+
+    # Control plane
+    if curl -fsS "http://localhost:${CONTROL_PLANE_PORT}/api/v1/platform/health" 2>/dev/null | grep -q operational; then
+        ok "Control-plane API: healthy (port ${CONTROL_PLANE_PORT})"
+    else
+        warn "Control-plane API: unhealthy or stopped"
+    fi
+
+    # Intelligence plane
+    if curl -fsS "http://localhost:${INTELLIGENCE_PORT}/" >/dev/null 2>&1; then
+        ok "Intelligence Plane: healthy (port ${INTELLIGENCE_PORT})"
+    else
+        warn "Intelligence Plane: unhealthy or stopped"
+    fi
+
+    # Platform note: eBPF/XDP is Linux-only (sim mode elsewhere)
+    if [ "$(uname -s)" != "Linux" ]; then
+        warn "NOTICE: $(uname -s) detected — eBPF/XDP unavailable (sim mode)"
+    fi
+
+    echo ""
+    echo "Docker containers:"
+    docker compose -f "$COMPOSE_FILE" ps 2>/dev/null || true
+}
+
+
+# ── Logs ─────────────────────────────────────────────────────────
+cmd_logs() {
+    local service="${1:-}"
+    if [ -n "$service" ]; then
+        docker compose -f "$COMPOSE_FILE" logs -f "$service"
+    else
+        docker compose -f "$COMPOSE_FILE" logs -f --tail=100
+    fi
+}
+
+# ── Test ────────────────────────────────────────────────────────
+cmd_test() {
+    info "Running VARDHAN Q-CORE validation suite..."
+    ensure_env
+    local failures=0
+
+    # 1. Environment validation
+    info "[1/10] Environment validation"
+    if cmd_doctor; then
+        ok "Environment prerequisites: passed"
+    else
+        err "Environment prerequisites: FAILED"
+        failures=$((failures + 1))
+    fi
+
+    # 2. Formatting and static checks
+    info "[2/10] Rust formatting check"
+    if cargo fmt --all -- --check 2>/dev/null; then
+        ok "Rust formatting: clean"
+    else
+        warn "Rust formatting: issues found (run 'cargo fmt --all' to fix)"
+        failures=$((failures + 1))
+    fi
+
+    # 3. Rust workspace build and tests
+    info "[3/10] Rust workspace tests"
+    if cargo test --workspace -- --test-threads=1 2>&1 | tail -5; then
+        ok "Rust tests: passed"
+    else
+        err "Rust tests: FAILED"
+        failures=$((failures + 1))
+    fi
+
+    # 4. Frontend/package validation
+    info "[4/10] Intelligence Plane build"
+    if [ -d "$REPO_ROOT/intelligence_plane/node_modules" ]; then
+        if (cd "$REPO_ROOT/intelligence_plane" && npm run build 2>&1 | tail -3); then
+            ok "Frontend build: passed"
+        else
+            err "Frontend build: FAILED"
+            failures=$((failures + 1))
+        fi
+    else
+        info "Installing node_modules..."
+        (cd "$REPO_ROOT/intelligence_plane" && npm ci 2>&1 | tail -3)
+        if (cd "$REPO_ROOT/intelligence_plane" && npm run build 2>&1 | tail -3); then
+            ok "Frontend build: passed"
+        else
+            err "Frontend build: FAILED"
+            failures=$((failures + 1))
+        fi
+    fi
+
+    # 5. API contract tests
+    info "[5/10] Control plane contract tests"
+    if python3 scripts/check_rustls_lock.py 2>/dev/null; then
+        ok "Rustls lock check: passed"
+    else
+        warn "Rustls lock check: issues"
+        failures=$((failures + 1))
+    fi
+
+    # 6. Tenant isolation and security regression
+    info "[6/10] Tenant isolation tests"
+    if cargo test -p control_plane_api --test tenant_isolation_test --test org_lifecycle_edge_cases 2>&1 | tail -5; then
+        ok "Tenant isolation: passed"
+    else
+        err "Tenant isolation: FAILED"
+        failures=$((failures + 1))
+    fi
+
+    # 7. Lab demo verification
+    info "[7/10] Lab demo verification"
+    if bash lab_demo_verify.sh 2>&1 | tail -5; then
+        ok "Lab demo: passed"
+    else
+        err "Lab demo: FAILED"
+        failures=$((failures + 1))
+    fi
+
+    # 8. E2E lifecycle validation
+    info "[8/10] E2E lifecycle validation"
+    if python3 scripts/e2e_lifecycle_validation.py 2>&1 | tail -5; then
+        ok "E2E lifecycle: passed"
+    else
+        err "E2E lifecycle: FAILED"
+        failures=$((failures + 1))
+    fi
+
+    # 9. Resilience tests
+    info "[9/10] Raft resilience tests"
+    if cargo test -p ha_cluster --test raft_l3_1_hardening 2>&1 | tail -5; then
+        ok "Raft tests: passed"
+    else
+        err "Raft tests: FAILED"
+        failures=$((failures + 1))
+    fi
+
+    # 10. Validate the canonical runtime configuration.
+    info "[10/10] Unified runtime Compose configuration"
+    if docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" config --quiet; then
+        ok "Docker Compose configuration: valid"
+    else
+        err "Docker Compose configuration: FAILED"
+        failures=$((failures + 1))
+    fi
+
+    echo ""
+    if [ "$failures" -gt 0 ]; then
+        err "$failures test group(s) failed"
+        return 1
+    fi
+    ok "All validation checks passed"
+}
+
+# ── PoV ──────────────────────────────────────────────────────────
+cmd_pov() {
+    info "Running VARDHAN Q-CORE PoV suite..."
+
+    local pov_dir="$REPO_ROOT/scripts/qcore-pov"
+    local results_dir="$pov_dir/results"
+
+    # Run the PoV
+    bash "$pov_dir/run.sh"
+
+    # Verify results
+    info "Validating results..."
+    python3 "$pov_dir/verify_results.py" "$results_dir"
+    local verify_rc=$?
+
+    if [ "$verify_rc" -eq 0 ]; then
+        ok "PoV verification: PASS"
+        echo ""
+        echo "=== PoV Complete ==="
+        echo "Results: $results_dir"
+        echo "Source SHA: $(git rev-parse HEAD)"
+        ok "All security and performance assertions passed"
+    else
+        err "PoV verification: FAIL (exit $verify_rc)"
+        return 1
+    fi
+}
+
+# ── Down ────────────────────────────────────────────────────────
+cmd_down() {
+    info "Stopping VARDHAN Q-CORE services..."
+    docker compose -f "$COMPOSE_FILE" down 2>/dev/null || true
+
+    # Kill any stale native processes that may still be holding ports
+    for port in "$CONTROL_PLANE_PORT" "$INTELLIGENCE_PORT"; do
+        local pids
+        pids=$(lsof -ti ":$port" 2>/dev/null || true)
+        if [ -n "$pids" ]; then
+            warn "Killing stale process(es) on port $port: $pids"
+            kill $pids 2>/dev/null || true
+        fi
+    done
+
+    ok "Services stopped"
+}
+
+# ── Clean ────────────────────────────────────────────────────────
+cmd_clean() {
+    local destructive=false
+    if [ "${1:-}" = "--destructive" ]; then
+        destructive=true
+    fi
+
+    if [ "$destructive" = true ]; then
+        warn "DESTRUCTIVE MODE: removing user data and persisted state"
+        echo "This will remove:"
+        echo "  - Docker volumes (control-plane data, keystore, idempotency)"
+        echo "  - Local .vardhan_data/ directory"
+        echo "  - Build artifacts in target/"
+        read -r -p "Continue? (yes/no): " confirm
+        if [ "$confirm" != "yes" ]; then
+            info "Aborted"
+            return 0
+        fi
+        docker compose -f "$COMPOSE_FILE" down -v 2>/dev/null || true
+        rm -rf "$REPO_ROOT/.vardhan_data"
+        rm -rf "$REPO_ROOT/target"
+        ok "Destructive cleanup complete"
+    else
+        info "Cleaning build artifacts (preserving user data)..."
+        cargo clean 2>/dev/null || true
+        rm -rf "$REPO_ROOT/target"
+        ok "Build artifacts cleaned"
+    fi
+}
+
+# ── Main dispatch ────────────────────────────────────────────────
+main() {
+    local cmd="${1:-help}"
+    shift 2>/dev/null || true
+
+    case "$cmd" in
+        help|--help|-h)  cmd_help ;;
+        doctor)          cmd_doctor ;;
+        setup)           cmd_setup ;;
+        up)              cmd_up ;;
+        status)          cmd_status ;;
+        logs)            cmd_logs "$@" ;;
+        test)            cmd_test ;;
+        pov)             cmd_pov ;;
+        preflight)       "$REPO_ROOT/scripts/server_preflight.sh" "$@" ;;
+        package)         "$REPO_ROOT/scripts/package_offline_bundle.sh" "$@" ;;
+        down)            cmd_down ;;
+        clean)           cmd_clean "$@" ;;
+        *)
+            err "Unknown command: $cmd"
+            echo "Run './qcore help' for usage."
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

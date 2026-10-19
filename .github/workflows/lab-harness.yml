@@ -1,0 +1,28 @@
+name: Lab Harness Verification
+
+on:
+  push:
+    branches: ["main", "phase-p1-p2-completion-20261005"]
+    paths:
+      - lab_demo_verify.sh
+      - backend/vardhan_receipt/**
+  pull_request:
+    branches: ["main"]
+    paths:
+      - lab_demo_verify.sh
+      - backend/vardhan_receipt/**
+
+permissions:
+  contents: read
+
+jobs:
+  lab-harness:
+    name: Receipt lab harness verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release receipt binary
+        run: cargo build --release -p vardhan_receipt
+      - name: Run canonical lab harness
+        run: bash lab_demo_verify.sh

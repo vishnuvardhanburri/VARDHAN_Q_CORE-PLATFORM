@@ -1,0 +1,15 @@
+[package]
+name = "quantum_network"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+core_crypto = { path = "../core_crypto" }
+proxy_engine = { path = "../proxy_engine" }
+ledger_sync = { path = "../ledger_sync" }
+ha_cluster = { path = "../ha_cluster" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.38", features = ["full", "test-util"] }
+tracing = "0.1"
+thiserror = "1.0"

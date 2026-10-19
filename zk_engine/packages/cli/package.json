@@ -1,0 +1,47 @@
+{
+  "name": "@zkpe/cli",
+  "version": "0.1.0",
+  "description": "Developer CLI (M6): prove, verify, register, status, registry, new — local crypto via @zkpe/engine + signed API calls via @zkpe/api client. No cryptographic logic of its own.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "zk": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').chmodSync('dist/cli.js', 0o755)\"",
+    "lint": "eslint src test scripts --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "bench": "node bench/cli-bench.mjs",
+    "fresh-install": "node scripts/fresh-install-check.mjs",
+    "e2e": "node scripts/e2e-flow.mjs"
+  },
+  "dependencies": {
+    "@zkpe/api": "0.2.0",
+    "@zkpe/circuit-lib": "0.2.0",
+    "@zkpe/engine": "0.2.0",
+    "@zkpe/proof-format": "0.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.10"
+  }
+}

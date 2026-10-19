@@ -1,0 +1,61 @@
+{
+  "runId": "run_20261017_82489de1",
+  "company": "LGT",
+  "domain": "lgt.com",
+  "startedAt": "2026-10-17T10:08:47.567Z",
+  "finishedAt": "2026-10-17T10:08:56.496Z",
+  "queriesExecuted": [
+    {
+      "query": "\"LGT\" lgt.com security strategy",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"LGT\" lgt.com post-quantum cryptography crypto-agility PQC",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"LGT\" lgt.com regulatory compliance programme",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"LGT\" lgt.com audit attestation assurance",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"LGT\" lgt.com custody digital assets",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"LGT\" lgt.com operational resilience vendor outage",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"LGT\" lgt.com technology partnership",
+      "results": 0,
+      "cached": false
+    },
+    {
+      "query": "\"LGT\" lgt.com procurement tender programme",
+      "results": 0,
+      "cached": false
+    }
+  ],
+  "sources": [],
+  "signals": [],
+  "contradictions": [],
+  "limitations": [
+    "No search results returned for LGT (lgt.com) across 8 queries — honest empty run."
+  ],
+  "stats": {
+    "sourcesRetrieved": 0,
+    "sourcesAttempted": 0,
+    "duplicateRate": 0,
+    "claimsWithEvidencePct": 0
+  }
+}

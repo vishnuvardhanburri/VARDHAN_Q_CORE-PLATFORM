@@ -1,0 +1,67 @@
+{
+  "company": "Swift",
+  "domain": "swift.com",
+  "runId": "run_20261017_6e0e0b07",
+  "verdict": "HOLD",
+  "verdictReason": "No WHY_NOW trigger: GO requires a dated, sourced trigger event.",
+  "score": 60,
+  "whyNow": null,
+  "publicFacts": [],
+  "capabilityMappings": [
+    {
+      "capability": "sealed-receipts",
+      "evidenceRef": {
+        "sourceFile": "backend/vardhan_receipt",
+        "testName": "validate-canonical"
+      },
+      "level": "DEMONSTRATED"
+    },
+    {
+      "capability": "replay-idempotency",
+      "evidenceRef": {
+        "sourceFile": "backend/vardhan_idempotency",
+        "testName": "g2-replay-idempotency"
+      },
+      "level": "DEMONSTRATED"
+    },
+    {
+      "capability": "ed25519-signing",
+      "evidenceRef": {
+        "sourceFile": "backend/vault/license",
+        "testName": "ed25519-unit"
+      },
+      "level": "PARTIAL"
+    }
+  ],
+  "buyerRole": {
+    "function": "Payments Operations / Trade Finance Operations",
+    "why": "Owns payment review capacity and trade-finance operations throughput.",
+    "buyerType": "CHAMPION"
+  },
+  "draft": null,
+  "draftBlockedReason": "Brief-without-email: verdict is HOLD; outreach drafts require GO.",
+  "signals": [
+    {
+      "category": "ASSURANCE",
+      "statement": "Swift Customer Security Programme mandatory-controls regime with attestation (curated register evidence).",
+      "sourceUrls": [
+        "https://en.wikipedia.org/wiki/Society_for_Worldwide_Interbank_Financial_Telecommunication",
+        "https://www.isaca.org/resources/isaca-journal/issues/2022/volume-1/swifts-customer-security-program-lessons-for-the-cybersecurity-community",
+        "https://worldinformatixcs.com/2026/05/27/ten-years-on-swift-csp-cybersecurity/",
+        "https://en.wikipedia.org/wiki/Bangladesh_Bank_robbery"
+      ],
+      "verified": false
+    }
+  ],
+  "limitations": [
+    "No search results returned for Swift (swift.com) across 8 queries — honest empty run.",
+    "Live DDG sweep throttled (HTTP 202 challenge) — brief built from curated SOURCE_REGISTER; re-run live sweep before outreach",
+    "No fresh corroborated MEDIUM+ trigger found — HOLD per engine rules (GO requires a dated, sourced WHY_NOW ≤180d)."
+  ],
+  "stats": {
+    "sourcesRetrieved": 4,
+    "sourcesAttempted": 4,
+    "duplicateRate": 0,
+    "claimsWithEvidencePct": 0
+  }
+}

@@ -1,0 +1,292 @@
+{
+  "generatedAt": "2026-10-13T19:59:42.660Z",
+  "gitHead": "unknown",
+  "summary": {
+    "total": 5,
+    "qualified": 5,
+    "blocked": 0,
+    "p0": 2,
+    "p1": 2,
+    "p2": 1,
+    "p3": 0,
+    "avgScore": 76,
+    "avgCommercialReadiness": 42
+  },
+  "shortlist": [
+    {
+      "institution": "HSBC",
+      "businessArea": "UK / Global banking operations",
+      "problemType": "CRYPTOGRAPHIC_AGILITY",
+      "hypothesis": "HSBC has an active quantum technology programme with quantum defences, PQC pilot work with Quantinuum, and strategic urgency around quantum-safe migration, indicating a need for post-quantum cryptographic tooling and migration verification.",
+      "score": 96,
+      "priority": "P0",
+      "confidence": "HIGH",
+      "sourceUrls": [
+        "https://www.hsbc.com/who-we-are/hsbc-and-digital/hsbc-and-quantum",
+        "https://www.hsbc.com/-/files/hsbc/who-we-are/pdf/250923-hsbc-x-ibm-quantum-algo-trading-transcript.pdf",
+        "https://www.hsbc.com/news-and-views/views/hsbc-views/upskilling-everyone-is-vital-for-the-quantum-era"
+      ],
+      "sourceCount": 3,
+      "vardhanCapabilities": [
+        "AER-KEP-Q",
+        "PQ_SHIELD",
+        "KEY_LIFECYCLE",
+        "EXPOSURE_ALERT"
+      ],
+      "recommendedValidationQuestion": "What quantum-safe cryptography strategies and protocols is HSBC evaluating for post-quantum migration?",
+      "gate": "HUMAN_APPROVAL_REQUIRED"
+    },
+    {
+      "institution": "JPMorgan Chase",
+      "businessArea": "USA (Global) banking operations",
+      "problemType": "CRYPTOGRAPHIC_AGILITY",
+      "hypothesis": "JPMorganChase has an active post-quantum cryptography research programme spanning quantum computing, quantum-safe cryptography, and quantum-resistant blockchain, indicating a need for cryptographic agility tooling and migration planning.",
+      "score": 89,
+      "priority": "P0",
+      "confidence": "HIGH",
+      "sourceUrls": [
+        "https://www.jpmorganchase.com/about/technology/research/applied-research"
+      ],
+      "sourceCount": 1,
+      "vardhanCapabilities": [
+        "AER-KEP-Q",
+        "PQ_SHIELD",
+        "KEY_LIFECYCLE",
+        "EXPOSURE_ALERT"
+      ],
+      "recommendedValidationQuestion": "What post-quantum algorithms and key-establishment protocols is the firm's quantum-safe cryptography research evaluating?",
+      "gate": "HUMAN_APPROVAL_REQUIRED"
+    },
+    {
+      "institution": "JPMorgan Chase",
+      "businessArea": "USA (Global) banking operations",
+      "problemType": "THIRD_PARTY_RISK",
+      "hypothesis": "JPMorganChase requires independently-verifiable third-party security audit commitments and real-time verification, not just documented compliance.",
+      "score": 70,
+      "priority": "P1",
+      "confidence": "HIGH",
+      "sourceUrls": [
+        "https://www.jpmorganchase.com/about/technology/blog/fortifying-the-enterprise-10-actions-to-take-now-for-ai-ready-cyber-resilience"
+      ],
+      "sourceCount": 1,
+      "vardhanCapabilities": [
+        "AUDIT_LEDGER",
+        "SIGNED_RECEIPT",
+        "VERIFICATION_INFRASTRUCTURE"
+      ],
+      "recommendedValidationQuestion": "How are third-party security commitments currently verified and audited?",
+      "gate": "HUMAN_APPROVAL_REQUIRED"
+    },
+    {
+      "institution": "JPMorgan Chase",
+      "businessArea": "USA (Global) banking operations",
+      "problemType": "AUDIT_LIFECYCLE",
+      "hypothesis": "JPMorganChase requires end-to-end auditability of security-patch deployment pipelines, with every handoff and approval gate recorded and verifiable.",
+      "score": 67,
+      "priority": "P1",
+      "confidence": "HIGH",
+      "sourceUrls": [
+        "https://www.jpmorganchase.com/about/technology/blog/fortifying-the-enterprise-10-actions-to-take-now-for-ai-ready-cyber-resilience"
+      ],
+      "sourceCount": 1,
+      "vardhanCapabilities": [
+        "AUDIT_LEDGER",
+        "SIGNED_RECEIPT",
+        "VERIFICATION_INFRASTRUCTURE"
+      ],
+      "recommendedValidationQuestion": "What audit trail requirements exist for security-patch deployment pipelines?",
+      "gate": "HUMAN_APPROVAL_REQUIRED"
+    }
+  ],
+  "allQualified": [
+    {
+      "institution": "HSBC",
+      "businessArea": "UK / Global banking operations",
+      "problemType": "CRYPTOGRAPHIC_AGILITY",
+      "score": 96,
+      "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
+      "priority": "P0",
+      "confidence": "HIGH",
+      "status": "READY_FOR_HUMAN_APPROVAL",
+      "commercialReadiness": {
+        "buyingProcessEvidence": 0,
+        "sponsorAccess": 30,
+        "problemSpecificity": 20,
+        "total": 50,
+        "label": "NOT_ASSESSED"
+      },
+      "evidenceGaps": [
+        "Specific quantum-safe algorithms or protocols in use are not disclosed",
+        "Timeline for quantum-defence deployment is not published",
+        "Specific PQC algorithms being tested are not named",
+        "Production deployment plans are not disclosed",
+        "Performance is measured on trading prediction, not security outcomes",
+        "No information on quantum-safe cryptography budget or timeline",
+        "The \"nearly 80%\" figure is industry-aggregated, not HSBC-specific",
+        "No specific upskilling metrics or timeline are provided",
+        "No specific migration timeline or algorithm preference is disclosed",
+        "Internal risk assessment details are not public"
+      ],
+      "scoreBreakdown": {
+        "evidenceQuality": 20,
+        "capabilityRelevance": 20,
+        "disclosedInitiative": 6,
+        "unmetProblemEvidence": 10,
+        "technicalSponsor": 15,
+        "evaluationFeasibility": 15,
+        "measurableCriteria": 10,
+        "total": 96
+      }
+    },
+    {
+      "institution": "JPMorgan Chase",
+      "businessArea": "USA (Global) banking operations",
+      "problemType": "CRYPTOGRAPHIC_AGILITY",
+      "score": 89,
+      "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
+      "priority": "P0",
+      "confidence": "HIGH",
+      "status": "READY_FOR_HUMAN_APPROVAL",
+      "commercialReadiness": {
+        "buyingProcessEvidence": 0,
+        "sponsorAccess": 30,
+        "problemSpecificity": 20,
+        "total": 50,
+        "label": "NOT_ASSESSED"
+      },
+      "evidenceGaps": [
+        "No specific migration timeline or deadline disclosed publicly",
+        "No deployed algorithm stack is specified",
+        "Specific blockchain platforms affected are not named",
+        "No timeline for quantum-resistant migration is disclosed"
+      ],
+      "scoreBreakdown": {
+        "evidenceQuality": 20,
+        "capabilityRelevance": 20,
+        "disclosedInitiative": 5,
+        "unmetProblemEvidence": 4,
+        "technicalSponsor": 15,
+        "evaluationFeasibility": 15,
+        "measurableCriteria": 10,
+        "total": 89
+      }
+    },
+    {
+      "institution": "JPMorgan Chase",
+      "businessArea": "USA (Global) banking operations",
+      "problemType": "THIRD_PARTY_RISK",
+      "score": 70,
+      "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
+      "priority": "P1",
+      "confidence": "HIGH",
+      "status": "READY_FOR_HUMAN_APPROVAL",
+      "commercialReadiness": {
+        "buyingProcessEvidence": 0,
+        "sponsorAccess": 30,
+        "problemSpecificity": 10,
+        "total": 40,
+        "label": "NOT_ASSESSED"
+      },
+      "evidenceGaps": [
+        "No information on specific third-party vendors or procurement processes"
+      ],
+      "scoreBreakdown": {
+        "evidenceQuality": 9,
+        "capabilityRelevance": 20,
+        "disclosedInitiative": 0,
+        "unmetProblemEvidence": 4,
+        "technicalSponsor": 15,
+        "evaluationFeasibility": 12,
+        "measurableCriteria": 10,
+        "total": 70
+      }
+    },
+    {
+      "institution": "JPMorgan Chase",
+      "businessArea": "USA (Global) banking operations",
+      "problemType": "AUDIT_LIFECYCLE",
+      "score": 67,
+      "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
+      "priority": "P1",
+      "confidence": "HIGH",
+      "status": "READY_FOR_HUMAN_APPROVAL",
+      "commercialReadiness": {
+        "buyingProcessEvidence": 0,
+        "sponsorAccess": 30,
+        "problemSpecificity": 10,
+        "total": 40,
+        "label": "NOT_ASSESSED"
+      },
+      "evidenceGaps": [
+        "No information on current audit-logging coverage or toolchain"
+      ],
+      "scoreBreakdown": {
+        "evidenceQuality": 9,
+        "capabilityRelevance": 20,
+        "disclosedInitiative": 0,
+        "unmetProblemEvidence": 1,
+        "technicalSponsor": 15,
+        "evaluationFeasibility": 12,
+        "measurableCriteria": 10,
+        "total": 67
+      }
+    },
+    {
+      "institution": "HSBC",
+      "businessArea": "UK / Global banking operations",
+      "problemType": "COMPLIANCE_AUTOMATION",
+      "score": 56,
+      "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
+      "priority": "P2",
+      "confidence": "MEDIUM",
+      "status": "READY_FOR_HUMAN_APPROVAL",
+      "commercialReadiness": {
+        "buyingProcessEvidence": 0,
+        "sponsorAccess": 30,
+        "problemSpecificity": 0,
+        "total": 30,
+        "label": "NOT_ASSESSED"
+      },
+      "evidenceGaps": [
+        "No specific regulator or framework is named",
+        "No timeline for supervisory framework changes is provided"
+      ],
+      "scoreBreakdown": {
+        "evidenceQuality": 6,
+        "capabilityRelevance": 20,
+        "disclosedInitiative": 0,
+        "unmetProblemEvidence": 0,
+        "technicalSponsor": 15,
+        "evaluationFeasibility": 8,
+        "measurableCriteria": 7,
+        "total": 56
+      }
+    }
+  ],
+  "blocked": [],
+  "evidenceGaps": [
+    "JPMorgan Chase: No specific migration timeline or deadline disclosed publicly",
+    "JPMorgan Chase: No deployed algorithm stack is specified",
+    "JPMorgan Chase: No specific quantum-safe protocols or vendors are named",
+    "JPMorgan Chase: Deployment status (prototype vs. production pilot) not disclosed",
+    "JPMorgan Chase: Specific blockchain platforms affected are not named",
+    "JPMorgan Chase: No timeline for quantum-resistant migration is disclosed",
+    "JPMorgan Chase: No information on specific third-party vendors or procurement processes",
+    "JPMorgan Chase: No information on current audit-logging coverage or toolchain",
+    "HSBC: Specific quantum-safe algorithms or protocols in use are not disclosed",
+    "HSBC: Timeline for quantum-defence deployment is not published",
+    "HSBC: Specific PQC algorithms being tested are not named",
+    "HSBC: Production deployment plans are not disclosed",
+    "HSBC: Performance is measured on trading prediction, not security outcomes",
+    "HSBC: No information on quantum-safe cryptography budget or timeline",
+    "HSBC: The \"nearly 80%\" figure is industry-aggregated, not HSBC-specific",
+    "HSBC: No specific upskilling metrics or timeline are provided",
+    "HSBC: No specific migration timeline or algorithm preference is disclosed",
+    "HSBC: Internal risk assessment details are not public",
+    "HSBC: No specific regulator or framework is named",
+    "HSBC: No timeline for supervisory framework changes is provided",
+    "Industry-wide: Specific regulators and frameworks are not named",
+    "Industry-wide: Timeline for regulatory action is not specified"
+  ],
+  "disqualifiedOpportunities": []
+}

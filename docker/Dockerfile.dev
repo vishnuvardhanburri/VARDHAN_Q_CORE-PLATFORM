@@ -1,0 +1,69 @@
+# ===================================================================
+# VARDHAN Q-CORE — Development Control Plane Dockerfile
+# ===================================================================
+# Multi-stage build for the control-plane API + receipt engine.
+# Uses the same Rust 1.98 toolchain as CI and PoV.
+# ===================================================================
+
+# ── Stage 1: Build ────────────────────────────────────────────────
+FROM rust:1.98-bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake \
+    pkg-config \
+    libssl-dev \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy the workspace and build the binaries
+COPY . .
+
+# Build only the needed binaries (release for performance parity)
+RUN cargo build --release -p vardhan_receipt -p control_plane_api
+
+# ── Stage 2: Runtime ──────────────────────────────────────────────
+FROM rust:1.98-bookworm AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy built binaries from builder
+COPY --from=builder /app/target/release/control_plane_api /usr/local/bin/control_plane_api
+COPY --from=builder /app/target/release/vardhan-receipt /usr/local/bin/vardhan-receipt
+
+# Create data directories
+RUN mkdir -p /var/lib/vardhan/control-plane \
+    /var/lib/vardhan/keystore \
+    /var/lib/vardhan/idempotency \
+    /var/lib/vardhan/auth_config \
+    && useradd -m -u 10001 appuser \
+    && chown -R appuser:appuser /var/lib/vardhan
+
+USER appuser
+
+ENV VARDHAN_ENV=development
+ENV VARDHAN_KEYSTORE_DIR=/var/lib/vardhan/keystore
+ENV VARDHAN_IDEMPOTENCY_DIR=/var/lib/vardhan/idempotency
+ENV VARDHAN_CONTROL_PLANE_DATA_DIR=/var/lib/vardhan/control-plane
+ENV VARDHAN_AUTH_CONFIG_PATH=/var/lib/vardhan/auth_config/auth_config.json
+ENV VARDHAN_RECEIPT_BIN=/usr/local/bin/vardhan-receipt
+ENV VARDHAN_RECEIPT_ENGINE_BIN=/usr/local/bin/vardhan-receipt
+ENV QCORE_HOST=http://localhost:8080
+
+# Bootstrap auth config and keystore on container start
+COPY --chown=appuser:appuser docker/dev-entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=5s --timeout=3s --start-period=15s --retries=20 \
+    CMD curl -sf http://localhost:8080/api/v1/platform/health | grep -q operational || exit 1
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["control_plane_api"]

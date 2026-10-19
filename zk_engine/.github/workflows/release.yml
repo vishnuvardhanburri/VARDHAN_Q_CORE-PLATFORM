@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Generate SBOM
+        run: |
+          npx @cyclonedx/cyclonedx-npm@1.20.0 --output-format json --output-file sbom.json
+
+      - name: Archive artifacts
+        run: |
+          tar -czf zk-proof-engine-release.tar.gz packages sbom.json
+          sha256sum zk-proof-engine-release.tar.gz sbom.json > sha256sums.txt
+      
+      - name: Generate SLSA Build Provenance
+        id: attest
+        uses: actions/attest-build-provenance@f9eaf234fc1c2e333c1eca18177db0f44fa6ba52 # v2.2.1
+        with:
+          subject-path: |
+            zk-proof-engine-release.tar.gz
+            sbom.json
+            sha256sums.txt
+
+      - name: Export provenance for Scorecard
+        run: cp "${{ steps.attest.outputs.bundle-path }}" provenance.intoto.jsonl
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 # v3.5.0
+
+      - name: Sign artifacts
+        run: |
+          cosign sign-blob --yes --bundle release.sig zk-proof-engine-release.tar.gz
+          cosign sign-blob --yes --bundle sbom.sig sbom.json
+          cosign sign-blob --yes --bundle sha256sums.sig sha256sums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        with:
+          files: |
+            zk-proof-engine-release.tar.gz
+            sbom.json
+            sha256sums.txt
+            release.sig
+            sbom.sig
+            sha256sums.sig
+            provenance.intoto.jsonl
+          generate_release_notes: true

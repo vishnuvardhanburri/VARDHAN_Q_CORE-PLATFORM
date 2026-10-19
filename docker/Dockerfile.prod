@@ -1,0 +1,83 @@
+# ===================================================================
+# VARDHAN Q-CORE — Enterprise Production Dockerfile
+# ===================================================================
+# Multi-stage hardened build for Tier-1 bank deployment.
+# Runtime characteristics:
+# - Minimal attack surface (Debian 12 slim runtime, no build tools)
+# - Unprivileged non-root execution (UID 10001:10001)
+# - Read-only root filesystem compatible
+# - Offline-capable (zero runtime internet calls)
+# ===================================================================
+
+# -- Stage 1: Build ------------------------------------------------
+FROM rust:1.98-bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cmake \
+    pkg-config \
+    libssl-dev \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy dependency manifests and source
+COPY . .
+
+# Build release binaries with optimizations
+RUN cargo build --release \
+    -p vardhan_receipt \
+    -p control_plane_api \
+    -p vardhan_verifier
+
+# -- Stage 2: Hardened Runtime -------------------------------------
+FROM debian:bookworm-slim AS runtime
+
+# Install minimal runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libssl3 \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/share/doc /usr/share/man
+
+# Create dedicated unprivileged system group and user
+RUN groupadd -g 10001 vardhan && \
+    useradd -u 10001 -g vardhan -m -d /var/lib/vardhan -s /sbin/nologin vardhan
+
+# Setup directory structure with strict permission boundaries
+RUN mkdir -p /var/lib/vardhan/control-plane \
+             /var/lib/vardhan/keystore \
+             /var/lib/vardhan/idempotency \
+             /var/lib/vardhan/auth_config \
+             /etc/vardhan && \
+    chown -R vardhan:vardhan /var/lib/vardhan /etc/vardhan && \
+    chmod 750 /var/lib/vardhan
+
+# Copy release binaries from builder stage
+COPY --from=builder --chown=root:root --chmod=755 /app/target/release/control_plane_api /usr/local/bin/control_plane_api
+COPY --from=builder --chown=root:root --chmod=755 /app/target/release/vardhan-receipt /usr/local/bin/vardhan-receipt
+COPY --from=builder --chown=root:root --chmod=755 /app/target/release/vardhan_verifier /usr/local/bin/vardhan_verifier
+
+# Execution environment
+USER 10001:10001
+WORKDIR /var/lib/vardhan
+
+ENV VARDHAN_ENV=production \
+    VARDHAN_CONTROL_PLANE_ADDR=0.0.0.0:8080 \
+    VARDHAN_CONTROL_PLANE_DATA_DIR=/var/lib/vardhan/control-plane \
+    VARDHAN_KEYSTORE_DIR=/var/lib/vardhan/keystore \
+    VARDHAN_IDEMPOTENCY_DIR=/var/lib/vardhan/idempotency \
+    VARDHAN_AUTH_CONFIG_PATH=/var/lib/vardhan/auth_config/auth_config.json \
+    VARDHAN_RECEIPT_BIN=/usr/local/bin/vardhan-receipt \
+    VARDHAN_RECEIPT_ENGINE_BIN=/usr/local/bin/vardhan-receipt \
+    VARDHAN_TLS_TERMINATION=ingress \
+    RUST_BACKTRACE=0
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8080/api/v1/platform/health || exit 1
+
+ENTRYPOINT ["/usr/local/bin/control_plane_api"]

@@ -1,0 +1,76 @@
+# ===================================================================
+# VARDHAN Q-CORE — Enterprise Helm Values (Default Configuration)
+# ===================================================================
+
+replicaCount: 1
+
+image:
+  repository: vardhan-control-plane
+  pullPolicy: IfNotPresent
+  tag: "enterprise-latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "vardhan-qcore-sa"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "bank-internal-ca"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: qcore.internal.bank
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: qcore-tls-cert
+      hosts:
+        - qcore.internal.bank
+
+resources:
+  limits:
+    cpu: 4000m
+    memory: 4Gi
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+
+persistence:
+  enabled: true
+  storageClassName: "standard"
+  size: 20Gi
+  mountPath: /var/lib/vardhan
+
+database:
+  existingSecret: "vardhan-db-secret"
+  secretKey: "DATABASE_URL"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

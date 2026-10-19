@@ -1,0 +1,15 @@
+apiVersion: v2
+name: vardhan-qcore
+description: Sovereign post-quantum cryptographic verification and settlement engine for Tier-1 banking infrastructure.
+type: application
+version: 1.0.0
+appVersion: "2026.1"
+keywords:
+  - post-quantum
+  - cryptography
+  - banking
+  - non-repudiation
+  - settlement
+maintainers:
+  - name: Vardhan Technologies
+    email: contact@vardhantechnologies.com

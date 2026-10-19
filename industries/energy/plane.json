@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "industry": "energy",
+  "name": "Energy and Critical Infrastructure",
+  "compliance": ["NERC CIP", "NIS2", "NIST CSF", "ISO 27001"],
+  "assets": ["ot_network", "ics_controller", "substation", "grid_management", "generation_asset", "industrial_gateway"],
+  "threats": ["ot_intrusion", "ics_compromise", "ransomware", "grid_disruption", "supply_chain_compromise", "remote_access_abuse"],
+  "risk": {"factors": ["safety_impact", "grid_impact", "service_availability", "physical_impact", "regulatory_exposure"], "weights": {"safety_impact": 5, "grid_impact": 5, "service_availability": 5, "physical_impact": 5, "regulatory_exposure": 4}},
+  "policies": ["ot_integrity", "remote_access_control", "safety_boundary", "vendor_access", "cryptographic_key_lifecycle"],
+  "workflows": ["ot_exposure_scan", "ics_integrity_check", "remote_access_review", "vendor_risk_review", "critical_change_review"],
+  "controls": ["ot_it_segmentation", "hardware_attestation", "privileged_access", "immutable_audit", "hsm_key_protection", "dual_approval"],
+  "integrations": ["siem", "iam", "ics_monitoring", "itsm", "cloud_security", "hsm_kms"],
+  "deployment": {"modes": ["managed", "private_cloud", "critical_infrastructure_on_prem"], "requires_hsm_for_private_keys": true, "telemetry": "tenant_bound_qcore"},
+  "qcore_services": ["trust_boundary", "authority_policy", "transaction_state", "signed_receipt", "audit_ledger", "independent_verification", "pq_crypto", "aer_kep_q"]
+}

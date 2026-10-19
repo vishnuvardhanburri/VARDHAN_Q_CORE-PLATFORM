@@ -1,0 +1,42 @@
+{
+  "name": "@zkpe/engine",
+  "version": "0.2.0",
+  "description": "ZK proof engine: circuit registry, input validation, Poseidon hash provider, prover, verifier, dev keygen, and task pipeline",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint src test --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "bench": "node bench/bench.mjs"
+  },
+  "dependencies": {
+    "@zkpe/circuit-lib": "0.2.0",
+    "@zkpe/proof-format": "0.2.0",
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "snarkjs": "^0.7.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.10"
+  }
+}

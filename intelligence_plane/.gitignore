@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+
+# Build / runtime artifacts
+dist/
+.vite/
+.svelte-kit/
+.next/
+out/
+*.local
+
+# Generated intelligence dossiers (regenerable via `npm run xavira` / `deep`)
+artifacts/
+
+# Local env / secrets (never commit)
+.env
+.env.*
+!.env.example
+.env.local
+.env.*.local
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Debug / scratch scripts (not part of shipped codebase)
+debug_*.ts
+debug_search.ts
+debug_targeted.ts
+direct_serper_test.ts
+dump_ddg.ts
+fast_validate.ts
+final_runtime_val.ts
+final_runtime_validation.ts
+fix_imports.js
+full_intelligence_loop*.ts
+github_integration_audit.ts
+live_validation*.ts
+prove_adaptive.ts
+provider_audit.ts
+quality_pilot_runner.ts
+run_val.ts
+runtime_test.ts
+search_parser_test.ts
+test_*.ts
+test_*.js
+val_runner.ts
+val_tsx.ts
+validate_*.ts
+validate_loop.ts
+ddg_site:*.html
+jest.config.cjs
+src/server/run_*.ts
+src/server/__tests__/
+vercel_validation*.ts
+verify_*.ts
+xavira_audit_runner.ts
