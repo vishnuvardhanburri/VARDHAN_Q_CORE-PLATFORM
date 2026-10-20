@@ -11,7 +11,7 @@
 
 The product proposition to test with buyers is narrow: VARDHAN Q-CORE is intended to help enterprise systems validate evidence provenance, reject tampered or replayed submissions, and produce independently verifiable trust receipts. Whether this solves a material buyer problem remains a discovery hypothesis, not an established customer outcome.
 
-**Go-to-market principle: narrow offer, broad pipeline.** LGT is one target-account hypothesis, not the entire market or a qualified opportunity. Start with a coherent portfolio of regulated finance, financial-market infrastructure, communications/critical digital infrastructure, insurance, and selected public digital-service candidates. See [Target-market portfolio and qualification plan](TARGET_MARKET_PORTFOLIO.md). The portfolio is a research queue: public company context does not prove need, budget, or buyer intent.
+**Go-to-market principle: narrow offer, broad pipeline.** LGT is one target-account hypothesis, not the entire market or a qualified opportunity. Start with a coherent portfolio of regulated finance, financial-market infrastructure, communications/critical digital infrastructure, insurance, and selected public digital-service candidates. See [Target-market portfolio and qualification plan](TARGET_MARKET_PORTFOLIO.md) and the comprehensive [30-Account Enterprise Prospecting Campaign](30_ACCOUNT_PROSPECTING_CAMPAIGN.md) covering all 29 FSB G-SIBs and LGT Private Banking. The portfolio is a research queue: public company context does not prove need, budget, or buyer intent.
 
 ## Stage gates
 

@@ -3,6 +3,8 @@
 > Status key:
 > - SEND GATE — BLOCKED: contact identity or email address not yet confirmed from a primary source.
 > - SEND GATE — CLEARED: contact confirmed; ready to send after final pre-flight check.
+>
+> Target Universe Reference: For the complete 30-account systemic banking universe (FSB 29 G-SIBs + LGT Private Banking) ranked by research tier and public technical signals, refer to [30-Account Enterprise Prospecting Campaign](30_ACCOUNT_PROSPECTING_CAMPAIGN.md).
 
 ---
 

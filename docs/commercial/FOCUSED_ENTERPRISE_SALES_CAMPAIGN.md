@@ -4,7 +4,7 @@
 
 Vardhan Technologies operates a focused enterprise account campaign targeted at Tier-1 systemic financial institutions. The goal is to qualify, engage, and close **2 to 5 systemic banks**, moving each through structured evaluation gates to an annual **Strategic / Sovereign Q-Core Enterprise Agreement exceeding £12 million per bank**.
 
-This strategy explicitly rejects broad marketing and speculative outreach in favor of precision account-based execution across five named institutions.
+This strategy explicitly rejects broad marketing and speculative outreach in favor of precision account-based execution across five named institutions. The complete 30-account universe across all 29 FSB G-SIBs and LGT Private Banking is codified in [30-Account Enterprise Prospecting Campaign](30_ACCOUNT_PROSPECTING_CAMPAIGN.md).
 
 ```
 +-----------------------------------------------------------------------------------------+
