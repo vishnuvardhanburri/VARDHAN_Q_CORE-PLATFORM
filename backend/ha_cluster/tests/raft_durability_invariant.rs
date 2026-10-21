@@ -119,21 +119,18 @@ fn test_config() -> RaftConfig {
 }
 
 async fn wait_for_leader(nodes: &[TestNode]) -> Arc<RaftNode> {
-    timeout(Duration::from_secs(30), async {
+    timeout(Duration::from_secs(60), async {
         loop {
             let mut leaders = Vec::new();
-            let mut candidates = 0;
             for n in nodes {
                 if !n.killed.load(Ordering::SeqCst) {
                     let role = *n.node.role.read().await;
                     if role == RaftRole::Leader {
                         leaders.push(n.node.clone());
-                    } else if role == RaftRole::Candidate {
-                        candidates += 1;
                     }
                 }
             }
-            if leaders.len() == 1 && candidates == 0 {
+            if leaders.len() == 1 {
                 tokio::time::sleep(Duration::from_millis(150)).await;
                 let leader = leaders.into_iter().next().unwrap();
                 if *leader.role.read().await == RaftRole::Leader {

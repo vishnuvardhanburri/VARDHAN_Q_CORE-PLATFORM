@@ -53,7 +53,7 @@ jobs:
         env:
           CARGO_BUILD_JOBS: 2
       - name: Workspace tests
-        run: cargo test --workspace
+        run: cargo test --workspace -- --test-threads=1
         env:
           CARGO_BUILD_JOBS: 2
           TEST_DATABASE_URL: postgresql://postgres:qcore_secret@localhost:5432/qcore_test
