@@ -287,8 +287,8 @@ ${activePack.licenseJson}`;
                   <option value="qcore_architecture_evaluation">Architecture & Security Evaluation (£15,000 fixed fee)</option>
                   <option value="qcore_proof_of_value">Bounded Proof of Value (£60,000 fixed fee)</option>
                   <option value="foundation">Foundation (£360,000 / year)</option>
-                  <option value="enterprise">Enterprise (£5,000,000 / year)</option>
-                  <option value="advanced_resilience">Advanced Resilience (£750,000 / year)</option>
+                  <option value="enterprise">Enterprise (£720,000 / year)</option>
+                  <option value="advanced_resilience">Advanced Resilience (£1,200,000 / year)</option>
                   <option value="strategic">Strategic / Sovereign (£5M – £50M scoped)</option>
                 </select>
               </div>

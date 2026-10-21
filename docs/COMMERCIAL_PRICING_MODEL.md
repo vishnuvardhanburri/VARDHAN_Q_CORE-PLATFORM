@@ -17,26 +17,26 @@ All pricing is in GBP.
 ### B. Annual Q-Core Licences (Annual Recurring Subscriptions)
 - **Foundation (`foundation`): £360,000 / year**  
   Production single-tenant receipt signing and local verification (`q_core`, `audit`, `api`).
-- **Advanced Resilience (`advanced_resilience`): £750,000 / year**  
-  Dedicated cryptographic resilience tier including key epoch transitions (`aer_kep_q`), high-availability clustered nodes (`ha`), deterministic disaster recovery (`dr`), and hardware vault protection hooks (`hsm_kms`).
-- **Enterprise (`enterprise`): £5,000,000 / year**  
+- **Enterprise (`enterprise`): £720,000 / year**  
   Multi-user global financial enterprise control plane with SCIM provisioning, WebAuthn MFA, role-based IAM, enterprise SIEM integrations, and consumption telemetry (`q_core`, `audit`, `api`, `rbac`, `integrations`, `compliance`, `usage`).
+- **Advanced Resilience (`advanced_resilience`): £1,200,000 / year**  
+  Dedicated cryptographic resilience tier including key epoch transitions (`aer_kep_q`), high-availability clustered nodes (`ha`), deterministic disaster recovery (`dr`), and hardware vault protection hooks (`hsm_kms`).
 
 ### C. Strategic / Sovereign Enclave (Individually Scoped Engagement)
-- **Strategic / Sovereign (`strategic`): £5,000,000–£50,000,000, individually scoped**  
+- **Strategic / Sovereign (`strategic`): Individually scoped (£5,000,000–£50,000,000, £12,000,000 baseline target)**  
   Air-gapped and sovereign enclave deployments for defense, intelligence, and central banking institutions (`sovereign_deployment`, `air_gapped`, `dedicated_assurance`).
 
 ---
 
-## 2. Commercial Inconsistency Documentation
+## 2. Commercial Progression & Pricing Structure
 
 > [!IMPORTANT]
-> **Commercial Progression Notice:** Enterprise is priced at £5,000,000 / year, which is higher than Advanced Resilience at £750,000 / year, despite tier naming and technical feature depth (where Advanced Resilience includes AER-KEP-Q, HA, DR, and HSM key custody) historically implying a different progression.
+> **Commercial Progression:** The enterprise software pricing progression strictly follows architectural capability and governance complexity:
 > 
-> The specified amounts are preserved exactly as required without re-ordering tiers, altering plan identifiers, or inventing artificial benefits to justify prices.
-> 
-> - **Enterprise (£5,000,000 / year):** Priced for enterprise-wide organizational deployment, SCIM 2.0 user lifecycle management, regulatory compliance reporting, and global multi-tenant governance.
-> - **Advanced Resilience (£750,000 / year):** Priced as a specialized cryptographic resilience package for critical workloads requiring high availability, automated disaster recovery, and quantum-safe key encapsulation.
+> - **Foundation (£360,000 / year):** Entry production tier providing core submission verification, dual receipts, and local audit logging.
+> - **Enterprise (£720,000 / year):** Organization-wide governance, SCIM 2.0 user lifecycle management, role-based IAM, and regulatory SIEM telemetry.
+> - **Advanced Resilience (£1,200,000 / year):** Mission-critical tier adding post-quantum key epoch transitions (AER-KEP-Q), active-active HA clustering, disaster recovery automation, and HSM/KMS custody hooks.
+> - **Strategic / Sovereign (Bespoke / £12,000,000 target):** Dedicated air-gapped sovereign deployment with custom enclave engineering and dedicated cryptographic assurance.
 
 ---
 
@@ -45,8 +45,8 @@ All pricing is in GBP.
 The catalogue enforces three distinct billing classifications. Entries are not equivalent subscription plans:
 
 1. **Fixed Fee (`fixed_fee` / `one_off`):** One-time bounded professional service engagements (Discovery £15K, PoV £60K). Not recurring.
-2. **Annual Licence (`annual_license` / `annual`):** Annual recurring software licences (Foundation £360K/yr, Advanced Resilience £750K/yr, Enterprise £5M/yr).
-3. **Scoped Engagement (`scoped` / `custom`):** Individually scoped contract terms (Strategic £5M–£50M).
+2. **Annual Licence (`annual_license` / `annual`):** Annual recurring software licences (Foundation £360K/yr, Enterprise £720K/yr, Advanced Resilience £1.2M/yr).
+3. **Scoped Engagement (`scoped` / `custom`):** Individually scoped contract terms (Strategic bespoke / £12M target).
 
 *Historical Note:* Earlier preliminary briefs referenced a "£500,000 target production engagement". That figure served as a historical planning placeholder. The authoritative structure is now established in the backend catalogue above.
 

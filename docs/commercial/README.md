@@ -3,7 +3,7 @@
 **Purpose:** turn the £15K discovery → £60K proof of value → £500K production sequence into a buyer-evidence-led sales process.
 
 > [!NOTE]
-> **Authoritative Production Catalogue Reference:** The £15K → £60K → £500K progression serves as a historical baseline for engagement staging. The authoritative production licensing catalogue is codified in [`docs/COMMERCIAL_PRICING_MODEL.md`](../COMMERCIAL_PRICING_MODEL.md) and exposed via `GET /api/v1/catalog/plans`: Foundation (£360,000/yr), Advanced Resilience (£750,000/yr), Enterprise (£5,000,000/yr), and Strategic / Sovereign (£5M–£50M individually scoped).
+> **Authoritative Production Catalogue Reference:** The £15K → £60K → £500K progression serves as a historical baseline for engagement staging. The authoritative production licensing catalogue is codified in [`docs/COMMERCIAL_PRICING_MODEL.md`](../COMMERCIAL_PRICING_MODEL.md) and exposed via `GET /api/v1/catalog/plans`: Foundation (£360,000/yr), Enterprise (£720,000/yr), Advanced Resilience (£1,200,000/yr), and Strategic / Sovereign (Bespoke / £12M target).
 
 ## Commercial principle
 

@@ -75,7 +75,7 @@ pub struct Plan {
     pub billing_type: &'static str,
     /// Explicit billing cadence: `one_off`, `annual`, or `custom`.
     pub billing_period: &'static str,
-    /// Human-readable commercial line, e.g. `£5,000,000 / year`.
+    /// Human-readable commercial line, e.g. `£720,000 / year`.
     pub price_display: &'static str,
 }
 pub const PLANS: &[Plan] = &[
@@ -130,13 +130,13 @@ pub const PLANS: &[Plan] = &[
         tier: "enterprise_plus",
         product: "q_core",
         contact_sales: true,
-        price_gbp: Some(5000000),
+        price_gbp: Some(720000),
         price_min_gbp: None,
         price_max_gbp: None,
         billing_model: "annual_license",
         billing_type: "annual_license",
         billing_period: "annual",
-        price_display: "£5,000,000 / year",
+        price_display: "£720,000 / year",
         entitlements: &[
             "q_core",
             "audit",
@@ -153,13 +153,13 @@ pub const PLANS: &[Plan] = &[
         tier: "advanced_resilience",
         product: "q_core",
         contact_sales: true,
-        price_gbp: Some(750000),
+        price_gbp: Some(1200000),
         price_min_gbp: None,
         price_max_gbp: None,
         billing_model: "annual_license",
         billing_type: "annual_license",
         billing_period: "annual",
-        price_display: "£750,000 / year",
+        price_display: "£1,200,000 / year",
         entitlements: &[
             "q_core",
             "audit",

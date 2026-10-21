@@ -456,14 +456,11 @@ mod tests {
         // Fixed fees: discovery + PoV. Annual licenses: foundation, enterprise, advanced_resilience.
         // Strategic is the only scoped band. Any price drift fails here first.
         let priced = |id: &str| plan(id).unwrap_or_else(|| panic!("plan {id} missing"));
-        assert_eq!(
-            priced("qcore_architecture_evaluation").price_gbp,
-            Some(15_000)
-        );
+        assert_eq!(priced("qcore_architecture_evaluation").price_gbp, Some(15_000));
         assert_eq!(priced("qcore_proof_of_value").price_gbp, Some(60_000));
         assert_eq!(priced("foundation").price_gbp, Some(360_000));
-        assert_eq!(priced("enterprise").price_gbp, Some(5_000_000));
-        assert_eq!(priced("advanced_resilience").price_gbp, Some(750_000));
+        assert_eq!(priced("enterprise").price_gbp, Some(720_000));
+        assert_eq!(priced("advanced_resilience").price_gbp, Some(1_200_000));
         let strategic = priced("strategic");
         assert_eq!(strategic.price_gbp, None);
         assert_eq!(strategic.price_min_gbp, Some(5_000_000));
@@ -500,25 +497,31 @@ mod tests {
     }
 
     #[test]
-    fn test_commercial_inconsistency_enterprise_above_advanced_resilience() {
-        // Commercial inconsistency invariant:
-        // Enterprise is explicitly priced at £5,000,000 / year.
-        // Advanced Resilience is explicitly priced at £750,000 / year.
-        // Even though the tier naming and technical feature depth (AER-KEP-Q, HA, DR, HSM)
-        // might historically imply Advanced Resilience is a higher tier than Enterprise,
-        // the commercial reality sets Enterprise above Advanced Resilience (£5M vs £750K).
-        // We preserve exact amounts, maintain tier order & plan IDs, and invent no artificial benefits.
+    fn test_commercial_progression_foundation_enterprise_advanced_resilience() {
+        // Commercial progression invariant:
+        // Foundation is priced at £360,000 / year.
+        // Enterprise is priced at £720,000 / year.
+        // Advanced Resilience is priced at £1,200,000 / year.
+        // The commercial progression is strictly monotonic with tier capability:
+        // Foundation (£360K) < Enterprise (£720K) < Advanced Resilience (£1.2M) < Strategic (bespoke / £12M target).
+        let foundation = plan("foundation").expect("foundation plan must exist");
         let enterprise = plan("enterprise").expect("enterprise plan must exist");
         let advanced = plan("advanced_resilience").expect("advanced_resilience plan must exist");
 
-        assert_eq!(enterprise.price_gbp, Some(5_000_000));
-        assert_eq!(advanced.price_gbp, Some(750_000));
+        assert_eq!(foundation.price_gbp, Some(360_000));
+        assert_eq!(enterprise.price_gbp, Some(720_000));
+        assert_eq!(advanced.price_gbp, Some(1_200_000));
         assert!(
-            enterprise.price_gbp.unwrap() > advanced.price_gbp.unwrap(),
-            "Enterprise (£5M) must be priced above Advanced Resilience (£750K)"
+            foundation.price_gbp.unwrap() < enterprise.price_gbp.unwrap(),
+            "Foundation (£360K) must be priced below Enterprise (£720K)"
         );
-        assert_eq!(enterprise.price_display, "£5,000,000 / year");
-        assert_eq!(advanced.price_display, "£750,000 / year");
+        assert!(
+            enterprise.price_gbp.unwrap() < advanced.price_gbp.unwrap(),
+            "Enterprise (£720K) must be priced below Advanced Resilience (£1.2M)"
+        );
+        assert_eq!(foundation.price_display, "£360,000 / year");
+        assert_eq!(enterprise.price_display, "£720,000 / year");
+        assert_eq!(advanced.price_display, "£1,200,000 / year");
 
         // Verify entitlements are authentic and un-invented
         assert!(advanced.entitlements.contains(&"aer_kep_q"));

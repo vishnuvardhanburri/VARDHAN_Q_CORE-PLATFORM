@@ -584,12 +584,12 @@ export default function BillingView(): React.ReactElement {
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-[11px] text-slate-400">
             <div>
               <p>
-                <strong className="text-slate-300">Contractual Independence:</strong> Discovery (£15,000) and Proof of Value (£60,000) are bounded fixed-fee evaluation engagements. Annual licences (Foundation £360K/yr, Advanced Resilience £750K/yr, Enterprise £5M/yr) are recurring subscription terms. Strategic/Sovereign (£5M–£50M) is individually scoped.
+                <strong className="text-slate-300">Contractual Independence:</strong> Discovery (£15,000) and Proof of Value (£60,000) are bounded fixed-fee evaluation engagements. Annual licences (Foundation £360K/yr, Enterprise £720K/yr, Advanced Resilience £1.2M/yr) are recurring subscription terms. Strategic/Sovereign (£5M–£50M) is individually scoped.
               </p>
             </div>
             <div>
               <p>
-                <strong className="text-slate-300">Commercial Progression Notice:</strong> Enterprise (£5,000,000 / year) is priced above Advanced Resilience (£750,000 / year) reflecting global multi-tenant compliance and enterprise IAM. Advanced Resilience provides dedicated AER-KEP-Q transitions, HA clustering, and HSM key custody. Prices do not guarantee certification or deployment outcomes.
+                <strong className="text-slate-300">Commercial Progression:</strong> The commercial progression is strictly monotonic: Foundation (£360,000 / year), Enterprise (£720,000 / year), and Advanced Resilience (£1,200,000 / year) providing dedicated AER-KEP-Q transitions, HA clustering, and HSM key custody. Prices do not guarantee certification or deployment outcomes.
               </p>
             </div>
           </div>
@@ -683,7 +683,7 @@ export default function BillingView(): React.ReactElement {
 
                 <div className="mt-4 space-y-2 text-xs text-slate-300">
                   <p className="text-slate-400">
-                    <strong>Annual Licences:</strong> Foundation (£360,000/yr), Advanced Resilience (£750,000/yr), and Enterprise (£5,000,000/yr).
+                    <strong>Annual Licences:</strong> Foundation (£360,000/yr), Enterprise (£720,000/yr), and Advanced Resilience (£1,200,000/yr).
                   </p>
                   <p className="text-slate-400">
                     <strong>Strategic / Sovereign:</strong> Individually scoped (£5,000,000–£50,000,000) for air-gapped enclaves and central banking.

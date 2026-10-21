@@ -28,9 +28,9 @@
 
 **Year 1 Realistic Target:**
 - 1 Pilot Deal: £100,000
-- 1 Enterprise Deal: £750,000
+- 1 Enterprise Deal: £720,000
 - 30 Days Consulting: £90,000
-- **Total: ~£940,000**
+- **Total: ~£910,000**
 
 ---
 
