@@ -48,12 +48,12 @@ async fn spawn_test_server() -> (String, ControlPlaneState, AuthState) {
         .path(format!("{}/control_plane.db", dir_path))
         .open()
         .unwrap();
-    let control_state = ControlPlaneState {
-        db: Arc::new(db),
-        aer_kep_q: None,
-        auth: auth_state.clone(),
-        cluster: Arc::new(ha_cluster::ClusterMembership::new()),
-    };
+    let control_state = ControlPlaneState::new_with_sled(
+        Arc::new(db),
+        None,
+        auth_state.clone(),
+        Arc::new(ha_cluster::ClusterMembership::new()),
+    );
 
     let app = router(
         control_state.clone(),

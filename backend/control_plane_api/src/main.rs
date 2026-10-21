@@ -68,14 +68,56 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         SessionStore::open(&data_dir.join("sessions.sled")).map_err(std::io::Error::other)?,
     );
 
-    if let Ok(ref db_url) = env::var("DATABASE_URL") {
-        if !db_url.trim().is_empty() {
-            let redacted = db_url.split('@').last().unwrap_or("configured");
-            tracing::info!(database_target = %redacted, "External durable storage target configured via DATABASE_URL");
+    let (idempotency, storage_name): (
+        Arc<dyn control_plane_api::distributed_idempotency::IdempotencyStore>,
+        &'static str,
+    ) = match env::var("DATABASE_URL") {
+        Ok(ref db_url) if !db_url.trim().is_empty() => {
+            let redacted = if let Some(idx) = db_url.find('@') {
+                format!("***@{}", &db_url[idx + 1..])
+            } else {
+                "***".to_string()
+            };
+            tracing::info!(
+                database_target = %redacted,
+                "Initializing PostgreSQL clustered idempotency backend"
+            );
+            let max_pool: usize = env::var("VARDHAN_DB_POOL_MAX")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(20);
+            let store = control_plane_api::distributed_idempotency::PostgresIdempotencyStore::from_database_url(
+                db_url,
+                max_pool,
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!(
+                    error = %e,
+                    "CRITICAL: PostgreSQL connection or migration failed during startup. Clustered mode cannot continue."
+                );
+                std::io::Error::new(std::io::ErrorKind::ConnectionRefused, e.to_string())
+            })?;
+            (Arc::new(store), "postgresql_cluster")
         }
-    } else {
-        tracing::info!("DATABASE_URL unset; operating with local volume sled persistent engine");
-    }
+        _ => {
+            tracing::info!(
+                "DATABASE_URL unset; operating with embedded single-node sled idempotency engine"
+            );
+            (
+                Arc::new(
+                    control_plane_api::distributed_idempotency::SledIdempotencyStore::new(
+                        db.clone(),
+                    ),
+                ),
+                "sled_embedded",
+            )
+        }
+    };
+    tracing::info!(
+        storage_backend = storage_name,
+        "Idempotency subsystem active"
+    );
 
     let node_id_str =
         env::var("VARDHAN_NODE_ID").unwrap_or_else(|_| "control-plane-01".to_string());
@@ -221,6 +263,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             aer_kep_q,
             auth: auth.clone(),
             cluster,
+            idempotency,
         },
         auth,
         addr,

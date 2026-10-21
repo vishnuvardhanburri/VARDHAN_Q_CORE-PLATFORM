@@ -25,6 +25,7 @@ pub mod assurance_evidence;
 pub mod billing;
 pub mod billing_api;
 pub mod continuous_operations;
+pub mod distributed_idempotency;
 pub mod durable_event_queue;
 pub mod enterprise_api;
 pub mod enterprise_integrations;
@@ -53,6 +54,43 @@ pub struct ControlPlaneState {
     pub aer_kep_q: Option<Arc<Mutex<AerKepQRuntime>>>,
     pub auth: AuthState,
     pub cluster: Arc<ha_cluster::ClusterMembership>,
+    pub idempotency: Arc<dyn distributed_idempotency::IdempotencyStore>,
+}
+
+impl ControlPlaneState {
+    pub fn new_with_sled(
+        db: Arc<Db>,
+        aer_kep_q: Option<Arc<Mutex<AerKepQRuntime>>>,
+        auth: AuthState,
+        cluster: Arc<ha_cluster::ClusterMembership>,
+    ) -> Self {
+        let idempotency = Arc::new(distributed_idempotency::SledIdempotencyStore::new(
+            db.clone(),
+        ));
+        Self {
+            db,
+            aer_kep_q,
+            auth,
+            cluster,
+            idempotency,
+        }
+    }
+
+    pub fn new_with_store(
+        db: Arc<Db>,
+        aer_kep_q: Option<Arc<Mutex<AerKepQRuntime>>>,
+        auth: AuthState,
+        cluster: Arc<ha_cluster::ClusterMembership>,
+        idempotency: Arc<dyn distributed_idempotency::IdempotencyStore>,
+    ) -> Self {
+        Self {
+            db,
+            aer_kep_q,
+            auth,
+            cluster,
+            idempotency,
+        }
+    }
 }
 #[derive(Debug, Clone, Serialize)]
 pub struct Plan {
@@ -566,32 +604,64 @@ use tokio_rustls::TlsAcceptor;
 async fn health(
     headers: axum::http::HeaderMap,
     State(control): State<ControlPlaneState>,
-) -> Json<Value> {
+) -> axum::response::Response {
+    let storage_health = control.idempotency.check_health().await;
+    let storage_status = if storage_health.is_ok() {
+        "healthy"
+    } else {
+        "unhealthy"
+    };
+
     let is_authed = auth_service::extract_authenticated_user(&control.auth, &headers)
         .await
         .is_some();
 
+    if storage_health.is_err() {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(json!({
+                "service": "vardhan-control-plane",
+                "status": "unhealthy",
+                "storage": storage_status,
+                "storage_backend": control.idempotency.backend_name()
+            })),
+        )
+            .into_response();
+    }
+
     if !is_authed && std::env::var("VARDHAN_ENV").as_deref() == Ok("production") {
-        return Json(json!({
-            "service": "vardhan-control-plane",
-            "status": "operational"
-        }));
+        return (
+            StatusCode::OK,
+            Json(json!({
+                "service": "vardhan-control-plane",
+                "status": "operational",
+                "storage": storage_status,
+                "storage_backend": control.idempotency.backend_name()
+            })),
+        )
+            .into_response();
     }
 
     let tls_enabled = std::env::var("VARDHAN_TLS_CERT_PATH")
         .map(|v| !v.is_empty())
         .unwrap_or(false);
     let transport_secure = if tls_enabled { "tls" } else { "plaintext_http" };
-    Json(json!({
-        "service": "vardhan-control-plane",
-        "status": "operational",
-        "mode": "enterprise",
-        "authentication": "server_enforced",
-        "demo_authentication": false,
-        "transport": transport_secure,
-        "tls_enabled": tls_enabled,
-        "client_auth": client_auth_mode()
-    }))
+    (
+        StatusCode::OK,
+        Json(json!({
+            "service": "vardhan-control-plane",
+            "status": "operational",
+            "mode": "enterprise",
+            "authentication": "server_enforced",
+            "demo_authentication": false,
+            "transport": transport_secure,
+            "tls_enabled": tls_enabled,
+            "client_auth": client_auth_mode(),
+            "storage": storage_status,
+            "storage_backend": control.idempotency.backend_name()
+        })),
+    )
+        .into_response()
 }
 
 /// Client-certificate requirement advertised by [`health`].

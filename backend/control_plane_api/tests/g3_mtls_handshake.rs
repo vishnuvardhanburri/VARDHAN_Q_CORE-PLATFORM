@@ -310,12 +310,12 @@ async fn spawn_mtls_server(pki: &Pki) -> SocketAddr {
         .path(workdir.join("control_plane.db"))
         .open()
         .expect("open test sled db");
-    let control_state = ControlPlaneState {
-        db: Arc::new(db),
-        aer_kep_q: None,
-        auth: auth_state.clone(),
-        cluster: Arc::new(ha_cluster::ClusterMembership::new()),
-    };
+    let control_state = ControlPlaneState::new_with_sled(
+        Arc::new(db),
+        None,
+        auth_state.clone(),
+        Arc::new(ha_cluster::ClusterMembership::new()),
+    );
     let app = router(control_state, auth_state, CorsLayer::permissive());
 
     let config = build_server_config(

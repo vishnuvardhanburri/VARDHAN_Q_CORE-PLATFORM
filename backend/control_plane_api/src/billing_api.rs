@@ -456,7 +456,10 @@ mod tests {
         // Fixed fees: discovery + PoV. Annual licenses: foundation, enterprise, advanced_resilience.
         // Strategic is the only scoped band. Any price drift fails here first.
         let priced = |id: &str| plan(id).unwrap_or_else(|| panic!("plan {id} missing"));
-        assert_eq!(priced("qcore_architecture_evaluation").price_gbp, Some(15_000));
+        assert_eq!(
+            priced("qcore_architecture_evaluation").price_gbp,
+            Some(15_000)
+        );
         assert_eq!(priced("qcore_proof_of_value").price_gbp, Some(60_000));
         assert_eq!(priced("foundation").price_gbp, Some(360_000));
         assert_eq!(priced("enterprise").price_gbp, Some(720_000));
