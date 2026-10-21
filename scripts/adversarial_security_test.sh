@@ -62,9 +62,9 @@ VALID_ID=$(echo "$GEN_OUT" | grep "RECEIPT_ID=" | cut -d= -f2)
 RES=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/api/v1/organizations/$ORG_ID/passports/$PASSPORT_ID" -H "Content-Type: application/json" -d "{\"state\": \"INDEPENDENTLY_VERIFIED\", \"evidence\": \"$VALID_ID\"}")
 TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([a-f0-9]+).*/\1/' | tr -d '\r')
 if echo "$RES" | grep -q "INDEPENDENTLY_VERIFIED"; then 
-    echo "✅ PASS"
+    echo "[PASS] PASS"
 else 
-    echo "❌ FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1
+    echo "[FAIL] FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1
 fi
 
 # Helper for negative tests: Now includes AUTHORIZED state to set the receipt ID
@@ -95,7 +95,7 @@ MOD_ID=$(echo "$GEN_OUT" | grep "RECEIPT_ID=" | cut -d= -f2)
 setup_negative_passport "$P2" "$A2" "$MOD_ID"
 RES=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/api/v1/organizations/$ORG_ID/passports/$P2" -H "Content-Type: application/json" -d "{\"state\": \"INDEPENDENTLY_VERIFIED\", \"evidence\": \"$MOD_ID\"}")
 TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([a-f0-9]+).*/\1/' | tr -d '\r')
-if echo "$RES" | grep -q "error"; then echo "✅ PASS"; else echo "❌ FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
+if echo "$RES" | grep -q "error"; then echo "[PASS] PASS"; else echo "[FAIL] FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
 
 echo "[Test 3] Invalid Ed25519..."
 P3="PASS-ADV-003"; A3="ASSET-ADV-003"
@@ -104,7 +104,7 @@ BAD_ED_ID=$(echo "$GEN_OUT" | grep "RECEIPT_ID=" | cut -d= -f2)
 setup_negative_passport "$P3" "$A3" "$BAD_ED_ID"
 RES=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/api/v1/organizations/$ORG_ID/passports/$P3" -H "Content-Type: application/json" -d "{\"state\": \"INDEPENDENTLY_VERIFIED\", \"evidence\": \"$BAD_ED_ID\"}")
 TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([a-f0-9]+).*/\1/' | tr -d '\r')
-if echo "$RES" | grep -q "error"; then echo "✅ PASS"; else echo "❌ FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
+if echo "$RES" | grep -q "error"; then echo "[PASS] PASS"; else echo "[FAIL] FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
 
 echo "[Test 4] Invalid ML-DSA-87..."
 P4="PASS-ADV-004"; A4="ASSET-ADV-004"
@@ -113,7 +113,7 @@ BAD_PQ_ID=$(echo "$GEN_OUT" | grep "RECEIPT_ID=" | cut -d= -f2)
 setup_negative_passport "$P4" "$A4" "$BAD_PQ_ID"
 RES=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/api/v1/organizations/$ORG_ID/passports/$P4" -H "Content-Type: application/json" -d "{\"state\": \"INDEPENDENTLY_VERIFIED\", \"evidence\": \"$BAD_PQ_ID\"}")
 TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([a-f0-9]+).*/\1/' | tr -d '\r')
-if echo "$RES" | grep -q "error"; then echo "✅ PASS"; else echo "❌ FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
+if echo "$RES" | grep -q "error"; then echo "[PASS] PASS"; else echo "[FAIL] FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
 
 echo "[Test 5] Wrong Trusted Key..."
 P5="PASS-ADV-005"; A5="ASSET-ADV-005"
@@ -122,7 +122,7 @@ WRONG_K_ID=$(echo "$GEN_OUT" | grep "RECEIPT_ID=" | cut -d= -f2)
 setup_negative_passport "$P5" "$A5" "$WRONG_K_ID"
 RES=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/api/v1/organizations/$ORG_ID/passports/$P5" -H "Content-Type: application/json" -d "{\"state\": \"INDEPENDENTLY_VERIFIED\", \"evidence\": \"$WRONG_K_ID\"}")
 TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([a-f0-9]+).*/\1/' | tr -d '\r')
-if echo "$RES" | grep -q "error"; then echo "✅ PASS"; else echo "❌ FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
+if echo "$RES" | grep -q "error"; then echo "[PASS] PASS"; else echo "[FAIL] FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
 
 echo "[Test 6] Subject Substitution..."
 P6="PASS-ADV-006"; A6="ASSET-ADV-006"
@@ -131,7 +131,7 @@ SUB_ID=$(echo "$GEN_OUT" | grep "RECEIPT_ID=" | cut -d= -f2)
 setup_negative_passport "$P6" "$A6" "$SUB_ID"
 RES=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/api/v1/organizations/$ORG_ID/passports/$P6" -H "Content-Type: application/json" -d "{\"state\": \"INDEPENDENTLY_VERIFIED\", \"evidence\": \"$SUB_ID\"}")
 TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([a-f0-9]+).*/\1/' | tr -d '\r')
-if echo "$RES" | grep -q "error"; then echo "✅ PASS"; else echo "❌ FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
+if echo "$RES" | grep -q "error"; then echo "[PASS] PASS"; else echo "[FAIL] FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
 
 echo "[Test 7] Cross-Tenant Substitution..."
 ORG_RES_OTHER=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X POST http://localhost:8080/api/v1/organizations -H "Content-Type: application/json" -d '{"name":"Other Corp"}')
@@ -144,7 +144,7 @@ X_TENANT_ID=$(echo "$GEN_OUT" | grep "RECEIPT_ID=" | cut -d= -f2)
 setup_negative_passport "$P7" "$A7" "$X_TENANT_ID"
 RES=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/api/v1/organizations/$ORG_ID/passports/$P7" -H "Content-Type: application/json" -d "{\"state\": \"INDEPENDENTLY_VERIFIED\", \"evidence\": \"$X_TENANT_ID\"}")
 TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([a-f0-9]+).*/\1/' | tr -d '\r')
-if echo "$RES" | grep -q "error"; then echo "✅ PASS"; else echo "❌ FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
+if echo "$RES" | grep -q "error"; then echo "[PASS] PASS"; else echo "[FAIL] FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
 
 echo "[Test 8] Trust-service failure..."
 P8="PASS-ADV-008"; A8="ASSET-ADV-008"
@@ -154,7 +154,7 @@ FAKE_ID=$(echo "$GEN_OUT" | grep "RECEIPT_ID=" | cut -d= -f2)
 setup_negative_passport "$P8" "$A8" "$FAKE_ID"
 RES=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/api/v1/organizations/$ORG_ID/passports/$P8" -H "Content-Type: application/json" -d "{\"state\": \"INDEPENDENTLY_VERIFIED\", \"evidence\": \"$FAKE_ID\"}")
 TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([a-f0-9]+).*/\1/' | tr -d '\r')
-if echo "$RES" | grep -q "error"; then echo "✅ PASS"; else echo "❌ FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
+if echo "$RES" | grep -q "error"; then echo "[PASS] PASS"; else echo "[FAIL] FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
 
 echo "[Test 9] Replay Protection..."
 P9="PASS-ADV-009"; A9="ASSET-ADV-009"
@@ -166,11 +166,11 @@ TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([
 if echo "$RES" | grep -q "INDEPENDENTLY_VERIFIED"; then 
     echo "First attempt: OK"
 else 
-    echo "❌ FAIL: First attempt failed: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1
+    echo "[FAIL] FAIL: First attempt failed: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1
 fi
 RES=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/api/v1/organizations/$ORG_ID/passports/$P9" -H "Content-Type: application/json" -d "{\"state\": \"INDEPENDENTLY_VERIFIED\", \"evidence\": \"$R9_ID\"}")
 TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([a-f0-9]+).*/\1/' | tr -d '\r')
-if echo "$RES" | grep -q "error"; then echo "✅ PASS (Replay rejected)"; else echo "❌ FAIL: Replay accepted: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
+if echo "$RES" | grep -q "error"; then echo "[PASS] PASS (Replay rejected)"; else echo "[FAIL] FAIL: Replay accepted: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
 
 echo "[Test 10] Lifecycle Integrity..."
 P_BYPASS="PASS-BYPASS-001"
@@ -179,7 +179,7 @@ RES=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X POST "http://localhost:808
 TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([a-f0-9]+).*/\1/' | tr -d '\r')
 RES=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/api/v1/organizations/$ORG_ID/passports/$P_BYPASS" -H "Content-Type: application/json" -d "{\"state\": \"INDEPENDENTLY_VERIFIED\", \"evidence\": \"$VALID_ID\"}")
 TOKEN=$(echo "$RES" | grep -i "authorization-new-token:" | sed -E 's/.*Bearer ([a-f0-9]+).*/\1/' | tr -d '\r')
-if echo "$RES" | grep -q "error"; then echo "✅ PASS"; else echo "❌ FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
+if echo "$RES" | grep -q "error"; then echo "[PASS] PASS"; else echo "[FAIL] FAIL: $(echo "$RES" | sed '1,/^\r*$/d')"; kill $CP_PID || true; exit 1; fi
 
 kill $CP_PID || true
 echo "ALL ADVERSARIAL SECURITY CHECKS PASSED!"

@@ -55,7 +55,7 @@ def record(test_id, test_name, expected, observed, passed, evidence="", status="
         "id": test_id, "test": test_name, "expected": expected,
         "observed": observed, "pass": passed, "evidence": evidence, "status": status,
     })
-    icon = {"pass": "✅", "partial": "🟡", "open": "🔐", "fail": "❌"}.get(status, "❓")
+    icon = {"pass": "[PASS]", "partial": "[PARTIAL]", "open": "[OPEN]", "fail": "[FAIL]"}.get(status, "[?]")
     print(f"  [{test_id}] {icon} {test_name}")
     print(f"       Expected: {expected}")
     print(f"       Observed: {observed}")
@@ -354,11 +354,11 @@ def test_adversarial_election_race(iterations=20, convergence_timeout=25):
         leader, statuses = wait_for_election(convergence_timeout)
         if leader == "SPLIT_BRAIN":
             split_brain_count += 1
-            print(f"  iter {i}/{iterations}: ❌ SPLIT-BRAIN detected")
+            print(f"  iter {i}/{iterations}: [FAIL] SPLIT-BRAIN detected")
             continue
         if not leader:
             no_leader_count += 1
-            print(f"  iter {i}/{iterations}: ⚠️  No leader after {convergence_timeout}s")
+            print(f"  iter {i}/{iterations}: [WARN] No leader after {convergence_timeout}s")
             continue
 
         leader_id = leader.get("node_id")
@@ -375,17 +375,17 @@ def test_adversarial_election_race(iterations=20, convergence_timeout=25):
             split_brain_count += 1
             live = [s for s in new_statuses if s]
             term_val = live[0].get("current_term", 0) if live else 'N/A'
-            print(f"  iter {i}/{iterations}: ❌ SPLIT-BRAIN at term {term_val} "
+            print(f"  iter {i}/{iterations}: [FAIL] SPLIT-BRAIN at term {term_val} "
                   f"(killed {leader_id} at term {leader_term})")
         elif new_leader:
             new_leader_id = new_leader.get("node_id")
             new_term = new_leader.get("current_term", 0)
             success_count += 1
-            print(f"  iter {i}/{iterations}: ✅ Leader {new_leader_id} elected at term {new_term} "
+            print(f"  iter {i}/{iterations}: [OK] Leader {new_leader_id} elected at term {new_term} "
                   f"(killed {leader_id} at term {leader_term})")
         else:
             no_leader_count += 1
-            print(f"  iter {i}/{iterations}: ⚠️  No leader after {convergence_timeout}s "
+            print(f"  iter {i}/{iterations}: [WARN] No leader after {convergence_timeout}s "
                   f"(killed {leader_id} at term {leader_term})")
 
     total = split_brain_count + no_leader_count + success_count
@@ -1026,9 +1026,9 @@ def main():
     print("\n>>> Verifying 3-node cluster is running...")
     leader, _ = wait_for_election(10)
     if leader:
-        print(f"  ✅ Cluster operational — leader: {leader.get('node_id')}")
+        print(f"  [OK] Cluster operational - leader: {leader.get('node_id')}")
     else:
-        print("  ⚠️  Cluster not responding — proceeding with API tests only")
+        print("  [WARN] Cluster not responding - proceeding with API tests only")
 
     # Run all test categories
     test_election()       # P6.1

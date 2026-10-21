@@ -34,7 +34,7 @@ echo "[1/7] Building Docker image (multi-stage Rust build)..."
 docker build -f "${POV_DIR}/docker/Dockerfile.pov" \
     -t vardhan-qcore-pov:latest \
     "${REPO_ROOT}" 2>&1 | tail -10
-echo "✅ Docker image built"
+echo "[OK] Docker image built"
 
 # ── Step 2: Start control plane container ────────────────────────
 echo ""
@@ -60,7 +60,7 @@ echo "Waiting for health check..."
 HEALTHY=false
 for i in $(seq 1 45); do
     if curl -sf http://localhost:8080/api/v1/platform/health 2>/dev/null | grep -q "operational"; then
-        echo "✅ Control plane healthy (after ${i}s)"
+        echo "[OK] Control plane healthy (after ${i}s)"
         HEALTHY=true
         break
     fi
@@ -68,7 +68,7 @@ for i in $(seq 1 45); do
 done
 
 if [ "$HEALTHY" != "true" ]; then
-    echo "❌ Control plane failed to start"
+    echo "[FAIL] Control plane failed to start"
     echo "--- Container logs ---"
     docker logs qcore-pov 2>&1 | tail -40
     docker rm -f qcore-pov 2>/dev/null || true
@@ -127,15 +127,15 @@ echo "timestamp_utc,cpu_percent,memory_usage,memory_percent,network_io,block_io,
 STATS_PID=$!
 
 if docker exec qcore-pov bash -c 'python3 /usr/local/bin/security_test.py' 2>&1 | tee "${RESULTS_DIR}/security_test_${TIMESTAMP}.log"; then
-    echo "✅ Security test process exited successfully"
+    echo "[OK] Security test process exited successfully"
 else
-    echo "❌ Security test process failed"
+    echo "[FAIL] Security test process failed"
     TEST_FAILURES=$((TEST_FAILURES + 1))
 fi
 if docker cp qcore-pov:/tmp/security_results.json "${RESULTS_DIR}/security_results_${TIMESTAMP}.json" 2>/dev/null && [ -s "${RESULTS_DIR}/security_results_${TIMESTAMP}.json" ]; then
-    echo "✅ Security results artifact saved"
+    echo "[OK] Security results artifact saved"
 else
-    echo "❌ Security results artifact missing"
+    echo "[FAIL] Security results artifact missing"
     echo '{"error": "no security results"}' > "${RESULTS_DIR}/security_results_${TIMESTAMP}.json"
     TEST_FAILURES=$((TEST_FAILURES + 1))
 fi
@@ -144,15 +144,15 @@ fi
 echo ""
 echo "[4/7] Running performance benchmarks..."
 if docker exec qcore-pov bash -c 'python3 /usr/local/bin/perf_bench.py' 2>&1 | tee "${RESULTS_DIR}/perf_${TIMESTAMP}.log"; then
-    echo "✅ Performance benchmark process exited successfully"
+    echo "[OK] Performance benchmark process exited successfully"
 else
-    echo "❌ Performance benchmark process failed"
+    echo "[FAIL] Performance benchmark process failed"
     TEST_FAILURES=$((TEST_FAILURES + 1))
 fi
 if docker cp qcore-pov:/tmp/perf_results.json "${RESULTS_DIR}/perf_results_${TIMESTAMP}.json" 2>/dev/null && [ -s "${RESULTS_DIR}/perf_results_${TIMESTAMP}.json" ]; then
-    echo "✅ Performance results artifact saved"
+    echo "[OK] Performance results artifact saved"
 else
-    echo "❌ Performance results artifact missing"
+    echo "[FAIL] Performance results artifact missing"
     TEST_FAILURES=$((TEST_FAILURES + 1))
 fi
 
@@ -160,15 +160,15 @@ fi
 echo ""
 echo "[5/7] Running crypto benchmarks..."
 if docker exec qcore-pov bash -c 'python3 /usr/local/bin/crypto_bench.py' 2>&1 | tee "${RESULTS_DIR}/crypto_${TIMESTAMP}.log"; then
-    echo "✅ Cryptographic benchmark process exited successfully"
+    echo "[OK] Cryptographic benchmark process exited successfully"
 else
-    echo "❌ Cryptographic benchmark process failed"
+    echo "[FAIL] Cryptographic benchmark process failed"
     TEST_FAILURES=$((TEST_FAILURES + 1))
 fi
 if docker cp qcore-pov:/tmp/crypto_results.json "${RESULTS_DIR}/crypto_results_${TIMESTAMP}.json" 2>/dev/null && [ -s "${RESULTS_DIR}/crypto_results_${TIMESTAMP}.json" ]; then
-    echo "✅ Cryptographic results artifact saved"
+    echo "[OK] Cryptographic results artifact saved"
 else
-    echo "❌ Cryptographic results artifact missing"
+    echo "[FAIL] Cryptographic results artifact missing"
     TEST_FAILURES=$((TEST_FAILURES + 1))
 fi
 
@@ -196,8 +196,8 @@ echo "  Ended: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 echo "============================================================"
 
 if [ "$TEST_FAILURES" -gt 0 ]; then
-    echo "❌ PoV run finished with $TEST_FAILURES failed test/benchmark process(es)"
+    echo "[FAIL] PoV run finished with $TEST_FAILURES failed test/benchmark process(es)"
     exit 1
 fi
 
-echo "✅ All PoV test/benchmark processes exited successfully"
+echo "[OK] All PoV test/benchmark processes exited successfully"

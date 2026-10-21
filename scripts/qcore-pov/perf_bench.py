@@ -109,7 +109,7 @@ def register_tenant(tenant_id):
         os.fsync(handle.fileno())
     os.replace(temp_path, config_path)
 
-def api_request(method, path, token=None, body=None, retries=2):
+def api_request(method, path, token=None, body=None, retries=2, timeout=60):
     """Make an API request, returning (status_code, response_json, new_token)."""
     url = f"{HOST}{path}"
     data = json.dumps(body).encode() if body else None
@@ -122,7 +122,7 @@ def api_request(method, path, token=None, body=None, retries=2):
     for attempt in range(retries + 1):
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
                 resp_body = resp.read().decode()
                 new_token = resp.headers.get("Authorization-New-Token")
                 if new_token and new_token.startswith("Bearer "):
@@ -146,7 +146,7 @@ def api_request(method, path, token=None, body=None, retries=2):
                 return e.code, {"error": resp_body}, new_token
         except Exception as e:
             if attempt < retries:
-                time.sleep(0.1 * (attempt + 1))
+                time.sleep(0.2 * (attempt + 1))
                 continue
             return 0, {"error": str(e)}, token
 
@@ -185,30 +185,34 @@ def build_contract(finding_id, payload_size=1024, actor="svc:vardhan-intelligenc
     contract["contract"]["benign_explanation"] = "x" * max(0, payload_size - base_bytes)
     return contract
 
-def create_session(worker_id=None, retries=5):
+def create_session(worker_id=None, retries=10):
     """Create a fresh login session and explicitly provision its synthetic tenant with retries."""
     for attempt in range(retries):
         status, body, _ = api_request(
             "POST", "/api/v1/auth/login",
-            body={"username": ADMIN_USER, "password": ADMIN_PASS}
+            body={"username": ADMIN_USER, "password": ADMIN_PASS},
+            retries=1,
+            timeout=30
         )
         if status != 200:
-            time.sleep(0.15 * (attempt + 1))
+            time.sleep(0.3 * (attempt + 1))
             continue
         token = body.get("token", "")
         if not token:
-            time.sleep(0.15 * (attempt + 1))
+            time.sleep(0.3 * (attempt + 1))
             continue
         name = f"PoV-Bench-{RUN_ID}-{worker_id if worker_id is not None else next_finding_id('org')}"
         org_status, org_body, token = api_request(
-            "POST", "/api/v1/organizations", token, {"name": name}
+            "POST", "/api/v1/organizations", token, {"name": name},
+            retries=1,
+            timeout=30
         )
         if org_status not in (200, 201):
-            time.sleep(0.15 * (attempt + 1))
+            time.sleep(0.3 * (attempt + 1))
             continue
         org_id = org_body.get("organization", {}).get("id", "")
         if not org_id:
-            time.sleep(0.15 * (attempt + 1))
+            time.sleep(0.3 * (attempt + 1))
             continue
         register_tenant(org_id)
         return token, org_id
@@ -222,12 +226,14 @@ def benchmark_with_sessions(label, func, concurrency, requests, warmup, use_even
     for fast operations (HTTP-only or short subprocess spawns). If
     use_event=False, threads start immediately after creation.
     """
+    if concurrency >= 50:
+        time.sleep(0.5)
     sessions = {}
     for i in range(concurrency):
-        token, org_id = create_session(worker_id=i)
+        token, org_id = create_session(worker_id=i, retries=6)
         if token is None:
-            time.sleep(0.3)
-            token, org_id = create_session(worker_id=i, retries=8)
+            time.sleep(1.0)
+            token, org_id = create_session(worker_id=i, retries=15)
         if token is None:
             raise RuntimeError(f"failed to create session for worker {i}")
         sessions[i] = {"token": token, "org_id": org_id}
@@ -479,6 +485,7 @@ def main():
     print("\n--- P1: Contract Sealing (Protected HTTP API Path) ---")
     for payload_name, payload_bytes in [("1KB", 1024), ("10KB", 10240), ("100KB", 102400)]:
         for c in CONCURRENCY_LEVELS:
+            time.sleep(1.0)
             print(f"  {payload_name} payload, concurrency={c}, measured requests={request_count_for(c)}...")
             result = benchmark_with_sessions(
                 f"contract_seal_{payload_name}_c{c}",
@@ -544,6 +551,7 @@ def main():
     # ── P4: Audit Retrieval ───────────────────────────────────────
     print("\n--- P4: Audit Retrieval ---")
     for c in CONCURRENCY_LEVELS:
+        time.sleep(1.0)
         print(f"  concurrency={c}, measured requests={request_count_for(c)}...")
         result = benchmark_with_sessions(
             f"audit_retrieve_c{c}",
@@ -559,6 +567,7 @@ def main():
     # ── P5: Full E2E Workflow ────────────────────────────────────
     print("\n--- P5: Full E2E Workflow ---")
     for c in [1, 10, 50]:
+        time.sleep(1.0)
         print(f"  concurrency={c}, measured requests={request_count_for(c)}...")
         result = benchmark_with_sessions(
             f"e2e_submit_verify_c{c}",

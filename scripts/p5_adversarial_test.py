@@ -65,7 +65,7 @@ def record(test_id, category, test_name, expected, observed, passed, evidence=""
         "pass": passed,
         "evidence": evidence,
     })
-    icon = "✅" if passed else "❌"
+    icon = "[PASS]" if passed else "[FAIL]"
     print(f"  [{test_id}] {icon} {test_name}")
     print(f"       Expected: {expected}")
     print(f"       Observed: {observed}")

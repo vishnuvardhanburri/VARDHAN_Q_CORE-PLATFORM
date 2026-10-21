@@ -63,7 +63,7 @@ echo "    -> Passport Created: $PASSPORT_ID"
 
 # Step 4: Transition to ASSESSED -> BLUEPRINT_PROPOSED -> AUTHORIZED
 echo "[4] Advancing Lifecycle to AUTHORIZED..."
-for STATE in "ASSESSED" "BLUEPRINT_PROPOSED" "AUTHORIZED" do
+for STATE in "ASSESSED" "BLUEPRINT_PROPOSED" "AUTHORIZED"; do
     RESP=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8080/api/v1/organizations/$ORG_ID/passports/$PASSPORT_ID" -d "{\"state\": \"$STATE\", \"evidence\": \"VQR-DUMMY-RECEIPT-$(date +%s)\"}")
     update_token "$RESP"
     echo "    -> State Transition: $STATE"
@@ -90,10 +90,10 @@ RESP=$(curl -s -i -H "Authorization: Bearer $TOKEN" -X PATCH "http://localhost:8
 update_token "$RESP"
 
 if echo "$RESP" | grep -q "200 OK"; then
-    echo -e "\n✅ SUCCESS: Migration Passport for MIG-RSA-001 reached INDEPENDENTLY_VERIFIED state."
+    echo -e "\n[OK] SUCCESS: Migration Passport for MIG-RSA-001 reached INDEPENDENTLY_VERIFIED state."
     echo "    Proof-Carrying Migration Vertical Slice Complete."
 else
-    echo -e "\n❌ FAILURE: Could not reach INDEPENDENTLY_VERIFIED state."
+    echo -e "\n[FAIL] FAILURE: Could not reach INDEPENDENTLY_VERIFIED state."
     echo "$RESP"
     exit 1
 fi

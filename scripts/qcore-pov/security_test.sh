@@ -51,8 +51,8 @@ check() {
     if [ "$passed" = "false" ]; then status="FAIL"; FAIL_COUNT=$((FAIL_COUNT+1)); else PASS_COUNT=$((PASS_COUNT+1)); fi
     local entry="{\"status\":\"$status\",\"test\":\"$label\",\"detail\":\"$detail\"}"
     if [ -z "$TESTS" ]; then TESTS="$entry"; else TESTS="$TESTS,$entry"; fi
-    local symbol="✅"
-    if [ "$passed" = "false" ]; then symbol="❌"; fi
+    local symbol="[PASS]"
+    if [ "$passed" = "false" ]; then symbol="[FAIL]"; fi
     echo "  $symbol $status: $label ($detail)"
 }
 
@@ -63,11 +63,11 @@ echo ""
 
 TOKEN=$(login)
 if [ -z "$TOKEN" ]; then
-    echo "❌ FAILED: Could not login"
+    echo "[FAIL] FAILED: Could not login"
     echo "{\"tests\":[],\"passed\":0,\"failed\":1,\"summary\":\"login failed\"}" > "$RESULTS_FILE"
     exit 1
 fi
-echo "✅ Login successful"
+echo "[OK] Login successful"
 
 # Create organization
 RESP=$(api_request "POST" "/api/v1/organizations" "$TOKEN" '{"name":"LGT PoC Tenant"}')

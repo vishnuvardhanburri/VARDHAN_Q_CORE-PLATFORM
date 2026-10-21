@@ -61,8 +61,8 @@ echo "$VERIFY_RESULT" | jq '.'
 
 IS_VALID=$(echo "$VERIFY_RESULT" | jq -r .status)
 if [ "$IS_VALID" = "Valid" ]; then
-    echo -e "\n✅ Vertical Slice complete. The operation was governed, executed, and independently verified."
+    echo -e "\n[OK] Vertical Slice complete. The operation was governed, executed, and independently verified."
 else
-    echo -e "\n❌ Verification failed."
+    echo -e "\n[FAIL] Verification failed."
     exit 1
 fi

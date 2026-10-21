@@ -80,10 +80,10 @@ def check(label, expected, actual):
     status = "PASS" if passed else "FAIL"
     if passed:
         PASS_COUNT += 1
-        symbol = "✅"
+        symbol = "[PASS]"
     else:
         FAIL_COUNT += 1
-        symbol = "❌"
+        symbol = "[FAIL]"
     detail = f"expected={expected}, got={actual}"
     RESULTS.append({"status": status, "test": label, "detail": detail})
     print(f"  {symbol} {status}: {label} ({detail})")

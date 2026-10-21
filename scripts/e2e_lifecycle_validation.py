@@ -27,11 +27,11 @@ RESULTS = []
 def check(label, expected, actual):
     global PASS_COUNT, FAIL_COUNT
     if str(actual) == str(expected):
-        print(f"  ✅ PASS: {label} (got: {actual})")
+        print(f"  [PASS] PASS: {label} (got: {actual})")
         RESULTS.append(("PASS", label, actual))
         PASS_COUNT += 1
     else:
-        print(f"  ❌ FAIL: {label} (expected: {expected}, got: {actual})")
+        print(f"  [FAIL] FAIL: {label} (expected: {expected}, got: {actual})")
         RESULTS.append(("FAIL", label, f"expected={expected}, got={actual}"))
         FAIL_COUNT += 1
 
@@ -216,11 +216,11 @@ def main():
         print("\n[13] Independent Receipt Verification")
         rc, output = verify_receipt(receipt_json)
         if '"Valid"' in output:
-            print("  ✅ PASS: Receipt independently verified")
+            print("  [PASS] PASS: Receipt independently verified")
             RESULTS.append(("PASS", "Independent verification", "Valid"))
             PASS_COUNT += 1
         else:
-            print(f"  ❌ FAIL: Receipt verification failed: {output[:200]}")
+            print(f"  [FAIL] FAIL: Receipt verification failed: {output[:200]}")
             RESULTS.append(("FAIL", "Independent verification", output[:200]))
             FAIL_COUNT += 1
 
@@ -230,11 +230,11 @@ def main():
         tampered_json = json.dumps(receipt)
         rc, output = verify_receipt(tampered_json)
         if '"Invalid"' in output:
-            print("  ✅ PASS: Tampered signature rejected")
+            print("  [PASS] PASS: Tampered signature rejected")
             RESULTS.append(("PASS", "Tampered signature rejection", "Invalid"))
             PASS_COUNT += 1
         else:
-            print(f"  ❌ FAIL: Tampered signature accepted: {output[:200]}")
+            print(f"  [FAIL] FAIL: Tampered signature accepted: {output[:200]}")
             RESULTS.append(("FAIL", "Tampered signature rejection", output[:200]))
             FAIL_COUNT += 1
 
@@ -291,7 +291,7 @@ def main():
     print(f"  Failed: {FAIL_COUNT}")
     print()
     for status, label, detail in RESULTS:
-        symbol = "✅" if status == "PASS" else "❌"
+        symbol = "[PASS]" if status == "PASS" else "[FAIL]"
         print(f"  {symbol} {label}: {detail}")
     print("=" * 60)
 
