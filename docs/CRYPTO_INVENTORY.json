@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "inventory_version": "1.0.0",
+  "generated_at_utc": "2026-10-21T09:00:00Z",
+  "platform": "Vardhan Q-Core",
+  "vendor": "Vardhan Technologies",
+  "security_posture": "Post-Quantum Ready / Hybrid Dual-Layer",
+  "quantum_readiness_standard": "NIST FIPS 203 / FIPS 204 Level 5",
+  "primitives": [
+    {
+      "primitive_id": "PQC-SIG-ML-DSA-87",
+      "algorithm": "ML-DSA-87",
+      "specification": "NIST FIPS 204",
+      "primitive_class": "Post-Quantum Digital Signature Algorithm (Lattice-Based / Module-LWE)",
+      "implementation_crate": "fips204 / pqcrypto-mldsa",
+      "crate_version": "0.4.0 / 0.1.0",
+      "security_level": {
+        "nist_category": 5,
+        "equivalent_classical_bits": 256,
+        "quantum_security_assessment": "Resistant to Shor and Grover algorithms at AES-256 equivalent hardness"
+      },
+      "parameters": {
+        "public_key_bytes": 2592,
+        "private_key_bytes": 4896,
+        "signature_bytes": 4627
+      },
+      "usage_in_qcore": [
+        "Receipt dual-signature post-quantum layer (VardhanSealedReceipt.signatures.ml_dsa_87_sig)",
+        "Immutable audit log entry signing (AuditTrail.canonical_hash)",
+        "Node identity authentication descriptor verification (EpochManager.verify_epoch_descriptor)"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "ML-DSA-87 (FIPS 204)",
+        "migration_mechanism": "Explicit algorithm identifier in receipt header and signature envelope; historical receipts remain valid under archival verification suites.",
+        "cryptanalytic_bounds": "Hardness derived from Module Learning with Errors (M-LWE) and Module Short Integer Solution (M-SIS) over polynomial rings."
+      },
+      "verification_tests": [
+        "backend/vardhan_receipt/src/main.rs: test_r2_tampered_ml_dsa_87_signature_rejected",
+        "backend/vardhan_verifier/src/lib.rs: test_dual_signature_verification_passes",
+        "lab_demo_verify.sh: CHECK 4/5 tamper-rejection"
+      ]
+    },
+    {
+      "primitive_id": "PQC-KEM-ML-KEM-1024",
+      "algorithm": "ML-KEM-1024",
+      "specification": "NIST FIPS 203",
+      "primitive_class": "Post-Quantum Key Encapsulation Mechanism (Lattice-Based / Module-LWE)",
+      "implementation_crate": "ml-kem",
+      "crate_version": "0.2.0",
+      "security_level": {
+        "nist_category": 5,
+        "equivalent_classical_bits": 256,
+        "quantum_security_assessment": "Protects against Store-Now-Decrypt-Later (SNDL) attacks against long-term transaction confidentiality"
+      },
+      "parameters": {
+        "encapsulation_key_bytes": 1568,
+        "decapsulation_key_bytes": 3168,
+        "ciphertext_bytes": 1568,
+        "shared_secret_bytes": 32
+      },
+      "usage_in_qcore": [
+        "AER-KEP-Q epoch key transitions (EpochManager)",
+        "Inter-node peer communication ephemeral key establishment",
+        "Session key encapsulation for sensitive payload envelope encryption"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "ML-KEM-1024 (FIPS 203)",
+        "migration_mechanism": "Self-healing epoch descriptors carry explicit KEM algorithm IDs; renegotiation falls back to negotiated peer suite without affecting data at rest.",
+        "cryptanalytic_bounds": "Indistinguishability under adaptive chosen ciphertext attacks (IND-CCA2) based on M-LWE hardness."
+      },
+      "verification_tests": [
+        "backend/core_crypto/src/aer_kep_q.rs: tests::test_aer_kep_q_full_cycle",
+        "backend/core_crypto/src/aer_kep_q_runtime.rs: test_runtime_epoch_transition"
+      ]
+    },
+    {
+      "primitive_id": "CLASSICAL-SIG-ED25519",
+      "algorithm": "Ed25519",
+      "specification": "RFC 8032",
+      "primitive_class": "Edwards-curve Digital Signature Algorithm",
+      "implementation_crate": "ed25519-dalek",
+      "crate_version": "2.1.0",
+      "security_level": {
+        "nist_category": 1,
+        "equivalent_classical_bits": 128,
+        "quantum_security_assessment": "Vulnerable to Shor algorithm on cryptanalytically relevant quantum computers; maintained as classical validation anchor in hybrid mode"
+      },
+      "parameters": {
+        "public_key_bytes": 32,
+        "private_key_bytes": 32,
+        "signature_bytes": 64
+      },
+      "usage_in_qcore": [
+        "Receipt dual-signature classical layer (VardhanSealedReceipt.signatures.ed25519_sig)",
+        "Issuer key fingerprint generation (issuer_key_fingerprint = hex(ed25519_pub))",
+        "Cryptographic license entitlement signing",
+        "Deterministic local verifier sanity anchor"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "Ed25519 (RFC 8032)",
+        "migration_mechanism": "Receipt verifier evaluates both signatures independently; classical layer can be phased out or updated to alternative elliptic curves without modifying the PQC envelope.",
+        "cryptanalytic_bounds": "128-bit classical security based on discrete logarithm problem on Curve25519."
+      },
+      "verification_tests": [
+        "backend/vardhan_receipt/src/main.rs: test_r1_tampered_ed25519_signature_rejected",
+        "backend/vardhan_verifier/src/lib.rs: test_ed25519_signature_valid",
+        "lab_demo_verify.sh: CHECK 1/5 seal-valid"
+      ]
+    },
+    {
+      "primitive_id": "SYM-CIPHER-AES-256-GCM",
+      "algorithm": "AES-256-GCM",
+      "specification": "NIST SP 800-38D",
+      "primitive_class": "Authenticated Encryption with Associated Data (AEAD)",
+      "implementation_crate": "aes-gcm",
+      "crate_version": "0.11.1",
+      "security_level": {
+        "nist_category": 5,
+        "equivalent_classical_bits": 256,
+        "quantum_security_assessment": "Grover search requires 2^128 operations against 256-bit keys; highly secure against quantum adversaries"
+      },
+      "parameters": {
+        "key_bytes": 32,
+        "nonce_bytes": 12,
+        "tag_bytes": 16
+      },
+      "usage_in_qcore": [
+        "Envelope encryption for local cryptographic keystore (ProductionEnvelopeProtection)",
+        "Vault-backed key wrapping (Data Encryption Key / Key Encryption Key)",
+        "Confidential audit record encryption at rest"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "AES-256-GCM",
+        "migration_mechanism": "Envelope format stores cipher ID; ChaCha20-Poly1305 or post-quantum symmetric variants can be introduced per envelope header.",
+        "cryptanalytic_bounds": "Standard AEAD security with 96-bit unique nonces; enforces nonce uniqueness to prevent keystream reuse."
+      },
+      "verification_tests": [
+        "backend/vardhan_keystore/src/protection.rs: test_production_envelope_protection_roundtrip",
+        "backend/core_crypto/src/vault.rs: test_vault_aead_roundtrip"
+      ]
+    },
+    {
+      "primitive_id": "HASH-BLAKE3",
+      "algorithm": "BLAKE3",
+      "specification": "BLAKE3 Cryptographic Hash Function Specification",
+      "primitive_class": "Tree-based Cryptographic Hash Function",
+      "implementation_crate": "blake3",
+      "crate_version": "1.5.0",
+      "security_level": {
+        "nist_category": 5,
+        "equivalent_classical_bits": 256,
+        "quantum_security_assessment": "Grover collision bound 2^128, preimage bound 2^256; immune to length extension attacks"
+      },
+      "parameters": {
+        "digest_bytes": 32,
+        "tree_chunk_bytes": 1024
+      },
+      "usage_in_qcore": [
+        "Transaction payload canonical hashing (payload_hash = hex(BLAKE3(canonical_payload)))",
+        "Evidence commitment content hashing (evidence_commitments[].content_hash)",
+        "State hash calculation at decision time (state_hash_at_decision)",
+        "Key identity fingerprint derivation"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "BLAKE3",
+        "migration_mechanism": "Hash algorithm is canonicalized per schema version 1.1; future schema versions (e.g. 2.0) can parameterize hash algorithm without modifying existing receipts.",
+        "cryptanalytic_bounds": "Bao tree construction with 7 rounds of ChaCha permutation; high performance SIMD acceleration without cryptographic degradation."
+      },
+      "verification_tests": [
+        "backend/vardhan_receipt/src/main.rs: test_canonical_hash_determinism",
+        "backend/vardhan_verifier/src/lib.rs: test_payload_hash_matches",
+        "lab_demo_verify.sh: CHECK 3/5 trust-boundary"
+      ]
+    },
+    {
+      "primitive_id": "HASH-SHA3-512",
+      "algorithm": "SHA3-512",
+      "specification": "NIST FIPS 202",
+      "primitive_class": "Keccak Sponge-based Cryptographic Hash Function",
+      "implementation_crate": "sha3",
+      "crate_version": "0.10.0",
+      "security_level": {
+        "nist_category": 5,
+        "equivalent_classical_bits": 512,
+        "quantum_security_assessment": "Preimage resistance 2^512, collision resistance 2^256 against quantum attacks"
+      },
+      "parameters": {
+        "digest_bytes": 64
+      },
+      "usage_in_qcore": [
+        "Handshake transcript binding in AER-KEP-Q epoch establishment",
+        "Anti-tamper transcript binding in session key derivation"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "SHA3-512",
+        "migration_mechanism": "Protocol versioning in epoch descriptors allows migration to other sponge parameters.",
+        "cryptanalytic_bounds": "Standard Keccak permutation sponge construction with full 512-bit capacity margin."
+      },
+      "verification_tests": [
+        "backend/core_crypto/src/aer_kep_q.rs: test_transcript_binding_integrity"
+      ]
+    },
+    {
+      "primitive_id": "KDF-HKDF-SHA256",
+      "algorithm": "HKDF-SHA256",
+      "specification": "RFC 5869",
+      "primitive_class": "HMAC-based Extract-and-Expand Key Derivation Function",
+      "implementation_crate": "hkdf / sha2",
+      "crate_version": "0.12.0 / 0.10.0",
+      "security_level": {
+        "nist_category": 5,
+        "equivalent_classical_bits": 256,
+        "quantum_security_assessment": "PRG and PRF security against quantum adversaries when key material exceeds 256 bits"
+      },
+      "parameters": {
+        "hash_bytes": 32,
+        "max_output_bytes": 8160
+      },
+      "usage_in_qcore": [
+        "Deriving symmetric encryption keys and MAC keys from ML-KEM-1024 shared secrets",
+        "Transaction-bound key derivation (transaction_bound_kdf.rs)"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "HKDF-SHA256",
+        "migration_mechanism": "Context info parameter encodes protocol and algorithm version; switchable to HKDF-SHA512 or HKDF-KMAC256.",
+        "cryptanalytic_bounds": "Standard pseudorandom extraction based on HMAC-SHA256."
+      },
+      "verification_tests": [
+        "backend/core_crypto/src/transaction_bound_kdf.rs: test_kdf_expansion"
+      ]
+    }
+  ]
+}
