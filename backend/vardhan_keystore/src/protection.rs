@@ -104,6 +104,7 @@ pub trait KeyProtectionProvider: Send + Sync {
 /// On-disk envelope for a single protected private key.
 ///
 /// Stored as JSON in `ed25519.key.enc` / `mldsa87.sec.enc`.
+#[allow(dead_code)]
 #[derive(Serialize, Deserialize)]
 struct ProtectedKeyEnvelope {
     /// Name of the provider that wrapped this key (e.g. "aws-kms", "local-dev").
@@ -138,6 +139,11 @@ pub struct ProductionEnvelopeProtection {
 }
 
 impl ProductionEnvelopeProtection {
+    /// Return the key version identifier.
+    pub fn key_version(&self) -> &str {
+        &self.key_version
+    }
+
     /// Create a production envelope protector from an externally supplied KEK.
     ///
     /// # Arguments
@@ -283,6 +289,11 @@ pub struct DevelopmentLocalProtection {
 }
 
 impl DevelopmentLocalProtection {
+    /// Return the path to the KEK file.
+    pub fn kek_path(&self) -> &Path {
+        &self.kek_path
+    }
+
     /// Create or load a development KEK from `kek_path`.
     /// If the file doesn't exist, a new random KEK is generated and saved.
     pub fn new(kek_path: impl AsRef<Path>) -> Result<Self, KeyProtectionError> {
@@ -422,38 +433,126 @@ impl EnvironmentKeyProtectionProvider {
 
         match env.to_lowercase().as_str() {
             "production" | "prod" => {
-                // Production MUST use a real KMS/HSM-backed provider.
-                #[cfg(feature = "vault")]
+                let kms_provider_env = std::env::var("VARDHAN_KMS_PROVIDER")
+                    .or_else(|_| std::env::var("KMS_PROVIDER"))
+                    .unwrap_or_default()
+                    .to_lowercase();
+
+                // 1. AWS KMS
+                if kms_provider_env == "aws-kms"
+                    || kms_provider_env == "aws"
+                    || std::env::var("VARDHAN_AWS_KMS_KEY_ID").is_ok()
+                    || (kms_provider_env.is_empty() && std::env::var("AWS_KMS_KEY_ID").is_ok())
                 {
-                    if crate::vault::VaultKeyProtectionProvider::configured() {
-                        tracing::info!("Production key protection: using Vault transit engine");
-                        return Ok(Box::new(crate::vault::VaultKeyProtectionProvider));
+                    match crate::kms::AwsKmsProvider::from_env() {
+                        Ok(p) => {
+                            let key_id = p.key_id().to_string();
+                            let envelope_provider = crate::kms::KmsKeyProtectionProvider::new(
+                                std::sync::Arc::new(p),
+                                key_id,
+                            );
+                            tracing::info!("Production key protection: using AWS KMS provider");
+                            return Ok(Box::new(envelope_provider));
+                        }
+                        Err(e) => {
+                            tracing::error!("AWS KMS configuration error: {}", e);
+                            return Err(e);
+                        }
                     }
                 }
-                #[cfg(not(feature = "vault"))]
+
+                // 2. Google Cloud KMS
+                if kms_provider_env == "gcp-kms"
+                    || kms_provider_env == "gcp"
+                    || std::env::var("VARDHAN_GCP_KMS_KEY_NAME").is_ok()
+                    || std::env::var("GCP_KMS_KEY_NAME").is_ok()
                 {
-                    if std::env::var("VARDHAN_VAULT_ADDR").is_ok() {
-                        tracing::error!(
-                            "Vault configuration detected but vardhan_keystore was not built \
-                             with the 'vault' feature. Enable it with --features vardhan_keystore/vault"
-                        );
+                    match crate::kms::GcpCloudKmsProvider::from_env() {
+                        Ok(p) => {
+                            let key_name = p.key_name().to_string();
+                            let envelope_provider = crate::kms::KmsKeyProtectionProvider::new(
+                                std::sync::Arc::new(p),
+                                key_name,
+                            );
+                            tracing::info!(
+                                "Production key protection: using Google Cloud KMS provider"
+                            );
+                            return Ok(Box::new(envelope_provider));
+                        }
+                        Err(e) => {
+                            tracing::error!("GCP Cloud KMS configuration error: {}", e);
+                            return Err(e);
+                        }
                     }
                 }
-                // Fall back to KMS-backed envelope protection
+
+                // 3. HashiCorp Vault Transit
+                if kms_provider_env == "vault"
+                    || kms_provider_env == "vault-transit"
+                    || std::env::var("VARDHAN_VAULT_ADDR").is_ok()
+                {
+                    #[cfg(feature = "vault")]
+                    {
+                        if crate::vault::VaultKeyProtectionProvider::configured() {
+                            tracing::info!("Production key protection: using Vault transit engine");
+                            return Ok(Box::new(crate::vault::VaultKeyProtectionProvider));
+                        }
+                    }
+                    match crate::kms::VaultTransitProvider::from_env() {
+                        Ok(p) => {
+                            let key_name = p.key_name().to_string();
+                            let envelope_provider = crate::kms::KmsKeyProtectionProvider::new(
+                                std::sync::Arc::new(p),
+                                key_name,
+                            );
+                            tracing::info!(
+                                "Production key protection: using Vault Transit provider"
+                            );
+                            return Ok(Box::new(envelope_provider));
+                        }
+                        Err(e) => {
+                            tracing::error!("Vault Transit configuration error: {}", e);
+                            return Err(e);
+                        }
+                    }
+                }
+
+                // 4. PKCS#11 Hardware Security Module
+                if kms_provider_env == "pkcs11"
+                    || kms_provider_env == "hsm"
+                    || std::env::var("VARDHAN_PKCS11_SLOT_ID").is_ok()
+                {
+                    match crate::kms::Pkcs11HsmProvider::from_env() {
+                        Ok(p) => {
+                            tracing::info!("Production key protection: using PKCS#11 HSM provider");
+                            return Ok(Box::new(p));
+                        }
+                        Err(e) => {
+                            tracing::error!("PKCS#11 HSM configuration error: {}", e);
+                            return Err(e);
+                        }
+                    }
+                }
+
+                // 5. Envelope KEK fallback
                 if let Ok(provider) = ProductionEnvelopeProtection::from_env_kms() {
                     tracing::info!(
                         "Production key protection: using KMS-backed provider '{}'",
                         provider.provider_name()
                     );
-                    Ok(Box::new(provider))
-                } else {
-                    tracing::error!(
-                        "FATAL: VARDHAN_ENV=production but no production KEK provider is configured. \
-                         Set VARDHAN_PRODUCTION_KEK (hex-encoded 32 bytes) and \
-                         VARDHAN_KMS_PROVIDER to enable production key protection."
-                    );
-                    Err(KeyProtectionError::NoProductionKeyProvider)
+                    return Ok(Box::new(provider));
                 }
+
+                tracing::error!(
+                    "FATAL: VARDHAN_ENV=production but no production-safe KMS/HSM provider is configured. \
+                     Supported production providers: \
+                     1. AWS KMS: Set VARDHAN_KMS_PROVIDER=aws-kms and VARDHAN_AWS_KMS_KEY_ID \
+                     2. GCP KMS: Set VARDHAN_KMS_PROVIDER=gcp-kms and VARDHAN_GCP_KMS_KEY_NAME \
+                     3. HashiCorp Vault: Set VARDHAN_KMS_PROVIDER=vault and VARDHAN_VAULT_ADDR, VARDHAN_VAULT_TOKEN \
+                     4. PKCS#11 HSM: Set VARDHAN_KMS_PROVIDER=pkcs11 and VARDHAN_PKCS11_SLOT_ID, VARDHAN_PKCS11_PIN \
+                     5. Envelope KEK: Set VARDHAN_PRODUCTION_KEK (hex-encoded 32 bytes)"
+                );
+                Err(KeyProtectionError::NoProductionKeyProvider)
             }
             _ => {
                 // Development / test / CI mode

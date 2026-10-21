@@ -72,9 +72,20 @@ Before patching, upgrading, or terminating a node:
 
 ---
 
-## 3. Cryptographic Key Lifecycle & Rotation
+## 3. Cryptographic Key Lifecycle, KMS/HSM Integration & Rotation
 
-### 3.1 Initiating Key Rotation
+### 3.1 Production KMS/HSM Configuration
+Q-Core enforces hardware or cloud KMS-backed envelope encryption in production (`VARDHAN_ENV=production`). Configure the target provider via environment variables:
+
+| Provider | `VARDHAN_KMS_PROVIDER` | Mandatory Configuration Variables | Notes |
+|---|---|---|---|
+| AWS KMS | `aws-kms` | `VARDHAN_AWS_KMS_KEY_ID`, `AWS_REGION` | Backed by AWS KMS symmetric CMK. Uses instance IAM role or AWS credentials. |
+| GCP Cloud KMS | `gcp-kms` | `VARDHAN_GCP_KMS_KEY_NAME` | Format: `projects/{p}/locations/{l}/keyRings/{r}/cryptoKeys/{k}`. |
+| HashiCorp Vault | `vault` / `vault-transit` | `VARDHAN_VAULT_ADDR`, `VARDHAN_VAULT_TOKEN`, `VARDHAN_VAULT_KEY_NAME` | Vault 1.15+ with Transit engine. Supports `min_decryption_version`. |
+| PKCS#11 HSM | `pkcs11` / `hsm` | `VARDHAN_PKCS11_SLOT_ID`, `VARDHAN_PKCS11_PIN`, `VARDHAN_PKCS11_KEY_LABEL` | For physical PCIe/USB HSMs (Thales Luna, Utimaco, Nitrokey). |
+| Envelope KEK | `envelope-kek` | `VARDHAN_PRODUCTION_KEK` | Hex-encoded 32-byte KEK from certified offline KMS. |
+
+### 3.2 Initiating Key Rotation
 When rotating signing keys (scheduled annual rotation or key replacement):
 
 1. **Invoke Rotation API:**
@@ -84,13 +95,32 @@ When rotating signing keys (scheduled annual rotation or key replacement):
      -H "Content-Type: application/json" \
      -d '{"key_type": "all", "reason": "scheduled_rotation"}'
    ```
-2. **Lifecycle State Transition:**
-   - The current key transitions from `Active` to `Rotating`.
-   - A new keypair is generated (ML-DSA-87 + Ed25519) and marked `Active`.
+2. **Lifecycle State Transition & Historical Preservation:**
+   - The current active public keys are archived into `historical_keys.json` with status `Retired`.
+   - A fresh keypair is generated (ML-DSA-87 + Ed25519) and marked `Active` with `key_version = previous_version + 1`.
    - New incoming submissions immediately use the new `Active` key.
-   - Ongoing batches complete signing with the `Rotating` key.
-   - After a 24-hour drain window, the previous key transitions to `Deprecated`.
-   - `Deprecated` keys are retained indefinitely to verify historical receipts.
+   - Older receipts remain independently verifiable via `HistoricalKeyRegistry` lookup by `issuer_key_fingerprint`.
+   - Private key material is encrypted under the configured KMS/HSM provider before touching storage.
+
+### 3.3 Emergency Key Revocation Procedure
+If a key compromise is suspected:
+1. **Revoke Specific Key Fingerprint:**
+   ```bash
+   curl -X POST https://127.0.0.1/api/v1/keys/revoke \
+     -H "Authorization: Bearer ${OPERATOR_TOKEN}" \
+     -H "Content-Type: application/json" \
+     -d '{"fingerprint": "${TARGET_FINGERPRINT}", "reason": "suspected_compromise"}'
+   ```
+2. **Revocation Effect:**
+   - Active signing is immediately terminated if the compromised key was active.
+   - The key status in `keystore_meta.json` and `historical_keys.json` transitions to `Revoked`.
+   - Standalone verifiers flag any receipt signed with this key with a security alert.
+
+### 3.4 Key Lifecycle Verification Drill
+Execute the automated test drill to verify all KMS adapters, SoftHSM emulation, and multi-version historical verification:
+```bash
+cargo test -p vardhan_keystore --test production_kms_hsm_drill -- --nocapture
+```
 
 ---
 

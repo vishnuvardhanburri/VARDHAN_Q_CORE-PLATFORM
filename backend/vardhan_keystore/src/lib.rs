@@ -17,15 +17,40 @@ use std::path::Path;
 use uuid::Uuid;
 use zeroize::Zeroizing;
 
+pub mod history;
+pub mod kms;
 pub mod protection;
 #[cfg(feature = "vault")]
 pub mod vault;
+
+pub use history::{HistoricalKeyEntry, HistoricalKeyRegistry};
+pub use kms::{
+    AwsKmsEmulator, AwsKmsProvider, GcpCloudKmsProvider, GcpKmsEmulator, KmsAuditRecord,
+    KmsKeyMetadata, KmsKeyProtectionProvider, KmsProvider, Pkcs11HardwareMode, Pkcs11HsmProvider,
+    Pkcs11SoftHsmEmulator, VaultTransitEmulator, VaultTransitProvider,
+};
 pub use protection::{
     DevelopmentLocalProtection, EnvironmentKeyProtectionProvider, KeyProtectionError,
     KeyProtectionProvider, ProductionEnvelopeProtection,
 };
 #[cfg(feature = "vault")]
 pub use vault::VaultKeyProtectionProvider;
+
+/// Key rotation report capturing the lifecycle event.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KeyRotationReport {
+    pub previous_ed25519_key_id: String,
+    pub previous_ed25519_fingerprint: String,
+    pub previous_mldsa87_key_id: String,
+    pub previous_mldsa87_fingerprint: String,
+    pub new_ed25519_key_id: String,
+    pub new_ed25519_fingerprint: String,
+    pub new_mldsa87_key_id: String,
+    pub new_mldsa87_fingerprint: String,
+    pub key_version: u32,
+    pub rotated_at_ms: u64,
+    pub provider: String,
+}
 
 // ─── Test-only shared mutex for environment variable serialization ─────────
 #[cfg(test)]
@@ -634,6 +659,183 @@ impl VardhanKeystore {
 
     pub fn mldsa87_public_key(&self) -> &MlDsaPublicKey {
         &self.mldsa87_public
+    }
+
+    /// Rotate the signing keys, archiving the previous key pairs into the
+    /// historical registry on disk to ensure older receipts remain verifiable.
+    pub fn rotate_keys_with_provider(
+        &mut self,
+        dir: &Path,
+        provider: &dyn KeyProtectionProvider,
+    ) -> io::Result<KeyRotationReport> {
+        let now_ms = current_time_ms();
+        let mut history = HistoricalKeyRegistry::load_from_dir(dir)?;
+
+        // 1. Archive current active keys
+        let ed_pub_bytes = self.ed25519_key.verifying_key().to_bytes();
+        let ml_pub_bytes = self.mldsa87_public.as_bytes();
+        history.archive_active_keys(
+            &self.ed25519_identity,
+            &ed_pub_bytes,
+            &self.mldsa87_identity,
+            ml_pub_bytes,
+        );
+        history.save_to_dir(dir)?;
+
+        let prev_ed_id = self.ed25519_identity.key_id.clone();
+        let prev_ed_fp = self.ed25519_identity.public_key_fingerprint.clone();
+        let prev_ml_id = self.mldsa87_identity.key_id.clone();
+        let prev_ml_fp = self.mldsa87_identity.public_key_fingerprint.clone();
+        let next_version = self.ed25519_identity.key_version + 1;
+
+        // 2. Generate fresh keypairs
+        let mut csprng = OsRng;
+        let new_ed25519_key = SigningKey::generate(&mut csprng);
+        let new_ed25519_pub = new_ed25519_key.verifying_key();
+        let (new_mldsa87_pub, new_mldsa87_sec) = mldsa_keypair();
+
+        let new_ed_fp = hex::encode(blake3::hash(new_ed25519_pub.as_bytes()).as_bytes());
+        let new_ml_fp = hex::encode(blake3::hash(new_mldsa87_pub.as_bytes()).as_bytes());
+
+        let new_ed_identity = KeyIdentity {
+            key_id: Uuid::new_v4().to_string(),
+            algorithm: KeyAlgorithm::Ed25519,
+            key_version: next_version,
+            public_key_fingerprint: new_ed_fp.clone(),
+            created_at_ms: now_ms,
+            status: KeyStatus::Active,
+            key_protection_provider: provider.provider_name().to_string(),
+            last_status_change_ms: now_ms,
+            deprecation_timestamp_ms: None,
+        };
+
+        let new_ml_identity = KeyIdentity {
+            key_id: Uuid::new_v4().to_string(),
+            algorithm: KeyAlgorithm::MlDsa87,
+            key_version: next_version,
+            public_key_fingerprint: new_ml_fp.clone(),
+            created_at_ms: now_ms,
+            status: KeyStatus::Active,
+            key_protection_provider: provider.provider_name().to_string(),
+            last_status_change_ms: now_ms,
+            deprecation_timestamp_ms: None,
+        };
+
+        self.ed25519_key = new_ed25519_key;
+        self.ed25519_identity = new_ed_identity;
+        self.mldsa87_secret = new_mldsa87_sec;
+        self.mldsa87_public = new_mldsa87_pub;
+        self.mldsa87_identity = new_ml_identity;
+
+        // 3. Persist new keys wrapped with provider
+        self.save_to_dir_with_provider(dir, provider)?;
+
+        tracing::info!(
+            "Keystore successfully rotated to version {} with provider '{}'",
+            next_version,
+            provider.provider_name()
+        );
+
+        Ok(KeyRotationReport {
+            previous_ed25519_key_id: prev_ed_id,
+            previous_ed25519_fingerprint: prev_ed_fp,
+            previous_mldsa87_key_id: prev_ml_id,
+            previous_mldsa87_fingerprint: prev_ml_fp,
+            new_ed25519_key_id: self.ed25519_identity.key_id.clone(),
+            new_ed25519_fingerprint: new_ed_fp,
+            new_mldsa87_key_id: self.mldsa87_identity.key_id.clone(),
+            new_mldsa87_fingerprint: new_ml_fp,
+            key_version: next_version,
+            rotated_at_ms: now_ms,
+            provider: provider.provider_name().to_string(),
+        })
+    }
+
+    /// Revoke a key by fingerprint, updating active status or historical registry.
+    pub fn revoke_key(
+        &mut self,
+        dir: &Path,
+        fingerprint: &str,
+        reason: &str,
+        provider: &dyn KeyProtectionProvider,
+    ) -> io::Result<()> {
+        let mut modified = false;
+
+        // Check if active Ed25519 key matches
+        if self.ed25519_identity.public_key_fingerprint == fingerprint {
+            self.ed25519_identity.status = KeyStatus::Revoked;
+            self.ed25519_identity.last_status_change_ms = current_time_ms();
+            modified = true;
+        }
+
+        // Check if active ML-DSA key matches
+        if self.mldsa87_identity.public_key_fingerprint == fingerprint {
+            self.mldsa87_identity.status = KeyStatus::Revoked;
+            self.mldsa87_identity.last_status_change_ms = current_time_ms();
+            modified = true;
+        }
+
+        if modified {
+            self.save_to_dir_with_provider(dir, provider)?;
+        }
+
+        // Check historical registry
+        let mut history = HistoricalKeyRegistry::load_from_dir(dir)?;
+        if history.lookup_by_fingerprint(fingerprint).is_some() {
+            let _ = history.revoke_by_fingerprint(fingerprint, reason);
+            history.save_to_dir(dir)?;
+            modified = true;
+        }
+
+        if !modified {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!(
+                    "Key with fingerprint {} not found in active or historical keys",
+                    fingerprint
+                ),
+            ));
+        }
+
+        tracing::warn!("Key with fingerprint {} REVOKED: {}", fingerprint, reason);
+        Ok(())
+    }
+
+    /// Lookup public key material by fingerprint across active and historical keys.
+    ///
+    /// Returns `(public_key_bytes, algorithm, status)` if found.
+    pub fn lookup_public_key(
+        &self,
+        dir: &Path,
+        fingerprint: &str,
+    ) -> io::Result<Option<(Vec<u8>, KeyAlgorithm, KeyStatus)>> {
+        // 1. Check active Ed25519
+        if self.ed25519_identity.public_key_fingerprint == fingerprint {
+            return Ok(Some((
+                self.ed25519_key.verifying_key().to_bytes().to_vec(),
+                KeyAlgorithm::Ed25519,
+                self.ed25519_identity.status.clone(),
+            )));
+        }
+
+        // 2. Check active ML-DSA
+        if self.mldsa87_identity.public_key_fingerprint == fingerprint {
+            return Ok(Some((
+                self.mldsa87_public.as_bytes().to_vec(),
+                KeyAlgorithm::MlDsa87,
+                self.mldsa87_identity.status.clone(),
+            )));
+        }
+
+        // 3. Check historical registry
+        let history = HistoricalKeyRegistry::load_from_dir(dir)?;
+        if let Some(entry) = history.lookup_by_fingerprint(fingerprint) {
+            let bytes = hex::decode(&entry.public_key_hex)
+                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+            return Ok(Some((bytes, entry.algorithm.clone(), entry.status.clone())));
+        }
+
+        Ok(None)
     }
 }
 

@@ -102,11 +102,21 @@ Signing keys managed in `backend/vardhan_keystore` transition through formal lif
 - **Retired:** Key has passed its retention window. Kept in cold archive for dispute resolution.
 - **Revoked:** Key compromise suspected or confirmed. Never permitted to sign; receipt verifiers flag receipts signed by revoked keys with a mandatory audit warning.
 
-### 5.2 Key Custody Providers
-Q-Core isolates private key material using three custody tiers:
+### 5.2 Key Custody Providers & KMS/HSM Abstraction
+Q-Core provides an extensible, modular Key Management Service (KMS) and Hardware Security Module (HSM) provider architecture (`backend/vardhan_keystore::kms`):
 1. **Development (`DevelopmentLocalProtection`):** File-based encrypted store for local testing and CI.
 2. **Enterprise Envelope (`ProductionEnvelopeProtection`):** AES-256-GCM envelope encryption using a Master Key derived from OS entropy or environment-injected KMS credentials. Key material is cleared from RAM via `zeroize` on drop.
-3. **Hardware Vault / Cloud KMS (`VaultKeyProtectionProvider`):** Direct hardware-backed custody integrating with AWS KMS, HashiCorp Vault, or PKCS#11 hardware security modules (HSMs). Private keys never leave the secure hardware boundary.
+3. **AWS KMS Adapter (`AwsKmsProvider`):** Direct cloud KMS integration for envelope DEK wrapping under customer-managed symmetric CMKs with automated key rotation and IAM permission enforcement.
+4. **Google Cloud KMS Adapter (`GcpCloudKmsProvider`):** Cloud KMS REST integration managing `CryptoKey` versions, version rotation, and cryptographic destruction.
+5. **HashiCorp Vault Transit Adapter (`VaultTransitProvider`):** Integration with Vault's transit secrets engine with automated rotation and `min_decryption_version` enforcement to prevent decryption by compromised older versions.
+6. **PKCS#11 Hardware Security Module Boundary (`Pkcs11HsmProvider`):** Conforms to PKCS#11 v2.40 standard token interface for on-premises PCIe/USB HSMs (Thales Luna HSM, Utimaco, Nitrokey, AWS CloudHSM). Includes an in-memory `Pkcs11SoftHsmEmulator` for CI validation, with explicit operational mode labeling to distinguish simulated execution from physical token attachment.
+
+### 5.3 Multi-Version Historical Key Registry
+To ensure receipts sealed under older key versions remain independently verifiable without compromising active key agility:
+1. When keys are rotated, previous active public keys (Ed25519 and ML-DSA-87) are archived into `historical_keys.json` with status `Retired` and timestamp.
+2. The active keystore advances to `key_version + 1` with freshly generated keypairs.
+3. Verification routines (`lookup_public_key`) resolve public keys by `issuer_key_fingerprint` across active and historical registry entries.
+4. If a key is compromised, `revoke_key` transitions the specific key identity to `Revoked` with an audit reason, immediately preventing signing and flagging historical receipt verification with a security alert.
 
 ---
 

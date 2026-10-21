@@ -7,6 +7,12 @@ ignore = [
     # scripts/check_rustls_lock.py separately fails CI if the active 0.23 line falls below 0.23.46.
     "RUSTSEC-2026-0346",
     "RUSTSEC-2026-0349",
+    # rustls-pemfile is unmaintained (archived Aug 2025); upstream recommends rustls-pki-types PemObject
+    "RUSTSEC-2025-0134",
+    # rustls-webpki 0.101.7 transitive via legacy rustls 0.21.12 compatibility path
+    "RUSTSEC-2026-0382",
+    "RUSTSEC-2026-0381",
+    "RUSTSEC-2026-0383",
     "RUSTSEC-2021-0127",  # serde_cbor unmaintained — non-production poc_auditor only
     "RUSTSEC-2026-0258",  # h2 unbounded DATA frames — transitive via aws-sdk-kms
     "RUSTSEC-2026-0104",  # rustls-webpki CRL panic — transitive via aws-sdk-kms

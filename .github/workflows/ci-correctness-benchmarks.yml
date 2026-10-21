@@ -60,6 +60,8 @@ jobs:
         run: bash scripts/multi_node_cluster_verify.sh
         env:
           DATABASE_URL: postgresql://postgres:qcore_secret@localhost:5432/qcore_test
+      - name: Production KMS/HSM and Cryptographic Key Lifecycle Verification Drill
+        run: cargo test -p vardhan_keystore --test production_kms_hsm_drill -- --nocapture
       - name: Build release binaries
         run: |
           cargo build --release -p control_plane_api

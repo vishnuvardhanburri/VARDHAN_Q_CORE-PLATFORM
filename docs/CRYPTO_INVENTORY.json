@@ -235,6 +235,130 @@
       "verification_tests": [
         "backend/core_crypto/src/transaction_bound_kdf.rs: test_kdf_expansion"
       ]
+    },
+    {
+      "primitive_id": "KMS-AWS-SYMMETRIC-AES256-GCM",
+      "algorithm": "AWS KMS Symmetric CMK (AES-256-GCM)",
+      "specification": "AWS KMS Cryptographic Details",
+      "primitive_class": "Cloud Key Management Service Envelope DEK Wrapping",
+      "implementation_crate": "vardhan_keystore::kms::aws",
+      "crate_version": "0.1.0",
+      "security_level": {
+        "nist_category": 5,
+        "equivalent_classical_bits": 256,
+        "quantum_security_assessment": "Grover search bound 2^128 operations; hardware security module backing in AWS data centers"
+      },
+      "parameters": {
+        "dek_bytes": 32,
+        "nonce_bytes": 12,
+        "tag_bytes": 16
+      },
+      "usage_in_qcore": [
+        "Production envelope encryption for VardhanKeystore signing keys in AWS deployments",
+        "Automated annual CMK rotation and access auditing"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "AWS-KMS-CMK",
+        "migration_mechanism": "Envelope header records KMS key ID and key version; rotatable independently of application binary.",
+        "cryptanalytic_bounds": "FIPS 140-2 / FIPS 140-3 Level 3 validated HSM backend."
+      },
+      "verification_tests": [
+        "backend/vardhan_keystore/tests/production_kms_hsm_drill.rs: test_aws_kms_provider_lifecycle"
+      ]
+    },
+    {
+      "primitive_id": "KMS-GCP-SYMMETRIC-AES256-GCM",
+      "algorithm": "Google Cloud KMS CryptoKey (AES-256-GCM)",
+      "specification": "Google Cloud KMS Architecture Overview",
+      "primitive_class": "Cloud Key Management Service Envelope DEK Wrapping",
+      "implementation_crate": "vardhan_keystore::kms::gcp",
+      "crate_version": "0.1.0",
+      "security_level": {
+        "nist_category": 5,
+        "equivalent_classical_bits": 256,
+        "quantum_security_assessment": "Grover search bound 2^128 operations; hardware security module backing in Google data centers"
+      },
+      "parameters": {
+        "dek_bytes": 32,
+        "nonce_bytes": 12,
+        "tag_bytes": 16
+      },
+      "usage_in_qcore": [
+        "Production envelope encryption for VardhanKeystore signing keys in GCP deployments",
+        "Versioned CryptoKey rotation and destruction"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "GCP-CLOUD-KMS",
+        "migration_mechanism": "Envelope header records CryptoKey resource path and version; rotatable without re-encrypting historical receipts.",
+        "cryptanalytic_bounds": "FIPS 140-2 Level 3 validated HSM backend."
+      },
+      "verification_tests": [
+        "backend/vardhan_keystore/tests/production_kms_hsm_drill.rs: test_gcp_cloud_kms_provider_lifecycle"
+      ]
+    },
+    {
+      "primitive_id": "KMS-VAULT-TRANSIT-AES256-GCM96",
+      "algorithm": "HashiCorp Vault Transit Engine (aes256-gcm96)",
+      "specification": "HashiCorp Vault Transit Secrets Engine Specification",
+      "primitive_class": "Cryptography as a Service / Key Management",
+      "implementation_crate": "vardhan_keystore::kms::vault_transit",
+      "crate_version": "0.1.0",
+      "security_level": {
+        "nist_category": 5,
+        "equivalent_classical_bits": 256,
+        "quantum_security_assessment": "Grover search bound 2^128 operations"
+      },
+      "parameters": {
+        "dek_bytes": 32,
+        "nonce_bytes": 12,
+        "tag_bytes": 16
+      },
+      "usage_in_qcore": [
+        "On-premises and hybrid cloud envelope DEK wrapping",
+        "Min decryption version enforcement and key rotation"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "VAULT-TRANSIT",
+        "migration_mechanism": "Ciphertext carries vault:v{version} prefix; Vault transit handles multi-version decryption automatically.",
+        "cryptanalytic_bounds": "Standard AEAD AES-256-GCM."
+      },
+      "verification_tests": [
+        "backend/vardhan_keystore/tests/production_kms_hsm_drill.rs: test_vault_transit_provider_lifecycle"
+      ]
+    },
+    {
+      "primitive_id": "HSM-PKCS11-AES-GCM",
+      "algorithm": "PKCS#11 v2.40 Cryptographic Token (CKM_AES_GCM)",
+      "specification": "OASIS PKCS#11 Cryptographic Token Interface Standard v2.40",
+      "primitive_class": "Hardware Security Module Cryptographic Token Interface",
+      "implementation_crate": "vardhan_keystore::kms::pkcs11",
+      "crate_version": "0.1.0",
+      "security_level": {
+        "nist_category": 5,
+        "equivalent_classical_bits": 256,
+        "quantum_security_assessment": "Private key material isolated inside hardware perimeter; impervious to remote memory extraction"
+      },
+      "parameters": {
+        "dek_bytes": 32,
+        "nonce_bytes": 12,
+        "tag_bytes": 16
+      },
+      "usage_in_qcore": [
+        "On-premises bank data center hardware root of trust (Thales Luna HSM, Utimaco, Nitrokey)",
+        "Hardware-enforced key wrapping with PIN authentication and lock-out"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "PKCS11-CKM_AES_GCM",
+        "migration_mechanism": "Configurable PKCS#11 module path and slot ID; seamlessly supports multi-vendor HSMs conforming to PKCS#11 v2.40.",
+        "cryptanalytic_bounds": "Physical hardware boundary certified to FIPS 140-2 / FIPS 140-3 Level 3 or Common Criteria EAL4+."
+      },
+      "verification_tests": [
+        "backend/vardhan_keystore/tests/production_kms_hsm_drill.rs: test_pkcs11_hsm_provider_lifecycle"
+      ]
     }
   ]
 }

@@ -534,13 +534,13 @@ impl RaftNode {
         // reads it, and prevents the advance_commit_index persist from
         // being overwritten by a late submit_entry persist.
         if self.config.persist_on_submit {
+            let log_clone = log.clone();
+            drop(log);
             let term = *self.current_term.read().await;
             let voted_for = self.voted_for.read().await.clone();
-            let log_clone = log.clone();
             let commit_idx = *self.commit_index.read().await;
             let cluster_id = self.cluster_id.read().await.clone();
             let config_epoch = *self.config_epoch.read().await;
-            drop(log);
             let _ = self
                 .persist_state_with(
                     term,
@@ -796,10 +796,10 @@ impl RaftNode {
         // Capture values needed for persistence, then release log write lock.
         let commit_idx_val = std::cmp::min(args.leader_commit, log.len() as u64);
         let _log_len_after = log.len();
-        let term_for_persist = *self.current_term.read().await;
-        let voted_for_for_persist = self.voted_for.read().await.clone();
         let log_clone = log.clone();
         drop(log);
+        let term_for_persist = *self.current_term.read().await;
+        let voted_for_for_persist = self.voted_for.read().await.clone();
 
         if needs_persist {
             if let Err(e) = self

@@ -368,5 +368,7 @@ async fn p8_9a_soak_continuous_writes_with_crashes() {
     // Cleanup
     for node in &mut nodes {
         node.run_handle.abort();
+        node._listener_handle.abort();
+        node._apply_handle.abort();
     }
 }

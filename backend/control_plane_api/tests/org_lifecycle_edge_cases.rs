@@ -832,10 +832,11 @@ async fn replay_protection_after_sealing() {
     // Replay behavior is tested against the pre-registered development tenant.
     // The separate organization lifecycle and tenant-mismatch tests cover dynamic IDs.
     let tenant = "org-vardhan-intelligence";
+    let dynamic_finding_id = format!("find-regression-{}", uuid::Uuid::new_v4());
     let contract = serde_json::json!({
         "contract": {
             "schema_version": "1.0",
-            "finding_id": "find-regression-001",
+            "finding_id": dynamic_finding_id,
             "intelligence": {"engine_id":"e","engine_version":"1","run_id":"r"},
             "organization": {"organization_id":tenant,"canonical_domain":"vardhan.org"},
             "affected_resource": {"canonical_url":"https://x","surface_type":"API_REST","entry_point_id":"ep"},
