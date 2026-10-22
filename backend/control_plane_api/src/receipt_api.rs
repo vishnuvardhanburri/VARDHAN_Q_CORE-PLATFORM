@@ -8,8 +8,6 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{path::PathBuf, process::Stdio};
-use tokio::io::AsyncWriteExt;
-use tokio::process::Command;
 
 #[derive(Deserialize, Serialize)]
 pub struct ValidationRequest {
@@ -228,38 +226,6 @@ pub async fn validate_canonical(
     let tenant_idem_dir = format!("/tmp/vardhan_idem_{organization_id}");
     let _ = std::fs::create_dir_all(&tenant_idem_dir);
 
-    let mut child = match Command::new(&binary_path)
-        .arg("validate-canonical")
-        .env("VARDHAN_IDEMPOTENCY_DIR", &tenant_idem_dir)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-    {
-        Ok(child) => child,
-        Err(error) => {
-            if let Some(ref idem_key) = idempotency_key {
-                state
-                    .idempotency
-                    .release_or_fail(
-                        &organization_id,
-                        idem_key,
-                        &tx_id,
-                        "receipt_engine_spawn_failed",
-                        &instance_id,
-                    )
-                    .await
-                    .ok();
-            }
-            tracing::error!(path = %binary_path.display(), %error, "failed to spawn receipt engine");
-            return (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Json(json!({ "error": "Receipt engine could not be started" })),
-            )
-                .into_response();
-        }
-    };
-
     let payload_bytes = match serde_json::to_vec(&payload) {
         Ok(bytes) => bytes,
         Err(error) => {
@@ -285,74 +251,70 @@ pub async fn validate_canonical(
         }
     };
 
-    let Some(mut stdin) = child.stdin.take() else {
-        if let Some(ref idem_key) = idempotency_key {
-            state
-                .idempotency
-                .release_or_fail(
-                    &organization_id,
-                    idem_key,
-                    &tx_id,
-                    "engine_stdin_unavailable",
-                    &instance_id,
-                )
-                .await
-                .ok();
-        }
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": "Receipt engine input pipe was unavailable" })),
-        )
-            .into_response();
-    };
+    let output =
+        match tokio::task::spawn_blocking(move || -> std::io::Result<std::process::Output> {
+            let mut child = std::process::Command::new(&binary_path)
+                .arg("validate-canonical")
+                .env("VARDHAN_IDEMPOTENCY_DIR", &tenant_idem_dir)
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?;
 
-    if let Err(error) = stdin.write_all(&payload_bytes).await {
-        if let Some(ref idem_key) = idempotency_key {
-            state
-                .idempotency
-                .release_or_fail(
-                    &organization_id,
-                    idem_key,
-                    &tx_id,
-                    "engine_pipe_write_failed",
-                    &instance_id,
-                )
-                .await
-                .ok();
-        }
-        tracing::error!(%error, "failed to write receipt request to engine");
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": "Failed to submit receipt request" })),
-        )
-            .into_response();
-    }
-    drop(stdin);
-
-    let output = match child.wait_with_output().await {
-        Ok(output) => output,
-        Err(error) => {
-            if let Some(ref idem_key) = idempotency_key {
-                state
-                    .idempotency
-                    .release_or_fail(
-                        &organization_id,
-                        idem_key,
-                        &tx_id,
-                        "engine_wait_failed",
-                        &instance_id,
-                    )
-                    .await
-                    .ok();
+            if let Some(mut stdin) = child.stdin.take() {
+                use std::io::Write;
+                let _ = stdin.write_all(&payload_bytes);
+                drop(stdin);
             }
-            tracing::error!(%error, "receipt engine execution failed");
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": "Receipt engine execution failed" })),
-            )
-                .into_response();
-        }
-    };
+
+            child.wait_with_output()
+        })
+        .await
+        {
+            Ok(Ok(output)) => output,
+            Ok(Err(error)) => {
+                if let Some(ref idem_key) = idempotency_key {
+                    state
+                        .idempotency
+                        .release_or_fail(
+                            &organization_id,
+                            idem_key,
+                            &tx_id,
+                            "receipt_engine_execution_failed",
+                            &instance_id,
+                        )
+                        .await
+                        .ok();
+                }
+                tracing::error!(%error, "receipt engine execution failed");
+                return (
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    Json(json!({ "error": "Receipt engine execution failed" })),
+                )
+                    .into_response();
+            }
+            Err(join_error) => {
+                if let Some(ref idem_key) = idempotency_key {
+                    state
+                        .idempotency
+                        .release_or_fail(
+                            &organization_id,
+                            idem_key,
+                            &tx_id,
+                            "receipt_engine_join_error",
+                            &instance_id,
+                        )
+                        .await
+                        .ok();
+                }
+                tracing::error!(%join_error, "receipt engine task panicked or aborted");
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({ "error": "Receipt engine task failed" })),
+                )
+                    .into_response();
+            }
+        };
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let last_line = stdout.trim().lines().last().unwrap_or("");

@@ -41,6 +41,7 @@ echo ""
 echo "[2/7] Starting control plane container..."
 docker rm -f qcore-pov 2>/dev/null || true
 docker run -d \
+    --init \
     --name qcore-pov \
     -p 8080:8080 \
     -e VARDHAN_ENV=development \
