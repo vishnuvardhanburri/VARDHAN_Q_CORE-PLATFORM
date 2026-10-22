@@ -62,6 +62,8 @@ jobs:
           DATABASE_URL: postgresql://postgres:qcore_secret@localhost:5432/qcore_test
       - name: Production KMS/HSM and Cryptographic Key Lifecycle Verification Drill
         run: cargo test -p vardhan_keystore --test production_kms_hsm_drill -- --nocapture
+      - name: FIPS 140-3 Cryptographic Module Self-Test and Health Gate
+        run: bash scripts/test_fips_140_3_gate.sh
       - name: Build release binaries
         run: |
           cargo build --release -p control_plane_api

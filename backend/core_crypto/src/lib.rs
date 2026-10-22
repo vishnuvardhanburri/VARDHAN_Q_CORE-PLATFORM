@@ -4,6 +4,7 @@
 //! Wraps FIPS 203 (ML-KEM-1024) and FIPS 204 (ML-DSA-87).
 
 pub mod avx512;
+pub mod fips140_3;
 pub mod vault;
 
 use crate::vault::{EncryptedEnvelope, KeyProtector, VaultError};
@@ -51,9 +52,15 @@ pub struct QuantumNodeIdentity {
 
 impl QuantumNodeIdentity {
     pub fn generate_node_identity() -> Result<Self, Box<dyn std::error::Error>> {
+        crate::fips140_3::assert_fips_operational()?;
         let (decap_key, encap_key) = MlKem1024::generate(&mut OsRng);
         let (dsa_pk, dsa_sk) = ml_dsa_87::try_keygen()
             .map_err(|e| format!("Failed to generate ML-DSA-87 keypair: {e}"))?;
+
+        // FIPS 140-3 Section 9.3.2 Pairwise Consistency Tests (PCT)
+        crate::fips140_3::run_pairwise_consistency_test_kem(&encap_key, &decap_key)?;
+        crate::fips140_3::run_pairwise_consistency_test_dsa(&dsa_pk, &dsa_sk)?;
+
         let decap_bytes = zeroize::Zeroizing::new(decap_key.as_bytes().to_vec());
         let dsa_sk_bytes = zeroize::Zeroizing::new(dsa_sk.into_bytes());
         Ok(QuantumNodeIdentity {
@@ -155,6 +162,7 @@ impl QuantumNodeIdentity {
     ) -> Result<KeyTransitionRecord, Box<dyn std::error::Error>> {
         let (new_dsa_pk, new_dsa_sk) = ml_dsa_87::try_keygen()
             .map_err(|e| format!("Failed to generate new ML-DSA-87 keypair: {e}"))?;
+        crate::fips140_3::run_pairwise_consistency_test_dsa(&new_dsa_pk, &new_dsa_sk)?;
         let new_pk_bytes = new_dsa_pk.clone().into_bytes().to_vec();
         let transition_payload = KeyTransitionPayload {
             old_pubkey_fingerprint: self.signer_pub_fingerprint(),
@@ -239,6 +247,8 @@ impl QuantumNodeIdentity {
     pub fn encapsulate_shared_secret_from_bytes(
         remote_encap_key_bytes: &[u8],
     ) -> Result<(Vec<u8>, Vec<u8>), CryptoError> {
+        crate::fips140_3::assert_fips_operational()
+            .map_err(|e| CryptoError::Internal(e.to_string()))?;
         if remote_encap_key_bytes.len() != ENCAP_KEY_LEN {
             return Err(CryptoError::InvalidKeyLength {
                 expected: ENCAP_KEY_LEN,
@@ -257,6 +267,8 @@ impl QuantumNodeIdentity {
     }
 
     pub fn decapsulate_from_bytes(&self, ciphertext_bytes: &[u8]) -> Result<Vec<u8>, CryptoError> {
+        crate::fips140_3::assert_fips_operational()
+            .map_err(|e| CryptoError::Internal(e.to_string()))?;
         if ciphertext_bytes.len() != CIPHERTEXT_LEN {
             return Err(CryptoError::InvalidKeyLength {
                 expected: CIPHERTEXT_LEN,
@@ -283,6 +295,7 @@ impl QuantumNodeIdentity {
     }
 
     pub fn sign_payload(&self, payload: &[u8]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+        crate::fips140_3::assert_fips_operational()?;
         let dsa_private_key = ml_dsa_87::PrivateKey::try_from_bytes(*self.dsa_private_key_bytes)
             .map_err(|e| format!("Failed to restore ML-DSA-87 key: {e}"))?;
         let signature = dsa_private_key

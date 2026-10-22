@@ -359,6 +359,52 @@
       "verification_tests": [
         "backend/vardhan_keystore/tests/production_kms_hsm_drill.rs: test_pkcs11_hsm_provider_lifecycle"
       ]
+    },
+    {
+      "primitive_id": "FIPS-140-3-SELF-TESTS",
+      "algorithm": "FIPS 140-3 (ISO/IEC 19790:2021) Cryptographic Module Self-Test Engine",
+      "specification": "FIPS PUB 140-3 / NIST SP 800-140C / SP 800-140D / ISO/IEC 19790:2021",
+      "primitive_class": "Cryptographic Integrity and Assurance Subsystem",
+      "implementation_crate": "core_crypto::fips140_3",
+      "crate_version": "0.1.0",
+      "security_level": {
+        "nist_category": 5,
+        "equivalent_classical_bits": 256,
+        "quantum_security_assessment": "Protects against silent cryptographic corruption, state leakage, and hardware bit-flips across all active primitives"
+      },
+      "parameters": {
+        "kat_primitives": [
+          "AES-256-GCM",
+          "SHA3-512",
+          "BLAKE3",
+          "Ed25519",
+          "ML-DSA-87",
+          "ML-KEM-1024",
+          "Module Integrity"
+        ],
+        "conditional_tests": [
+          "Pairwise Consistency Tests (PCT) on keygen",
+          "Continuous Entropy Health Testing (SP 800-90B)"
+        ],
+        "error_state": "Zeroize Sensitive Security Parameters (SSP) and inhibit all crypto operations"
+      },
+      "usage_in_qcore": [
+        "Pre-operational boot power-on self-tests in control plane API",
+        "Runtime key generation pairwise consistency verification",
+        "Continuous entropy monitoring before key derivation",
+        "Public health telemetry via /api/v1/crypto/fips-status"
+      ],
+      "algorithm_agility": {
+        "schema_version": "1.1",
+        "algorithm_identifier": "FIPS-140-3-SELF-TEST",
+        "migration_mechanism": "Modular test harness extensible to forthcoming Post-Quantum Cryptography (PQC) standards and parameter sets.",
+        "cryptanalytic_bounds": "Deterministic Known Answer Tests verified against NIST CAVP vectors."
+      },
+      "verification_tests": [
+        "backend/core_crypto/tests/fips_140_3_validation_test.rs",
+        "backend/control_plane_api/tests/fips_api_integration_test.rs",
+        "scripts/test_fips_140_3_gate.sh"
+      ]
     }
   ]
 }

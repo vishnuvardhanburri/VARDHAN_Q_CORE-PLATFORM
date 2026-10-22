@@ -57,6 +57,28 @@ pub fn build_cors(origins: Vec<axum::http::HeaderValue>) -> CorsLayer {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt().with_target(true).json().init();
+
+    // FIPS 140-3 Pre-Operational Power-On Self-Tests (POST)
+    let fips_enforced = core_crypto::fips140_3::is_fips_mode_enforced();
+    match core_crypto::fips140_3::run_power_on_self_tests(None) {
+        Ok(summary) => {
+            tracing::info!(
+                execution_time_micros = summary.execution_time_micros,
+                fips_mode_enforced = fips_enforced,
+                "FIPS 140-3 Power-On Self-Tests verified: all algorithm KATs passed"
+            );
+        }
+        Err(e) => {
+            tracing::error!(
+                error = %e,
+                "CRITICAL: FIPS 140-3 Power-On Self-Test (POST) failure detected"
+            );
+            if fips_enforced {
+                return Err(format!("FIPS 140-3 self-test failure in enforced mode: {e}").into());
+            }
+        }
+    }
+
     let data_dir = PathBuf::from(
         env::var("VARDHAN_CONTROL_PLANE_DATA_DIR")
             .unwrap_or_else(|_| "/var/lib/vardhan/control-plane".to_string()),

@@ -556,6 +556,7 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
             "/api/v1/platform/health",
             get(health).with_state(control.clone()),
         )
+        .route("/api/v1/crypto/fips-status", get(fips_status))
         .route(
             "/api/v1/cluster/status",
             get(cluster_status).with_state(control.clone()),
@@ -658,8 +659,24 @@ async fn health(
             "tls_enabled": tls_enabled,
             "client_auth": client_auth_mode(),
             "storage": storage_status,
-            "storage_backend": control.idempotency.backend_name()
+            "storage_backend": control.idempotency.backend_name(),
+            "fips_140_3": core_crypto::fips140_3::get_fips_status_report().status
         })),
+    )
+        .into_response()
+}
+
+/// Exposes FIPS 140-3 operational state, Known Answer Test results, and algorithm approvals.
+async fn fips_status() -> axum::response::Response {
+    let report = core_crypto::fips140_3::get_fips_status_report();
+    let status_code = if report.status == "ERROR_STATE" {
+        StatusCode::SERVICE_UNAVAILABLE
+    } else {
+        StatusCode::OK
+    };
+    (
+        status_code,
+        Json(serde_json::to_value(&report).unwrap_or_default()),
     )
         .into_response()
 }

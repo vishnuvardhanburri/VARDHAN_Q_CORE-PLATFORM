@@ -133,3 +133,36 @@ Receipts generated today are designed to be verifiable 10 to 30 years into the f
 1. Verification does not rely on online calls to the Q-Core platform. The standalone verifier library (`vardhan_verifier`) requires only the receipt JSON and the issuer public keys.
 2. If future standards introduce new post-quantum signature schemes (e.g., Falcon/FN-DSA, SPHINCS+/SLH-DSA), Q-Core's schema engine introduces a new schema version while the verifier retains decoders for legacy `"1.1"` ML-DSA-87 receipts.
 3. Historical evidence verified against an archived ML-DSA-87 receipt retains legal and cryptographic admissibility regardless of future classical cryptographic deprecations.
+
+---
+
+## 7. FIPS 140-3 Cryptographic Module & Self-Tests
+
+### 7.1 Compliance Boundary & Standard
+Vardhan Q-Core implements a multi-chip standalone cryptographic module adhering to **FIPS 140-3 (ISO/IEC 19790:2021)** and NIST SP 800-140C / SP 800-140D. The module boundary encapsulates `core_crypto` along with its secure memory, envelope protection, key lifecycle management, and self-test subsystems.
+
+For complete formal specifications of roles, services, cryptographic boundaries, and sensitive parameter protection, refer to the authoritative [FIPS 140-3 Security Policy](FIPS_140_3_SECURITY_POLICY.md).
+
+### 7.2 Pre-Operational Power-On Self-Tests (POST)
+Before entering the `Operational` state, Q-Core executes deterministic Known Answer Tests (KAT) for every approved and non-approved security function:
+1. **AES-256-GCM KAT**: NIST SP 800-38D CAVP vector verifying encryption, authentication tag generation, decryption, and bit-flipped tag tamper rejection.
+2. **SHA3-512 KAT**: NIST FIPS 202 message digest vector.
+3. **BLAKE3 KAT**: BLAKE3 official vector for canonical commitment hashing.
+4. **Ed25519 KAT**: RFC 8032 Section 7.1 vector verifying Edwards-curve key generation, signing, and signature verification.
+5. **ML-DSA-87 KAT**: NIST FIPS 204 KAT verifying post-quantum signature generation, verification, and byte-tampered signature rejection.
+6. **ML-KEM-1024 KAT**: NIST FIPS 203 KAT verifying post-quantum encapsulation, decapsulation, shared secret equality, and ciphertext bit-flip rejection.
+7. **Module Software/Firmware Integrity KAT**: BLAKE3 self-digest verification over critical module metadata and algorithm parameters.
+
+### 7.3 Conditional Self-Tests
+1. **Pairwise Consistency Tests (PCT)**: Executed immediately upon generation of every asymmetric keypair:
+   - ML-DSA-87: Signs and verifies test message using newly minted keys.
+   - Ed25519: Signs and verifies test message using newly minted keys.
+   - ML-KEM-1024: Encapsulates and decapsulates test secret using newly minted keys.
+2. **Continuous Entropy Testing (CRNGT)**: Complies with NIST SP 800-90B. Verifies entropy distribution and tests for stuck-bit repetitions across 64-sample windows before allowing key generation or KEK derivation.
+
+### 7.4 Fail-Closed Security & Zeroization State Machine
+If any KAT or PCT fails:
+1. The global state transitions atomically to `FipsModuleState::Error`.
+2. All cryptographic services (`sign_payload`, `encapsulate`, `decapsulate`, `generate_node_identity`) immediately return `Fips140_3Error::ModuleInErrorState`.
+3. Sensitive Security Parameters (SSPs) stored in memory are zeroized using `zeroize::Zeroize` and constant-time memory wipes.
+4. In production or when `VARDHAN_FIPS_MODE=1` is configured, the control plane API boot sequence aborts startup fail-closed, and telemetry endpoints (`/api/v1/crypto/fips-status`, `/api/v1/platform/health`) report status `error` with HTTP 503.
