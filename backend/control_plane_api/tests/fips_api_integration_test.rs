@@ -6,8 +6,11 @@ use core_crypto::fips140_3::{run_power_on_self_tests, TestVerdict};
 use reqwest::StatusCode;
 use sled::Config;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use tower_http::cors::CorsLayer;
 use uuid::Uuid;
+
+static FIPS_TEST_MUTEX: Mutex<()> = Mutex::const_new(());
 
 async fn spawn_test_server() -> String {
     let rand_id = Uuid::new_v4().to_string();
@@ -58,6 +61,7 @@ async fn spawn_test_server() -> String {
 
 #[tokio::test]
 async fn test_fips_api_operational_status() {
+    let _guard = FIPS_TEST_MUTEX.lock().await;
     let _ = run_power_on_self_tests(None);
     let base_url = spawn_test_server().await;
     let client = reqwest::Client::new();
@@ -87,6 +91,7 @@ async fn test_fips_api_operational_status() {
 
 #[tokio::test]
 async fn test_fips_health_telemetry_includes_fips_status() {
+    let _guard = FIPS_TEST_MUTEX.lock().await;
     let _ = run_power_on_self_tests(None);
     let base_url = spawn_test_server().await;
     let client = reqwest::Client::new();
@@ -107,6 +112,7 @@ async fn test_fips_health_telemetry_includes_fips_status() {
 
 #[tokio::test]
 async fn test_fips_error_state_returns_service_unavailable() {
+    let _guard = FIPS_TEST_MUTEX.lock().await;
     // 1. Simulate fault injection into SHA3
     let _ = run_power_on_self_tests(Some("sha3"));
 

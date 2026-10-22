@@ -11,9 +11,13 @@ use core_crypto::fips140_3::*;
 use fips204::ml_dsa_87;
 use ml_kem::{KemCore, MlKem1024};
 use rand::rngs::OsRng;
+use std::sync::Mutex;
+
+static FIPS_TEST_MUTEX: Mutex<()> = Mutex::new(());
 
 #[test]
 fn test_fips_power_on_self_tests_all_pass() {
+    let _guard = FIPS_TEST_MUTEX.lock().unwrap();
     let summary = run_power_on_self_tests(None).expect("All FIPS 140-3 POST KATs must pass");
 
     assert_eq!(summary.aes_256_gcm_kat, TestVerdict::Pass);
@@ -30,6 +34,7 @@ fn test_fips_power_on_self_tests_all_pass() {
 
 #[test]
 fn test_fips_fault_injection_fails_closed() {
+    let _guard = FIPS_TEST_MUTEX.lock().unwrap();
     // 1. Simulate fault injection in AES-GCM
     let result = run_power_on_self_tests(Some("aes_gcm"));
     assert!(result.is_err(), "Fault injection must fail");
@@ -77,6 +82,7 @@ fn test_fips_entropy_health_test() {
 
 #[test]
 fn test_fips_status_report() {
+    let _guard = FIPS_TEST_MUTEX.lock().unwrap();
     let _ = run_power_on_self_tests(None);
     let report = get_fips_status_report();
 

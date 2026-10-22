@@ -25,14 +25,14 @@ cd "${REPO_ROOT}"
 # Step 1: Pre-operational KATs and Entropy Health Tests
 echo ""
 echo "[Step 1/5] Executing core_crypto FIPS 140-3 Known Answer Tests (KAT)..."
-cargo test -p core_crypto --test fips_140_3_validation_test -- --nocapture
+cargo test -p core_crypto --test fips_140_3_validation_test -- --test-threads=1 --nocapture
 
 echo "[PASS] All 6 core_crypto FIPS 140-3 validation tests passed."
 
 # Step 2: Control plane API FIPS integration & health telemetry
 echo ""
 echo "[Step 2/5] Executing control_plane_api FIPS telemetry integration tests..."
-cargo test -p control_plane_api --test fips_api_integration_test -- --nocapture
+cargo test -p control_plane_api --test fips_api_integration_test -- --test-threads=1 --nocapture
 
 echo "[PASS] All 3 control_plane_api FIPS telemetry tests passed."
 
