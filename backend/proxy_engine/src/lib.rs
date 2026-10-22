@@ -521,12 +521,26 @@ impl QuantumProxyListener {
 // QuantumProxyServer (production accept-loop)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Trait for application frame processing on top of authenticated AEAD transport.
+///
+/// Handlers receive decrypted frames from the authenticated peer, validate caller
+/// identity and policy invariants, and optionally return an encrypted response frame.
+/// Any error returned from `handle_frame` terminates the session fail-closed.
+#[async_trait::async_trait]
+pub trait FrameIngressHandler: Send + Sync {
+    async fn handle_frame(
+        &self,
+        frame: &[u8],
+        session: &SessionContext,
+    ) -> Result<Option<Vec<u8>>, ProxyError>;
+}
+
 /// Production post-quantum proxy server.
 ///
 /// Binds a TCP listener, generates a node identity, and runs an infinite
 /// accept loop. Each inbound connection is handed off to a dedicated Tokio task
 /// that performs the quantum handshake and then enters the application frame
-/// processing loop (via [`QuantumFrameCodec`]).
+/// processing loop (via [`AeadTransport`]).
 pub struct QuantumProxyServer {
     /// This node's cryptographic identity (public key is shareable).
     pub identity: QuantumNodeIdentity,
@@ -535,6 +549,8 @@ pub struct QuantumProxyServer {
     handshake_semaphore: Arc<Semaphore>,
     /// Global limit on accepted connections to prevent FD exhaustion.
     global_conn_limit: Arc<Semaphore>,
+    /// Optional application frame ingress handler.
+    frame_handler: Option<Arc<dyn FrameIngressHandler>>,
 }
 
 impl QuantumProxyServer {
@@ -546,7 +562,14 @@ impl QuantumProxyServer {
             bind_addr: bind_addr.into(),
             handshake_semaphore: Arc::new(Semaphore::new(100)),
             global_conn_limit: Arc::new(Semaphore::new(1000)),
+            frame_handler: None,
         })
+    }
+
+    /// Attach an application frame ingress handler to process incoming frames.
+    pub fn with_frame_handler(mut self, handler: Arc<dyn FrameIngressHandler>) -> Self {
+        self.frame_handler = Some(handler);
+        self
     }
 
     /// Run the accept-loop indefinitely.
@@ -554,8 +577,7 @@ impl QuantumProxyServer {
     /// For each connection:
     /// 1. Perform the post-quantum handshake.
     /// 2. Derive an HKDF session key.
-    /// 3. Hand the [`Framed`][tokio_util::codec::Framed] stream off to an
-    ///    application task (stub: logs and discards frames).
+    /// 3. Enter the authenticated duplex AEAD frame loop.
     pub async fn run_loop(&self) -> Result<(), ProxyError> {
         let listener = TcpListener::bind(&self.bind_addr).await?;
         info!(addr = %self.bind_addr, "QuantumProxyServer listening");
@@ -568,6 +590,7 @@ impl QuantumProxyServer {
                     let semaphore = self.handshake_semaphore.clone();
                     let conn_limit = self.global_conn_limit.clone();
                     let identity = self.identity.clone();
+                    let frame_handler = self.frame_handler.clone();
 
                     tokio::spawn(async move {
                         // 1. Global connection limit
@@ -600,12 +623,59 @@ impl QuantumProxyServer {
                                 info!(
                                     %remote_addr,
                                     secret_len = 32,
-                                    "Handshake complete; entering frame loop"
+                                    "Handshake complete; entering AEAD frame loop"
                                 );
-                                // Application frame ingress stub:
-                                let _framed =
-                                    tokio_util::codec::Framed::new(socket, QuantumFrameCodec);
-                                // TODO Sprint 3: pipe frames into ledger_sync
+                                let mut transport = AeadTransport::new(
+                                    socket,
+                                    *session.server_to_client_key,
+                                    *session.client_to_server_key,
+                                    session.session_id,
+                                    session.session_salt,
+                                    false,
+                                );
+                                let handler = frame_handler.clone();
+
+                                loop {
+                                    match transport.read_frame().await {
+                                        Ok(Some(frame)) => {
+                                            if let Some(ref h) = handler {
+                                                match h.handle_frame(&frame, &session).await {
+                                                    Ok(Some(response)) => {
+                                                        if let Err(e) =
+                                                            transport.write_frame(&response).await
+                                                        {
+                                                            warn!(%remote_addr, "Failed to write response frame: {e}");
+                                                            break;
+                                                        }
+                                                    }
+                                                    Ok(None) => {}
+                                                    Err(e) => {
+                                                        warn!(%remote_addr, "Frame handler rejected frame fail-closed: {e}");
+                                                        break;
+                                                    }
+                                                }
+                                            } else {
+                                                let ack = [
+                                                    b"ACK:",
+                                                    &blake3::hash(&frame).as_bytes()[..16],
+                                                ]
+                                                .concat();
+                                                if let Err(e) = transport.write_frame(&ack).await {
+                                                    warn!(%remote_addr, "Failed to write ack frame: {e}");
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        Ok(None) => {
+                                            info!(%remote_addr, "Client closed connection cleanly");
+                                            break;
+                                        }
+                                        Err(e) => {
+                                            warn!(%remote_addr, "Frame read failed fail-closed: {e}");
+                                            break;
+                                        }
+                                    }
+                                }
                             }
                             Ok(Err(e)) => {
                                 warn!(%remote_addr, "Handshake failed: {e}");

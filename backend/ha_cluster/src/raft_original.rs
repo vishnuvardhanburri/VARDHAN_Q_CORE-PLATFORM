@@ -917,7 +917,7 @@ impl RaftNode {
         let mut max_reply_term = cur_term;
         let needed_votes = (peers.len() + 1) / 2 + 1;
 
-        while let Some((_peer, result)) = rpc_futures.next().await {
+        while let Some((peer, result)) = rpc_futures.next().await {
             if let Ok(reply) = result {
                 info!(
                     candidate_id = %self.id,
@@ -1237,7 +1237,7 @@ impl RaftNode {
                                     );
                                 }
                             }
-                            Err(_e) => {
+                            Err(e) => {
                                 warn!(
                                     node_id = %self.id,
                                     peer = %peer,

@@ -166,3 +166,11 @@ If any KAT or PCT fails:
 2. All cryptographic services (`sign_payload`, `encapsulate`, `decapsulate`, `generate_node_identity`) immediately return `Fips140_3Error::ModuleInErrorState`.
 3. Sensitive Security Parameters (SSPs) stored in memory are zeroized using `zeroize::Zeroize` and constant-time memory wipes.
 4. In production or when `VARDHAN_FIPS_MODE=1` is configured, the control plane API boot sequence aborts startup fail-closed, and telemetry endpoints (`/api/v1/crypto/fips-status`, `/api/v1/platform/health`) report status `error` with HTTP 503.
+
+### 7.5 Formal Validation Boundary & NVLAP Laboratory Readiness
+NIST distinguishes between implementing approved algorithms / executing self-test harnesses and holding formal validation certificate issuance under the Cryptographic Module Validation Program (CMVP).
+
+1. **Current Status:** Q-Core has implemented full software boundary encapsulation, Known Answer Tests (KATs), Pairwise Consistency Tests (PCTs), continuous entropy testing, and zeroize-on-error state transitions. This engineering work prepares the module for formal submission to an accredited National Voluntary Laboratory Accreditation Program (NVLAP) testing laboratory.
+2. **Certification Distinction:** Self-test passage verifies algorithmic correctness and state machine invariants in continuous integration. It does not constitute an issued FIPS 140-3 validation certificate or CMVP certificate number, which requires third-party laboratory audit and NIST review.
+3. **FIPS 204 Scope:** NIST FIPS 204 defines the ML-DSA digital signature standard. While Q-Core implements compliant ML-DSA-87 signatures, algorithmic compliance is not a substitute for comprehensive institutional assurance, penetration testing, or sovereign regulatory approval.
+4. **Memory Management and Threat Boundary:** Secret zeroization using `zeroize::Zeroize` and `core::sync::atomic::compiler_fence` constrains compiler dead-store elimination and cleans heap/stack buffers after use. Volatile memory erasure defends against local memory inspection and cold-boot physical access; defense against Store-Now-Decrypt-Later (SNDL/HNDL) is provided by post-quantum key encapsulation (ML-KEM-1024) and signatures (ML-DSA-87).

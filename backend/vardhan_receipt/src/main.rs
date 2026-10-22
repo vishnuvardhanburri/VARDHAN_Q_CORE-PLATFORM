@@ -499,8 +499,6 @@ fn reserve_finding(finding_id: &str) -> bool {
     std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
-        .truncate(false)
-        .create(true)
         .open(&reserve_path)
         .map(|mut f| {
             let _ = f.write_all(b"RESERVED");
@@ -1997,5 +1995,294 @@ mod e2e_boundary_tests {
         let result = crate::trust_boundary::TrustBoundaryValidator::validate(&contract);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("not valid hex"));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 22-Point Trust Gate Invariant Negative Test Suite (INV-01 to INV-22)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_inv01_schema_version_invalid_rejects() {
+        let mut c = get_valid_contract();
+        c.schema_version = "2.0".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("Invalid schema_version"));
+    }
+
+    #[test]
+    fn test_inv02_empty_organization_id_rejects() {
+        let mut c = get_valid_contract();
+        c.organization.organization_id = "".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("organization_id must not be empty"));
+    }
+
+    #[test]
+    fn test_inv03_empty_intelligence_identity_rejects() {
+        let mut c = get_valid_contract();
+        c.intelligence.engine_id = "".to_string();
+        assert!(crate::trust_boundary::TrustBoundaryValidator::validate(&c).is_err());
+
+        let mut c2 = get_valid_contract();
+        c2.intelligence.run_id = "".to_string();
+        assert!(crate::trust_boundary::TrustBoundaryValidator::validate(&c2).is_err());
+    }
+
+    #[test]
+    fn test_inv04_empty_canonical_domain_rejects() {
+        let mut c = get_valid_contract();
+        c.organization.canonical_domain = "".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("canonical_domain must not be empty"));
+    }
+
+    #[test]
+    fn test_inv05_empty_resource_identity_rejects() {
+        let mut c = get_valid_contract();
+        c.affected_resource.canonical_url = "".to_string();
+        assert!(crate::trust_boundary::TrustBoundaryValidator::validate(&c).is_err());
+
+        let mut c2 = get_valid_contract();
+        c2.affected_resource.entry_point_id = "".to_string();
+        assert!(crate::trust_boundary::TrustBoundaryValidator::validate(&c2).is_err());
+    }
+
+    #[test]
+    fn test_inv06_empty_finding_id_rejects() {
+        let mut c = get_valid_contract();
+        c.finding_id = "".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("finding_id must not be empty"));
+    }
+
+    #[test]
+    fn test_inv07_empty_evidence_refs_rejects() {
+        let mut c = get_valid_contract();
+        c.evidence_refs = vec![];
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("evidence_refs must not be empty"));
+    }
+
+    #[test]
+    fn test_inv08_invalid_evidence_content_hash_rejects() {
+        let mut c = get_valid_contract();
+        c.evidence_refs[0].content_hash = "bad_hash".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("expected 64-char SHA-256 hex"));
+    }
+
+    #[test]
+    fn test_inv09_empty_evidence_origin_rejects() {
+        let mut c = get_valid_contract();
+        c.evidence_refs[0].evidence_origin = "".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res.unwrap_err().contains("evidence_origin missing"));
+    }
+
+    #[test]
+    fn test_inv10_historical_evidence_rejects() {
+        let mut c = get_valid_contract();
+        c.evidence_refs[0].temporal_status = "HISTORICAL".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("Historical evidence presented as current is REJECTED"));
+    }
+
+    #[test]
+    fn test_inv11_empty_expectation_linkage_rejects() {
+        let mut c = get_valid_contract();
+        c.provenance_chain.expectation_id = "".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("expectation_id missing in provenance_chain"));
+    }
+
+    #[test]
+    fn test_inv12_empty_observation_linkage_rejects() {
+        let mut c = get_valid_contract();
+        c.provenance_chain.observation_ids = vec![];
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("observation_ids missing in provenance_chain"));
+    }
+
+    #[test]
+    fn test_inv13_empty_differential_linkage_rejects() {
+        let mut c = get_valid_contract();
+        c.provenance_chain.differential_id = "".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("differential_id missing in provenance_chain"));
+    }
+
+    #[test]
+    fn test_inv14_empty_verification_linkage_rejects() {
+        let mut c = get_valid_contract();
+        c.provenance_chain.hypothesis_id = "".to_string();
+        assert!(crate::trust_boundary::TrustBoundaryValidator::validate(&c).is_err());
+
+        let mut c2 = get_valid_contract();
+        c2.provenance_chain.verification_contract_id = "".to_string();
+        assert!(crate::trust_boundary::TrustBoundaryValidator::validate(&c2).is_err());
+    }
+
+    #[test]
+    fn test_inv15_differential_state_not_confirmed_mismatch_rejects() {
+        let mut c = get_valid_contract();
+        c.differential_state = "BENIGN_MATCH".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("differential_state must be CONFIRMED_MISMATCH"));
+    }
+
+    #[test]
+    fn test_inv16_invalid_materiality_rejects() {
+        let mut c = get_valid_contract();
+        c.materiality = "INFORMATIONAL_UNRANKED".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("materiality must be HIGH, MEDIUM, or LOW"));
+    }
+
+    #[test]
+    fn test_inv17_contradictory_evidence_rejects() {
+        let mut c = get_valid_contract();
+        c.contradictory_evidence_ids = vec!["contra-1".to_string()];
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("Contradictory evidence present, finding is REJECTED"));
+    }
+
+    #[test]
+    fn test_inv18_unauthorized_action_candidate_rejects() {
+        let mut c = get_valid_contract();
+        c.decision_candidate = "DROP_TABLE_USERS".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("is not in the allowed policy whitelist"));
+    }
+
+    #[test]
+    fn test_inv19_unregistered_policy_reference_rejects() {
+        let mut c = get_valid_contract();
+        c.policy_reference = "UNREGISTERED_ROGUE_POLICY".to_string();
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("is not registered in the Q-Core policy registry"));
+    }
+
+    #[test]
+    fn test_inv20_missing_authorized_by_when_required_rejects() {
+        let mut c = get_valid_contract();
+        c.authorization_context.requires_authorized_assessment = true;
+        c.authorization_context.authorized_by = None;
+        let res = crate::trust_boundary::TrustBoundaryValidator::validate(&c);
+        assert!(res.is_err());
+        assert!(res
+            .unwrap_err()
+            .contains("authorization_context requires authorized_by"));
+    }
+
+    #[test]
+    fn test_inv21_durable_replay_rejects() {
+        init_test_env();
+        let contract = get_valid_contract();
+        let request = QCoreValidationRequest {
+            contract: contract.clone(),
+            actor_workload_id: "svc:vardhan-intelligence:test-01".to_string(),
+        };
+
+        let first = process_transaction(request.clone());
+        assert!(first.is_ok(), "First transaction must succeed");
+
+        let second = process_transaction(request);
+        assert!(second.is_err(), "Duplicate submission must be rejected");
+        let (code, msg) = second.unwrap_err();
+        assert_eq!(code, "REJECTED_REPLAY");
+        assert!(msg.contains("has already been sealed"));
+    }
+
+    #[test]
+    fn test_inv22_concurrent_duplicate_reservation_single_winner() {
+        let test_finding_id = format!("concurrent-test-{}", uuid::Uuid::new_v4());
+        assert!(
+            reserve_finding(&test_finding_id),
+            "Initial reservation must win"
+        );
+        assert!(
+            !reserve_finding(&test_finding_id),
+            "Concurrent duplicate reservation must lose"
+        );
+        release_finding_reservation(&test_finding_id);
+        assert!(
+            reserve_finding(&test_finding_id),
+            "Reservation available again after release"
+        );
+        release_finding_reservation(&test_finding_id);
+    }
+
+    #[test]
+    fn test_malformed_json_payload_rejection() {
+        let malformed_raw = b"{\"schema_version\": 1.0, \"unclosed\": ";
+        let res: Result<VerifiedFindingContract, _> = serde_json::from_slice(malformed_raw);
+        assert!(
+            res.is_err(),
+            "Malformed JSON must be rejected at deserialization boundary"
+        );
+    }
+
+    #[test]
+    fn test_cross_tenant_isolation_gate() {
+        init_test_env();
+        let mut c_unauth = get_valid_contract();
+        c_unauth.organization.organization_id = "org-unregistered-adversary".to_string();
+
+        let req_unauth = QCoreValidationRequest {
+            contract: c_unauth,
+            actor_workload_id: "svc:vardhan-intelligence:test-01".to_string(),
+        };
+
+        let err = process_transaction(req_unauth).unwrap_err();
+        assert_eq!(
+            err.0, "DENY_TENANT_UNKNOWN",
+            "Unregistered tenant must be rejected fail-closed"
+        );
+
+        let c_auth = get_valid_contract();
+        let req_auth = QCoreValidationRequest {
+            contract: c_auth,
+            actor_workload_id: "svc:vardhan-intelligence:test-01".to_string(),
+        };
+        let res_auth = process_transaction(req_auth).unwrap();
+        assert_eq!(res_auth.tenant_id, "org-vardhan-intelligence");
     }
 }

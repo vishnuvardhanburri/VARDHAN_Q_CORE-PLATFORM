@@ -294,3 +294,132 @@ async fn test_session_keys_match_both_sides() {
     assert_eq!(resp_key.len(), 32);
     assert_ne!(resp_key, vec![0u8; 32]);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 7: QuantumProxyServer end-to-end AEAD frame ingress and response
+// ─────────────────────────────────────────────────────────────────────────────
+
+struct TestIngressHandler {
+    server_id: QuantumNodeIdentity,
+}
+
+#[async_trait::async_trait]
+impl proxy_engine::FrameIngressHandler for TestIngressHandler {
+    async fn handle_frame(
+        &self,
+        frame: &[u8],
+        _session: &proxy_engine::SessionContext,
+    ) -> Result<Option<Vec<u8>>, ProxyError> {
+        if frame.starts_with(b"TX:") {
+            let sig = self
+                .server_id
+                .sign_payload(frame)
+                .map_err(|_| ProxyError::CryptoError)?;
+            let mut response = b"PROCESSED:".to_vec();
+            response.extend_from_slice(frame);
+            response.extend_from_slice(b":SIG:");
+            response.extend_from_slice(&sig);
+            Ok(Some(response))
+        } else {
+            Err(ProxyError::InvalidSignature)
+        }
+    }
+}
+
+#[tokio::test]
+async fn test_quantum_proxy_server_e2e_frame_ingress_and_response() {
+    let tcp_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = tcp_listener.local_addr().unwrap();
+    drop(tcp_listener);
+
+    let server_id = QuantumNodeIdentity::generate_node_identity().unwrap();
+    let server = proxy_engine::QuantumProxyServer::new(addr.to_string())
+        .unwrap()
+        .with_frame_handler(std::sync::Arc::new(TestIngressHandler {
+            server_id: server_id.clone(),
+        }));
+
+    let server_task = tokio::spawn(async move {
+        let _ = server.run_loop().await;
+    });
+
+    // Allow listener to bind
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let client_id = QuantumNodeIdentity::generate_node_identity().unwrap();
+    let mut conn = TcpStream::connect(addr).await.unwrap();
+    let session = run_initiator(&mut conn, &client_id).await.unwrap();
+
+    let mut client_transport = proxy_engine::AeadTransport::new(
+        conn,
+        *session.client_to_server_key,
+        *session.server_to_client_key,
+        session.session_id,
+        session.session_salt,
+        true,
+    );
+
+    // Send valid frame
+    let tx_payload = b"TX:TRANSFER_AMOUNT_USD_50000_ACC_8831";
+    client_transport.write_frame(tx_payload).await.unwrap();
+
+    // Read response
+    let response = client_transport
+        .read_frame()
+        .await
+        .unwrap()
+        .expect("Response frame expected");
+    assert!(response.starts_with(b"PROCESSED:TX:TRANSFER_AMOUNT_USD_50000_ACC_8831:SIG:"));
+
+    server_task.abort();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 8: QuantumProxyServer rejects unauthorized frame fail-closed
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_quantum_proxy_server_rejects_unauthorized_frame_fail_closed() {
+    let tcp_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = tcp_listener.local_addr().unwrap();
+    drop(tcp_listener);
+
+    let server_id = QuantumNodeIdentity::generate_node_identity().unwrap();
+    let server = proxy_engine::QuantumProxyServer::new(addr.to_string())
+        .unwrap()
+        .with_frame_handler(std::sync::Arc::new(TestIngressHandler {
+            server_id: server_id.clone(),
+        }));
+
+    let server_task = tokio::spawn(async move {
+        let _ = server.run_loop().await;
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let client_id = QuantumNodeIdentity::generate_node_identity().unwrap();
+    let mut conn = TcpStream::connect(addr).await.unwrap();
+    let session = run_initiator(&mut conn, &client_id).await.unwrap();
+
+    let mut client_transport = proxy_engine::AeadTransport::new(
+        conn,
+        *session.client_to_server_key,
+        *session.server_to_client_key,
+        session.session_id,
+        session.session_salt,
+        true,
+    );
+
+    // Send invalid frame that fails ingress handler
+    let invalid_payload = b"MALFORMED_UNAUTHORIZED_INGRESS_FRAME";
+    client_transport.write_frame(invalid_payload).await.unwrap();
+
+    // Server should reject and terminate connection fail-closed
+    let read_result = client_transport.read_frame().await;
+    assert!(
+        read_result.is_err() || matches!(read_result, Ok(None)),
+        "Server must close transport fail-closed on unauthorized frame"
+    );
+
+    server_task.abort();
+}

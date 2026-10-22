@@ -137,7 +137,7 @@ impl RaftPeerManagerInner {
         let self_id = self.self_node_id.clone();
 
         tokio::spawn(async move {
-            if let Err(_e) = run_peer_worker(addr, identity, to_id.clone(), self_id, rx).await {
+            if let Err(e) = run_peer_worker(addr, identity, to_id.clone(), self_id, rx).await {
                 error!(peer = %to_id, err = %e, "Peer worker terminated fatally");
             }
         });
@@ -238,7 +238,7 @@ async fn run_peer_worker(
                 info!(peer = %to_id, "TCP connected");
                 s
             }
-            Ok(Err(_e)) => {
+            Ok(Err(e)) => {
                 error!(peer = %to_id, err = %e, "TCP connect failed, retrying in {:?}...", backoff);
                 tokio::time::sleep(backoff).await;
                 backoff = (backoff * 2).min(Duration::from_secs(30));
@@ -264,7 +264,7 @@ async fn run_peer_worker(
                 info!(peer = %to_id, "PQ handshake successful");
                 s
             }
-            Ok(Err(_e)) => {
+            Ok(Err(e)) => {
                 error!(peer = %to_id, err = %e, "PQ handshake failed, retrying in {:?}...", backoff);
                 tokio::time::sleep(backoff).await;
                 backoff = (backoff * 2).min(Duration::from_secs(30));
@@ -324,8 +324,8 @@ async fn run_peer_worker(
 
                     pending_responses.insert(request_id.clone(), response_tx);
 
-                    info!(peer = %to_id, req_id = request_id: request_id.clone(), "Sending RPC frame");
-                    if let Err(_e) = transport.write_frame(&env_bytes).await {
+                    info!(peer = %to_id, req_id = %request_id, "Sending RPC frame");
+                    if let Err(e) = transport.write_frame(&env_bytes).await {
                         error!(peer = %to_id, err = %e, "Transport write failed");
                         for (_, tx) in pending_responses.drain() {
                             let _ = tx.send(Err("Connection lost".to_string()));
@@ -338,17 +338,17 @@ async fn run_peer_worker(
                         Ok(Some(frame)) => {
                             let resp_env: RaftRpcEnvelope = match serde_json::from_slice(&frame) {
                                 Ok(env) => env,
-                                Err(_e) => {
+                                Err(e) => {
                                     error!(peer = %to_id, err = %e, "Deserialize resp env failed");
                                     continue;
                                 }
                             };
 
-                            info!(peer = %to_id, req_id = resp_env.request_id: request_id.clone(), "Received response frame");
+                            info!(peer = %to_id, req_id = %resp_env.request_id, "Received response frame");
                             if let Some(tx) = pending_responses.remove(&resp_env.request_id) {
                                 let _ = tx.send(Ok(resp_env.payload));
                             } else {
-                                warn!(peer = %to_id, req_id = resp_env.request_id: request_id.clone(), "Received response for unknown/stale request");
+                                warn!(peer = %to_id, req_id = %resp_env.request_id, "Received response for unknown/stale request");
                             }
                         }
                         Ok(None) => {
@@ -358,7 +358,7 @@ async fn run_peer_worker(
                             }
                             break;
                         }
-                        Err(_e) => {
+                        Err(e) => {
                             error!(peer = %to_id, err = %e, "Transport read failed");
                             for (_, tx) in pending_responses.drain() {
                                 let _ = tx.send(Err("Connection lost".to_string()));

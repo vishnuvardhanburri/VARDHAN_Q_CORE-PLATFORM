@@ -134,7 +134,7 @@ pub async fn start_heartbeat(
                 tokio::select! {
                     result = socket.recv_from(&mut buf) => {
                         match result {
-                            Ok((n, _peer)) => {
+                            Ok((n, peer)) => {
                                 if let Ok(frame) = serde_json::from_slice::<HeartbeatFrame>(&buf[..n]) {
                                     debug!(from = %peer, node_id = %frame.node_id, state = ?frame.state, "Heartbeat received");
                                     if let Some(node) = frame.into_cluster_node() {
@@ -142,7 +142,7 @@ pub async fn start_heartbeat(
                                     }
                                 }
                             }
-                            Err(_e) => warn!(err = %e, "Heartbeat recv error"),
+                            Err(e) => warn!(err = %e, "Heartbeat recv error"),
                         }
                     }
                     _ = rx.changed() => {
@@ -203,7 +203,7 @@ pub async fn start_heartbeat(
 
                         // Reap dead nodes
                         let reaped = membership.reap_dead_nodes(dead_threshold_ms, &self_node_id).await;
-                        for _id in reaped {
+                        for id in reaped {
                             warn!(node_id = %id, "Node reaped as Dead after heartbeat timeout");
                         }
                     }

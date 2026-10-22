@@ -2,11 +2,12 @@
 
 | Regulatory & Cryptographic Domain | Standard Specification | Enforcement Mechanism | Operational Status |
 | :--- | :--- | :--- | :--- |
-| **Post-Quantum Digital Signatures** | NIST FIPS 204 | ML-DSA-87 (Module-Lattice) | Active (Gate Enforced) |
+| **Post-Quantum Digital Signatures** | NIST FIPS 204 | ML-DSA-87 (Module-Lattice) Implementation | Active (Gate Enforced) |
 | **Classical Signature Layer** | RFC 8032 | Ed25519 (Edwards-Curve) | Active (Gate Enforced) |
+| **Cryptographic Module Self-Tests** | FIPS 140-3 (ISO/IEC 19790) | POST KATs, PCTs, Zeroize-on-Error | Implemented (NVLAP Lab Prep) |
 | **Financial Operational Resilience** | EU DORA (Articles 9, 10, 15) | Active Submission-Layer Gateway | Compliant (In-Flight) |
 | **National Quantum Security** | US NSA CNSA 2.0 / PQC Act | Hybrid Lattice + Classical Binding | Production Ready |
-| **Zero-Trust Policy Enforcement** | NIST SP 800-207 | 22 Fail-Closed Edge Invariants | Active (Hardware Verified) |
+| **Zero-Trust Policy Enforcement** | NIST SP 800-207 | 22 Fail-Closed Edge Invariants | Active ([Specification](docs/22_POINT_TRUST_GATE_SPECIFICATION.md)) |
 | **Atomic Replay & Idempotency** | Sled KV Engine | Pre-Execution BLAKE3 Hashing | Atomic (Persistent Storage) |
 
 ---
@@ -14,7 +15,7 @@
 > ### Enterprise Bank Deployment Principle
 > 
 > <div style="font-size: 1.15rem; font-weight: 700; line-height: 1.6; padding: 1.25rem; border-left: 5px solid #2563eb; background: #0f172a; color: #ffffff; border-radius: 6px; margin: 1rem 0;">
-> <strong>"Keep your existing core ledger. Drop Q-Core in front of your high-value wire API for 10 days to achieve immediate FIPS 204 dual-signature compliance with zero downtime."</strong>
+> <strong>"Keep your existing core ledger. Drop Q-Core in front of your high-value wire API to achieve post-quantum dual-signature protection (NIST FIPS 204 ML-DSA-87 + Ed25519) with zero downtime."</strong>
 > </div>
 >
 > *With this single submission-layer integration, financial institutions gain immediate post-quantum non-repudiation, atomic replay defense, and regulatory auditability without rewriting legacy core banking ledgers (Temenos, Finacle, FIS) or disrupting live payment rails (SWIFT ISO 20022, FedNow, CHAPS).*
@@ -25,7 +26,7 @@
 
 * **Dual-Signature Hybrid Engine:** Cryptographically binds transactions with **Ed25519 (RFC 8032)** and **ML-DSA-87 (NIST FIPS 204)** over deterministic BLAKE3 digests. Both signatures must pass independent verification or the receipt is permanently rejected.
 * **Atomic Pre-Execution Replay Defense:** Enforced via durable Sled KV storage (`b"usage:"` and finding idempotency). Resubmitting an identical payload or duplicate finding instantly returns `REJECTED_REPLAY`.
-* **22-Check Fail-Closed Trust Boundary:** Evaluates caller identity, tenant isolation, URL-to-payload match, and SHA-256 integrity before passing execution to the policy authority.
+* **22-Check Fail-Closed Trust Boundary:** Evaluates caller identity, tenant isolation, URL-to-payload match, provenance chain linkages, and SHA-256 integrity before passing execution to the policy authority. Fully specified and verified in [`docs/22_POINT_TRUST_GATE_SPECIFICATION.md`](docs/22_POINT_TRUST_GATE_SPECIFICATION.md).
 * **Immutable Audit Ledger:** Merkle-linked audit records with SHA-256 hash chains for tamper-proof regulatory reporting.
 * **Dual-Portal Access Governance:** Strict separation between authoritative **Platform Admin** (`/admin`) and tenant-isolated **Customer Portals** (`/customer`), eliminating session spoofing.
 * **Automated Customer Provisioning Center (`/provisioning`):** Instant single-click onboarding with dedicated Ed25519 keypair generation, sovereign licensing issuer (`vardhan.lic`), and 6-plan enterprise catalog.
@@ -37,9 +38,9 @@
 
 ## Proprietary Post-Quantum Banking Inventions
 
-1. **Autonomous Self-Healing Key Epochs (`SelfHealingEpochController`):** When an adversarial side-channel breach or memory probe is detected, Q-Core self-quarantines Epoch N in under 1 millisecond and derives fresh Epoch N+1 using **ML-KEM-1024 + ML-DSA-87** without dropping live in-flight bank wires or restarting services.
+1. **Autonomous Self-Healing Key Epochs (`SelfHealingEpochController`):** When an adversarial side-channel breach or memory probe is detected, Q-Core triggers rapid epoch self-quarantine (sub-millisecond architectural design target; measured at ~280 microseconds in `pq_crypto_benches.rs`) and derives fresh Epoch N+1 using **ML-KEM-1024 + ML-DSA-87** without dropping live in-flight bank wires or restarting services.
 2. **Transaction-Pinned Session Derivation (`derive_transaction_pinned_key`):** Derives single-use symmetric keys via **HKDF-SHA3-512** mathematically bound to the bank's internal `Transaction_ID`. Stolen RAM keys are invalid and unusable for any other financial transaction in the world.
-3. **Anti-HNDL Ephemeral Memory Shredder (`AntiHndlMemoryShredder`):** Guarantees zero residual key or plaintext material in volatile memory through recursive `zeroize` and sequential CPU compiler memory barriers (`compiler_fence(Ordering::SeqCst)`), defeating cold-boot attacks and "Harvest Now, Decrypt Later" extraction.
+3. **Anti-HNDL Ephemeral Memory Shredder (`AntiHndlMemoryShredder`):** Minimizes transient secret key and plaintext lifetimes in volatile memory buffers through `zeroize::Zeroize` and sequential compiler reordering fences (`core::sync::atomic::compiler_fence(Ordering::SeqCst)` preventing dead-store elimination). Volatile memory erasure reduces local memory scraping and cold-boot exposure after key usage, while protection against "Harvest Now, Decrypt Later" (HNDL) network interception is guaranteed by post-quantum key encapsulation (ML-KEM-1024) and signatures (ML-DSA-87) securing data in transit and at rest.
 4. **Drop-In SWIFT ISO 20022 PQC Envelope (`Iso20022PqcGateway`):** Embeds dual classical Ed25519 and post-quantum ML-DSA-87 signatures into standard ISO 20022 `<SplmtryData>` blocks (`pacs.008`/`pacs.009`), delivering instant quantum resilience across existing payment rails with zero schema violations.
 
 ---
@@ -271,6 +272,17 @@ flowchart LR
 ```
 
 Production claims require runtime evidence in addition to compilation. Deployment-specific HSM/KMS, HA/DR and external assurance remain separate gates.
+
+## Cryptographic Standards & Validation Status
+
+Vardhan Q-Core implements post-quantum cryptographic primitives and self-test subsystems adhering to published federal and international standards:
+
+1. **NIST FIPS 204 (ML-DSA):** Module-Lattice Digital Signatures (ML-DSA-87 parameter set). Implemented as an algorithm specification for post-quantum digital signatures; algorithmic compliance does not constitute a whole-system certification or substitute for bank regulatory authorization.
+2. **NIST FIPS 203 (ML-KEM):** Module-Lattice Key Encapsulation Mechanism (ML-KEM-1024 parameter set) for post-quantum key establishment.
+3. **FIPS 140-3 (ISO/IEC 19790:2021) Self-Test Architecture:** The `core_crypto` cryptographic module incorporates pre-operational Power-On Self-Tests (POST KATs for AES-256-GCM, SHA3-512, BLAKE3, Ed25519, ML-DSA-87, ML-KEM-1024, and Module Integrity), conditional Pairwise Consistency Tests (PCTs), continuous entropy health monitoring (NIST SP 800-90B), and a fail-closed zeroize-on-error state machine.
+4. **Validation Status Qualification:** Automated passage of the internal FIPS 140-3 self-test suite establishes software and algorithmic conformance designed to prepare for NVLAP-accredited laboratory evaluation. It does not constitute formal certification by the NIST Cryptographic Module Validation Program (CMVP), which requires independent third-party laboratory testing and certificate issuance.
+5. **Memory Zeroization and Threat Model Boundary:** Memory shredding via `zeroize::Zeroize` and `core::sync::atomic::compiler_fence` constrains compiler reordering and dead-store elimination of secret clearing, reducing transient stack and heap lifetimes against local memory inspection and cold-boot extraction. Defense against network-level Store-Now-Decrypt-Later (SNDL/HNDL) attacks is provided by post-quantum hybrid encapsulation (ML-KEM-1024) and signatures (ML-DSA-87) over data in transit and at rest.
+6. **22-Point Trust Boundary Invariants:** Every transaction must satisfy all 22 fail-closed invariants specified in [`docs/22_POINT_TRUST_GATE_SPECIFICATION.md`](docs/22_POINT_TRUST_GATE_SPECIFICATION.md) before cryptographic execution.
 
 ## Quick Start
 

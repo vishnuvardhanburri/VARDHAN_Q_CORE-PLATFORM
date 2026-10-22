@@ -81,7 +81,7 @@ impl QuantumNodeIdentity {
             let env_json = std::fs::read_to_string(vault_path)?;
             let env: EncryptedEnvelope = serde_json::from_str(&env_json)?;
             let plaintext = vault::unwrap_envelope(protector, &env)?;
-            let stored: StoredIdentity = serde_json::from_slice(&plaintext)?;
+            let mut stored: StoredIdentity = serde_json::from_slice(&plaintext)?;
             let ek_arr: [u8; ENCAP_KEY_LEN] = stored
                 .kem_encap_key_bytes
                 .as_slice()
@@ -98,14 +98,16 @@ impl QuantumNodeIdentity {
             let pk = ml_dsa_87::PublicKey::try_from_bytes(pk_arr).map_err(|e| e.to_string())?;
             let mut dsa_sk = [0u8; ml_dsa_87::SK_LEN];
             dsa_sk.copy_from_slice(&stored.dsa_private_key_bytes);
-            return Ok(QuantumNodeIdentity {
+            let node_id = QuantumNodeIdentity {
                 kem_encap_key: ek,
                 dsa_public_key: pk,
                 kem_decap_key_bytes: zeroize::Zeroizing::new(stored.kem_decap_key_bytes.clone()),
                 dsa_private_key_bytes: zeroize::Zeroizing::new(dsa_sk),
                 secure_dsa_private: None,
                 secure_kem_private: None,
-            });
+            };
+            stored.zeroize();
+            return Ok(node_id);
         }
         let new_id = Self::generate_node_identity()?;
         let mut stored = StoredIdentity {
@@ -114,9 +116,11 @@ impl QuantumNodeIdentity {
             dsa_public_key_bytes: new_id.dsa_public_key_bytes(),
             dsa_private_key_bytes: new_id.dsa_private_key_bytes.to_vec(),
         };
-        let pt = serde_json::to_vec(&stored)?;
+        let mut pt = zeroize::Zeroizing::new(serde_json::to_vec(&stored)?);
         stored.zeroize();
-        let env = vault::wrap_envelope(protector, &pt)?;
+        let env_res = vault::wrap_envelope(protector, &pt);
+        pt.zeroize();
+        let env = env_res?;
         let env_json = serde_json::to_string_pretty(&env)?;
         std::fs::write(vault_path, env_json)?;
         #[cfg(unix)]
@@ -140,9 +144,11 @@ impl QuantumNodeIdentity {
             dsa_public_key_bytes: self.dsa_public_key_bytes(),
             dsa_private_key_bytes: self.dsa_private_key_bytes.to_vec(),
         };
-        let pt = serde_json::to_vec(&stored)?;
+        let mut pt = zeroize::Zeroizing::new(serde_json::to_vec(&stored)?);
         stored.zeroize();
-        let env = vault::wrap_envelope(new_protector, &pt)?;
+        let env_res = vault::wrap_envelope(new_protector, &pt);
+        pt.zeroize();
+        let env = env_res?;
         let env_json = serde_json::to_string_pretty(&env)?;
         std::fs::write(vault_path, env_json)?;
         #[cfg(unix)]
@@ -183,14 +189,17 @@ impl QuantumNodeIdentity {
         };
         self.dsa_public_key = new_dsa_pk;
         self.dsa_private_key_bytes = zeroize::Zeroizing::new(new_dsa_sk.into_bytes());
-        let stored = StoredIdentity {
+        let mut stored = StoredIdentity {
             kem_encap_key_bytes: self.kem_encap_key.as_bytes().to_vec(),
             kem_decap_key_bytes: self.kem_decap_key_bytes.to_vec(),
             dsa_public_key_bytes: self.dsa_public_key_bytes(),
             dsa_private_key_bytes: self.dsa_private_key_bytes.to_vec(),
         };
-        let pt = serde_json::to_vec(&stored)?;
-        let env = vault::wrap_envelope(protector, &pt)?;
+        let mut pt = zeroize::Zeroizing::new(serde_json::to_vec(&stored)?);
+        stored.zeroize();
+        let env_res = vault::wrap_envelope(protector, &pt);
+        pt.zeroize();
+        let env = env_res?;
         let env_json = serde_json::to_string_pretty(&env)?;
         let tmp_path = vault_path.with_extension("vault.tmp");
         std::fs::write(&tmp_path, env_json)?;
@@ -388,6 +397,33 @@ mod tests {
         );
         let block_hash = QuantumNodeIdentity::hash_ledger_block(payload);
         assert_ne!(block_hash, [0u8; 32]);
+    }
+
+    #[test]
+    fn test_stored_identity_serialization_zeroization() {
+        let id = QuantumNodeIdentity::generate_node_identity().unwrap();
+        let mut stored = StoredIdentity {
+            kem_encap_key_bytes: id.kem_encap_key.as_bytes().to_vec(),
+            kem_decap_key_bytes: id.kem_decap_key_bytes.to_vec(),
+            dsa_public_key_bytes: id.dsa_public_key_bytes(),
+            dsa_private_key_bytes: id.dsa_private_key_bytes.to_vec(),
+        };
+
+        let mut pt = zeroize::Zeroizing::new(serde_json::to_vec(&stored).unwrap());
+        assert!(!pt.is_empty());
+        assert!(pt.iter().any(|&b| b != 0));
+
+        stored.zeroize();
+        assert!(stored.kem_encap_key_bytes.iter().all(|&b| b == 0));
+        assert!(stored.kem_decap_key_bytes.iter().all(|&b| b == 0));
+        assert!(stored.dsa_public_key_bytes.iter().all(|&b| b == 0));
+        assert!(stored.dsa_private_key_bytes.iter().all(|&b| b == 0));
+
+        pt.zeroize();
+        assert!(
+            pt.iter().all(|&b| b == 0),
+            "Serialized key buffer must be fully zeroized"
+        );
     }
 }
 

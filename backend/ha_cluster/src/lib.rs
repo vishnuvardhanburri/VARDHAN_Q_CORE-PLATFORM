@@ -6,24 +6,26 @@
 //! Design invariant: this crate has NO knowledge of PQ session keys or
 //! cryptographic material. It is purely an availability/coordination layer.
 
+pub use tracing::{debug, error, info, warn};
+
 macro_rules! info {
     ($($arg:tt)*) => {
-        ()
+        tracing::info!($($arg)*)
     };
 }
 macro_rules! warn {
     ($($arg:tt)*) => {
-        ()
+        tracing::warn!($($arg)*)
     };
 }
 macro_rules! debug {
     ($($arg:tt)*) => {
-        ()
+        tracing::debug!($($arg)*)
     };
 }
 macro_rules! error {
     ($($arg:tt)*) => {
-        ()
+        tracing::error!($($arg)*)
     };
 }
 
