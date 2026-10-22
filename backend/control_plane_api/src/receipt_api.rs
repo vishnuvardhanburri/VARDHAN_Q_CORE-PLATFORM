@@ -7,11 +7,9 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{
-    io::Write,
-    path::PathBuf,
-    process::{Command, Stdio},
-};
+use std::{path::PathBuf, process::Stdio};
+use tokio::io::AsyncWriteExt;
+use tokio::process::Command;
 
 #[derive(Deserialize, Serialize)]
 pub struct ValidationRequest {
@@ -308,7 +306,7 @@ pub async fn validate_canonical(
             .into_response();
     };
 
-    if let Err(error) = stdin.write_all(&payload_bytes) {
+    if let Err(error) = stdin.write_all(&payload_bytes).await {
         if let Some(ref idem_key) = idempotency_key {
             state
                 .idempotency
@@ -331,7 +329,7 @@ pub async fn validate_canonical(
     }
     drop(stdin);
 
-    let output = match child.wait_with_output() {
+    let output = match child.wait_with_output().await {
         Ok(output) => output,
         Err(error) => {
             if let Some(ref idem_key) = idempotency_key {

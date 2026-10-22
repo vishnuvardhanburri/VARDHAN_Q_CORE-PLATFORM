@@ -126,7 +126,7 @@ echo "timestamp_utc,cpu_percent,memory_usage,memory_percent,network_io,block_io,
 ) &
 STATS_PID=$!
 
-if docker exec qcore-pov bash -c 'python3 /usr/local/bin/security_test.py' 2>&1 | tee "${RESULTS_DIR}/security_test_${TIMESTAMP}.log"; then
+if docker exec qcore-pov bash -c 'python3 -u /usr/local/bin/security_test.py' 2>&1 | tee "${RESULTS_DIR}/security_test_${TIMESTAMP}.log"; then
     echo "[OK] Security test process exited successfully"
 else
     echo "[FAIL] Security test process failed"
@@ -143,7 +143,7 @@ fi
 # ── Step 4: Run performance benchmarks ──────────────────────────
 echo ""
 echo "[4/7] Running performance benchmarks..."
-if docker exec qcore-pov bash -c 'python3 /usr/local/bin/perf_bench.py' 2>&1 | tee "${RESULTS_DIR}/perf_${TIMESTAMP}.log"; then
+if docker exec qcore-pov bash -c 'python3 -u /usr/local/bin/perf_bench.py' 2>&1 | tee "${RESULTS_DIR}/perf_${TIMESTAMP}.log"; then
     echo "[OK] Performance benchmark process exited successfully"
 else
     echo "[FAIL] Performance benchmark process failed"
@@ -159,7 +159,7 @@ fi
 # ── Step 5: Run crypto benchmarks ───────────────────────────────
 echo ""
 echo "[5/7] Running crypto benchmarks..."
-if docker exec qcore-pov bash -c 'python3 /usr/local/bin/crypto_bench.py' 2>&1 | tee "${RESULTS_DIR}/crypto_${TIMESTAMP}.log"; then
+if docker exec qcore-pov bash -c 'python3 -u /usr/local/bin/crypto_bench.py' 2>&1 | tee "${RESULTS_DIR}/crypto_${TIMESTAMP}.log"; then
     echo "[OK] Cryptographic benchmark process exited successfully"
 else
     echo "[FAIL] Cryptographic benchmark process failed"

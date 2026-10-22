@@ -185,34 +185,34 @@ def build_contract(finding_id, payload_size=1024, actor="svc:vardhan-intelligenc
     contract["contract"]["benign_explanation"] = "x" * max(0, payload_size - base_bytes)
     return contract
 
-def create_session(worker_id=None, retries=10):
+def create_session(worker_id=None, retries=12):
     """Create a fresh login session and explicitly provision its synthetic tenant with retries."""
     for attempt in range(retries):
         status, body, _ = api_request(
             "POST", "/api/v1/auth/login",
             body={"username": ADMIN_USER, "password": ADMIN_PASS},
-            retries=1,
+            retries=2,
             timeout=30
         )
         if status != 200:
-            time.sleep(0.3 * (attempt + 1))
+            time.sleep(0.4 * (attempt + 1))
             continue
         token = body.get("token", "")
         if not token:
-            time.sleep(0.3 * (attempt + 1))
+            time.sleep(0.4 * (attempt + 1))
             continue
         name = f"PoV-Bench-{RUN_ID}-{worker_id if worker_id is not None else next_finding_id('org')}"
         org_status, org_body, token = api_request(
             "POST", "/api/v1/organizations", token, {"name": name},
-            retries=1,
+            retries=2,
             timeout=30
         )
         if org_status not in (200, 201):
-            time.sleep(0.3 * (attempt + 1))
+            time.sleep(0.4 * (attempt + 1))
             continue
         org_id = org_body.get("organization", {}).get("id", "")
         if not org_id:
-            time.sleep(0.3 * (attempt + 1))
+            time.sleep(0.4 * (attempt + 1))
             continue
         register_tenant(org_id)
         return token, org_id
@@ -227,13 +227,13 @@ def benchmark_with_sessions(label, func, concurrency, requests, warmup, use_even
     use_event=False, threads start immediately after creation.
     """
     if concurrency >= 50:
-        time.sleep(0.5)
+        time.sleep(1.0)
     sessions = {}
     for i in range(concurrency):
-        token, org_id = create_session(worker_id=i, retries=6)
+        token, org_id = create_session(worker_id=i, retries=8)
         if token is None:
-            time.sleep(1.0)
-            token, org_id = create_session(worker_id=i, retries=15)
+            time.sleep(1.5)
+            token, org_id = create_session(worker_id=i, retries=20)
         if token is None:
             raise RuntimeError(f"failed to create session for worker {i}")
         sessions[i] = {"token": token, "org_id": org_id}
@@ -485,7 +485,7 @@ def main():
     print("\n--- P1: Contract Sealing (Protected HTTP API Path) ---")
     for payload_name, payload_bytes in [("1KB", 1024), ("10KB", 10240), ("100KB", 102400)]:
         for c in CONCURRENCY_LEVELS:
-            time.sleep(1.0)
+            time.sleep(2.0 if c >= 50 else 1.0)
             print(f"  {payload_name} payload, concurrency={c}, measured requests={request_count_for(c)}...")
             result = benchmark_with_sessions(
                 f"contract_seal_{payload_name}_c{c}",
