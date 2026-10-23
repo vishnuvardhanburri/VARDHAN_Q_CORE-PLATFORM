@@ -2,10 +2,9 @@
 # Run: cargo deny check
 #
 # Note: Workspace crates are proprietary and do not carry SPDX license
-# identifiers. License compliance for third-party dependencies is verified
-# via `cargo deny check advisories` (RUSTSEC + unmaintained) and the SBOM.
-# License checking (`cargo deny check licenses`) will flag our own crates
-# as unlicensed — this is expected and not a supply chain vulnerability.
+# identifiers. Advisory scanning and SBOM presence do not verify licenses.
+# `cargo deny check licenses` currently fails: establish an owner-approved
+# proprietary/third-party license policy before a production release.
 
 [advisories]
 # The following advisories are known and documented with rationale.
@@ -16,8 +15,9 @@ ignore = [
     { id = "RUSTSEC-2026-0346", reason = "Legacy rustls 0.21.12 is reachable only through the opt-in AWS KMS compatibility path; upstream does not patch the 0.21 branch" },
     { id = "RUSTSEC-2026-0349", reason = "Legacy rustls 0.21.12 is reachable only through the opt-in AWS KMS compatibility path; upstream does not patch the 0.21 branch" },
 
-    # serde_cbor is unmaintained but only used in poc_auditor (non-production PoC for PDF export)
-    { id = "RUSTSEC-2021-0127", reason = "Used only in non-production poc_auditor for PDF export" },
+    # serde_cbor is unmaintained and also used by core_crypto rotation payloads.
+    # Production migration requires compatibility tests and owner-approved risk disposition.
+    { id = "RUSTSEC-2021-0127", reason = "Used by core_crypto rotation payloads and poc_auditor; production migration and approval remain open" },
 
     # rustls-pemfile is unmaintained (archived Aug 2025); upstream recommends rustls-pki-types PemObject
     { id = "RUSTSEC-2025-0134", reason = "rustls-pemfile is archived; used for PEM parsing in control-plane API" },

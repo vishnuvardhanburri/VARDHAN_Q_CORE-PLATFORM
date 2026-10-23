@@ -1,0 +1,14 @@
+# Production build input allowlist. Runtime state, local credentials, receipts,
+# frontend bundles and developer caches must not enter builder image layers.
+**
+!Cargo.toml
+!Cargo.lock
+!backend/
+!backend/**/
+!backend/**/Cargo.toml
+!backend/**/*.rs
+!backend/**/*.c
+!backend/**/*.h
+!industries/
+!industries/**/
+!industries/**/plane.json

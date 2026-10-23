@@ -326,6 +326,13 @@ async fn main() {
             // In a production system, this would be a distributed ledger or shared cache.
             // The same check is also enforced inside process_transaction() for defense in depth.
             let finding_id = request.contract.finding_id.clone();
+            if !valid_finding_storage_id(&finding_id) {
+                print_error(
+                    "REJECTED_TRUST_BOUNDARY",
+                    "Invalid finding storage identifier",
+                );
+                return;
+            }
             if is_finding_already_sealed(&finding_id) {
                 print_error(
                     "REJECTED_REPLAY",
@@ -475,9 +482,13 @@ fn idempotency_store_path() -> std::path::PathBuf {
 /// Check whether a finding_id has already been sealed in the durable
 /// idempotency store. Uses an atomic file-existence test.
 fn is_finding_already_sealed(finding_id: &str) -> bool {
-    idempotency_store_path()
-        .join(format!("sealed_{}.flag", finding_id))
-        .exists()
+    is_finding_already_sealed_in(&idempotency_store_path(), finding_id)
+}
+
+fn is_finding_already_sealed_in(dir: &std::path::Path, finding_id: &str) -> bool {
+    dir.join(format!("sealed_{}.flag", finding_id))
+        .try_exists()
+        .unwrap_or(true)
 }
 
 /// Check whether a finding_id is currently reserved (in-flight) by any process.
@@ -492,39 +503,66 @@ fn is_finding_reserved(finding_id: &str) -> bool {
 /// Uses `O_CREAT | O_EXCL` (exclusive create) so that if two processes
 /// race, only one succeeds. Returns `true` if this caller won the race
 /// (reservation created), `false` if another process already claimed it.
-fn reserve_finding(finding_id: &str) -> bool {
-    let dir = idempotency_store_path();
-    let _ = std::fs::create_dir_all(&dir);
-    let reserve_path = dir.join(format!("sealed_{}.reserve", finding_id));
-    std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&reserve_path)
-        .map(|mut f| {
-            let _ = f.write_all(b"RESERVED");
-        })
-        .is_ok()
+fn valid_finding_storage_id(finding_id: &str) -> bool {
+    !finding_id.trim().is_empty()
+        && finding_id.len() <= 200
+        && !finding_id.contains(['/', '\\', '\0'])
 }
 
-/// Promote a reservation to a committed seal record.
-/// Creates the `.flag` file (with "SEALED" content) and removes the
-/// `.reserve` file, making the finding visible to `is_finding_already_sealed()`.
-/// Called only after successful sealing.
-fn commit_finding_sealed(finding_id: &str) {
-    let dir = idempotency_store_path();
+fn reserve_finding(finding_id: &str) -> bool {
+    reserve_finding_in(&idempotency_store_path(), finding_id)
+}
+
+fn reserve_finding_in(dir: &std::path::Path, finding_id: &str) -> bool {
+    if !valid_finding_storage_id(finding_id) {
+        return false;
+    }
+    let reserve_path = dir.join(format!("sealed_{}.reserve", finding_id));
+    let reserve = || -> std::io::Result<()> {
+        std::fs::create_dir_all(dir)?;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&reserve_path)?;
+        // Recheck while owning the reservation: a concurrent previous owner may
+        // have committed between our caller's initial lookup and exclusive create.
+        if is_finding_already_sealed_in(dir, finding_id) {
+            return Err(std::io::Error::other("Finding already committed"));
+        }
+        file.write_all(b"RESERVED")?;
+        file.sync_all()?;
+        std::fs::File::open(dir)?.sync_all()?;
+        // Persist the directory link too when create_dir_all created it.
+        std::fs::File::open(
+            dir.parent()
+                .filter(|p| !p.as_os_str().is_empty())
+                .unwrap_or(std::path::Path::new(".")),
+        )?
+        .sync_all()?;
+        Ok(())
+    };
+    // On ambiguous I/O failures retain the reservation for reconciliation.
+    reserve().is_ok()
+}
+
+/// Atomically promote a synced reservation and persist its directory entry.
+/// A commit error must never remove the replay barrier or return a receipt.
+fn commit_finding_sealed(finding_id: &str) -> std::io::Result<()> {
+    commit_finding_sealed_in(&idempotency_store_path(), finding_id)
+}
+
+fn commit_finding_sealed_in(dir: &std::path::Path, finding_id: &str) -> std::io::Result<()> {
     let reserve_path = dir.join(format!("sealed_{}.reserve", finding_id));
     let flag_path = dir.join(format!("sealed_{}.flag", finding_id));
-    // Write the flag file with "SEALED" content (overwrite if the rename
-    // left "RESERVED" content from the reserve phase).
-    if let Ok(mut f) = std::fs::OpenOptions::new()
+    let mut file = std::fs::OpenOptions::new()
         .write(true)
-        .create(true)
-        .truncate(true)
-        .open(&flag_path)
-    {
-        let _ = f.write_all(b"SEALED");
-    }
-    let _ = std::fs::remove_file(&reserve_path);
+        .open(&reserve_path)?;
+    file.write_all(b"SEALED")?;
+    file.set_len(6)?;
+    file.sync_all()?;
+    std::fs::rename(&reserve_path, &flag_path)?;
+    std::fs::File::open(dir)?.sync_all()?;
+    Ok(())
 }
 
 /// Release a reservation after a failed attempt, so the finding_id
@@ -556,6 +594,13 @@ pub fn process_transaction(
     // process_transaction level — not merely a terminal-state validation
     // error, but a pre-execution durable guard.
     let finding_id = request.contract.finding_id.clone();
+    if !valid_finding_storage_id(&finding_id) {
+        return Err((
+            "REJECTED_TRUST_BOUNDARY".into(),
+            "Invalid finding storage identifier".into(),
+        ));
+    }
+
     if is_finding_already_sealed(&finding_id) {
         return Err((
             "REJECTED_REPLAY".to_string(),
@@ -736,7 +781,12 @@ pub fn process_transaction(
     // Promote the atomic reservation to a committed seal record.
     // Only after successful sealing is the finding_id permanently marked
     // as sealed, making it visible to is_finding_already_sealed().
-    commit_finding_sealed(&finding_id);
+    commit_finding_sealed(&finding_id).map_err(|_| {
+        (
+            "OUTCOME_UNKNOWN".into(),
+            "Durable seal commit failed; reconciliation required".into(),
+        )
+    })?;
 
     // ── Audit Integrity: append a crash-safe, signed audit trail entry ──
     // This binds the authorization decision to an execution ID and hash
@@ -746,8 +796,8 @@ pub fn process_transaction(
         .unwrap_or_else(|| std::path::Path::new("."))
         .join("audit_trail.jsonl");
 
-    // Best-effort audit append: if the audit log fails, we do NOT roll back
-    // the receipt (it's already sealed), but we do log the error.
+    // Once committed, audit failure must retain the replay barrier and return
+    // an explicit reconciliation outcome, never a success receipt.
     match audit_trail::AuditWriter::open(&audit_path, receipt.issuer_key_fingerprint.clone()) {
         Ok(mut writer) => {
             let event = json!({
@@ -776,12 +826,20 @@ pub fn process_transaction(
                     );
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to append audit entry: {}", e);
+                    tracing::error!("Failed to append audit entry: {}", e);
+                    return Err((
+                        "OUTCOME_UNKNOWN".into(),
+                        "Audit append failed; reconciliation required".into(),
+                    ));
                 }
             }
         }
         Err(e) => {
-            tracing::warn!("Failed to open audit trail: {}", e);
+            tracing::error!("Failed to open audit trail: {}", e);
+            return Err((
+                "OUTCOME_UNKNOWN".into(),
+                "Audit unavailable; reconciliation required".into(),
+            ));
         }
     }
 
@@ -2285,5 +2343,38 @@ mod e2e_boundary_tests {
         };
         let res_auth = process_transaction(req_auth).unwrap();
         assert_eq!(res_auth.tenant_id, "org-vardhan-intelligence");
+    }
+}
+
+#[cfg(test)]
+mod reservation_regressions {
+    use super::*;
+    #[test]
+    fn regression_committed_finding_cannot_be_reserved_again() {
+        let directory = tempfile::tempdir().unwrap();
+        let dir = directory.path();
+        let id = format!("regression-{}", uuid::Uuid::new_v4());
+        assert!(reserve_finding_in(dir, &id));
+        commit_finding_sealed_in(dir, &id).unwrap();
+        assert!(
+            !reserve_finding_in(dir, &id),
+            "reservation must recheck committed state after exclusive creation"
+        );
+    }
+    #[test]
+    fn regression_failed_commit_keeps_reservation() {
+        let directory = tempfile::tempdir().unwrap();
+        let dir = directory.path();
+        let id = format!("regression-{}", uuid::Uuid::new_v4());
+        assert!(reserve_finding_in(dir, &id));
+        let flag = dir.join(format!("sealed_{}.flag", id));
+        std::fs::create_dir(&flag).unwrap();
+        assert!(commit_finding_sealed_in(dir, &id).is_err());
+        let retained = dir.join(format!("sealed_{}.reserve", id)).exists();
+        std::fs::remove_dir(flag).unwrap();
+        assert!(
+            retained,
+            "failed durable commit must retain admission barrier"
+        );
     }
 }

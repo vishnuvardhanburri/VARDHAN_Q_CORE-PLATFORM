@@ -1,17 +1,13 @@
-//! # Transaction-Bound Single-Use Key Derivation
-//!
-//! Breakthrough Innovation: Binds post-quantum session keys directly to the
-//! bank's unique transaction ID via HKDF-SHA3-512.
-//!
-//! Even if an attacker extracts the session key from RAM, it is mathematically
-//! invalid and unusable for any other financial transaction.
+//! Transaction-bound key derivation. This separates contexts; single-use enforcement
+//! requires a durable server-side reservation. Possession of a copied key still
+//! permits use during its authorised lifetime. V2 length-prefixes variable inputs.
 
 use hkdf::Hkdf;
 use sha3::Sha3_512;
 use thiserror::Error;
 use zeroize::{Zeroize, Zeroizing};
 
-const DOMAIN_TAG: &[u8] = b"VARDHAN-TRANSACTION-BOUND-PQC-v1";
+const DOMAIN_TAG: &[u8] = b"VARDHAN-TRANSACTION-BOUND-PQC-v2";
 const TXN_BINDING_INFO: &[u8] = b"TRANSACTION-PINNED-SESSION-KEY";
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -51,7 +47,7 @@ impl std::fmt::Debug for TransactionPinnedKey {
 /// Derives a 32-byte symmetric session key cryptographically locked to a single transaction ID.
 ///
 /// Transcript:
-/// `HKDF-SHA3-512(IKM = shared_secret, Salt = DOMAIN_TAG || epoch, Info = TXN_BINDING_INFO || message_id || context || transaction_id)`
+/// `HKDF-SHA3-512(IKM = shared_secret, Salt = DOMAIN_TAG || epoch, Info = TXN_BINDING_INFO || message_id_be64 || context_len_be64 || context || transaction_id_len_be64 || transaction_id)`
 pub fn derive_transaction_pinned_key(
     shared_secret: &[u8],
     epoch: u64,
@@ -75,7 +71,9 @@ pub fn derive_transaction_pinned_key(
     let mut info = Vec::new();
     info.extend_from_slice(TXN_BINDING_INFO);
     info.extend_from_slice(&message_id.to_be_bytes());
+    info.extend_from_slice(&(context.len() as u64).to_be_bytes());
     info.extend_from_slice(context);
+    info.extend_from_slice(&(transaction_id.len() as u64).to_be_bytes());
     info.extend_from_slice(transaction_id.as_bytes());
 
     let mut okm = Zeroizing::new([0u8; 32]);
@@ -137,5 +135,15 @@ mod tests {
         let secret = b"secret";
         let res = derive_transaction_pinned_key(secret, 1, 100, b"ctx", "   ");
         assert_eq!(res.unwrap_err(), TransactionKdfError::EmptyTransactionId);
+    }
+
+    #[test]
+    fn regression_context_transaction_boundary_collision() {
+        let first = derive_transaction_pinned_key(&[7; 32], 1, 100, b"ab", "c").unwrap();
+        let second = derive_transaction_pinned_key(&[7; 32], 1, 100, b"a", "bc").unwrap();
+        assert!(
+            first.key != second.key,
+            "distinct contexts must derive distinct keys"
+        );
     }
 }

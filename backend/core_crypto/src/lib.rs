@@ -96,13 +96,18 @@ impl QuantumNodeIdentity {
                 .try_into()
                 .map_err(|_| "Invalid DSA pk length")?;
             let pk = ml_dsa_87::PublicKey::try_from_bytes(pk_arr).map_err(|e| e.to_string())?;
-            let mut dsa_sk = [0u8; ml_dsa_87::SK_LEN];
-            dsa_sk.copy_from_slice(&stored.dsa_private_key_bytes);
+            let dsa_sk = zeroize::Zeroizing::new(
+                <[u8; ml_dsa_87::SK_LEN]>::try_from(stored.dsa_private_key_bytes.as_slice())
+                    .map_err(|_| "Invalid DSA private key length")?,
+            );
+            if stored.kem_decap_key_bytes.len() != 3168 {
+                return Err("Invalid KEM decapsulation key length".into());
+            }
             let node_id = QuantumNodeIdentity {
                 kem_encap_key: ek,
                 dsa_public_key: pk,
                 kem_decap_key_bytes: zeroize::Zeroizing::new(stored.kem_decap_key_bytes.clone()),
-                dsa_private_key_bytes: zeroize::Zeroizing::new(dsa_sk),
+                dsa_private_key_bytes: dsa_sk,
                 secure_dsa_private: None,
                 secure_kem_private: None,
             };
@@ -400,6 +405,40 @@ mod tests {
     }
 
     #[test]
+    fn malformed_vault_secret_lengths_return_errors() {
+        let dir = std::env::temp_dir().join(format!(
+            "qcore-vault-{}-{}",
+            std::process::id(),
+            rand::random::<u64>()
+        ));
+        std::fs::create_dir(&dir).unwrap();
+        let protector = vault::LocalDevKeyProtector::new(dir.join("kek"));
+        let path = dir.join("identity");
+        let id = QuantumNodeIdentity::generate_node_identity().unwrap();
+        for invalid_dsa in [true, false] {
+            let stored = StoredIdentity {
+                kem_encap_key_bytes: id.kem_encap_key.as_bytes().to_vec(),
+                kem_decap_key_bytes: if invalid_dsa {
+                    id.kem_decap_key_bytes.to_vec()
+                } else {
+                    vec![0]
+                },
+                dsa_public_key_bytes: id.dsa_public_key_bytes(),
+                dsa_private_key_bytes: if invalid_dsa {
+                    vec![0]
+                } else {
+                    id.dsa_private_key_bytes.to_vec()
+                },
+            };
+            let plaintext = zeroize::Zeroizing::new(serde_json::to_vec(&stored).unwrap());
+            let envelope = vault::wrap_envelope(&protector, &plaintext).unwrap();
+            std::fs::write(&path, serde_json::to_vec(&envelope).unwrap()).unwrap();
+            assert!(QuantumNodeIdentity::load_or_generate(&path, &protector).is_err());
+        }
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
     fn test_stored_identity_serialization_zeroization() {
         let id = QuantumNodeIdentity::generate_node_identity().unwrap();
         let mut stored = StoredIdentity {
@@ -449,3 +488,5 @@ pub mod payment_gate;
 pub mod secure_memory;
 pub mod self_healing_epoch;
 pub mod transaction_bound_kdf;
+
+mod payment_xml;

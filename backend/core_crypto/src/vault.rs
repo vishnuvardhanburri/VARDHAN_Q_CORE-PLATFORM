@@ -42,7 +42,7 @@ pub trait KeyProtector: Send + Sync {
 
     /// Envelope decryption: unwrap a 256-bit ephemeral Data Encryption Key (DEK)
     fn unwrap_dek(&self, wrapped_dek: &[u8]) -> Result<Zeroizing<[u8; 32]>, VaultError> {
-        let pt = self.unwrap(wrapped_dek)?;
+        let pt = Zeroizing::new(self.unwrap(wrapped_dek)?);
         if pt.len() != 32 {
             return Err(VaultError::Crypto(format!(
                 "Unwrapped DEK must be 32 bytes, got {}",
@@ -376,6 +376,7 @@ impl<C: KmsClient> KeyProtector for KmsKeyProtector<C> {
             .as_secs();
         match self.client.decrypt(wrapped_dek, Some(&self.key_id)) {
             Ok(pt) => {
+                let pt = Zeroizing::new(pt);
                 if pt.len() != 32 {
                     let err = "Unwrapped DEK is not 32 bytes".to_string();
                     self.audit_log
@@ -579,9 +580,11 @@ impl KeyProtector for HsmKeyProtector {
         let nonce = Nonce::from_slice(&wrapped_dek[..12]);
         let data = &wrapped_dek[12..];
 
-        let pt = cipher
-            .decrypt(nonce, data)
-            .map_err(|e| VaultError::Crypto(format!("HSM C_UnwrapKey failed: {:?}", e)))?;
+        let pt = Zeroizing::new(
+            cipher
+                .decrypt(nonce, data)
+                .map_err(|e| VaultError::Crypto(format!("HSM C_UnwrapKey failed: {:?}", e)))?,
+        );
 
         if pt.len() != 32 {
             return Err(VaultError::Crypto(
