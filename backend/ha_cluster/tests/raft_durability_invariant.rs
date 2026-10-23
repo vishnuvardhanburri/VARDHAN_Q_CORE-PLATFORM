@@ -239,7 +239,9 @@ async fn run_durability_cycle(cycle_id: usize) {
         let term = *leader.current_term.read().await;
         let existing_idx = {
             let log = leader.log.read().await;
-            log.iter().position(|e| e.request_id == req_id1).map(|pos| (pos + 1) as u64)
+            log.iter()
+                .position(|e| e.request_id == req_id1)
+                .map(|pos| (pos + 1) as u64)
         };
         let idx = match existing_idx {
             Some(i) => i,
@@ -317,7 +319,9 @@ async fn run_durability_cycle(cycle_id: usize) {
         let term = *leader.current_term.read().await;
         let existing_idx = {
             let log = leader.log.read().await;
-            log.iter().position(|e| e.request_id == req_id2).map(|pos| (pos + 1) as u64)
+            log.iter()
+                .position(|e| e.request_id == req_id2)
+                .map(|pos| (pos + 1) as u64)
         };
         let idx = match existing_idx {
             Some(i) => i,
@@ -425,11 +429,18 @@ async fn test_durability_invariant_100x() {
         .and_then(|v| v.parse::<usize>().ok())
         .unwrap_or(20);
 
-    info!("Starting durability invariant verification ({} cycles)", cycles);
+    info!(
+        "Starting durability invariant verification ({} cycles)",
+        cycles
+    );
     for i in 0..cycles {
         run_durability_cycle(i).await;
         if (i + 1) % 5 == 0 || i + 1 == cycles {
-            info!("Completed {}/{} durability cycles successfully", i + 1, cycles);
+            info!(
+                "Completed {}/{} durability cycles successfully",
+                i + 1,
+                cycles
+            );
         }
     }
     info!("=== Durability Invariant Cycles PASSED ===");

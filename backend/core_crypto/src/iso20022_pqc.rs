@@ -34,7 +34,9 @@ pub enum Iso20022Error {
     MlDsa87VerificationFailed,
     #[error("Payload digest mismatch (payload altered or tampered)")]
     DigestMismatch,
-    #[error("Untrusted signer identity: BIC '{0}' is not registered in institutional key registry")]
+    #[error(
+        "Untrusted signer identity: BIC '{0}' is not registered in institutional key registry"
+    )]
     UntrustedSignerIdentity(String),
     #[error("Signer key not active for BIC '{0}'")]
     SignerKeyNotActive(String),
@@ -204,7 +206,10 @@ fn find_tag_boundary(xml: &str, local_name: &str, is_closing: bool) -> Option<us
                     false
                 }
             } else {
-                if !tag_content.starts_with('/') && !tag_content.starts_with('?') && !tag_content.starts_with('!') {
+                if !tag_content.starts_with('/')
+                    && !tag_content.starts_with('?')
+                    && !tag_content.starts_with('!')
+                {
                     let name = tag_content.split_whitespace().next().unwrap_or("");
                     let name = name.trim_end_matches('/');
                     name == local_name || name.ends_with(&format!(":{}", local_name))
@@ -651,8 +656,7 @@ mod tests {
         )
         .unwrap();
 
-        let auth_seal =
-            verify_iso20022_pqc_seal_authenticated(&sealed_xml, &registry).unwrap();
+        let auth_seal = verify_iso20022_pqc_seal_authenticated(&sealed_xml, &registry).unwrap();
         assert_eq!(auth_seal.authenticated_institution.bic, "BARCGB22");
         assert_eq!(
             auth_seal.authenticated_institution.institution_name,
@@ -788,8 +792,7 @@ mod tests {
         .unwrap();
 
         assert!(sealed_xml.contains("<SplmtryData>"));
-        let auth_seal =
-            verify_iso20022_pqc_seal_authenticated(&sealed_xml, &registry).unwrap();
+        let auth_seal = verify_iso20022_pqc_seal_authenticated(&sealed_xml, &registry).unwrap();
         assert_eq!(auth_seal.authenticated_institution.bic, "CHASUS33");
     }
 

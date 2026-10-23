@@ -57,13 +57,19 @@ pub enum PaymentGateError {
     TemporalFreshnessExpired { age_seconds: i64, max_allowed: i64 },
 
     #[error("Payment timestamp is in the future (future skew: {future_seconds}s, max allowed: {max_allowed}s)")]
-    FutureDatedPayment { future_seconds: i64, max_allowed: i64 },
+    FutureDatedPayment {
+        future_seconds: i64,
+        max_allowed: i64,
+    },
 
     #[error("Institution BIC '{0}' is quarantined or on the sanctions blocklist")]
     BlockedOrQuarantinedParty(String),
 
     #[error("Signer BIC mismatch: authenticated signer is '{signer_bic}', but message declares '{instructed_bic}'")]
-    SignerBicMismatch { signer_bic: String, instructed_bic: String },
+    SignerBicMismatch {
+        signer_bic: String,
+        instructed_bic: String,
+    },
 
     #[error("Signer institution '{0}' is not active (status: {1:?})")]
     SignerNotActive(String, SignerStatus),
@@ -195,7 +201,9 @@ impl PaymentIdempotencyStore for InMemoryPaymentIdempotencyStore {
             return Err(PaymentGateError::ReplayDetected(uetr.to_string()));
         }
         if state.in_flight.contains(uetr) {
-            return Err(PaymentGateError::ConcurrentSubmissionBlocked(uetr.to_string()));
+            return Err(PaymentGateError::ConcurrentSubmissionBlocked(
+                uetr.to_string(),
+            ));
         }
         state.in_flight.insert(uetr.to_string());
         Ok(true)
@@ -225,7 +233,8 @@ pub fn is_valid_bic(bic: &str) -> bool {
     if len != 8 && len != 11 {
         return false;
     }
-    bic.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+    bic.chars()
+        .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
 }
 
 /// Validates ISO 4217 Currency Code (3 uppercase ASCII letters).
@@ -263,8 +272,15 @@ fn extract_xml_element_inner(xml: &str, local_tag: &str) -> Option<String> {
             let end = start + rel_close;
             let tag_content = xml[start + 1..end].trim();
 
-            if !tag_content.starts_with('/') && !tag_content.starts_with('?') && !tag_content.starts_with('!') {
-                let name = tag_content.split_whitespace().next().unwrap_or("").trim_end_matches('/');
+            if !tag_content.starts_with('/')
+                && !tag_content.starts_with('?')
+                && !tag_content.starts_with('!')
+            {
+                let name = tag_content
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("")
+                    .trim_end_matches('/');
                 if name == local_tag || name.ends_with(&format!(":{}", local_tag)) {
                     // Found opening tag. Find corresponding closing tag </local_tag>
                     let inner_start = end + 1;
@@ -304,14 +320,19 @@ fn extract_xml_attribute(xml: &str, local_tag: &str, attr_name: &str) -> Option<
             let end = start + rel_close;
             let tag_content = &xml[start + 1..end].trim();
 
-            if !tag_content.starts_with('/') && !tag_content.starts_with('?') && !tag_content.starts_with('!') {
+            if !tag_content.starts_with('/')
+                && !tag_content.starts_with('?')
+                && !tag_content.starts_with('!')
+            {
                 let parts: Vec<&str> = tag_content.split_whitespace().collect();
                 if let Some(name) = parts.first() {
                     let clean_name = name.trim_end_matches('/');
                     if clean_name == local_tag || clean_name.ends_with(&format!(":{}", local_tag)) {
                         for attr in &parts[1..] {
                             if let Some(stripped) = attr.strip_prefix(&format!("{}=", attr_name)) {
-                                return Some(stripped.trim_matches('"').trim_matches('\'').to_string());
+                                return Some(
+                                    stripped.trim_matches('"').trim_matches('\'').to_string(),
+                                );
                             }
                         }
                     }
@@ -330,24 +351,24 @@ pub fn parse_iso8601_to_unix(dt_str: &str) -> Result<u64, PaymentGateError> {
     let cleaned = dt_str.trim().trim_end_matches('Z');
     let parts: Vec<&str> = cleaned.split('T').collect();
     if parts.len() != 2 {
-        return Err(PaymentGateError::Internal(format!("Invalid timestamp format: '{dt_str}'")));
+        return Err(PaymentGateError::Internal(format!(
+            "Invalid timestamp format: '{dt_str}'"
+        )));
     }
 
-    let date_parts: Vec<u64> = parts[0]
-        .split('-')
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    let date_parts: Vec<u64> = parts[0].split('-').filter_map(|s| s.parse().ok()).collect();
     if date_parts.len() != 3 {
-        return Err(PaymentGateError::Internal(format!("Invalid date format: '{dt_str}'")));
+        return Err(PaymentGateError::Internal(format!(
+            "Invalid date format: '{dt_str}'"
+        )));
     }
 
     let time_str = parts[1].split('+').next().unwrap_or(parts[1]);
-    let time_parts: Vec<u64> = time_str
-        .split(':')
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    let time_parts: Vec<u64> = time_str.split(':').filter_map(|s| s.parse().ok()).collect();
     if time_parts.len() < 2 {
-        return Err(PaymentGateError::Internal(format!("Invalid time format: '{dt_str}'")));
+        return Err(PaymentGateError::Internal(format!(
+            "Invalid time format: '{dt_str}'"
+        )));
     }
 
     let year = date_parts[0];
@@ -355,12 +376,20 @@ pub fn parse_iso8601_to_unix(dt_str: &str) -> Result<u64, PaymentGateError> {
     let day = date_parts[2];
     let hour = time_parts[0];
     let min = time_parts[1];
-    let sec = if time_parts.len() > 2 { time_parts[2] } else { 0 };
+    let sec = if time_parts.len() > 2 {
+        time_parts[2]
+    } else {
+        0
+    };
 
     let days_before_month = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
     let y = if year >= 1970 { year - 1970 } else { 0 };
     let leap_days = (year - 1969) / 4;
-    let month_idx = if month >= 1 && month <= 12 { month as usize - 1 } else { 0 };
+    let month_idx = if month >= 1 && month <= 12 {
+        month as usize - 1
+    } else {
+        0
+    };
     let days = y * 365 + leap_days + days_before_month[month_idx] + (day.saturating_sub(1));
     let total_secs = days * 86400 + hour * 3600 + min * 60 + sec;
     Ok(total_secs)
@@ -378,11 +407,13 @@ pub fn extract_financial_payment(xml: &str) -> Result<Iso20022FinancialPayment, 
     } else if xml.contains("CstmrCdtTrfInitn") {
         "pain.001.001.09".to_string()
     } else {
-        return Err(PaymentGateError::UnsupportedMessageType("Unknown or missing message root element".into()));
+        return Err(PaymentGateError::UnsupportedMessageType(
+            "Unknown or missing message root element".into(),
+        ));
     };
 
-    let msg_id = extract_xml_element_text(xml, "MsgId")
-        .ok_or(PaymentGateError::MissingElement("MsgId"))?;
+    let msg_id =
+        extract_xml_element_text(xml, "MsgId").ok_or(PaymentGateError::MissingElement("MsgId"))?;
 
     let cre_dt_tm = extract_xml_element_text(xml, "CreDtTm")
         .ok_or(PaymentGateError::MissingElement("CreDtTm"))?;
@@ -391,7 +422,9 @@ pub fn extract_financial_payment(xml: &str) -> Result<Iso20022FinancialPayment, 
     let instructing_agent_bic = extract_xml_element_inner(xml, "InstgAgt")
         .and_then(|sub| extract_xml_element_text(&sub, "BICFI"))
         .or_else(|| extract_xml_element_text(xml, "BICFI"))
-        .ok_or(PaymentGateError::MissingElement("InstgAgt/FinInstnId/BICFI"))?;
+        .ok_or(PaymentGateError::MissingElement(
+            "InstgAgt/FinInstnId/BICFI",
+        ))?;
 
     let debtor_agent_bic = extract_xml_element_inner(xml, "DbtrAgt")
         .and_then(|sub| extract_xml_element_text(&sub, "BICFI"))
@@ -402,28 +435,38 @@ pub fn extract_financial_payment(xml: &str) -> Result<Iso20022FinancialPayment, 
         .ok_or(PaymentGateError::MissingElement("CdtrAgt/FinInstnId/BICFI"))?;
 
     let debtor_account = extract_xml_element_inner(xml, "DbtrAcct")
-        .and_then(|sub| extract_xml_element_text(&sub, "IBAN").or_else(|| extract_xml_element_text(&sub, "Id")))
+        .and_then(|sub| {
+            extract_xml_element_text(&sub, "IBAN").or_else(|| extract_xml_element_text(&sub, "Id"))
+        })
         .unwrap_or_else(|| "UNSPECIFIED_DEBTOR_ACCOUNT".into());
 
     let creditor_account = extract_xml_element_inner(xml, "CdtrAcct")
-        .and_then(|sub| extract_xml_element_text(&sub, "IBAN").or_else(|| extract_xml_element_text(&sub, "Id")))
+        .and_then(|sub| {
+            extract_xml_element_text(&sub, "IBAN").or_else(|| extract_xml_element_text(&sub, "Id"))
+        })
         .unwrap_or_else(|| "UNSPECIFIED_CREDITOR_ACCOUNT".into());
 
     let amount_str = extract_xml_element_text(xml, "IntrBkSttlmAmt")
         .or_else(|| extract_xml_element_text(xml, "InstdAmt"))
-        .ok_or(PaymentGateError::MissingElement("IntrBkSttlmAmt / InstdAmt"))?;
+        .ok_or(PaymentGateError::MissingElement(
+            "IntrBkSttlmAmt / InstdAmt",
+        ))?;
 
-    let amount: f64 = amount_str.parse().map_err(|_| PaymentGateError::InvalidAmount {
-        amount: 0.0,
-        reason: format!("Unparseable amount string '{amount_str}'"),
-    })?;
+    let amount: f64 = amount_str
+        .parse()
+        .map_err(|_| PaymentGateError::InvalidAmount {
+            amount: 0.0,
+            reason: format!("Unparseable amount string '{amount_str}'"),
+        })?;
 
     let currency = extract_xml_attribute(xml, "IntrBkSttlmAmt", "Ccy")
         .or_else(|| extract_xml_attribute(xml, "InstdAmt", "Ccy"))
-        .ok_or(PaymentGateError::MissingElement("Ccy attribute on amount element"))?;
+        .ok_or(PaymentGateError::MissingElement(
+            "Ccy attribute on amount element",
+        ))?;
 
-    let uetr = extract_xml_element_text(xml, "UETR")
-        .ok_or(PaymentGateError::MissingElement("UETR"))?;
+    let uetr =
+        extract_xml_element_text(xml, "UETR").ok_or(PaymentGateError::MissingElement("UETR"))?;
 
     let end_to_end_id = extract_xml_element_text(xml, "EndToEndId")
         .ok_or(PaymentGateError::MissingElement("EndToEndId"))?;
@@ -479,8 +522,14 @@ impl Iso20022PaymentGate {
         let payment = extract_financial_payment(sealed_xml)?;
 
         // 2. Validate Message Type
-        if !self.policy.allowed_message_types.contains(&payment.message_type) {
-            return Err(PaymentGateError::UnsupportedMessageType(payment.message_type));
+        if !self
+            .policy
+            .allowed_message_types
+            .contains(&payment.message_type)
+        {
+            return Err(PaymentGateError::UnsupportedMessageType(
+                payment.message_type,
+            ));
         }
 
         // 3. Validate BIC formats (ISO 9362)
@@ -504,18 +553,34 @@ impl Iso20022PaymentGate {
         }
 
         // 4. Sanction & Quarantine Screen
-        if self.policy.blocked_bics.contains(&payment.instructing_agent_bic) {
-            return Err(PaymentGateError::BlockedOrQuarantinedParty(payment.instructing_agent_bic));
+        if self
+            .policy
+            .blocked_bics
+            .contains(&payment.instructing_agent_bic)
+        {
+            return Err(PaymentGateError::BlockedOrQuarantinedParty(
+                payment.instructing_agent_bic,
+            ));
         }
         if self.policy.blocked_bics.contains(&payment.debtor_agent_bic) {
-            return Err(PaymentGateError::BlockedOrQuarantinedParty(payment.debtor_agent_bic));
+            return Err(PaymentGateError::BlockedOrQuarantinedParty(
+                payment.debtor_agent_bic,
+            ));
         }
-        if self.policy.blocked_bics.contains(&payment.creditor_agent_bic) {
-            return Err(PaymentGateError::BlockedOrQuarantinedParty(payment.creditor_agent_bic));
+        if self
+            .policy
+            .blocked_bics
+            .contains(&payment.creditor_agent_bic)
+        {
+            return Err(PaymentGateError::BlockedOrQuarantinedParty(
+                payment.creditor_agent_bic,
+            ));
         }
 
         // 5. Currency Code Validation (ISO 4217)
-        if !is_valid_iso4217(&payment.currency) || !self.policy.allowed_currencies.contains(&payment.currency) {
+        if !is_valid_iso4217(&payment.currency)
+            || !self.policy.allowed_currencies.contains(&payment.currency)
+        {
             return Err(PaymentGateError::InvalidCurrency(payment.currency));
         }
 
@@ -557,7 +622,10 @@ impl Iso20022PaymentGate {
         }
 
         // 9. Post-Quantum Seal Cryptographic Verification against Trusted Registry
-        let auth_seal = verify_iso20022_pqc_seal_authenticated(sealed_xml, self.institutional_registry.as_ref())?;
+        let auth_seal = verify_iso20022_pqc_seal_authenticated(
+            sealed_xml,
+            self.institutional_registry.as_ref(),
+        )?;
 
         // 10. Active Signer Status
         if auth_seal.authenticated_institution.status != SignerStatus::Active {
@@ -599,7 +667,9 @@ impl Iso20022PaymentGate {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::iso20022_pqc::{embed_pqc_seal_into_iso20022, InMemoryInstitutionalKeyRegistry, InstitutionalSigner};
+    use crate::iso20022_pqc::{
+        embed_pqc_seal_into_iso20022, InMemoryInstitutionalKeyRegistry, InstitutionalSigner,
+    };
     use ed25519_dalek::SigningKey as EdSigningKey;
     use fips204::ml_dsa_87;
     use fips204::traits::SerDes;
@@ -614,7 +684,13 @@ mod tests {
         (ed_sk, ml_sk, ml_pk)
     }
 
-    fn sample_pacs008(bic: &str, uetr: &str, amount: &str, currency: &str, cre_dt_tm: &str) -> String {
+    fn sample_pacs008(
+        bic: &str,
+        uetr: &str,
+        amount: &str,
+        currency: &str,
+        cre_dt_tm: &str,
+    ) -> String {
         format!(
             r#"<?xml version="1.0" encoding="UTF-8"?>
 <Document xmlns="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08">
@@ -668,7 +744,11 @@ mod tests {
     fn test_payment_gate_accepts_valid_pacs008() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
         let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
-        let gate = Iso20022PaymentGate::new(registry.clone(), idempotency.clone(), PaymentPolicy::default());
+        let gate = Iso20022PaymentGate::new(
+            registry.clone(),
+            idempotency.clone(),
+            PaymentPolicy::default(),
+        );
 
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
 
@@ -684,7 +764,13 @@ mod tests {
         });
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
-        let xml = sample_pacs008("DBEUMM21XXX", uetr, "150000.50", "EUR", "2026-10-23T12:00:00Z");
+        let xml = sample_pacs008(
+            "DBEUMM21XXX",
+            uetr,
+            "150000.50",
+            "EUR",
+            "2026-10-23T12:00:00Z",
+        );
 
         let sealed = embed_pqc_seal_into_iso20022(
             &xml,
@@ -713,13 +799,23 @@ mod tests {
     fn test_payment_gate_rejects_untrusted_signer() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
         let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
-        let gate = Iso20022PaymentGate::new(registry.clone(), idempotency.clone(), PaymentPolicy::default());
+        let gate = Iso20022PaymentGate::new(
+            registry.clone(),
+            idempotency.clone(),
+            PaymentPolicy::default(),
+        );
 
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
 
         // Signer NOT registered in registry
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
-        let xml = sample_pacs008("ROGUEBK1XXX", uetr, "5000.00", "USD", "2026-10-23T12:00:00Z");
+        let xml = sample_pacs008(
+            "ROGUEBK1XXX",
+            uetr,
+            "5000.00",
+            "USD",
+            "2026-10-23T12:00:00Z",
+        );
         let sealed = embed_pqc_seal_into_iso20022(
             &xml,
             "ROGUEBK1XXX",
@@ -734,14 +830,21 @@ mod tests {
 
         let now = parse_iso8601_to_unix("2026-10-23T12:01:00Z").unwrap();
         let res = gate.validate_and_gate(&sealed, now);
-        assert!(matches!(res, Err(PaymentGateError::CryptographicSealFailed(_))));
+        assert!(matches!(
+            res,
+            Err(PaymentGateError::CryptographicSealFailed(_))
+        ));
     }
 
     #[test]
     fn test_payment_gate_rejects_disallowed_currency() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
         let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
-        let gate = Iso20022PaymentGate::new(registry.clone(), idempotency.clone(), PaymentPolicy::default());
+        let gate = Iso20022PaymentGate::new(
+            registry.clone(),
+            idempotency.clone(),
+            PaymentPolicy::default(),
+        );
 
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
 
@@ -758,7 +861,13 @@ mod tests {
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
         // Currency XYZ is not in allowed list
-        let xml = sample_pacs008("DBEUMM21XXX", uetr, "150000.50", "XYZ", "2026-10-23T12:00:00Z");
+        let xml = sample_pacs008(
+            "DBEUMM21XXX",
+            uetr,
+            "150000.50",
+            "XYZ",
+            "2026-10-23T12:00:00Z",
+        );
         let sealed = embed_pqc_seal_into_iso20022(
             &xml,
             "DBEUMM21XXX",
@@ -780,7 +889,11 @@ mod tests {
     fn test_payment_gate_rejects_negative_or_zero_amount() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
         let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
-        let gate = Iso20022PaymentGate::new(registry.clone(), idempotency.clone(), PaymentPolicy::default());
+        let gate = Iso20022PaymentGate::new(
+            registry.clone(),
+            idempotency.clone(),
+            PaymentPolicy::default(),
+        );
 
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
 
@@ -818,7 +931,11 @@ mod tests {
     fn test_payment_gate_rejects_replay() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
         let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
-        let gate = Iso20022PaymentGate::new(registry.clone(), idempotency.clone(), PaymentPolicy::default());
+        let gate = Iso20022PaymentGate::new(
+            registry.clone(),
+            idempotency.clone(),
+            PaymentPolicy::default(),
+        );
 
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
 
@@ -855,14 +972,21 @@ mod tests {
 
         // Second attempt with same UETR must be rejected as replay
         let res2 = gate.validate_and_gate(&sealed, now);
-        assert_eq!(res2, Err(PaymentGateError::ReplayDetected(uetr.to_string())));
+        assert_eq!(
+            res2,
+            Err(PaymentGateError::ReplayDetected(uetr.to_string()))
+        );
     }
 
     #[test]
     fn test_payment_gate_rejects_stale_timestamp() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
         let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
-        let gate = Iso20022PaymentGate::new(registry.clone(), idempotency.clone(), PaymentPolicy::default());
+        let gate = Iso20022PaymentGate::new(
+            registry.clone(),
+            idempotency.clone(),
+            PaymentPolicy::default(),
+        );
 
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
 
@@ -894,14 +1018,21 @@ mod tests {
         // Gateway time is 10 minutes later (600s > 300s max allowed)
         let now = parse_iso8601_to_unix("2026-10-23T12:10:00Z").unwrap();
         let res = gate.validate_and_gate(&sealed, now);
-        assert!(matches!(res, Err(PaymentGateError::TemporalFreshnessExpired { .. })));
+        assert!(matches!(
+            res,
+            Err(PaymentGateError::TemporalFreshnessExpired { .. })
+        ));
     }
 
     #[test]
     fn test_payment_gate_rejects_future_dated_payment() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
         let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
-        let gate = Iso20022PaymentGate::new(registry.clone(), idempotency.clone(), PaymentPolicy::default());
+        let gate = Iso20022PaymentGate::new(
+            registry.clone(),
+            idempotency.clone(),
+            PaymentPolicy::default(),
+        );
 
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
 
@@ -933,14 +1064,21 @@ mod tests {
 
         let now = parse_iso8601_to_unix("2026-10-23T12:00:00Z").unwrap();
         let res = gate.validate_and_gate(&sealed, now);
-        assert!(matches!(res, Err(PaymentGateError::FutureDatedPayment { .. })));
+        assert!(matches!(
+            res,
+            Err(PaymentGateError::FutureDatedPayment { .. })
+        ));
     }
 
     #[test]
     fn test_payment_gate_rejects_signer_bic_mismatch() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
         let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
-        let gate = Iso20022PaymentGate::new(registry.clone(), idempotency.clone(), PaymentPolicy::default());
+        let gate = Iso20022PaymentGate::new(
+            registry.clone(),
+            idempotency.clone(),
+            PaymentPolicy::default(),
+        );
 
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
 
@@ -973,7 +1111,10 @@ mod tests {
 
         let now = parse_iso8601_to_unix("2026-10-23T12:01:00Z").unwrap();
         let res = gate.validate_and_gate(&sealed, now);
-        assert!(matches!(res, Err(PaymentGateError::SignerBicMismatch { .. })));
+        assert!(matches!(
+            res,
+            Err(PaymentGateError::SignerBicMismatch { .. })
+        ));
     }
 
     #[test]
@@ -999,7 +1140,13 @@ mod tests {
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
         // Amount is $5M (> $1M limit)
-        let xml = sample_pacs008("DBEUMM21XXX", uetr, "5000000.00", "USD", "2026-10-23T12:00:00Z");
+        let xml = sample_pacs008(
+            "DBEUMM21XXX",
+            uetr,
+            "5000000.00",
+            "USD",
+            "2026-10-23T12:00:00Z",
+        );
         let sealed = embed_pqc_seal_into_iso20022(
             &xml,
             "DBEUMM21XXX",
@@ -1014,14 +1161,21 @@ mod tests {
 
         let now = parse_iso8601_to_unix("2026-10-23T12:01:00Z").unwrap();
         let res = gate.validate_and_gate(&sealed, now);
-        assert!(matches!(res, Err(PaymentGateError::AmountExceedsLimit { .. })));
+        assert!(matches!(
+            res,
+            Err(PaymentGateError::AmountExceedsLimit { .. })
+        ));
     }
 
     #[test]
     fn test_payment_gate_rejects_malformed_uetr() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
         let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
-        let gate = Iso20022PaymentGate::new(registry.clone(), idempotency.clone(), PaymentPolicy::default());
+        let gate = Iso20022PaymentGate::new(
+            registry.clone(),
+            idempotency.clone(),
+            PaymentPolicy::default(),
+        );
 
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
 
@@ -1038,7 +1192,13 @@ mod tests {
 
         // Malformed non-UUID UETR
         let bad_uetr = "not-a-valid-uuid-format-123";
-        let xml = sample_pacs008("DBEUMM21XXX", bad_uetr, "100.00", "USD", "2026-10-23T12:00:00Z");
+        let xml = sample_pacs008(
+            "DBEUMM21XXX",
+            bad_uetr,
+            "100.00",
+            "USD",
+            "2026-10-23T12:00:00Z",
+        );
         let sealed = embed_pqc_seal_into_iso20022(
             &xml,
             "DBEUMM21XXX",
@@ -1093,14 +1253,21 @@ mod tests {
 
         let now = parse_iso8601_to_unix("2026-10-23T12:01:00Z").unwrap();
         let res = gate.validate_and_gate(&sealed, now);
-        assert!(matches!(res, Err(PaymentGateError::BlockedOrQuarantinedParty(_))));
+        assert!(matches!(
+            res,
+            Err(PaymentGateError::BlockedOrQuarantinedParty(_))
+        ));
     }
 
     #[test]
     fn test_payment_gate_concurrent_in_flight_blocked() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
         let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
-        let gate = Iso20022PaymentGate::new(registry.clone(), idempotency.clone(), PaymentPolicy::default());
+        let gate = Iso20022PaymentGate::new(
+            registry.clone(),
+            idempotency.clone(),
+            PaymentPolicy::default(),
+        );
 
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
 
@@ -1137,7 +1304,9 @@ mod tests {
         let res_concurrent = gate.validate_and_gate(&sealed, now);
         assert_eq!(
             res_concurrent,
-            Err(PaymentGateError::ConcurrentSubmissionBlocked(uetr.to_string()))
+            Err(PaymentGateError::ConcurrentSubmissionBlocked(
+                uetr.to_string()
+            ))
         );
     }
 }

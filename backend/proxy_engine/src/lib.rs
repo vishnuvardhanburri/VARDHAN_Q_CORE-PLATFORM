@@ -829,7 +829,11 @@ impl QuantumProxyServer {
                         // 3. Handshake Timeout (Slowloris protection) with authenticated peer registry
                         let handshake_result = tokio::time::timeout(
                             std::time::Duration::from_secs(5),
-                            run_responder_authenticated(&mut socket, &identity, peer_registry.as_ref()),
+                            run_responder_authenticated(
+                                &mut socket,
+                                &identity,
+                                peer_registry.as_ref(),
+                            ),
                         )
                         .await;
 
