@@ -46,8 +46,8 @@ jobs:
           docker system prune -af --volumes 2>/dev/null || true
           sudo rm -rf /tmp/* /var/log/*/ /usr/share/dotnet/ /usr/share/temurin/ 2>/dev/null || true
           echo "Disk usage:"; df -h /
-      - name: Formatting normalization
-        run: cargo fmt --all
+      - name: Formatting check
+        run: cargo fmt --all -- --check
       - name: Build receipt engine for control-plane lifecycle tests
         run: cargo build -p vardhan_receipt
         env:
