@@ -1,3 +1,28 @@
+# Current threat-model addendum — 2026-10-23
+
+**NOT PRODUCTION READY.** The dated assessment below is historical and is not current
+validation evidence. Current boundaries are in PRODUCTION_ARCHITECTURE.md; the risk
+register is OPEN_RISKS_AND_EXTERNAL_DEPENDENCIES.md.
+
+Assets: signing/KEM secrets, trust/policy configuration, tenant sessions, transaction
+uniqueness state, payment content, audit evidence and deployment artifacts. Adversaries:
+unauthenticated peers, hostile tenants, compromised upstream evidence producers, network
+interceptors, compromised dependency/build workers and privileged host/storage operators.
+
+This patch addresses unsigned-version fallback, unvalidated signer expiry, XML ambiguity,
+unsigned seal metadata, ambiguous KDF inputs, poisoned quarantine state, enclave false
+success and receipt replay-barrier loss. Trust in underlying evidence, production key
+custody, complete payment authorization and distributed recovery remain unresolved.
+
+The trusted computing base includes the host OS/clock/entropy, cryptographic libraries,
+auth configuration, institutional registry operator and durable storage. A compromised
+registry can authorise attacker keys; a hash chain cannot prevent an administrator from
+deleting or replacing storage without independent anchors. Software zeroization cannot
+protect against all host or hypervisor memory capture. Test controls against each boundary
+with synthetic data; obtain independent threat/protocol review before deployment.
+
+---
+
 # VARDHAN Q-CORE — Threat Model (Phase 7, Assessment-Only)
 
 > **Scope / honesty notice:** This is an *internal, evidence-backed threat model* produced by

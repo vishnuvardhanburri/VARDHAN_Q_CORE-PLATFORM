@@ -1,176 +1,115 @@
-# Production Readiness Report — Vardhan Q-Core Platform
+# Production readiness report — security hardening candidate
 
-Base commit: `af241e6` · Date: 2026-10-16 · Scope: single-node Linux (Docker) + macOS dev-sim.
-This report reconciles documentation against `af241e6` reality. It makes no
-production-security claim; release posture is governed by §9–§10.
+## 1. Revision and acceptance
 
-## §1 Architecture reconciliation
+Reviewed source: **82a12d5dd92613a17cfcacf965fff0d304bfa805** (freshly fetched main).
+Changes are on `coderabbit/production-readiness-security-hardening/80b9f4f7`.
+**Production acceptance: NOT PRODUCTION READY.** This is a reviewable hardening candidate,
+not an approved production release. No release was published and no live deployment occurred.
 
-- Workspace: **33 crates** (`cargo metadata --no-deps`, re-verified 2026-10-16).
-- `ARCHITECTURE.md` EXISTS in-repo (10862 B). README §294 is honest:
-  "Production claims require runtime evidence…" (README line 294).
-- Control-plane routes: `backend/control_plane_api/src/lib.rs:221-412`
-  (46 `.route(` entries inside that range; file is 749 lines total).
-- Crypto: dual **ML-DSA-87** (FIPS 204; `core_crypto/src/lib.rs`) +
-  **ML-KEM-1024** (FIPS 203) with **Ed25519 / BLAKE3** paths present
-  (`core_crypto/src/lib.rs`, `license.rs`, `vault.rs`, `anti_tamper.rs`).
-- Verifiers: **3 distinct crates** — `backend/pq_verify`,
-  `backend/vardhan_verifier`, `backend/verifier` (separate dirs, not aliases).
-- Storage: **sled** (`control_plane_api/Cargo.toml`; durable queue at
-  `backend/control_plane_api/src/durable_event_queue.rs`, prefix `qcore:event:`).
-- Topology at `af241e6`: **durable single-process** node; multi-node idempotency
-  and consensus remain gated (G2; see `docs/KNOWN_LIMITATIONS.md` L-01/L-02).
+## 2. Priority changes, root causes and impact
 
-## §2 Service / port map
-
-Source: `docs/SERVICE_PORT_REGISTRY.md` (Phase-2 snapshot; defaults unchanged).
-
-| Service / binary | Port | Note |
+| Priority | Issue / root cause | Repair and compatibility impact |
 |---|---|---|
-| control-plane API (`control_plane_api`) | 8080 (`127.0.0.1`) | Override `VARDHAN_CONTROL_PLANE_ADDR` |
-| pq-shield ingress (`pq_shield`) | 8080 (`0.0.0.0:{VARDHAN_PORT}`) | Override `VARDHAN_PORT` — **COLLISION [KNOWN]** |
-| receipt gateway (`vardhan-receipt Serve`) | 8080 (`--port` default) | Override `--port <N>` — **COLLISION [KNOWN]** |
-| load-tester target | 8080 (default target) | Override `--target <addr>` |
-| verifier dial target | 8080 (test client) | No override; point manually |
-| intelligence-plane UI | 3000 (compose-mapped) | `VARDHAN_INTELLIGENCE_PORT` |
-| mock upstream | 9090 (fixed test double) | None |
-| heartbeat (UDP) | 18080 | `VARDHAN_HEARTBEAT_PORT` |
-| raft | 18090 | `VARDHAN_RAFT_PORT` |
-| admin API | 8081 | `VARDHAN_ADMIN_PORT` |
-| OTLP test collector | 4318 (test-only) | None |
-| quantum_node proxy | 8443 (TLS example) | `--bind <addr>`; handshake UNVERIFIED (G3) |
-| HA-test-only | 18081 | Test scope only |
+| High | HELLO accepts key-only legacy signature, leaving versions unauthenticated | remove fallback; exact frame length; old insecure peers rejected |
+| High | Proxy defaults to development and can fabricate ACK | default Production, no generic ACK, mandatory handler, registry enforced in release builds |
+| High | Institutional key expiry stored but unused | reject expired/inactive/inconsistent registry identity; no claim of complete tenant/role key enrollment |
+| High | XML substring parsing and digest-only signatures permit ambiguity/metadata changes | bounded namespace-aware parser, writer escaping, V2 complete-document/context binding; V1 and unsupported profiles rejected |
+| High | Payment date arithmetic accepts invalid calendar/offsets; placeholder accounts | RFC3339 conversion, exact field paths and required accounts; f64 payment precision remains blocked |
+| High | Variable KDF context/ID concatenation collides | length-prefix inputs and V2 domain; derived keys change and require coordinated retirement |
+| High | Quarantine lookup returns false on lock poisoning | deny on unknown monitoring state |
+| High | Enclave stub returns unchanged input as successful execution | explicit unavailable error until real attested backend exists |
+| High | File reservation races committed state and drops barrier after commit failure | synced exclusive reservation, committed-state recheck, atomic rename/directory sync, retained barrier and OUTCOME_UNKNOWN |
+| High | Audit append errors still return success | return OUTCOME_UNKNOWN with barrier retained; multiwriter atomic audit still unproven |
+| Medium | Malformed stored secret length panics; DEK plaintext temporaries not zeroizing | checked lengths and RAII zeroization across error/success paths |
+| High | Frontend lockfile includes Vite/Handlebars advisories | compatible dependency update; npm audit now zero findings, frontend build/test passed |
+| Medium | Production image copies nonexistent library executable; CI rewrites formatting | package pq_verify, locked build, enforce fmt --check |
+| Evidence | README/spec overstate security, compliance, recovery and interoperability | distinguish implementation, internal testing, missing proof and external assurance |
 
-`qcore doctor` warns on the 8080 collision; stagger with overrides (L-11).
+Important sources: core_crypto/{iso20022_pqc,payment_xml,payment_gate,transaction_bound_kdf,
+self_healing_epoch,enclave,vault,lib}.rs; proxy_engine; vardhan_receipt/src/main.rs;
+Dockerfile.prod; CI workflows; intelligence_plane/package-lock.json; README and readiness docs.
 
-## §3 API contracts
+## 3. Commands and tests
 
-- Canonical contract: `api/openapi.yaml` — OpenAPI 3.1.0, `version: 1.1.0`,
-  **31 paths** (`grep -c "^  /"` = 31).
-- Backend has **NO pricing/entities routes**: `grep -rln "pricing|entities"`
-  under `backend/control_plane_api/src/` returns empty at `af241e6`.
-- Frontend lives in a SEPARATE folder (`Vardhan-Q-Core-_-Frontend--main`),
-  not in this backend repo — pricing/entities provider contract is
-  **[UNVERIFIED]** (see `docs/KNOWN_LIMITATIONS.md` L-10).
+See [exact commands and results](PRODUCTION_ACCEPTANCE_TESTS.md). Failed baseline,
+reproduction and intermediate checks are preserved. The broad baseline test run timed out;
+strict Clippy stops at 20 core errors. No full green CI claim is made. Current targeted security checks
+are distinguished from broad suite and operational evidence.
 
-## §4 Crypto components
+## 4. Supply chain
 
-| Component | Status | Evidence |
-|---|---|---|
-| ML-DSA-87 sign/verify (FIPS 204) | `[IMPLEMENTED-TESTED]` (unit) | `core_crypto/src/lib.rs` |
-| ML-KEM-1024 (FIPS 203) | `[IMPLEMENTED-TESTED]` (unit) | `core_crypto/src/lib.rs:4` |
-| Ed25519 / BLAKE3 paths | `[IMPLEMENTED-TESTED]` (unit) | `license.rs`, `vault.rs`, `anti_tamper.rs` |
-| HSM / KMS custody | `[PLANNED]` (Gate G4) | Software-only keystore; `lab_keys/` empty |
+Normal cargo audit passes under existing repository exclusions. A supplemental audit
+outside those exclusions reports **8 vulnerabilities / 9 unmaintained warnings**:
+h2 0.3.27, rsa 0.9.10, rustls 0.21.12 and rustls-webpki 0.101.7. The exact advisory IDs
+are in the acceptance evidence/risk register. Existing exceptions were not approved by
+this task. Corrected the false claim that serde_cbor was only a non-production dependency:
+core_crypto uses it for rotation payloads. No crypto library was automatically replaced.
+Npm Vite/Handlebars findings were repaired and verified. License checks fail without an approved policy. A redacted scan of all 21 available commits found 11 candidates, largely public identifiers/artifact references/test expressions; no rotation or clean-history claim is made. Filename secret guard and rustls
+floor checks pass; neither establishes a clean repository history or deployed configuration.
+Artifact-specific SBOM/provenance and license-policy approval remain required.
 
-No new cryptanalysis in Phase 8; live handshake / custody proofs remain gated.
+## 5. Cryptographic and operational boundaries
 
-## §5 Deployment assumptions
+No new cryptographic primitive or parameter set. ISO V2 signs domain/context and the entire
+validated parsed document; KDF V2 removes encoding ambiguity. Both require coordinated
+migration; no fallback to insecure legacy verification. Registry-free verification remains
+consistency-only. No tenant/payment authorisation, forward secrecy or quantum-safe product
+guarantee follows from primitive calls. Independent protocol/key-lifecycle review is pending.
 
-- Supported at `af241e6`: **single-node Linux via `docker-compose.yml`** +
-  **macOS dev-sim** (eBPF is `[SIMULATED]` on macOS — L-12).
-- Multi-region / zero-downtime are roadmap items (README Phase 6), not release
-  claims. `docs/ROLLBACK_AND_RECOVERY.md` is a Phase-6 stub — kept as-is.
-- Compose volume `keystore-data` holds the software keystore (G4 open).
+Deployment fixes address build/check defects. HA/DR and incident response documents specify
+procedures requiring execution and owner assignment. No RPO/RTO or performance result was
+measured; full recovery cannot be inferred from a local epoch switch. No real payment traffic
+was sent. Local Docker build results are distinct from staging/production acceptance.
 
-## §6 Feature status table
+## 6. Remaining work and approvals
 
-| Feature | Label | Pointer |
-|---|---|---|
-| Control-plane API + durable queue | `[IMPLEMENTED-TESTED]` (unit) / failover `[UNVERIFIED]` | L-01, S-06 |
-| RAFT multi-node consensus | `[EXPERIMENTAL]` | L-02 (`ha_cluster`) |
-| Backup / restore | `[IMPLEMENTED-UNTESTED]` | L-03 |
-| Graceful shutdown | `[IMPLEMENTED-UNTESTED]` | L-04 |
-| Rate limiting | `[UNVERIFIED]` (effectiveness) | L-05 |
-| mTLS | `[PLANNED]` (G3) | L-06, S-07 |
-| HSM / KMS | `[PLANNED]` (G4) | L-07, S-08 |
-| Pentest / ISO 27001 | `[PLANNED]` (G1) | L-08, S-11 |
-| Secret-history purge | `[KNOWN]` OPEN (S-01b) | §7, L-09 |
-| Frontend pricing/entities | `[UNVERIFIED]` (contract) | L-10 |
-| Port 8080 collision | `[KNOWN]` | L-11 |
-| eBPF on macOS | `[SIMULATED]` | L-12 |
-| Deployment model | `[KNOWN]` single-node only | L-13 |
+See [open risks](OPEN_RISKS_AND_EXTERNAL_DEPENDENCIES.md): authoritative finding evidence
+resolution, official ISO schema/market profiles, full payment identity/policy/adapter,
+exact-decimal financial validation, durable distributed execution and reconciliation,
+concurrent audit/DR evidence, production trust/key custody, remaining dependency advisories,
+complete access-control assessment and secret-scan triage, strict lint and all release gates.
+These are not accepted risks and are not marked complete. Independent security/cryptographic
+assessment, qualified regulatory applicability review, network/counterparty acceptance and
+explicit owner deployment/release approval are still required.
 
-## §7 Secret-exposure statement (S-01 / S-01b)
+| Evidence class | Status |
+|---|---|
+| IMPLEMENTED | scoped repairs listed above, committed source and documentation |
+| TESTED | only command-specific results in acceptance report |
+| INDEPENDENTLY REVIEWED | external protocol/pentest assessment not established; automated code review separately recorded |
+| CERTIFIED | no applicable certification established |
+| NOT YET PROVEN | all open production, distributed recovery, interoperability and performance requirements |
 
-- `scripts/qcore-pov/secrets/admin_password.txt`: **UNTRACKED at `af241e6`**
-  (removed from index via `git rm --cached` in `af241e6`; present on disk;
-  covered by `.gitignore` `scripts/qcore-pov/secrets/*` + `**/admin_password.txt`;
-  `git ls-files | grep admin_password` = 0; guard
-  `scripts/check_no_tracked_secrets.sh` PASSES).
-- History **STILL contains secret-bearing blobs**: `02707f8` (add) plus legacy
-  `.admin_password` in `372b69a` / `9b92d49`. Rotation + `filter-repo`/BFG purge
-  + force-push coordination are **STILL OPEN as S-01b**.
-- Explicitly: **untracked-and-ignored is NOT rotation, NOT purge, NOT proof
-  of non-exposure.** No secret values were read or recorded in Phase 8.
+## 7. Final internal validation summary
 
-## §8 CI summary
+- Workspace build and formatting passed with the documented toolchain.
+- Broad workspace tests excluding HA: 650 passed, 2 existing ignored tests.
+- Full HA suite: 228 passed, zero failed/ignored across 21 executable targets plus doc tests.
+- Subsequent focused core library run: 84 passed (plus 17 smoke-binary and 6 algorithm self-test cases); receipt targets: 97 passed (95 in the main binary). These overlap the broad suite and must not be summed as unique tests.
+- Proxy debug tests: 23 library and 9 integration; release-mode registry enforcement: 1 passed.
+- Frontend: build and 101 tests in 38 files passed; npm audit reports zero findings.
+- Local candidate image built from the final runtime code: `sha256:6d9f8001458c549e1e350027992d471f1b7c23054cb8bed3b2913d018b139702`. This is a local image ID, not signed registry provenance.
+- Container boundary smoke passed: UID 10001, verifier CLI, missing receipt hash rejection and missing administrator bootstrap identity rejection. No configured service or financial lifecycle was deployed.
+- Environment doctor passed after Rust/Docker preparation.
+- Strict lint and license gates fail; unsuppressed dependency advisories and history-scan candidates remain unresolved. Earlier timeout, reproduction and smoke-expectation failures are retained in the acceptance record.
 
-- **9/9 workflows green as Leader-verified 2026-10-16** (`sovereign-ci`,
-  `security`, `platform-web`, `platform-web-contract`, `lab-harness`,
-  `pov-docker-validation`, `unified-local-runtime`, `enterprise-release`,
-  `ci-correctness-benchmarks`). **NOT re-run in Phase 8** (docs-only phase;
-  `bash -n` N/A — no shell scripts changed).
+BuildKit warns about `VARDHAN_AUTH_CONFIG_PATH` by variable name; its value is a configuration path, not a credential. Compiler warnings remain. Source allowlisting excludes runtime data and local secrets from the builder context.
 
-## §9 Residual gates
+## 8. Automated review and change audit
 
-- **G1** (pentest/ISO evidence, S-11) — OPEN.
-- **G2** (single durable idempotency path + failover/concurrency test, S-06) — OPEN.
-- **G3** (mTLS handshake proof, S-07) — OPEN.
-- **G4** (HSM/KMS binding + rotation drill, S-08) — OPEN.
-- **S-01b** (credential rotation + history purge + force-push coordination) — OPEN.
+CodeRabbit completed three review passes: **2, 4 and 2 minor findings**, respectively.
+The first identified discarded test commit results and a stale constructor comment;
+the second covered fixture expiry and shared environment/directory isolation; the third
+identified missing release-mode test registries and malformed input classified as an
+internal error. All reported issues were addressed and affected tests rerun. The last
+pass had two findings; no zero-finding final pass or independent security approval is claimed.
 
-## §10 Verdict (Mission E — FINAL, evidence-backed)
+Implementation commits:
 
-Date: 2026-10-16 · HEAD: `c61b9f8` · Scope: single-node deployment only.
+- `c607a09`: crypto/XML/payment validation and failure handling.
+- `c71ac3c`: ingress trust, execution handler and receipt durability.
+- `004304e`: frontend dependency fixes, image inputs, CI and smoke script.
 
-**Verdict: RELEASE CANDIDATE for single-node deployment. NOT PRODUCTION-READY
-— G1 independent assessment is uncommissioned, which bars any
-PRODUCTION-READY claim. S-01b/G2/G3/G4 are CLOSED per evidence below.**
-
-Per-gate evidence (all verified, none invented):
-- **S-01b CLOSED** — history purge: 0 secret objects in `git rev-list
-  --objects --all` (fresh-clone grep empty at HEAD `2dc617b`); guard
-  `scripts/check_no_tracked_secrets.sh` exit 0 (PASS, re-verified 2026-10-16);
-  credential rotation done (see `docs/BLOCKER_REGISTER.md`).
-- **G2 CLOSED (single-node)** — single durable path: sled `qcore:event:` CAS
-  authority (`compare_and_swap`, `durable_event_queue.rs`); 4/4 failover tests
-  pass (`tests/g2_durable_idempotency.rs`: concurrent-duplicate, restart,
-  duplicate-replay, failover-claim); 43 lib unit tests
-  (`backend/control_plane_api/src/`); commit `7151cd4`.
-- **G3 CLOSED (single-node)** — 4/4 mTLS tests pass
-  (`tests/g3_mtls_handshake.rs`: trusted-200 accept, rogue-CA reject,
-  no-cert reject, missing-CA fails-closed); proof script
-  `scripts/g3_mtls_proof.sh` exit 0; commit `c61b9f8`.
-- **G4 CLOSED-drill** — rotation drill exit 0: wrap-v1 → sign/verify →
-  rotate → rewrap-v2 → load+verify → bad-token-Err → recovery
-  (`backend/vardhan_keystore/tests/vault_rotation_drill.rs`,
-  `scripts/g4_vault_rotation_drill.sh`); commit `c61b9f8`.
-- **G1 OPEN** — preparation packet ready (`docs/G1_ASSURANCE_PACKET.md`,
-  scope + threat-model pointer + assessor entry); independent assessment NOT
-  commissioned — this alone bars PRODUCTION-READY.
-
-Untested / out-of-scope (NOT claimed): multi-node / failover-across-nodes,
-frontend build, fuzz, `docker compose` up, perf/soak, backup-restore drill,
-graceful-shutdown test, rate-limit adversarial.
-
-Owners: UNASSIGNED throughout. Owner actions before any production use:
-commission independent pentest (G1); provision production CA (G3) + Vault/HSM
-cluster (drill used dev-mode Vault, not a prod cluster); notify all known
-cloners/forks to re-clone post-purge (rewritten history).
-
-Residual risks: purge rewrote history — any pre-purge clone still carries
-secret blobs until re-cloned; Vault drill proves rotation logic, not prod
-cluster custody; verdict covers single-node only, multi-node UNSUPPORTED.
-
-## §11 Mission E evidence log
-
-| Gate | Proof command | Exit | Result |
-|---|---|---|---|
-| S-01b | `git rev-list --objects --all \| grep -i admin_password` | 0 | 0 objects (purged) |
-| S-01b | `bash scripts/check_no_tracked_secrets.sh` | 0 | GUARD PASS |
-| G2 | `cargo test -p control_plane_api --test g2_durable_idempotency` | 0 | 4/4 pass |
-| G2 | `cargo test -p control_plane_api --lib` (durable path) | 0 | 43 pass (CAS authority) |
-| G3 | `cargo test -p control_plane_api --test g3_mtls_handshake` | 0 | 4/4 pass (accept+rejects) |
-| G3 | `bash scripts/g3_mtls_proof.sh` | 0 | accept + 2x reject recorded |
-| G4 | `bash scripts/g4_vault_rotation_drill.sh` | 0 | wrap/rotate/rewrap/verify/bad-token/recovery |
-| G1 | — (packet only) | — | `docs/G1_ASSURANCE_PACKET.md` ready; assessment OPEN |
+The documentation commit completes the audit trail. No critical/high release blocker
+in the risk register is considered accepted or complete merely because these commits exist.
