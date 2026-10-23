@@ -27,8 +27,6 @@ ignore = [
     { id = "RUSTSEC-2026-0098", reason = "Transitive dep via aws-sdk-kms" },
     { id = "RUSTSEC-2026-0099", reason = "Transitive dep via aws-sdk-kms" },
     { id = "RUSTSEC-2026-0382", reason = "rustls-webpki 0.101.7 transitive via legacy rustls 0.21.12 compatibility path; upstream fixes only on 0.103.16+" },
-    { id = "RUSTSEC-2026-0381", reason = "Transitive dep via webpki-roots legacy line" },
-    { id = "RUSTSEC-2026-0383", reason = "Transitive dep via webpki-root-certs legacy line" },
 
     # Unmaintained transitive dependencies (no safe upgrade path)
     # fxhash — used transitively by criterion (test-only)
