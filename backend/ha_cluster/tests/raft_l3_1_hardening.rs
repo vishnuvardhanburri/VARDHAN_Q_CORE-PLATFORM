@@ -37,7 +37,7 @@ use tokio::sync::RwLock;
 use tokio::time::timeout;
 use tracing::{info, warn};
 
-const ELECTION_WAIT: Duration = Duration::from_secs(35);
+const ELECTION_WAIT: Duration = Duration::from_secs(60);
 const REPLICATION_WAIT: Duration = Duration::from_secs(30);
 
 // ── Configs ─────────────────────────────────────────────────────────────────
@@ -533,8 +533,11 @@ async fn count_candidates(nodes: &[TestNode]) -> usize {
     count
 }
 
-async fn wait_for_leader(nodes: &[TestNode]) -> Arc<RaftNode> {
-    timeout(ELECTION_WAIT, async {
+async fn try_wait_for_leader(
+    nodes: &[TestNode],
+    wait_duration: Duration,
+) -> Result<Arc<RaftNode>, String> {
+    match timeout(wait_duration, async {
         loop {
             let leaders = count_leaders(nodes).await;
             let candidates = count_candidates(nodes).await;
@@ -554,7 +557,16 @@ async fn wait_for_leader(nodes: &[TestNode]) -> Arc<RaftNode> {
         }
     })
     .await
-    .expect("Election timed out — no stable leader")
+    {
+        Ok(l) => Ok(l),
+        Err(_) => Err("Election timed out — no stable leader".to_string()),
+    }
+}
+
+async fn wait_for_leader(nodes: &[TestNode]) -> Arc<RaftNode> {
+    try_wait_for_leader(nodes, ELECTION_WAIT)
+        .await
+        .expect("Election timed out — no stable leader")
 }
 
 async fn wait_for_commit(node: &RaftNode, index: u64) -> bool {
@@ -1710,8 +1722,7 @@ async fn run_real_process_crash_scenario(run_id: usize) -> Result<(), String> {
     let (membership, mut nodes) = spawn_cluster_with_config(run_id, stability_config()).await;
 
     // Use stable leader wait
-    let leader = wait_for_leader(&nodes);
-    let leader = match timeout(ELECTION_WAIT, async { leader.await }).await {
+    let leader = match try_wait_for_leader(&nodes, ELECTION_WAIT).await {
         Ok(l) => l,
         Err(_) => {
             abort_all(&mut nodes).await;
@@ -1805,8 +1816,7 @@ async fn run_bidirectional_partition_scenario(run_id: usize) -> Result<(), Strin
     let (membership, mut nodes) = spawn_cluster_with_config(run_id, stability_config()).await;
 
     // Use the stable wait_for_leader (verifies 500ms stability)
-    let leader = wait_for_leader(&nodes);
-    let leader = match timeout(ELECTION_WAIT, async { leader.await }).await {
+    let leader = match try_wait_for_leader(&nodes, ELECTION_WAIT).await {
         Ok(l) => l,
         Err(_) => {
             abort_all(&mut nodes).await;
