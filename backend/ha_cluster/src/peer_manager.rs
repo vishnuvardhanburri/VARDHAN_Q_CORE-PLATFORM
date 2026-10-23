@@ -98,6 +98,11 @@ impl RaftPeerManager {
     pub async fn clear_worker(&self, to: &NodeId) {
         self.inner.clear_worker(to).await
     }
+
+    /// Clear all cached workers, causing their worker tasks to terminate.
+    pub async fn clear_all_workers(&self) {
+        self.inner.clear_all_workers().await;
+    }
 }
 
 impl RaftPeerManagerInner {
@@ -152,6 +157,12 @@ impl RaftPeerManagerInner {
     pub async fn clear_worker(&self, to: &NodeId) {
         let mut workers = self.workers.write().await;
         workers.remove(to);
+    }
+
+    /// Remove all cached workers, dropping their senders and shutting them down.
+    pub async fn clear_all_workers(&self) {
+        let mut workers = self.workers.write().await;
+        workers.clear();
     }
 }
 
@@ -230,6 +241,10 @@ async fn run_peer_worker(
 ) -> Result<(), String> {
     let mut backoff = Duration::from_millis(100);
     loop {
+        if rx.is_closed() {
+            info!(peer = %to_id, "Receiver channel closed, terminating peer worker");
+            return Ok(());
+        }
         info!(peer = %to_id, addr = %addr, "Attempting TCP connect");
         // 1. Connect and Handshake
         let connect_res = timeout(Duration::from_secs(1), TcpStream::connect(addr)).await;
@@ -251,6 +266,11 @@ async fn run_peer_worker(
                 continue;
             }
         };
+
+        if rx.is_closed() {
+            info!(peer = %to_id, "Receiver channel closed, terminating peer worker");
+            return Ok(());
+        }
 
         info!(peer = %to_id, "Starting PQ handshake");
         let handshake_fut = run_initiator(&mut stream, &identity);
@@ -294,7 +314,14 @@ async fn run_peer_worker(
 
         loop {
             tokio::select! {
-                Some(req) = rx.recv() => {
+                req_opt = rx.recv() => {
+                    let req = match req_opt {
+                        Some(r) => r,
+                        None => {
+                            info!(peer = %to_id, "Worker receiver closed, terminating peer worker");
+                            return Ok(());
+                        }
+                    };
                     let request_id = req.request_id();
                     let rpc_type = req.rpc_type();
                     let payload = match req.payload() {

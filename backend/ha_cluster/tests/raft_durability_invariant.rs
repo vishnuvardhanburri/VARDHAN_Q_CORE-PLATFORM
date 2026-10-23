@@ -25,6 +25,11 @@ struct TestNode {
 }
 
 impl TestNode {
+    async fn shutdown(&mut self) {
+        self.abort();
+        self.peer_manager.clear_all_workers().await;
+    }
+
     fn abort(&mut self) {
         self.killed.store(true, Ordering::SeqCst);
         self.run_handle.abort();
@@ -98,7 +103,7 @@ async fn restart_node(
     peers: Vec<NodeId>,
     config: RaftConfig,
 ) -> TestNode {
-    old.abort();
+    old.shutdown().await;
     tokio::task::yield_now().await;
 
     let id = old.id.clone();
@@ -228,27 +233,37 @@ async fn run_durability_cycle(cycle_id: usize) {
     // 1. Submit known entry 1 on stable leader
     let req_id1 = format!("req-{}-1", cycle_id);
     let data1 = format!("payload-{}-1", cycle_id).into_bytes();
+    let mut submitted_idx1 = None;
     let (term1, idx1, leader_id) = loop {
         let leader = wait_for_leader(&nodes).await;
         let lid = leader.id.clone();
         let term = *leader.current_term.read().await;
-        match leader
-            .submit_entry(LogEntry {
-                term,
-                index: 0,
-                client_id: "client-dur".to_string(),
-                request_id: req_id1.clone(),
-                data: data1.clone(),
-            })
-            .await
-        {
-            Ok(idx) => {
-                if wait_for_commit(&leader, idx).await {
-                    break (term, idx, lid);
+        let idx = match submitted_idx1 {
+            Some(i) => i,
+            None => match leader
+                .submit_entry(LogEntry {
+                    term,
+                    index: 0,
+                    client_id: "client-dur".to_string(),
+                    request_id: req_id1.clone(),
+                    data: data1.clone(),
+                })
+                .await
+            {
+                Ok(i) => {
+                    submitted_idx1 = Some(i);
+                    i
                 }
-            }
-            Err(_) => tokio::time::sleep(Duration::from_millis(50)).await,
+                Err(_) => {
+                    tokio::time::sleep(Duration::from_millis(50)).await;
+                    continue;
+                }
+            },
+        };
+        if wait_for_commit(&leader, idx).await {
+            break (term, idx, lid);
         }
+        tokio::time::sleep(Duration::from_millis(50)).await;
     };
 
     // 2. Wait for successful replication and commit across all nodes
@@ -296,27 +311,37 @@ async fn run_durability_cycle(cycle_id: usize) {
     // Submit entry 2 on surviving majority while follower is dead
     let req_id2 = format!("req-{}-2", cycle_id);
     let data2 = format!("payload-{}-2", cycle_id).into_bytes();
+    let mut submitted_idx2 = None;
     let (_term2, idx2, active_leader_id) = loop {
         let leader = wait_for_leader(&nodes).await;
         let lid = leader.id.clone();
         let term = *leader.current_term.read().await;
-        match leader
-            .submit_entry(LogEntry {
-                term,
-                index: 0,
-                client_id: "client-dur".to_string(),
-                request_id: req_id2.clone(),
-                data: data2.clone(),
-            })
-            .await
-        {
-            Ok(idx) => {
-                if wait_for_commit(&leader, idx).await {
-                    break (term, idx, lid);
+        let idx = match submitted_idx2 {
+            Some(i) => i,
+            None => match leader
+                .submit_entry(LogEntry {
+                    term,
+                    index: 0,
+                    client_id: "client-dur".to_string(),
+                    request_id: req_id2.clone(),
+                    data: data2.clone(),
+                })
+                .await
+            {
+                Ok(i) => {
+                    submitted_idx2 = Some(i);
+                    i
                 }
-            }
-            Err(_) => tokio::time::sleep(Duration::from_millis(50)).await,
+                Err(_) => {
+                    tokio::time::sleep(Duration::from_millis(50)).await;
+                    continue;
+                }
+            },
+        };
+        if wait_for_commit(&leader, idx).await {
+            break (term, idx, lid);
         }
+        tokio::time::sleep(Duration::from_millis(50)).await;
     };
 
     // 4. Restart follower
@@ -384,7 +409,7 @@ async fn run_durability_cycle(cycle_id: usize) {
 
     // Teardown
     for mut n in nodes {
-        n.abort();
+        n.shutdown().await;
     }
     let _ = std::fs::remove_dir_all(&tmp_dir);
 }
