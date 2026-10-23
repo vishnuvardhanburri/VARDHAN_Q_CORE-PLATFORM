@@ -445,6 +445,7 @@ pub mod enclave;
 pub mod exposure_detector;
 pub mod iso20022_pqc;
 pub mod license;
+pub mod payment_gate;
 pub mod secure_memory;
 pub mod self_healing_epoch;
 pub mod transaction_bound_kdf;

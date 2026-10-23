@@ -234,8 +234,22 @@ async fn read_frame(stream: &mut TcpStream) -> Result<Bytes, ProxyError> {
 
 fn build_hello(identity: &QuantumNodeIdentity) -> Result<Vec<u8>, ProxyError> {
     let ek = identity.encap_key_bytes();
+
+    // Version advertisement prefix: count (1B) || versions (count * 2B)
+    let mut version_prefix = Vec::with_capacity(1 + SUPPORTED_VERSIONS.len() * 2);
+    version_prefix.push(SUPPORTED_VERSIONS.len() as u8);
+    for &v in SUPPORTED_VERSIONS {
+        version_prefix.extend_from_slice(&v.to_be_bytes());
+    }
+
+    // Cryptographically bind the version advertisement and encapsulation key into
+    // the signed payload to resist active protocol version downgrade attacks.
+    let mut signed_payload = Vec::with_capacity(version_prefix.len() + ek.len());
+    signed_payload.extend_from_slice(&version_prefix);
+    signed_payload.extend_from_slice(&ek);
+
     let sig = identity
-        .sign_payload(&ek)
+        .sign_payload(&signed_payload)
         .map_err(|e| ProxyError::Crypto(e.to_string()))?;
     let dsa_pub = identity.dsa_public_key_bytes();
 
@@ -244,11 +258,7 @@ fn build_hello(identity: &QuantumNodeIdentity) -> Result<Vec<u8>, ProxyError> {
     debug_assert_eq!(dsa_pub.len(), DSA_PUB_LEN);
 
     let mut frame = Vec::new();
-    // Version advertisement: count (1B) || versions (count * 2B)
-    frame.push(SUPPORTED_VERSIONS.len() as u8);
-    for &v in SUPPORTED_VERSIONS {
-        frame.extend_from_slice(&v.to_be_bytes());
-    }
+    frame.extend_from_slice(&version_prefix);
     frame.extend_from_slice(&ek);
     frame.extend_from_slice(&sig);
     frame.extend_from_slice(&dsa_pub);
@@ -303,7 +313,17 @@ fn parse_hello(frame: &Bytes) -> Result<(u16, Vec<u8>, Vec<u8>, Vec<u16>), Proxy
     let sig = &frame[ek_start + ENCAP_KEY_LEN..ek_start + ENCAP_KEY_LEN + SIGNATURE_LEN];
     let dsa_pub = frame[ek_start + ENCAP_KEY_LEN + SIGNATURE_LEN..].to_vec();
 
-    if !QuantumNodeIdentity::verify_signature(&dsa_pub, &ek, sig) {
+    // Verify signature over version advertisement prefix + ek (binds version advertisement to resist downgrade attacks).
+    // Allow fallback to verify over ek alone for backward compatibility with peers running earlier builds.
+    let version_prefix = &frame[..ek_start];
+    let mut signed_payload = Vec::with_capacity(version_prefix.len() + ek.len());
+    signed_payload.extend_from_slice(version_prefix);
+    signed_payload.extend_from_slice(&ek);
+
+    let is_valid = QuantumNodeIdentity::verify_signature(&dsa_pub, &signed_payload, sig)
+        || QuantumNodeIdentity::verify_signature(&dsa_pub, &ek, sig);
+
+    if !is_valid {
         return Err(ProxyError::InvalidSignature);
     }
 
@@ -326,6 +346,111 @@ fn parse_kem_ct(frame: &Bytes, peer_dsa_pub: &[u8]) -> Result<Vec<u8>, ProxyErro
         return Err(ProxyError::InvalidSignature);
     }
     Ok(ct)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trusted Peer Identity Registry (Mitigates MITM / Key-Substitution Attacks)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Trust status of a peer in the quantum proxy network.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PeerTrustStatus {
+    Active,
+    Suspended,
+    Revoked,
+}
+
+/// Profile metadata for an authenticated peer identity.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PeerIdentityInfo {
+    pub peer_id: String,
+    pub role: String,
+    pub status: PeerTrustStatus,
+    pub authorized_versions: Vec<u16>,
+}
+
+/// Trait for establishing trusted peer identities in post-quantum handshakes.
+///
+/// Prevents man-in-the-middle key substitution attacks by ensuring that
+/// the presented ML-DSA-87 public key is registered, active, and authorized
+/// for the negotiated protocol version.
+pub trait PeerIdentityRegistry: Send + Sync {
+    fn verify_peer_identity(
+        &self,
+        peer_dsa_pub: &[u8],
+        negotiated_version: u16,
+    ) -> Result<PeerIdentityInfo, ProxyError>;
+}
+
+/// In-memory implementation of [`PeerIdentityRegistry`].
+#[derive(Clone, Default)]
+pub struct InMemoryPeerRegistry {
+    peers: Arc<std::sync::RwLock<std::collections::HashMap<Vec<u8>, PeerIdentityInfo>>>,
+}
+
+impl InMemoryPeerRegistry {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn register_peer(
+        &self,
+        dsa_pub: &[u8],
+        peer_id: impl Into<String>,
+        role: impl Into<String>,
+        authorized_versions: Vec<u16>,
+    ) {
+        let mut map = self.peers.write().unwrap();
+        map.insert(
+            dsa_pub.to_vec(),
+            PeerIdentityInfo {
+                peer_id: peer_id.into(),
+                role: role.into(),
+                status: PeerTrustStatus::Active,
+                authorized_versions,
+            },
+        );
+    }
+
+    pub fn set_peer_status(&self, dsa_pub: &[u8], status: PeerTrustStatus) -> bool {
+        let mut map = self.peers.write().unwrap();
+        if let Some(info) = map.get_mut(dsa_pub) {
+            info.status = status;
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl PeerIdentityRegistry for InMemoryPeerRegistry {
+    fn verify_peer_identity(
+        &self,
+        peer_dsa_pub: &[u8],
+        negotiated_version: u16,
+    ) -> Result<PeerIdentityInfo, ProxyError> {
+        let map = self.peers.read().unwrap();
+        match map.get(peer_dsa_pub) {
+            Some(info) => {
+                if info.status != PeerTrustStatus::Active {
+                    return Err(ProxyError::HandshakeFailed(format!(
+                        "Peer '{}' is not active (status: {:?})",
+                        info.peer_id, info.status
+                    )));
+                }
+                if !info.authorized_versions.contains(&negotiated_version) {
+                    return Err(ProxyError::HandshakeFailed(format!(
+                        "Peer '{}' is not authorized for protocol version {}",
+                        info.peer_id, negotiated_version
+                    )));
+                }
+                Ok(info.clone())
+            }
+            None => Err(ProxyError::HandshakeFailed(
+                "Peer ML-DSA-87 public key is not registered in trusted peer identity store".into(),
+            )),
+        }
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -368,12 +493,21 @@ fn transcript_hash(
 ///
 /// Returns a [`SessionContext`] containing both the raw shared secret and the
 /// HKDF-derived session key on success.
-#[instrument(skip(stream, identity), fields(peer = ?stream.peer_addr().ok()))]
 pub async fn run_responder(
     stream: &mut TcpStream,
     identity: &QuantumNodeIdentity,
 ) -> Result<SessionContext, ProxyError> {
-    let peer_addr = stream.peer_addr()?;
+    run_responder_authenticated(stream, identity, None).await
+}
+
+/// Run the **responder** side of the post-quantum handshake with an optional trusted peer registry.
+#[instrument(skip(stream, identity, peer_registry), fields(peer = ?stream.peer_addr().ok()))]
+pub async fn run_responder_authenticated(
+    stream: &mut TcpStream,
+    identity: &QuantumNodeIdentity,
+    peer_registry: Option<&Arc<dyn PeerIdentityRegistry>>,
+) -> Result<SessionContext, ProxyError> {
+    let _peer_addr = stream.peer_addr().ok();
     info!("Responder: beginning post-quantum handshake");
 
     // 1. Receive HELLO
@@ -383,6 +517,12 @@ pub async fn run_responder(
             warn!("Responder: HELLO parse/verify failed");
             e
         })?;
+
+    // Verify peer identity against trusted institutional registry if configured
+    if let Some(registry) = peer_registry {
+        registry.verify_peer_identity(&peer_dsa_pub, negotiated_version)?;
+    }
+
     debug!(
         "Responder: HELLO verified (negotiated v{}, {} B encap key)",
         negotiated_version,
@@ -425,12 +565,21 @@ pub async fn run_responder(
 /// Run the **initiator** side of the post-quantum handshake.
 ///
 /// Returns a [`SessionContext`] on success.
-#[instrument(skip(stream, identity), fields(peer = ?stream.peer_addr().ok()))]
 pub async fn run_initiator(
     stream: &mut TcpStream,
     identity: &QuantumNodeIdentity,
 ) -> Result<SessionContext, ProxyError> {
-    let peer_addr = stream.peer_addr()?;
+    run_initiator_authenticated(stream, identity, None).await
+}
+
+/// Run the **initiator** side of the post-quantum handshake with an optional trusted peer registry.
+#[instrument(skip(stream, identity, peer_registry), fields(peer = ?stream.peer_addr().ok()))]
+pub async fn run_initiator_authenticated(
+    stream: &mut TcpStream,
+    identity: &QuantumNodeIdentity,
+    peer_registry: Option<&Arc<dyn PeerIdentityRegistry>>,
+) -> Result<SessionContext, ProxyError> {
+    let _peer_addr = stream.peer_addr().ok();
     info!("Initiator: beginning post-quantum handshake");
 
     // 1. Send HELLO
@@ -445,6 +594,12 @@ pub async fn run_initiator(
             warn!("Initiator: HELLO_ACK parse/verify failed");
             e
         })?;
+
+    // Verify peer identity against trusted institutional registry if configured
+    if let Some(registry) = peer_registry {
+        registry.verify_peer_identity(&peer_dsa_pub, negotiated_version)?;
+    }
+
     debug!(
         "Initiator: HELLO_ACK verified (negotiated v{})",
         negotiated_version
@@ -535,6 +690,15 @@ pub trait FrameIngressHandler: Send + Sync {
     ) -> Result<Option<Vec<u8>>, ProxyError>;
 }
 
+/// Operating mode for the quantum proxy server.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ServerMode {
+    /// Non-production evaluation / development mode allows fallback ack for transport testing.
+    Development,
+    /// Strict production banking gateway mode: fails closed if handler or trusted peer registry is missing.
+    Production,
+}
+
 /// Production post-quantum proxy server.
 ///
 /// Binds a TCP listener, generates a node identity, and runs an infinite
@@ -549,12 +713,16 @@ pub struct QuantumProxyServer {
     handshake_semaphore: Arc<Semaphore>,
     /// Global limit on accepted connections to prevent FD exhaustion.
     global_conn_limit: Arc<Semaphore>,
-    /// Optional application frame ingress handler.
+    /// Optional application frame ingress handler (mandatory in Production mode).
     frame_handler: Option<Arc<dyn FrameIngressHandler>>,
+    /// Optional trusted peer identity registry (mandatory in Production mode).
+    peer_registry: Option<Arc<dyn PeerIdentityRegistry>>,
+    /// Operating mode.
+    mode: ServerMode,
 }
 
 impl QuantumProxyServer {
-    /// Create a new server bound to `bind_addr` (e.g. `"0.0.0.0:8443"`).
+    /// Create a new server bound to `bind_addr` (defaults to Development mode).
     pub fn new(bind_addr: impl Into<String>) -> Result<Self, Box<dyn std::error::Error>> {
         let identity = QuantumNodeIdentity::generate_node_identity()?;
         Ok(Self {
@@ -563,7 +731,33 @@ impl QuantumProxyServer {
             handshake_semaphore: Arc::new(Semaphore::new(100)),
             global_conn_limit: Arc::new(Semaphore::new(1000)),
             frame_handler: None,
+            peer_registry: None,
+            mode: ServerMode::Development,
         })
+    }
+
+    /// Create a production financial proxy server requiring mandatory handler and peer registry.
+    pub fn new_production(
+        bind_addr: impl Into<String>,
+        frame_handler: Arc<dyn FrameIngressHandler>,
+        peer_registry: Arc<dyn PeerIdentityRegistry>,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let identity = QuantumNodeIdentity::generate_node_identity()?;
+        Ok(Self {
+            identity,
+            bind_addr: bind_addr.into(),
+            handshake_semaphore: Arc::new(Semaphore::new(100)),
+            global_conn_limit: Arc::new(Semaphore::new(1000)),
+            frame_handler: Some(frame_handler),
+            peer_registry: Some(peer_registry),
+            mode: ServerMode::Production,
+        })
+    }
+
+    /// Set server operating mode (Development or Production).
+    pub fn with_server_mode(mut self, mode: ServerMode) -> Self {
+        self.mode = mode;
+        self
     }
 
     /// Attach an application frame ingress handler to process incoming frames.
@@ -572,15 +766,34 @@ impl QuantumProxyServer {
         self
     }
 
+    /// Attach a trusted peer identity registry to authenticate connecting peers.
+    pub fn with_peer_registry(mut self, registry: Arc<dyn PeerIdentityRegistry>) -> Self {
+        self.peer_registry = Some(registry);
+        self
+    }
+
     /// Run the accept-loop indefinitely.
     ///
     /// For each connection:
-    /// 1. Perform the post-quantum handshake.
+    /// 1. Perform the post-quantum handshake (with peer identity authentication).
     /// 2. Derive an HKDF session key.
     /// 3. Enter the authenticated duplex AEAD frame loop.
     pub async fn run_loop(&self) -> Result<(), ProxyError> {
+        if self.mode == ServerMode::Production {
+            if self.frame_handler.is_none() {
+                return Err(ProxyError::HandshakeFailed(
+                    "Production financial gateway refuses to start without mandatory FrameIngressHandler".into(),
+                ));
+            }
+            if self.peer_registry.is_none() {
+                return Err(ProxyError::HandshakeFailed(
+                    "Production financial gateway refuses to start without mandatory PeerIdentityRegistry".into(),
+                ));
+            }
+        }
+
         let listener = TcpListener::bind(&self.bind_addr).await?;
-        info!(addr = %self.bind_addr, "QuantumProxyServer listening");
+        info!(addr = %self.bind_addr, mode = ?self.mode, "QuantumProxyServer listening");
 
         loop {
             match listener.accept().await {
@@ -591,6 +804,8 @@ impl QuantumProxyServer {
                     let conn_limit = self.global_conn_limit.clone();
                     let identity = self.identity.clone();
                     let frame_handler = self.frame_handler.clone();
+                    let peer_registry = self.peer_registry.clone();
+                    let mode = self.mode;
 
                     tokio::spawn(async move {
                         // 1. Global connection limit
@@ -611,10 +826,10 @@ impl QuantumProxyServer {
                             }
                         };
 
-                        // 3. Handshake Timeout (Slowloris protection)
+                        // 3. Handshake Timeout (Slowloris protection) with authenticated peer registry
                         let handshake_result = tokio::time::timeout(
                             std::time::Duration::from_secs(5),
-                            run_responder(&mut socket, &identity),
+                            run_responder_authenticated(&mut socket, &identity, peer_registry.as_ref()),
                         )
                         .await;
 
@@ -655,6 +870,10 @@ impl QuantumProxyServer {
                                                     }
                                                 }
                                             } else {
+                                                if mode == ServerMode::Production {
+                                                    warn!(%remote_addr, "Production mode received frame without handler: terminating fail-closed");
+                                                    break;
+                                                }
                                                 let ack = [
                                                     b"ACK:",
                                                     &blake3::hash(&frame).as_bytes()[..16],
@@ -927,6 +1146,83 @@ mod tests {
 
         let received = server_framed.next().await.unwrap().unwrap();
         assert_eq!(received, payload);
+    }
+
+    // ── Version Downgrade & Peer Authentication Tests ───────────────────────
+
+    #[test]
+    fn test_hello_version_downgrade_tampering_rejected() {
+        let signer = QuantumNodeIdentity::generate_node_identity().unwrap();
+        let mut frame_bytes = build_hello(&signer).unwrap();
+
+        // Tamper with advertised version in the frame (e.g., change version count or values)
+        assert!(frame_bytes[0] > 0);
+        frame_bytes[1] ^= 0xFF; // Modify version bytes to attempt downgrade attack
+
+        let frame = Bytes::from(frame_bytes);
+        assert!(
+            matches!(parse_hello(&frame), Err(ProxyError::InvalidSignature)),
+            "Tampered version advertisement must be rejected by signature"
+        );
+    }
+
+    #[test]
+    fn test_peer_identity_registry_active_and_revoked() {
+        let registry = InMemoryPeerRegistry::new();
+        let peer_a = QuantumNodeIdentity::generate_node_identity().unwrap();
+        let pub_a = peer_a.dsa_public_key_bytes();
+
+        let peer_b = QuantumNodeIdentity::generate_node_identity().unwrap();
+        let pub_b = peer_b.dsa_public_key_bytes();
+
+        registry.register_peer(&pub_a, "node-bank-alpha", "validator", vec![1, 2]);
+
+        // Honest registered peer passes
+        let res = registry.verify_peer_identity(&pub_a, 2);
+        assert!(res.is_ok());
+        let info = res.unwrap();
+        assert_eq!(info.peer_id, "node-bank-alpha");
+
+        // Unauthorized version fails
+        let res_v3 = registry.verify_peer_identity(&pub_a, 3);
+        assert!(res_v3.is_err());
+
+        // Untrusted peer fails
+        let res_untrusted = registry.verify_peer_identity(&pub_b, 2);
+        assert!(res_untrusted.is_err());
+
+        // Revoking peer fails
+        registry.set_peer_status(&pub_a, PeerTrustStatus::Revoked);
+        let res_revoked = registry.verify_peer_identity(&pub_a, 2);
+        assert!(res_revoked.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_production_server_fails_without_handler_or_registry() {
+        // Mode: Production, but no handler or peer registry
+        let s1 = QuantumProxyServer::new("127.0.0.1:0")
+            .unwrap()
+            .with_server_mode(ServerMode::Production);
+        assert!(s1.run_loop().await.is_err());
+
+        // Mode: Production, handler provided, but no peer registry
+        struct DummyHandler;
+        #[async_trait::async_trait]
+        impl FrameIngressHandler for DummyHandler {
+            async fn handle_frame(
+                &self,
+                _frame: &[u8],
+                _session: &SessionContext,
+            ) -> Result<Option<Vec<u8>>, ProxyError> {
+                Ok(None)
+            }
+        }
+
+        let s2 = QuantumProxyServer::new("127.0.0.1:0")
+            .unwrap()
+            .with_server_mode(ServerMode::Production)
+            .with_frame_handler(Arc::new(DummyHandler));
+        assert!(s2.run_loop().await.is_err());
     }
 }
 pub mod stateless;

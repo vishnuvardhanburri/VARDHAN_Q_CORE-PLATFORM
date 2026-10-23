@@ -423,3 +423,59 @@ async fn test_quantum_proxy_server_rejects_unauthorized_frame_fail_closed() {
 
     server_task.abort();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 9: Authenticated peer handshake with trusted registry
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn test_authenticated_peer_handshake_with_registry() {
+    let tcp_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = tcp_listener.local_addr().unwrap();
+    drop(tcp_listener);
+
+    let server_id = QuantumNodeIdentity::generate_node_identity().unwrap();
+    let authorized_client = QuantumNodeIdentity::generate_node_identity().unwrap();
+    let rogue_client = QuantumNodeIdentity::generate_node_identity().unwrap();
+
+    let registry = std::sync::Arc::new(proxy_engine::InMemoryPeerRegistry::new());
+    registry.register_peer(
+        &authorized_client.dsa_public_key_bytes(),
+        "authorized-bank-node-1",
+        "peer_validator",
+        vec![1, 2],
+    );
+
+    let server = proxy_engine::QuantumProxyServer::new_production(
+        addr.to_string(),
+        std::sync::Arc::new(TestIngressHandler {
+            server_id: server_id.clone(),
+        }),
+        registry.clone(),
+    )
+    .unwrap();
+
+    let server_task = tokio::spawn(async move {
+        let _ = server.run_loop().await;
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    // 1. Rogue untrusted client attempts handshake -> server rejects fail-closed
+    let mut rogue_conn = TcpStream::connect(addr).await.unwrap();
+    let rogue_res = proxy_engine::run_initiator(&mut rogue_conn, &rogue_client).await;
+    assert!(
+        rogue_res.is_err(),
+        "Rogue peer must be rejected by server during authenticated handshake"
+    );
+
+    // 2. Authorized client attempts handshake -> server accepts
+    let mut auth_conn = TcpStream::connect(addr).await.unwrap();
+    let auth_res = proxy_engine::run_initiator(&mut auth_conn, &authorized_client).await;
+    assert!(
+        auth_res.is_ok(),
+        "Authorized peer must complete authenticated handshake"
+    );
+
+    server_task.abort();
+}
