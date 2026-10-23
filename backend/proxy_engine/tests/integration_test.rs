@@ -160,7 +160,6 @@ async fn test_invalid_kem_ct_signature_rejected() {
     // 1. Send a valid HELLO
     let attacker = QuantumNodeIdentity::generate_node_identity().unwrap();
     let ek = attacker.encap_key_bytes();
-    let sig = attacker.sign_payload(&ek).unwrap();
     let dsa_pub = attacker.dsa_public_key_bytes();
 
     let mut hello = Vec::new();
@@ -170,6 +169,7 @@ async fn test_invalid_kem_ct_signature_rejected() {
         hello.extend_from_slice(&v.to_be_bytes());
     }
     hello.extend_from_slice(&ek);
+    let sig = attacker.sign_payload(&hello).unwrap();
     hello.extend_from_slice(&sig);
     hello.extend_from_slice(&dsa_pub);
 
@@ -333,20 +333,29 @@ async fn test_quantum_proxy_server_e2e_frame_ingress_and_response() {
     drop(tcp_listener);
 
     let server_id = QuantumNodeIdentity::generate_node_identity().unwrap();
+    let client_id = QuantumNodeIdentity::generate_node_identity().unwrap();
+    let registry = std::sync::Arc::new(proxy_engine::InMemoryPeerRegistry::new());
+    registry.register_peer(
+        &client_id.dsa_public_key_bytes(),
+        "synthetic-ingress-client",
+        "peer_validator",
+        vec![1, 2],
+    );
     let server = proxy_engine::QuantumProxyServer::new(addr.to_string())
         .unwrap()
+        .with_server_mode(proxy_engine::ServerMode::Development)
+        .with_peer_registry(registry)
         .with_frame_handler(std::sync::Arc::new(TestIngressHandler {
             server_id: server_id.clone(),
         }));
 
     let server_task = tokio::spawn(async move {
-        let _ = server.run_loop().await;
+        server.run_loop().await.expect("Synthetic server failed");
     });
 
     // Allow listener to bind
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-    let client_id = QuantumNodeIdentity::generate_node_identity().unwrap();
     let mut conn = TcpStream::connect(addr).await.unwrap();
     let session = run_initiator(&mut conn, &client_id).await.unwrap();
 
@@ -385,19 +394,28 @@ async fn test_quantum_proxy_server_rejects_unauthorized_frame_fail_closed() {
     drop(tcp_listener);
 
     let server_id = QuantumNodeIdentity::generate_node_identity().unwrap();
+    let client_id = QuantumNodeIdentity::generate_node_identity().unwrap();
+    let registry = std::sync::Arc::new(proxy_engine::InMemoryPeerRegistry::new());
+    registry.register_peer(
+        &client_id.dsa_public_key_bytes(),
+        "synthetic-ingress-client",
+        "peer_validator",
+        vec![1, 2],
+    );
     let server = proxy_engine::QuantumProxyServer::new(addr.to_string())
         .unwrap()
+        .with_server_mode(proxy_engine::ServerMode::Development)
+        .with_peer_registry(registry)
         .with_frame_handler(std::sync::Arc::new(TestIngressHandler {
             server_id: server_id.clone(),
         }));
 
     let server_task = tokio::spawn(async move {
-        let _ = server.run_loop().await;
+        server.run_loop().await.expect("Synthetic server failed");
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-    let client_id = QuantumNodeIdentity::generate_node_identity().unwrap();
     let mut conn = TcpStream::connect(addr).await.unwrap();
     let session = run_initiator(&mut conn, &client_id).await.unwrap();
 
