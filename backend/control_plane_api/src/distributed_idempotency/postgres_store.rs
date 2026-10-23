@@ -79,7 +79,8 @@ impl PostgresIdempotencyStore {
                         attempts += 1;
                         if attempts >= 15 {
                             return Err(IdempotencyError::Connection(
-                                "timed out acquiring initial postgres connection after 15 attempts".to_string(),
+                                "timed out acquiring initial postgres connection after 15 attempts"
+                                    .to_string(),
                             ));
                         }
                         tokio::time::sleep(Duration::from_millis(500)).await;
