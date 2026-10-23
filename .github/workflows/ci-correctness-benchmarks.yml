@@ -45,8 +45,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: System dependencies
         run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev python3 jq
-      - name: Formatting normalization
-        run: cargo fmt --all
+      - name: Formatting check
+        run: cargo fmt --all -- --check
       - name: Build receipt engine for control-plane lifecycle tests
         run: cargo build -p vardhan_receipt
         env:

@@ -26,10 +26,10 @@ WORKDIR /app
 COPY . .
 
 # Build release binaries with optimizations
-RUN cargo build --release \
+RUN cargo build --release --locked \
     -p vardhan_receipt \
     -p control_plane_api \
-    -p vardhan_verifier
+    -p pq_verify
 
 # -- Stage 2: Hardened Runtime -------------------------------------
 FROM debian:bookworm-slim AS runtime
@@ -58,7 +58,7 @@ RUN mkdir -p /var/lib/vardhan/control-plane \
 # Copy release binaries from builder stage
 COPY --from=builder --chown=root:root --chmod=755 /app/target/release/control_plane_api /usr/local/bin/control_plane_api
 COPY --from=builder --chown=root:root --chmod=755 /app/target/release/vardhan-receipt /usr/local/bin/vardhan-receipt
-COPY --from=builder --chown=root:root --chmod=755 /app/target/release/vardhan_verifier /usr/local/bin/vardhan_verifier
+COPY --from=builder --chown=root:root --chmod=755 /app/target/release/pq_verify /usr/local/bin/pq_verify
 
 # Execution environment
 USER 10001:10001

@@ -11,7 +11,7 @@ ignore = [
     "RUSTSEC-2025-0134",
     # rustls-webpki 0.101.7 transitive via legacy rustls 0.21.12 compatibility path
     "RUSTSEC-2026-0382",
-    "RUSTSEC-2021-0127",  # serde_cbor unmaintained — non-production poc_auditor only
+    "RUSTSEC-2021-0127",  # serde_cbor unmaintained — core_crypto rotation payloads and poc_auditor; approval open
     "RUSTSEC-2026-0258",  # h2 unbounded DATA frames — transitive via aws-sdk-kms
     "RUSTSEC-2026-0104",  # rustls-webpki CRL panic — transitive via aws-sdk-kms
     "RUSTSEC-2026-0098",  # rustls-webpki URI name constraints — transitive via aws-sdk-kms
