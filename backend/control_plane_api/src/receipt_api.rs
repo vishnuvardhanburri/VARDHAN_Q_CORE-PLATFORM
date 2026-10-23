@@ -7,7 +7,19 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::{path::PathBuf, process::Stdio};
+use std::{path::PathBuf, process::Stdio, sync::OnceLock};
+
+static RECEIPT_SEMAPHORE: OnceLock<tokio::sync::Semaphore> = OnceLock::new();
+
+fn get_receipt_semaphore() -> &'static tokio::sync::Semaphore {
+    RECEIPT_SEMAPHORE.get_or_init(|| {
+        let max_concurrency = std::env::var("VARDHAN_RECEIPT_MAX_CONCURRENCY")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(10);
+        tokio::sync::Semaphore::new(max_concurrency)
+    })
+}
 
 #[derive(Deserialize, Serialize)]
 pub struct ValidationRequest {
@@ -251,70 +263,94 @@ pub async fn validate_canonical(
         }
     };
 
-    let output =
-        match tokio::task::spawn_blocking(move || -> std::io::Result<std::process::Output> {
-            let mut child = std::process::Command::new(&binary_path)
-                .arg("validate-canonical")
-                .env("VARDHAN_IDEMPOTENCY_DIR", &tenant_idem_dir)
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()?;
+    let _permit = match get_receipt_semaphore().acquire().await {
+        Ok(permit) => permit,
+        Err(e) => {
+            if let Some(ref idem_key) = idempotency_key {
+                state
+                    .idempotency
+                    .release_or_fail(
+                        &organization_id,
+                        idem_key,
+                        &tx_id,
+                        "semaphore_acquire_failed",
+                        &instance_id,
+                    )
+                    .await
+                    .ok();
+            }
+            tracing::error!(error = %e, "failed to acquire receipt concurrency permit");
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({ "error": "Receipt engine busy, please retry" })),
+            )
+                .into_response();
+        }
+    };
 
-            if let Some(mut stdin) = child.stdin.take() {
-                use std::io::Write;
-                let _ = stdin.write_all(&payload_bytes);
-                drop(stdin);
-            }
+    let run_child = async {
+        let mut child = tokio::process::Command::new(&binary_path)
+            .arg("validate-canonical")
+            .env("VARDHAN_IDEMPOTENCY_DIR", &tenant_idem_dir)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()?;
 
-            child.wait_with_output()
-        })
-        .await
-        {
-            Ok(Ok(output)) => output,
-            Ok(Err(error)) => {
-                if let Some(ref idem_key) = idempotency_key {
-                    state
-                        .idempotency
-                        .release_or_fail(
-                            &organization_id,
-                            idem_key,
-                            &tx_id,
-                            "receipt_engine_execution_failed",
-                            &instance_id,
-                        )
-                        .await
-                        .ok();
-                }
-                tracing::error!(%error, "receipt engine execution failed");
-                return (
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    Json(json!({ "error": "Receipt engine execution failed" })),
-                )
-                    .into_response();
+        if let Some(mut stdin) = child.stdin.take() {
+            use tokio::io::AsyncWriteExt;
+            let _ = stdin.write_all(&payload_bytes).await;
+            drop(stdin);
+        }
+
+        child.wait_with_output().await
+    };
+
+    let output = match tokio::time::timeout(std::time::Duration::from_secs(30), run_child).await {
+        Ok(Ok(output)) => output,
+        Ok(Err(error)) => {
+            if let Some(ref idem_key) = idempotency_key {
+                state
+                    .idempotency
+                    .release_or_fail(
+                        &organization_id,
+                        idem_key,
+                        &tx_id,
+                        "receipt_engine_execution_failed",
+                        &instance_id,
+                    )
+                    .await
+                    .ok();
             }
-            Err(join_error) => {
-                if let Some(ref idem_key) = idempotency_key {
-                    state
-                        .idempotency
-                        .release_or_fail(
-                            &organization_id,
-                            idem_key,
-                            &tx_id,
-                            "receipt_engine_join_error",
-                            &instance_id,
-                        )
-                        .await
-                        .ok();
-                }
-                tracing::error!(%join_error, "receipt engine task panicked or aborted");
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(json!({ "error": "Receipt engine task failed" })),
-                )
-                    .into_response();
+            tracing::error!(%error, "receipt engine execution failed");
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(json!({ "error": "Receipt engine execution failed" })),
+            )
+                .into_response();
+        }
+        Err(_) => {
+            if let Some(ref idem_key) = idempotency_key {
+                state
+                    .idempotency
+                    .release_or_fail(
+                        &organization_id,
+                        idem_key,
+                        &tx_id,
+                        "receipt_engine_timeout",
+                        &instance_id,
+                    )
+                    .await
+                    .ok();
             }
-        };
+            tracing::error!("receipt engine execution timed out after 30 seconds");
+            return (
+                StatusCode::GATEWAY_TIMEOUT,
+                Json(json!({ "error": "Receipt engine timed out" })),
+            )
+                .into_response();
+        }
+    };
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let last_line = stdout.trim().lines().last().unwrap_or("");

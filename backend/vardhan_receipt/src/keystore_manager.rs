@@ -66,15 +66,10 @@ pub fn init_keystore() {
         );
     }
 
-    // Check if the directory exists and has any contents
-    let is_populated = if keystore_dir.exists() {
-        match fs::read_dir(&keystore_dir) {
-            Ok(mut entries) => entries.next().is_some(),
-            Err(_) => false,
-        }
-    } else {
-        false
-    };
+    // Check if keystore metadata file exists in the directory.
+    // We check specifically for keystore_meta.json rather than directory non-emptiness,
+    // because other files (like auth_config.json) may reside in or alongside this directory.
+    let is_populated = keystore_dir.join("keystore_meta.json").is_file();
 
     let keystore = if is_populated {
         tracing::info!(

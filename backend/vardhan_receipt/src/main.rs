@@ -2233,6 +2233,7 @@ mod e2e_boundary_tests {
 
     #[test]
     fn test_inv22_concurrent_duplicate_reservation_single_winner() {
+        init_test_env();
         let test_finding_id = format!("concurrent-test-{}", uuid::Uuid::new_v4());
         assert!(
             reserve_finding(&test_finding_id),

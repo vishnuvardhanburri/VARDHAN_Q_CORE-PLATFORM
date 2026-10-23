@@ -188,12 +188,8 @@ impl IdempotencyStore for SledIdempotencyStore {
             })
             .map_err(|e| IdempotencyError::Storage(format!("{e:?}")))?;
 
-        // Fsync guarantee
-        self.db
-            .flush_async()
-            .await
-            .map_err(|e| IdempotencyError::Storage(e.to_string()))?;
-
+        // Sled automatically flushes pages in the background; avoid per-request
+        // flush_async to prevent thundering herd deadlocks under concurrency.
         Ok(outcome)
     }
 
@@ -274,11 +270,8 @@ impl IdempotencyStore for SledIdempotencyStore {
             })
             .map_err(|e| IdempotencyError::Storage(format!("{e:?}")))?;
 
-        self.db
-            .flush_async()
-            .await
-            .map_err(|e| IdempotencyError::Storage(e.to_string()))?;
-
+        // Sled automatically flushes pages in the background; avoid per-request
+        // flush_async to prevent thundering herd deadlocks under concurrency.
         Ok(())
     }
 

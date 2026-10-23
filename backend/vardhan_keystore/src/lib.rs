@@ -315,9 +315,6 @@ impl VardhanKeystore {
         let meta_json = serde_json::to_string_pretty(&meta)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
-        // Write metadata (public information)
-        write_secure("keystore_meta.json", meta_json.as_bytes())?;
-
         // Encrypt private keys with the protection provider — NEVER plaintext
         let ed_private_bytes = self.ed25519_key.to_bytes();
         let ed_encrypted = provider
@@ -339,6 +336,9 @@ impl VardhanKeystore {
         // (they are copies, the originals are in SigningKey/SecretKey)
         drop(ed_encrypted);
         drop(mldsa_encrypted);
+
+        // Write metadata last as atomic commit marker once keys are persisted
+        write_secure("keystore_meta.json", meta_json.as_bytes())?;
 
         if !provider.is_production_safe() {
             tracing::warn!(
