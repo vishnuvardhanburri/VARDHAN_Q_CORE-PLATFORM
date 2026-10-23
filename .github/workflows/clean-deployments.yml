@@ -1,0 +1,63 @@
+name: Clean Deployments
+
+on:
+  workflow_dispatch:
+    inputs:
+      keep_count:
+        description: "Number of most recent deployments to keep"
+        required: true
+        default: "1"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/clean-deployments.yml"
+
+permissions:
+  deployments: write
+
+jobs:
+  clean-deployments:
+    name: Cleanup stale deployments
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prune older deployments
+        run: |
+          set -euo pipefail
+          KEEP_COUNT="${{ inputs.keep_count || '1' }}"
+          echo "Target: Keep $KEEP_COUNT deployment(s) and delete older records."
+
+          RESPONSE=$(curl -sSL \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/deployments?per_page=100")
+
+          TOTAL=$(echo "$RESPONSE" | jq 'length')
+          echo "Total deployments discovered: $TOTAL"
+
+          if [ "$TOTAL" -le "$KEEP_COUNT" ]; then
+            echo "Deployments count ($TOTAL) already at or below target ($KEEP_COUNT). No action needed."
+            exit 0
+          fi
+
+          # Select all IDs after the top KEEP_COUNT deployments
+          DELETION_IDS=$(echo "$RESPONSE" | jq -r --argjson keep "$KEEP_COUNT" 'sort_by(.created_at) | reverse | .[$keep:][].id')
+
+          for ID in $DELETION_IDS; do
+            echo "Setting deployment $ID to inactive..."
+            curl -sSL -X POST \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github+json" \
+              -d '{"state":"inactive"}' \
+              "https://api.github.com/repos/${{ github.repository }}/deployments/$ID/statuses" > /dev/null || true
+
+            echo "Deleting deployment $ID..."
+            STATUS_CODE=$(curl -sSL -o /dev/null -w "%{http_code}" -X DELETE \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/deployments/$ID")
+
+            echo "Deployment $ID deleted with HTTP status: $STATUS_CODE"
+          done
+
+          echo "Deployment pruning complete. Active deployments preserved: $KEEP_COUNT."
