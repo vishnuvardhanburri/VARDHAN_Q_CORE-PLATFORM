@@ -16,7 +16,7 @@ fn get_receipt_semaphore() -> &'static tokio::sync::Semaphore {
         let max_concurrency = std::env::var("VARDHAN_RECEIPT_MAX_CONCURRENCY")
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(10);
+            .unwrap_or(64);
         tokio::sync::Semaphore::new(max_concurrency)
     })
 }

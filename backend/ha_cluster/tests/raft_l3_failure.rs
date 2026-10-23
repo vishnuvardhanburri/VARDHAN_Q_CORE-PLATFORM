@@ -173,6 +173,12 @@ impl TestNode {
         self.run_handle.abort();
         self.listener_handle.abort();
         self.apply_handle.abort();
+        if let Some(pm) = &self.peer_manager {
+            let pm = pm.clone();
+            tokio::spawn(async move {
+                pm.clear_all_workers().await;
+            });
+        }
     }
 }
 
@@ -342,6 +348,9 @@ async fn spawn_cluster_with_config(
 async fn abort_all(nodes: &mut [TestNode]) {
     for n in nodes.iter_mut() {
         n.abort();
+        if let Some(pm) = &n.peer_manager {
+            pm.clear_all_workers().await;
+        }
     }
 }
 

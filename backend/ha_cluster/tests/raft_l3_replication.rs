@@ -32,6 +32,7 @@ struct TestNode {
     listener_handle: tokio::task::JoinHandle<()>,
     run_handle: tokio::task::JoinHandle<()>,
     apply_handle: tokio::task::JoinHandle<()>,
+    peer_manager: Arc<RaftPeerManager>,
     persist_path: std::path::PathBuf,
 }
 
@@ -116,6 +117,7 @@ async fn spawn_node(
         listener_handle,
         run_handle,
         apply_handle,
+        peer_manager,
         persist_path: persistence_path,
     }
 }
@@ -125,6 +127,7 @@ async fn abort_all(nodes: &mut [TestNode]) {
         node.run_handle.abort();
         node.listener_handle.abort();
         node.apply_handle.abort();
+        node.peer_manager.clear_all_workers().await;
         let _ = std::fs::remove_file(&node.persist_path);
     }
 }

@@ -7281,6 +7281,7 @@ dependencies = [
  "core_crypto",
  "ed25519-dalek",
  "enterprise_tenant",
+ "fs2",
  "hex",
  "hmac 0.12.1",
  "mimalloc",

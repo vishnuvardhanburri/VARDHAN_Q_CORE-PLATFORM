@@ -50,6 +50,9 @@ services:
       timeout: 3s
       retries: 20
       start_period: 10s
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     logging:
       driver: "json-file"

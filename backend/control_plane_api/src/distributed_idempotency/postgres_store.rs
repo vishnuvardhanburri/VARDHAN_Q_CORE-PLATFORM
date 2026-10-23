@@ -60,17 +60,33 @@ impl PostgresIdempotencyStore {
                 IdempotencyError::Connection(format!("failed to create postgres pool: {e}"))
             })?;
 
-        // 1. Validate connection with timeout
-        let mut client = tokio::time::timeout(Duration::from_secs(5), pool.get())
-            .await
-            .map_err(|_| {
-                IdempotencyError::Connection(
-                    "timed out acquiring initial postgres connection after 5 seconds".to_string(),
-                )
-            })?
-            .map_err(|e| {
-                IdempotencyError::Connection(format!("postgres initial handshake failed: {e}"))
-            })?;
+        // 1. Validate connection with retry loop to accommodate container/database startup
+        let mut client = {
+            let mut attempts = 0;
+            loop {
+                match tokio::time::timeout(Duration::from_secs(3), pool.get()).await {
+                    Ok(Ok(c)) => break c,
+                    Ok(Err(e)) => {
+                        attempts += 1;
+                        if attempts >= 15 {
+                            return Err(IdempotencyError::Connection(format!(
+                                "postgres initial handshake failed after 15 attempts: {e}"
+                            )));
+                        }
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                    }
+                    Err(_) => {
+                        attempts += 1;
+                        if attempts >= 15 {
+                            return Err(IdempotencyError::Connection(
+                                "timed out acquiring initial postgres connection after 15 attempts".to_string(),
+                            ));
+                        }
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                    }
+                }
+            }
+        };
 
         // 2. Run migrations
         migrations::run_migrations(&mut client).await?;

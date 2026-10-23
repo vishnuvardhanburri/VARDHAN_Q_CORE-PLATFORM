@@ -254,14 +254,38 @@ async fn run_peer_worker(
                 s
             }
             Ok(Err(e)) => {
+                if rx.is_closed() {
+                    info!(peer = %to_id, "Receiver channel closed, terminating peer worker");
+                    return Ok(());
+                }
                 error!(peer = %to_id, err = %e, "TCP connect failed, retrying in {:?}...", backoff);
-                tokio::time::sleep(backoff).await;
+                tokio::select! {
+                    _ = tokio::time::sleep(backoff) => {}
+                    _ = rx.recv() => {
+                        if rx.is_closed() {
+                            info!(peer = %to_id, "Receiver channel closed, terminating peer worker");
+                            return Ok(());
+                        }
+                    }
+                }
                 backoff = (backoff * 2).min(Duration::from_millis(1000));
                 continue;
             }
             Err(_) => {
+                if rx.is_closed() {
+                    info!(peer = %to_id, "Receiver channel closed, terminating peer worker");
+                    return Ok(());
+                }
                 error!(peer = %to_id, "TCP connect timeout, retrying in {:?}...", backoff);
-                tokio::time::sleep(backoff).await;
+                tokio::select! {
+                    _ = tokio::time::sleep(backoff) => {}
+                    _ = rx.recv() => {
+                        if rx.is_closed() {
+                            info!(peer = %to_id, "Receiver channel closed, terminating peer worker");
+                            return Ok(());
+                        }
+                    }
+                }
                 backoff = (backoff * 2).min(Duration::from_millis(1000));
                 continue;
             }

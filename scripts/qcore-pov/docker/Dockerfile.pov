@@ -62,6 +62,7 @@ ENV QCORE_HOST=http://localhost:8080
 # Python PoV scripts use ENGINE_BIN; the Rust HTTP API uses RECEIPT_BIN.
 ENV VARDHAN_RECEIPT_ENGINE_BIN=/usr/local/bin/vardhan-receipt
 ENV VARDHAN_RECEIPT_BIN=/usr/local/bin/vardhan-receipt
+ENV VARDHAN_RECEIPT_MAX_CONCURRENCY=64
 # Auth config lives in its own directory to avoid polluting the keystore dir
 # (which would cause keystore_manager to mistake auth_config.json for keystore data).
 ENV VARDHAN_AUTH_CONFIG_PATH=/var/lib/vardhan/auth_config/auth_config.json

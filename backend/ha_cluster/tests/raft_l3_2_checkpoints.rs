@@ -61,6 +61,10 @@ impl TestNodeCP {
         self.run_handle.abort();
         self.listener_handle.abort();
         self.apply_handle.abort();
+        let pm = self.peer_manager.clone();
+        tokio::spawn(async move {
+            pm.clear_all_workers().await;
+        });
     }
 }
 
@@ -386,6 +390,7 @@ async fn wait_for_all_nodes_have_checkpoints(
 async fn abort_all_cp(nodes: &mut [TestNodeCP]) {
     for n in nodes.iter_mut() {
         n.abort();
+        n.peer_manager.clear_all_workers().await;
     }
 }
 

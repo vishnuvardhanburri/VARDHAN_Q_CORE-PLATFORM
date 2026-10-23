@@ -715,8 +715,10 @@ impl RaftNode {
         if stepped_down || vote_changed {
             let _ = self.persist_state().await;
         }
-        // Reset election timer (heartbeat-like behavior on valid vote)
-        self.reset_election_timer().await;
+        // Reset election timer (heartbeat-like behavior on valid vote or step-down per Raft §5.2)
+        if stepped_down || vote_granted {
+            self.reset_election_timer().await;
+        }
 
         RequestVoteReply {
             term: reply_term,
@@ -751,12 +753,24 @@ impl RaftNode {
         // Reset heartbeat timer on valid AppendEntries
         self.reset_election_timer().await;
 
-        // Raft: if AppendEntries term > currentTerm, convert to follower (step down).
-        if stepped_down {
+        // Raft §5.2: If candidate receives AppendEntries from valid leader in >= current term,
+        // or if term > currentTerm (stepped_down), convert to follower.
+        // Also if another server claims to be leader in the same term, step down to avoid split brain.
+        let mut role_stepped_down = false;
+        {
             let mut role_lock = self.role.write().await;
-            if *role_lock != RaftRole::Follower {
-                *role_lock = RaftRole::Follower;
+            if stepped_down
+                || *role_lock == RaftRole::Candidate
+                || (*role_lock == RaftRole::Leader && args.leader_id != self.id)
+            {
+                if *role_lock != RaftRole::Follower {
+                    *role_lock = RaftRole::Follower;
+                    role_stepped_down = true;
+                }
             }
+        }
+
+        if stepped_down || role_stepped_down {
             let _ = self.persist_state().await;
         }
 
@@ -918,6 +932,15 @@ impl RaftNode {
         let needed_votes = (peers.len() + 1) / 2 + 1;
 
         while let Some((peer, result)) = rpc_futures.next().await {
+            // Raft §5.2: If candidate stepped down to Follower via concurrent AppendEntries,
+            // short-circuit RequestVote collection immediately.
+            if *self.role.read().await != RaftRole::Candidate {
+                info!(
+                    candidate_id = %self.id,
+                    "Candidate stepped down to Follower during RequestVote collection; short-circuiting"
+                );
+                return Ok(false);
+            }
             if let Ok(reply) = result {
                 info!(
                     candidate_id = %self.id,

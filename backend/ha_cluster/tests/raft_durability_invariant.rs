@@ -34,6 +34,10 @@ impl TestNode {
         self.killed.store(true, Ordering::SeqCst);
         self.run_handle.abort();
         self.listener_handle.abort();
+        let pm = self.peer_manager.clone();
+        tokio::spawn(async move {
+            pm.clear_all_workers().await;
+        });
     }
 }
 

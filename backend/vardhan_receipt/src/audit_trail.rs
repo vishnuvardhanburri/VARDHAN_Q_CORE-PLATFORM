@@ -8,9 +8,10 @@
 //! This is the durable integrity log for authorization-to-execution bindings.
 
 use blake3;
+use fs2::FileExt;
 use serde::{Deserialize, Serialize};
 use std::fs::{File, OpenOptions};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Seek, Write};
 use std::path::{Path, PathBuf};
 
 /// A single audit entry in the JSONL log.
@@ -55,19 +56,24 @@ pub struct AuditWriter {
 
 impl AuditWriter {
     /// Open (or create) an audit log file at `path`.
-    /// If the file exists, scans to find the last entry's seq and hash.
+    /// If the file exists, scans to find the last entry's seq and hash under exclusive lock.
     pub fn open(path: &Path, signer_fingerprint: String) -> Result<Self, String> {
-        let (next_seq, prev_hash) = if path.exists() {
-            Self::scan_to_tip(path)?
-        } else {
-            (0u64, [0u8; 32])
-        };
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
 
         let file = OpenOptions::new()
             .create(true)
+            .read(true)
             .append(true)
             .open(path)
             .map_err(|e| format!("Failed to open audit log: {}", e))?;
+
+        // Acquire exclusive lock so concurrent processes don't interleave writes or scan corrupt tips
+        file.lock_exclusive()
+            .map_err(|e| format!("Failed to lock audit log: {}", e))?;
+
+        let (next_seq, prev_hash) = Self::scan_to_tip(&file)?;
 
         Ok(Self {
             file,
@@ -79,24 +85,69 @@ impl AuditWriter {
     }
 
     /// Scan an existing JSONL audit file to find the chain tip.
-    fn scan_to_tip(path: &Path) -> Result<(u64, [u8; 32]), String> {
-        let file = File::open(path).map_err(|e| format!("Failed to read audit log: {}", e))?;
-        let reader = BufReader::new(file);
-        let mut last_seq = 0u64;
-        let mut last_hash = [0u8; 32];
+    fn scan_to_tip(file: &File) -> Result<(u64, [u8; 32]), String> {
+        let mut file_clone = file
+            .try_clone()
+            .map_err(|e| format!("Failed to clone audit file handle: {e}"))?;
+        let len = file_clone
+            .metadata()
+            .map_err(|e| format!("Failed to get audit metadata: {e}"))?
+            .len();
+        if len == 0 {
+            return Ok((0u64, [0u8; 32]));
+        }
+
+        let seek_pos = len.saturating_sub(8192);
+        file_clone
+            .seek(std::io::SeekFrom::Start(seek_pos))
+            .map_err(|e| format!("Seek failed: {e}"))?;
+        let reader = BufReader::new(file_clone);
+        let mut last_entry: Option<AuditEntry> = None;
 
         for line in reader.lines() {
-            let line = line.map_err(|e| format!("Failed to read audit line: {}", e))?;
-            if line.trim().is_empty() {
-                continue;
+            if let Ok(line) = line {
+                let trimmed = line.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                if let Ok(entry) = serde_json::from_str::<AuditEntry>(trimmed) {
+                    last_entry = Some(entry);
+                }
             }
-            let entry: AuditEntry = serde_json::from_str(&line)
-                .map_err(|e| format!("Failed to parse audit entry: {}", e))?;
-            last_seq = entry.seq + 1;
-            last_hash = hex::decode(&entry.signature)
-                .ok()
-                .map(|_| {
-                    // Re-derive hash from canonical_hash of the entry
+        }
+
+        if let Some(entry) = last_entry {
+            let event_json = serde_json::to_string(&entry.event).unwrap_or_default();
+            let prev_bytes = hex::decode(&entry.prev_hash).unwrap_or_else(|_| vec![0u8; 32]);
+            let mut prev_arr = [0u8; 32];
+            if prev_bytes.len() == 32 {
+                prev_arr.copy_from_slice(&prev_bytes);
+            }
+            let hash = canonical_hash(entry.seq, entry.timestamp_ms, &event_json, &prev_arr);
+            Ok((entry.seq + 1, hash))
+        } else {
+            // Full file fallback if chunk had no complete entry
+            let mut file_full = file
+                .try_clone()
+                .map_err(|e| format!("Failed to clone file: {e}"))?;
+            file_full
+                .seek(std::io::SeekFrom::Start(0))
+                .map_err(|e| format!("Seek failed: {e}"))?;
+            let reader = BufReader::new(file_full);
+            let mut last_seq = 0u64;
+            let mut last_hash = [0u8; 32];
+
+            for line in reader.lines() {
+                let line = match line {
+                    Ok(l) => l,
+                    Err(_) => continue,
+                };
+                let trimmed = line.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+                if let Ok(entry) = serde_json::from_str::<AuditEntry>(trimmed) {
+                    last_seq = entry.seq + 1;
                     let event_json = serde_json::to_string(&entry.event).unwrap_or_default();
                     let prev_bytes =
                         hex::decode(&entry.prev_hash).unwrap_or_else(|_| vec![0u8; 32]);
@@ -104,12 +155,12 @@ impl AuditWriter {
                     if prev_bytes.len() == 32 {
                         prev_arr.copy_from_slice(&prev_bytes);
                     }
-                    canonical_hash(entry.seq, entry.timestamp_ms, &event_json, &prev_arr)
-                })
-                .unwrap_or([0u8; 32]);
+                    last_hash =
+                        canonical_hash(entry.seq, entry.timestamp_ms, &event_json, &prev_arr);
+                }
+            }
+            Ok((last_seq, last_hash))
         }
-
-        Ok((last_seq, last_hash))
     }
 
     /// Append an audit event to the log.
@@ -171,6 +222,12 @@ impl AuditWriter {
     /// Returns the current chain tip: (next_seq, BLAKE3 of last entry).
     pub fn chain_tip(&self) -> (u64, [u8; 32]) {
         (self.next_seq, self.prev_hash)
+    }
+}
+
+impl Drop for AuditWriter {
+    fn drop(&mut self) {
+        let _ = self.file.unlock();
     }
 }
 
@@ -287,7 +344,8 @@ mod tests {
         // hash) no longer matches.
 
         // Re-scan
-        let (next_seq, prev_hash) = AuditWriter::scan_to_tip(&path).unwrap();
+        let check_file = File::open(&path).unwrap();
+        let (next_seq, prev_hash) = AuditWriter::scan_to_tip(&check_file).unwrap();
 
         // The seq should still be 2
         assert_eq!(next_seq, 2);
