@@ -1,19 +1,13 @@
-//! # SWIFT ISO 20022 Post-Quantum Supplementary Data Transformer
-//!
-//! Dual-signature (ML-DSA-87 + Ed25519) cryptographic seals embedded into the
-//! standard ISO 20022 `<SplmtryData>` element according to financial schemas.
-//!
-//! Incorporates:
-//! - Institutional Key Registry authentication preventing key-substitution attacks
-//! - Schema-compliant supplementary data placement inside message roots (`FIToFICstmrCdtTrf`, `FICdtTrf`, etc.)
-//! - Robust namespace-aware canonical XML payment body extraction
+//! Experimental ISO 20022 dual-signature envelope, application profile V2.
+//! See docs/ISO20022_VALIDATION_AND_INTEROPERABILITY.md for supported structure,
+//! canonical representation and limitations. No network/XSD conformance claim.
 
+use crate::payment_xml;
 use std::collections::HashMap;
 use std::sync::RwLock;
 
 use ed25519_dalek::{
-    Signer as EdSigner, SigningKey as EdSigningKey, Verifier as EdVerifier,
-    VerifyingKey as EdVerifyingKey,
+    Signer as EdSigner, SigningKey as EdSigningKey, VerifyingKey as EdVerifyingKey,
 };
 use fips204::ml_dsa_87;
 use fips204::traits::{SerDes, Signer as PqSigner, Verifier as PqVerifier};
@@ -44,6 +38,8 @@ pub enum Iso20022Error {
     UnauthorizedMessageType(String, String),
     #[error("Public key substitution detected: presented key does not match trusted registry for BIC '{0}'")]
     KeySubstitutionDetected(String),
+    #[error("Signer key expired for BIC '{0}'")]
+    SignerKeyExpired(String),
     #[error("Schema validation failed: {0}")]
     SchemaValidationFailed(String),
 }
@@ -84,6 +80,16 @@ pub trait InstitutionalKeyRegistry: Send + Sync {
             .get_signer_by_bic(bic)
             .ok_or_else(|| Iso20022Error::UntrustedSignerIdentity(bic.to_string()))?;
 
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| Iso20022Error::SchemaValidationFailed("Trusted clock unavailable".into()))?
+            .as_secs();
+        if signer.valid_until_epoch <= now {
+            return Err(Iso20022Error::SignerKeyExpired(bic.to_owned()));
+        }
+        if !signer.bic.eq_ignore_ascii_case(bic) || signer.institution_id.trim().is_empty() {
+            return Err(Iso20022Error::UntrustedSignerIdentity(bic.to_owned()));
+        }
         if signer.status != SignerStatus::Active {
             return Err(Iso20022Error::SignerKeyNotActive(bic.to_string()));
         }
@@ -189,128 +195,50 @@ pub struct AuthenticatedPaymentSeal {
     pub verified_at_epoch: u64,
 }
 
-/// Helper to find tags regardless of namespace prefixes (e.g. `<GrpHdr>` or `<doc:GrpHdr>`).
-fn find_tag_boundary(xml: &str, local_name: &str, is_closing: bool) -> Option<usize> {
-    let mut search_idx = 0;
-    while let Some(rel_open) = xml[search_idx..].find('<') {
-        let start = search_idx + rel_open;
-        if let Some(rel_close) = xml[start..].find('>') {
-            let end = start + rel_close;
-            let tag_content = &xml[start + 1..end].trim();
-
-            let matches = if is_closing {
-                if let Some(stripped) = tag_content.strip_prefix('/') {
-                    let name = stripped.split_whitespace().next().unwrap_or("");
-                    name == local_name || name.ends_with(&format!(":{}", local_name))
-                } else {
-                    false
-                }
-            } else {
-                if !tag_content.starts_with('/')
-                    && !tag_content.starts_with('?')
-                    && !tag_content.starts_with('!')
-                {
-                    let name = tag_content.split_whitespace().next().unwrap_or("");
-                    let name = name.trim_end_matches('/');
-                    name == local_name || name.ends_with(&format!(":{}", local_name))
-                } else {
-                    false
-                }
-            };
-
-            if matches {
-                return Some(if is_closing { end + 1 } else { start });
-            }
-            search_idx = end + 1;
-        } else {
-            break;
-        }
-    }
-    None
-}
-
-/// Reverse search for a closing tag regardless of namespace prefixes.
-fn rfind_closing_tag_boundary(xml: &str, local_name: &str) -> Option<(usize, usize)> {
-    let mut last_match = None;
-    let mut search_idx = 0;
-    while let Some(rel_open) = xml[search_idx..].find('<') {
-        let start = search_idx + rel_open;
-        if let Some(rel_close) = xml[start..].find('>') {
-            let end = start + rel_close;
-            let tag_content = &xml[start + 1..end].trim();
-
-            if let Some(stripped) = tag_content.strip_prefix('/') {
-                let name = stripped.split_whitespace().next().unwrap_or("");
-                if name == local_name || name.ends_with(&format!(":{}", local_name)) {
-                    last_match = Some((start, end + 1));
-                }
-            }
-            search_idx = end + 1;
-        } else {
-            break;
-        }
-    }
-    last_match
-}
-
-/// Extracts the canonical signable body from an ISO 20022 document.
-/// Accurately extracts business content across namespace-prefixed documents.
+/// Application canonical representation V2 (not W3C C14N).
 pub fn extract_canonical_payment_body(xml: &str) -> Result<String, Iso20022Error> {
-    let start_idx = find_tag_boundary(xml, "GrpHdr", false)
-        .or_else(|| find_tag_boundary(xml, "CdtTrfTxInf", false))
-        .ok_or(Iso20022Error::MissingTransactionBody)?;
+    Ok(payment_xml::canonical(&payment_xml::parse(xml)?))
+}
 
-    let end_idx = rfind_closing_tag_boundary(xml, "CdtTrfTxInf")
-        .map(|(_, end)| end)
-        .or_else(|| rfind_closing_tag_boundary(xml, "GrpHdr").map(|(_, end)| end))
-        .ok_or(Iso20022Error::MissingTransactionBody)?;
-
-    if end_idx <= start_idx {
-        return Err(Iso20022Error::MalformedXml(
-            "Transaction end precedes start".into(),
+fn signing_input(seal: &Iso20022PqcSeal) -> Result<Vec<u8>, Iso20022Error> {
+    if seal.algorithm_classical != "Ed25519-RFC8032"
+        || seal.algorithm_pqc != "ML-DSA-87-FIPS204"
+        || seal.key_id.trim().is_empty()
+        || seal.signer_bic.trim().is_empty()
+    {
+        return Err(payment_xml::invalid(
+            "Invalid seal algorithm or identity metadata",
         ));
     }
-
-    // Canonicalize by trimming whitespace between tags and normalizing line breaks
-    let raw_content = &xml[start_idx..end_idx];
-    let normalized = raw_content
-        .lines()
-        .map(|l| l.trim())
-        .filter(|l| !l.is_empty())
-        .collect::<Vec<&str>>()
-        .join("\n");
-
-    Ok(normalized)
+    serde_json::to_vec(&(
+        "VARDHAN-ISO20022-SEAL-V2",
+        &seal.algorithm_classical,
+        &seal.algorithm_pqc,
+        &seal.signer_bic,
+        &seal.key_id,
+        &seal.message_type,
+        &seal.payload_digest_blake3,
+        &seal.ed25519_public_key_hex,
+        &seal.ml_dsa_87_public_key_hex,
+        seal.epoch_timestamp,
+    ))
+    .map_err(|_| payment_xml::invalid("Seal serialization failed"))
 }
 
-/// Identifies the schema-defined message root element in an ISO 20022 XML document
-/// and returns the insertion index right before the closing tag.
-///
-/// Supported ISO 20022 message roots:
-/// - `FIToFICstmrCdtTrf` (pacs.008 customer credit transfer)
-/// - `FICdtTrf` (pacs.009 financial institution credit transfer)
-/// - `BkToCstmrStmt` (camt.053 bank-to-customer statement)
-/// - `FIToFIPmtStsRpt` (pacs.002 payment status report)
-fn find_schema_compliant_insertion_point(xml: &str) -> Option<(usize, &'static str)> {
-    const MESSAGE_ROOTS: [&str; 4] = [
-        "FIToFICstmrCdtTrf",
-        "FICdtTrf",
-        "BkToCstmrStmt",
-        "FIToFIPmtStsRpt",
-    ];
-
-    for root in MESSAGE_ROOTS {
-        if let Some((start, _)) = rfind_closing_tag_boundary(xml, root) {
-            return Some((start, root));
-        }
+fn parse_seal(xml: &str) -> Result<Iso20022PqcSeal, Iso20022Error> {
+    let doc = payment_xml::parse(xml)?;
+    let seal: Iso20022PqcSeal = serde_json::from_str(&payment_xml::seal_json(&doc)?)
+        .map_err(|_| payment_xml::invalid("Invalid seal JSON"))?;
+    if seal.message_type != payment_xml::message_type(&doc) {
+        return Err(payment_xml::invalid(
+            "Seal message type does not match document namespace",
+        ));
     }
-
-    // Fallback: before </Document> if no specific message root is recognized
-    rfind_closing_tag_boundary(xml, "Document").map(|(start, _)| (start, "Document"))
+    signing_input(&seal)?;
+    Ok(seal)
 }
 
-/// Signs an ISO 20022 XML document and embeds a dual PQC seal into `<SplmtryData>`
-/// strictly inside the message root element according to official ISO 20022 XSD definitions.
+/// Signs the entire parsed business document and seal metadata under profile V2.
 pub fn embed_pqc_seal_into_iso20022(
     original_xml: &str,
     signer_bic: &str,
@@ -321,61 +249,42 @@ pub fn embed_pqc_seal_into_iso20022(
     ml_dsa_public_key: &ml_dsa_87::PublicKey,
     timestamp: u64,
 ) -> Result<String, Iso20022Error> {
-    let canonical_body = extract_canonical_payment_body(original_xml)?;
-    let digest = blake3::hash(canonical_body.as_bytes());
-    let digest_hex = digest.to_hex().to_string();
-
-    // 1. Classical signature (Ed25519)
-    let ed_sig = ed_signing_key.sign(digest.as_bytes());
-    let ed_sig_hex = hex::encode(ed_sig.to_bytes());
-    let ed_pk_hex = hex::encode(ed_signing_key.verifying_key().to_bytes());
-
-    // 2. Post-Quantum signature (ML-DSA-87 / FIPS 204)
-    let ml_sig = ml_dsa_private_key
-        .try_sign(digest.as_bytes(), &[])
-        .map_err(|_| Iso20022Error::MlDsa87VerificationFailed)?;
-    let ml_sig_hex = hex::encode(ml_sig);
-    let ml_pk_hex = hex::encode(ml_dsa_public_key.clone().into_bytes());
-
-    let seal = Iso20022PqcSeal {
+    let doc = payment_xml::parse(original_xml)?;
+    if message_type != payment_xml::message_type(&doc) {
+        return Err(payment_xml::invalid(
+            "Message type does not match document namespace",
+        ));
+    }
+    let digest = blake3::hash(payment_xml::canonical(&doc).as_bytes());
+    let mut seal = Iso20022PqcSeal {
         algorithm_classical: "Ed25519-RFC8032".into(),
         algorithm_pqc: "ML-DSA-87-FIPS204".into(),
         signer_bic: signer_bic.to_uppercase(),
-        key_id: key_id.to_string(),
-        message_type: message_type.to_string(),
-        payload_digest_blake3: digest_hex,
-        ed25519_signature_hex: ed_sig_hex,
-        ed25519_public_key_hex: ed_pk_hex,
-        ml_dsa_87_signature_hex: ml_sig_hex,
-        ml_dsa_87_public_key_hex: ml_pk_hex,
+        key_id: key_id.to_owned(),
+        message_type: message_type.to_owned(),
+        payload_digest_blake3: digest.to_hex().to_string(),
+        ed25519_signature_hex: String::new(),
+        ml_dsa_87_signature_hex: String::new(),
+        ed25519_public_key_hex: hex::encode(ed_signing_key.verifying_key().to_bytes()),
+        ml_dsa_87_public_key_hex: hex::encode(ml_dsa_public_key.clone().into_bytes()),
         epoch_timestamp: timestamp,
     };
-
-    let seal_json = serde_json::to_string(&seal)
-        .map_err(|e| Iso20022Error::MalformedXml(format!("Failed to serialize seal: {}", e)))?;
-
-    // Build standard ISO 20022 <SplmtryData> element
-    let supplementary_data = format!(
-        "\n    <SplmtryData>\n      <PlcAndNm>VARDHAN-QCORE-PQC-SEAL</PlcAndNm>\n      <Envlp>\n        <VardhanPqcSeal>{}</VardhanPqcSeal>\n      </Envlp>\n    </SplmtryData>\n  ",
-        seal_json
+    let input = signing_input(&seal)?;
+    seal.ed25519_signature_hex = hex::encode(ed_signing_key.sign(&input).to_bytes());
+    seal.ml_dsa_87_signature_hex = hex::encode(
+        ml_dsa_private_key
+            .try_sign(&input, &[])
+            .map_err(|_| Iso20022Error::MlDsa87VerificationFailed)?,
     );
-
-    // Locate the schema-compliant insertion point inside the message element
-    if let Some((pos, _root_name)) = find_schema_compliant_insertion_point(original_xml) {
-        let mut transformed = original_xml[..pos].trim_end().to_string();
-        transformed.push_str(&supplementary_data);
-        transformed.push_str(&original_xml[pos..]);
-        Ok(transformed)
-    } else {
-        let mut transformed = original_xml.to_string();
-        transformed.push_str(&supplementary_data);
-        Ok(transformed)
-    }
+    let json = serde_json::to_string(&seal)
+        .map_err(|_| payment_xml::invalid("Seal serialization failed"))?;
+    payment_xml::embed(original_xml, &json)
 }
 
 /// Authenticated verification of an ISO 20022 PQC seal against a trusted Institutional Key Registry.
 ///
-/// This provides authentic non-repudiation:
+/// This checks the configured institutional registry and signatures; tenant authorization
+/// and production key custody are separate requirements:
 /// 1. Verifies that the signer BIC is enrolled in the trusted institutional registry.
 /// 2. Ensures the signer status is `Active` (rejects revoked or suspended signers).
 /// 3. Confirms that the public keys in the seal match the trusted public keys registered for the institution.
@@ -384,21 +293,8 @@ pub fn verify_iso20022_pqc_seal_authenticated(
     sealed_xml: &str,
     registry: &dyn InstitutionalKeyRegistry,
 ) -> Result<AuthenticatedPaymentSeal, Iso20022Error> {
-    // 1. Extract the PqcSeal JSON
-    let start_tag = "<VardhanPqcSeal>";
-    let end_tag = "</VardhanPqcSeal>";
-
-    let start_idx = sealed_xml
-        .find(start_tag)
-        .ok_or(Iso20022Error::MissingPqcSeal)?
-        + start_tag.len();
-    let end_idx = sealed_xml
-        .find(end_tag)
-        .ok_or(Iso20022Error::MissingPqcSeal)?;
-
-    let seal_json = &sealed_xml[start_idx..end_idx];
-    let seal: Iso20022PqcSeal = serde_json::from_str(seal_json)
-        .map_err(|e| Iso20022Error::MalformedXml(format!("Failed to parse PqcSeal JSON: {}", e)))?;
+    let seal = parse_seal(sealed_xml)?;
+    let input = signing_input(&seal)?;
 
     // 2. Validate signer identity and public keys against the trusted registry
     let trusted_signer = registry.validate_signer_keys(
@@ -433,7 +329,7 @@ pub fn verify_iso20022_pqc_seal_authenticated(
     let ed_sig = ed25519_dalek::Signature::from_bytes(&ed_sig_array);
 
     ed_verifying_key
-        .verify(computed_digest.as_bytes(), &ed_sig)
+        .verify_strict(&input, &ed_sig)
         .map_err(|_| Iso20022Error::Ed25519VerificationFailed)?;
 
     // 5. Verify post-quantum signature (ML-DSA-87) using trusted registered public key
@@ -451,7 +347,7 @@ pub fn verify_iso20022_pqc_seal_authenticated(
         .try_into()
         .map_err(|_| Iso20022Error::MlDsa87VerificationFailed)?;
 
-    if !ml_public_key.verify(computed_digest.as_bytes(), &ml_sig_array, &[]) {
+    if !ml_public_key.verify(&input, &ml_sig_array, &[]) {
         return Err(Iso20022Error::MlDsa87VerificationFailed);
     }
 
@@ -471,20 +367,8 @@ pub fn verify_iso20022_pqc_seal_authenticated(
 /// NOTE: In production payment workflows, always prefer [`verify_iso20022_pqc_seal_authenticated`]
 /// to ensure public keys are bound to a verified institutional identity.
 pub fn verify_iso20022_pqc_seal(sealed_xml: &str) -> Result<Iso20022PqcSeal, Iso20022Error> {
-    let start_tag = "<VardhanPqcSeal>";
-    let end_tag = "</VardhanPqcSeal>";
-
-    let start_idx = sealed_xml
-        .find(start_tag)
-        .ok_or(Iso20022Error::MissingPqcSeal)?
-        + start_tag.len();
-    let end_idx = sealed_xml
-        .find(end_tag)
-        .ok_or(Iso20022Error::MissingPqcSeal)?;
-
-    let seal_json = &sealed_xml[start_idx..end_idx];
-    let seal: Iso20022PqcSeal = serde_json::from_str(seal_json)
-        .map_err(|e| Iso20022Error::MalformedXml(format!("Failed to parse PqcSeal JSON: {}", e)))?;
+    let seal = parse_seal(sealed_xml)?;
+    let input = signing_input(&seal)?;
 
     let canonical_body = extract_canonical_payment_body(sealed_xml)?;
     let computed_digest = blake3::hash(canonical_body.as_bytes());
@@ -509,7 +393,7 @@ pub fn verify_iso20022_pqc_seal(sealed_xml: &str) -> Result<Iso20022PqcSeal, Iso
     let ed_sig = ed25519_dalek::Signature::from_bytes(&ed_sig_array);
 
     ed_verifying_key
-        .verify(computed_digest.as_bytes(), &ed_sig)
+        .verify_strict(&input, &ed_sig)
         .map_err(|_| Iso20022Error::Ed25519VerificationFailed)?;
 
     let ml_pk_bytes = hex::decode(&seal.ml_dsa_87_public_key_hex)
@@ -526,7 +410,7 @@ pub fn verify_iso20022_pqc_seal(sealed_xml: &str) -> Result<Iso20022PqcSeal, Iso
         .try_into()
         .map_err(|_| Iso20022Error::MlDsa87VerificationFailed)?;
 
-    if !ml_public_key.verify(computed_digest.as_bytes(), &ml_sig_array, &[]) {
+    if !ml_public_key.verify(&input, &ml_sig_array, &[]) {
         return Err(Iso20022Error::MlDsa87VerificationFailed);
     }
 
@@ -594,7 +478,7 @@ mod tests {
     }
 
     #[test]
-    fn test_schema_compliant_supplementary_data_placement() {
+    fn test_supplementary_data_placement() {
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
 
         let sealed_xml = embed_pqc_seal_into_iso20022(
@@ -611,7 +495,7 @@ mod tests {
 
         // Finding 2 fix: Verify <SplmtryData> is placed INSIDE <FIToFICstmrCdtTrf>
         // and precedes </FIToFICstmrCdtTrf>, NOT directly under </Document>
-        let splmtry_pos = sealed_xml.find("<SplmtryData>").unwrap();
+        let splmtry_pos = sealed_xml.find("<SplmtryData xmlns=").unwrap();
         let message_close_pos = sealed_xml.find("</FIToFICstmrCdtTrf>").unwrap();
         let doc_close_pos = sealed_xml.find("</Document>").unwrap();
 
@@ -641,7 +525,7 @@ mod tests {
             ed25519_public_key_hex: ed_pk_hex,
             ml_dsa_87_public_key_hex: ml_pk_hex,
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 1900000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let sealed_xml = embed_pqc_seal_into_iso20022(
@@ -679,7 +563,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(legit_ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(legit_ml_pk.into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 1900000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         // Attacker generates own rogue keys and claims to be HSBC
@@ -744,7 +628,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 1900000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let sealed_xml = embed_pqc_seal_into_iso20022(
@@ -776,7 +660,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 1900000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let sealed_xml = embed_pqc_seal_into_iso20022(
@@ -791,7 +675,7 @@ mod tests {
         )
         .unwrap();
 
-        assert!(sealed_xml.contains("<SplmtryData>"));
+        assert!(sealed_xml.contains("<SplmtryData xmlns="));
         let auth_seal = verify_iso20022_pqc_seal_authenticated(&sealed_xml, &registry).unwrap();
         assert_eq!(auth_seal.authenticated_institution.bic, "CHASUS33");
     }
@@ -817,5 +701,114 @@ mod tests {
 
         let err = verify_iso20022_pqc_seal(&tampered_xml).unwrap_err();
         assert_eq!(err, Iso20022Error::DigestMismatch);
+    }
+
+    #[test]
+    fn regression_expired_registry_key_rejected() {
+        let registry = InMemoryInstitutionalKeyRegistry::new();
+        registry.register_signer(InstitutionalSigner {
+            institution_id: "synthetic-bank".into(),
+            institution_name: "Test".into(),
+            bic: "BARCGB22".into(),
+            status: SignerStatus::Active,
+            ed25519_public_key_hex: "00".into(),
+            ml_dsa_87_public_key_hex: "00".into(),
+            authorized_message_types: vec!["pacs.008.001.08".into()],
+            valid_until_epoch: 1,
+        });
+        assert!(registry
+            .validate_signer_keys("BARCGB22", "pacs.008.001.08", "00", "00")
+            .is_err());
+    }
+
+    #[test]
+    fn regression_malformed_and_ambiguous_xml_rejected() {
+        let malformed = SAMPLE_PACS008_XML.replace("</Document>", "");
+        assert!(extract_canonical_payment_body(&malformed).is_err());
+        let duplicate = SAMPLE_PACS008_XML.replace("<GrpHdr>", "<GrpHdr/><GrpHdr>");
+        assert!(extract_canonical_payment_body(&duplicate).is_err());
+        let wrong_namespace = SAMPLE_PACS008_XML.replace("pacs.008.001.08", "pacs.008.001.99");
+        assert!(extract_canonical_payment_body(&wrong_namespace).is_err());
+    }
+
+    #[test]
+    fn regression_seal_metadata_is_authenticated() {
+        let (ed, sk, pk) = generate_keypair();
+        let sealed = embed_pqc_seal_into_iso20022(
+            SAMPLE_PACS008_XML,
+            "BARCGB22",
+            "key-01",
+            "pacs.008.001.08",
+            &ed,
+            &sk,
+            &pk,
+            1792345000,
+        )
+        .unwrap();
+        assert!(verify_iso20022_pqc_seal(&sealed.replace("key-01", "key-02")).is_err());
+        assert!(verify_iso20022_pqc_seal(&sealed.replace("1792345000", "1792345001")).is_err());
+        assert!(verify_iso20022_pqc_seal(&sealed.replace("Ed25519-RFC8032", "none")).is_err());
+    }
+
+    #[test]
+    fn xml_security_limits_and_namespace_substitution() {
+        for xml in [
+            SAMPLE_PACS008_XML.replace("UTF-8", "ISO-8859-1"),
+            SAMPLE_PACS008_XML.replace("version=\"1.0\"", "version=\"1.1\""),
+            SAMPLE_PACS008_XML.replace(
+                "<Document ",
+                "<!DOCTYPE Document [<!ENTITY x SYSTEM 'file:///etc/passwd'>]><Document ",
+            ),
+            SAMPLE_PACS008_XML.replace("<GrpHdr>", "<GrpHdr xmlns='urn:attacker'>"),
+            SAMPLE_PACS008_XML.replace("<GrpHdr>", "<!--<GrpHdr>--><GrpHdr>"),
+            SAMPLE_PACS008_XML
+                .replace("<GrpHdr>", &format!("<GrpHdr>{}", "<x>".repeat(70)))
+                .replace("</GrpHdr>", &format!("{}</GrpHdr>", "</x>".repeat(70))),
+            " ".repeat(crate::payment_xml::MAX_XML_BYTES + 1),
+        ] {
+            assert!(extract_canonical_payment_body(&xml).is_err());
+        }
+    }
+
+    #[test]
+    fn seal_escaping_duplicate_seals_and_exact_character_binding() {
+        let (ed, sk, pk) = generate_keypair();
+        let sealed = embed_pqc_seal_into_iso20022(
+            SAMPLE_PACS008_XML,
+            "BARCGB22",
+            "key<&01",
+            "pacs.008.001.08",
+            &ed,
+            &sk,
+            &pk,
+            1792345000,
+        )
+        .unwrap();
+        assert_eq!(verify_iso20022_pqc_seal(&sealed).unwrap().key_id, "key<&01");
+        assert!(embed_pqc_seal_into_iso20022(
+            &sealed,
+            "BARCGB22",
+            "key-02",
+            "pacs.008.001.08",
+            &ed,
+            &sk,
+            &pk,
+            1792345000
+        )
+        .is_err());
+        assert!(verify_iso20022_pqc_seal(
+            &sealed.replace("ACME Global Treasury", " ACME Global Treasury ")
+        )
+        .is_err());
+        let doc = crate::payment_xml::parse(&sealed).unwrap();
+        let supplementary = doc
+            .descendants()
+            .find(|n| n.is_element() && n.tag_name().name() == "SplmtryData")
+            .unwrap();
+        let duplicate = sealed.replace(
+            "</FIToFICstmrCdtTrf>",
+            &format!("{}</FIToFICstmrCdtTrf>", &sealed[supplementary.range()]),
+        );
+        assert!(verify_iso20022_pqc_seal(&duplicate).is_err());
     }
 }

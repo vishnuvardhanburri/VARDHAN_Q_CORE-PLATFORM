@@ -1,5 +1,5 @@
 //! Vardhan Q-Core — Hybrid Hardware/Software Enclave Interface
-//! Automatically detects AWS Nitro Enclaves or TPM 2.0. Falls back to Software Chaos Twin if missing.
+//! Device discovery only. Execution fails closed until an attested backend exists.
 
 use std::path::Path;
 
@@ -24,24 +24,15 @@ pub fn detect_hardware_enclave() -> EnclaveType {
     }
 }
 
-pub fn execute_secure_payload(payload: &[u8]) -> Result<Vec<u8>, &'static str> {
-    match detect_hardware_enclave() {
-        EnclaveType::AwsNitro => {
-            eprintln!("[ENCLAVE] 🛡️ Physical AWS Nitro Enclave detected at /dev/nitro_enclaves. Routing payload to isolated Ring-3 VM...");
-            // TODO: Implement aws-nitro-enclaves-nsm-api bindings here
-            Ok(payload.to_vec())
-        }
-        EnclaveType::Tpm20 => {
-            eprintln!(
-                "[ENCLAVE] 🛡️ Physical TPM 2.0 detected. Binding ML-DSA-87 keys to PCR state..."
-            );
-            // TODO: Implement tss-esapi bindings here
-            Ok(payload.to_vec())
-        }
-        EnclaveType::SoftwareSimulated => {
-            eprintln!("[ENCLAVE] ⚠️ No physical hardware enclave detected. Booting Software Chaos Twin...");
-            // Falls back to existing architecture
-            Ok(payload.to_vec())
-        }
+/// No reviewed enclave executor is implemented. Device presence is not attestation.
+pub fn execute_secure_payload(_payload: &[u8]) -> Result<Vec<u8>, &'static str> {
+    Err("Secure enclave execution is unavailable: no attested executor configured")
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn regression_unimplemented_enclave_does_not_report_success() {
+        assert!(super::execute_secure_payload(b"synthetic").is_err());
     }
 }

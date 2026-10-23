@@ -1,9 +1,5 @@
-//! # Autonomous Self-Healing Key Epoch Controller
-//!
-//! Breakthrough Innovation: High-speed, zero-downtime key rotation and recovery.
-//! When a cryptographic exposure, memory probe, or tamper event is detected,
-//! the active epoch is automatically quarantined in under 1ms, and a fresh
-//! post-quantum epoch (N+1) is synthesized without restarting or dropping bank transactions.
+//! Local epoch quarantine and replacement controller.
+//! Does not prove anomaly detection, safe connection resumption or recovery latency.
 
 use crate::aer_kep_q::{AerKepQ, AerKepQError, EpochDescriptor, EpochStatus};
 use crate::QuantumNodeIdentity;
@@ -114,7 +110,8 @@ impl SelfHealingEpochController {
     pub fn is_quarantined(&self, epoch: u64) -> bool {
         match self.quarantined_epochs.lock() {
             Ok(guard) => guard.contains(&epoch),
-            Err(_) => false,
+            // Unknown monitoring state must deny new work.
+            Err(_) => true,
         }
     }
 }
@@ -144,5 +141,18 @@ mod tests {
         let desc2 = controller.current_descriptor().unwrap();
         assert_eq!(desc2.epoch, 2);
         assert_eq!(desc2.status, EpochStatus::Active);
+    }
+
+    #[test]
+    fn regression_poisoned_quarantine_state_fails_closed() {
+        let identity = QuantumNodeIdentity::generate_node_identity().unwrap();
+        let controller = SelfHealingEpochController::new("test", identity).unwrap();
+        let state = controller.quarantined_epochs.clone();
+        let _ = std::thread::spawn(move || {
+            let _guard = state.lock().unwrap();
+            panic!("synthetic monitoring failure");
+        })
+        .join();
+        assert!(controller.is_quarantined(1));
     }
 }

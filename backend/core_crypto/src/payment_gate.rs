@@ -1,12 +1,12 @@
 //! # payment_gate — ISO 20022 Financial Transaction Invariant Gate
 //!
 //! Enforces deterministic financial transaction invariants for ISO 20022
-//! payment messages (pacs.008, pacs.009, pacs.002, pain.001) sealed with
+//! payment messages (pacs.008.001.08 and pacs.009.001.08) sealed with
 //! post-quantum dual signatures (Ed25519 + ML-DSA-87).
 //!
 //! Unlike finding evidence gates which inspect metadata and content hashes,
 //! this module enforces institutional banking rules:
-//! - Valid ISO 20022 message schema and supported transaction types
+//! - Bounded structural payment profile (official ISO XSD validation remains required)
 //! - Authenticated institutional signer identity from a trusted registry
 //! - Matching Instructing / Debtor Agent BIC to authenticated signing identity
 //! - ISO 9362 BIC formatting (8 or 11 alphanumeric characters)
@@ -16,7 +16,7 @@
 //! - Unique canonical UETR (UUIDv4) and non-empty EndToEndId
 //! - Strict temporal freshness window (clock skew tolerance)
 //! - Post-quantum dual signature mathematical verification over canonical XML
-//! - Pre-execution durable idempotency protection and atomic CAS reservation
+//! - Pluggable pre-execution idempotency reservation; bundled store is in-memory
 
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
@@ -83,6 +83,9 @@ pub enum PaymentGateError {
     #[error("Concurrent submission conflict: payment with UETR '{0}' is currently in-flight")]
     ConcurrentSubmissionBlocked(String),
 
+    #[error("Invalid payment input: {0}")]
+    InvalidField(&'static str),
+
     #[error("Internal gate error: {0}")]
     Internal(String),
 }
@@ -137,12 +140,7 @@ pub struct PaymentPolicy {
 impl Default for PaymentPolicy {
     fn default() -> Self {
         Self {
-            allowed_message_types: vec![
-                "pacs.008.001.08".into(),
-                "pacs.009.001.08".into(),
-                "pacs.002.001.10".into(),
-                "pain.001.001.09".into(),
-            ],
+            allowed_message_types: vec!["pacs.008.001.08".into(), "pacs.009.001.08".into()],
             allowed_currencies: vec![
                 "USD".into(),
                 "EUR".into(),
@@ -264,227 +262,94 @@ pub fn is_valid_uuid(uetr: &str) -> bool {
 // XML Element Text Extractor (Namespace-Tolerant)
 // ─────────────────────────────────────────────────────────────────────────────
 
-fn extract_xml_element_inner(xml: &str, local_tag: &str) -> Option<String> {
-    let mut search_idx = 0;
-    while let Some(rel_open) = xml[search_idx..].find('<') {
-        let start = search_idx + rel_open;
-        if let Some(rel_close) = xml[start..].find('>') {
-            let end = start + rel_close;
-            let tag_content = xml[start + 1..end].trim();
-
-            if !tag_content.starts_with('/')
-                && !tag_content.starts_with('?')
-                && !tag_content.starts_with('!')
-            {
-                let name = tag_content
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or("")
-                    .trim_end_matches('/');
-                if name == local_tag || name.ends_with(&format!(":{}", local_tag)) {
-                    // Found opening tag. Find corresponding closing tag </local_tag>
-                    let inner_start = end + 1;
-                    let mut close_idx = inner_start;
-                    while let Some(rel_c_open) = xml[close_idx..].find("</") {
-                        let c_start = close_idx + rel_c_open;
-                        if let Some(rel_c_end) = xml[c_start..].find('>') {
-                            let c_end = c_start + rel_c_end;
-                            let c_name = xml[c_start + 2..c_end].trim();
-                            if c_name == local_tag || c_name.ends_with(&format!(":{}", local_tag)) {
-                                return Some(xml[inner_start..c_start].to_string());
-                            }
-                            close_idx = c_end + 1;
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            }
-            search_idx = end + 1;
-        } else {
-            break;
-        }
-    }
-    None
-}
-
-fn extract_xml_element_text(xml: &str, local_tag: &str) -> Option<String> {
-    extract_xml_element_inner(xml, local_tag).map(|s| s.trim().to_string())
-}
-
-fn extract_xml_attribute(xml: &str, local_tag: &str, attr_name: &str) -> Option<String> {
-    let mut search_idx = 0;
-    while let Some(rel_open) = xml[search_idx..].find('<') {
-        let start = search_idx + rel_open;
-        if let Some(rel_close) = xml[start..].find('>') {
-            let end = start + rel_close;
-            let tag_content = &xml[start + 1..end].trim();
-
-            if !tag_content.starts_with('/')
-                && !tag_content.starts_with('?')
-                && !tag_content.starts_with('!')
-            {
-                let parts: Vec<&str> = tag_content.split_whitespace().collect();
-                if let Some(name) = parts.first() {
-                    let clean_name = name.trim_end_matches('/');
-                    if clean_name == local_tag || clean_name.ends_with(&format!(":{}", local_tag)) {
-                        for attr in &parts[1..] {
-                            if let Some(stripped) = attr.strip_prefix(&format!("{}=", attr_name)) {
-                                return Some(
-                                    stripped.trim_matches('"').trim_matches('\'').to_string(),
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-            search_idx = end + 1;
-        } else {
-            break;
-        }
-    }
-    None
-}
-
-/// Approximate ISO 8601 parsing into Unix epoch timestamp seconds.
+/// Strict RFC 3339 parsing; offset-normalized and restricted to nonnegative Unix seconds.
 pub fn parse_iso8601_to_unix(dt_str: &str) -> Result<u64, PaymentGateError> {
-    let cleaned = dt_str.trim().trim_end_matches('Z');
-    let parts: Vec<&str> = cleaned.split('T').collect();
-    if parts.len() != 2 {
-        return Err(PaymentGateError::Internal(format!(
-            "Invalid timestamp format: '{dt_str}'"
-        )));
+    let date = chrono::DateTime::parse_from_rfc3339(dt_str)
+        .map_err(|_| PaymentGateError::InvalidField("Invalid RFC3339 timestamp"))?;
+    // Leap seconds and subsecond timestamps are not part of this bounded profile.
+    if date.timestamp_subsec_nanos() != 0 {
+        return Err(PaymentGateError::InvalidField(
+            "Unsupported subsecond/leap-second timestamp",
+        ));
     }
-
-    let date_parts: Vec<u64> = parts[0].split('-').filter_map(|s| s.parse().ok()).collect();
-    if date_parts.len() != 3 {
-        return Err(PaymentGateError::Internal(format!(
-            "Invalid date format: '{dt_str}'"
-        )));
-    }
-
-    let time_str = parts[1].split('+').next().unwrap_or(parts[1]);
-    let time_parts: Vec<u64> = time_str.split(':').filter_map(|s| s.parse().ok()).collect();
-    if time_parts.len() < 2 {
-        return Err(PaymentGateError::Internal(format!(
-            "Invalid time format: '{dt_str}'"
-        )));
-    }
-
-    let year = date_parts[0];
-    let month = date_parts[1];
-    let day = date_parts[2];
-    let hour = time_parts[0];
-    let min = time_parts[1];
-    let sec = if time_parts.len() > 2 {
-        time_parts[2]
-    } else {
-        0
-    };
-
-    let days_before_month = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    let y = if year >= 1970 { year - 1970 } else { 0 };
-    let leap_days = (year - 1969) / 4;
-    let month_idx = if month >= 1 && month <= 12 {
-        month as usize - 1
-    } else {
-        0
-    };
-    let days = y * 365 + leap_days + days_before_month[month_idx] + (day.saturating_sub(1));
-    let total_secs = days * 86400 + hour * 3600 + min * 60 + sec;
-    Ok(total_secs)
+    u64::try_from(date.timestamp())
+        .map_err(|_| PaymentGateError::InvalidField("Timestamp before Unix epoch"))
 }
 
-/// Parse and extract canonical financial payment attributes from ISO 20022 XML.
+/// Extracts one payment through namespace-qualified, unambiguous structural paths.
+/// Does not implement official ISO XSD or network usage validation.
 pub fn extract_financial_payment(xml: &str) -> Result<Iso20022FinancialPayment, PaymentGateError> {
-    // Detect message type
-    let message_type = if xml.contains("FIToFICstmrCdtTrf") {
-        "pacs.008.001.08".to_string()
-    } else if xml.contains("FICdtTrf") {
-        "pacs.009.001.08".to_string()
-    } else if xml.contains("FIToFIPmtStsRpt") {
-        "pacs.002.001.10".to_string()
-    } else if xml.contains("CstmrCdtTrfInitn") {
-        "pain.001.001.09".to_string()
-    } else {
-        return Err(PaymentGateError::UnsupportedMessageType(
-            "Unknown or missing message root element".into(),
+    use crate::payment_xml::{child, path, text};
+    let doc = crate::payment_xml::parse(xml)?;
+    let message = crate::payment_xml::message(&doc);
+    let group = child(message, "GrpHdr")?;
+    let tx = child(message, "CdtTrfTxInf")?;
+    if text(child(group, "NbOfTxs")?)? != "1" {
+        return Err(PaymentGateError::InvalidField(
+            "Only single-payment messages are supported",
         ));
-    };
-
-    let msg_id =
-        extract_xml_element_text(xml, "MsgId").ok_or(PaymentGateError::MissingElement("MsgId"))?;
-
-    let cre_dt_tm = extract_xml_element_text(xml, "CreDtTm")
-        .ok_or(PaymentGateError::MissingElement("CreDtTm"))?;
+    }
+    let msg_id = text(child(group, "MsgId")?)?;
+    if msg_id.len() > 35 {
+        return Err(PaymentGateError::InvalidField(
+            "Message ID exceeds profile limit",
+        ));
+    }
+    let cre_dt_tm = text(child(group, "CreDtTm")?)?;
     let cre_timestamp_unix = parse_iso8601_to_unix(&cre_dt_tm)?;
-
-    let instructing_agent_bic = extract_xml_element_inner(xml, "InstgAgt")
-        .and_then(|sub| extract_xml_element_text(&sub, "BICFI"))
-        .or_else(|| extract_xml_element_text(xml, "BICFI"))
-        .ok_or(PaymentGateError::MissingElement(
-            "InstgAgt/FinInstnId/BICFI",
-        ))?;
-
-    let debtor_agent_bic = extract_xml_element_inner(xml, "DbtrAgt")
-        .and_then(|sub| extract_xml_element_text(&sub, "BICFI"))
-        .unwrap_or_else(|| instructing_agent_bic.clone());
-
-    let creditor_agent_bic = extract_xml_element_inner(xml, "CdtrAgt")
-        .and_then(|sub| extract_xml_element_text(&sub, "BICFI"))
-        .ok_or(PaymentGateError::MissingElement("CdtrAgt/FinInstnId/BICFI"))?;
-
-    let debtor_account = extract_xml_element_inner(xml, "DbtrAcct")
-        .and_then(|sub| {
-            extract_xml_element_text(&sub, "IBAN").or_else(|| extract_xml_element_text(&sub, "Id"))
-        })
-        .unwrap_or_else(|| "UNSPECIFIED_DEBTOR_ACCOUNT".into());
-
-    let creditor_account = extract_xml_element_inner(xml, "CdtrAcct")
-        .and_then(|sub| {
-            extract_xml_element_text(&sub, "IBAN").or_else(|| extract_xml_element_text(&sub, "Id"))
-        })
-        .unwrap_or_else(|| "UNSPECIFIED_CREDITOR_ACCOUNT".into());
-
-    let amount_str = extract_xml_element_text(xml, "IntrBkSttlmAmt")
-        .or_else(|| extract_xml_element_text(xml, "InstdAmt"))
-        .ok_or(PaymentGateError::MissingElement(
-            "IntrBkSttlmAmt / InstdAmt",
-        ))?;
-
-    let amount: f64 = amount_str
+    let instructing_agent_bic = text(path(group, &["InstgAgt", "FinInstnId", "BICFI"])?)?;
+    let debtor_agent_bic = text(path(tx, &["DbtrAgt", "FinInstnId", "BICFI"])?)?;
+    let creditor_agent_bic = text(path(tx, &["CdtrAgt", "FinInstnId", "BICFI"])?)?;
+    let account = |name| -> Result<String, Iso20022Error> {
+        let id = path(tx, &[name, "Id"])?;
+        let children: Vec<_> = id.children().filter(roxmltree::Node::is_element).collect();
+        if children.len() != 1 {
+            return Err(crate::payment_xml::invalid("Ambiguous account reference"));
+        }
+        match children[0].tag_name().name() {
+            "IBAN" => text(children[0]),
+            "Othr" => text(child(children[0], "Id")?),
+            _ => Err(crate::payment_xml::invalid("Unsupported account reference")),
+        }
+    };
+    let amount_node = child(tx, "IntrBkSttlmAmt")?;
+    let amount_text = text(amount_node)?;
+    // Reject scientific notation, signs and non-decimal floating point strings.
+    let parts: Vec<_> = amount_text.split('.').collect();
+    if parts.len() > 2
+        || parts
+            .iter()
+            .any(|p| p.is_empty() || !p.bytes().all(|b| b.is_ascii_digit()))
+    {
+        return Err(PaymentGateError::InvalidAmount {
+            amount: 0.0,
+            reason: "Expected unsigned decimal amount".into(),
+        });
+    }
+    let amount = amount_text
         .parse()
         .map_err(|_| PaymentGateError::InvalidAmount {
             amount: 0.0,
-            reason: format!("Unparseable amount string '{amount_str}'"),
+            reason: "Invalid decimal amount".into(),
         })?;
-
-    let currency = extract_xml_attribute(xml, "IntrBkSttlmAmt", "Ccy")
-        .or_else(|| extract_xml_attribute(xml, "InstdAmt", "Ccy"))
-        .ok_or(PaymentGateError::MissingElement(
-            "Ccy attribute on amount element",
-        ))?;
-
-    let uetr =
-        extract_xml_element_text(xml, "UETR").ok_or(PaymentGateError::MissingElement("UETR"))?;
-
-    let end_to_end_id = extract_xml_element_text(xml, "EndToEndId")
-        .ok_or(PaymentGateError::MissingElement("EndToEndId"))?;
-
+    let currency = amount_node
+        .attribute("Ccy")
+        .ok_or(PaymentGateError::MissingElement("Ccy"))?
+        .to_owned();
     Ok(Iso20022FinancialPayment {
-        message_type,
+        message_type: crate::payment_xml::message_type(&doc).to_owned(),
         msg_id,
         cre_dt_tm,
         cre_timestamp_unix,
         instructing_agent_bic,
         debtor_agent_bic,
         creditor_agent_bic,
-        debtor_account,
-        creditor_account,
+        debtor_account: account("DbtrAcct")?,
+        creditor_account: account("CdtrAcct")?,
         amount,
         currency,
-        uetr,
-        end_to_end_id,
+        uetr: text(path(tx, &["PmtId", "UETR"])?)?,
+        end_to_end_id: text(path(tx, &["PmtId", "EndToEndId"])?)?,
     })
 }
 
@@ -518,6 +383,16 @@ impl Iso20022PaymentGate {
         sealed_xml: &str,
         current_time_unix: u64,
     ) -> Result<AuthenticatedFinancialPayment, PaymentGateError> {
+        if !self.policy.max_single_transaction_limit.is_finite()
+            || self.policy.max_single_transaction_limit <= 0.0
+            || self.policy.max_freshness_age_seconds < 0
+            || self.policy.max_future_skew_seconds < 0
+            || current_time_unix > i64::MAX as u64
+        {
+            return Err(PaymentGateError::Internal(
+                "Invalid payment policy or trusted clock".into(),
+            ));
+        }
         // 1. Extract financial payment fields
         let payment = extract_financial_payment(sealed_xml)?;
 
@@ -646,7 +521,9 @@ impl Iso20022PaymentGate {
         }
 
         // 12. Pre-Execution Durable Replay Guard & Single-Winner Atomic CAS Reservation
-        self.idempotency_store.check_and_reserve(&payment.uetr)?;
+        if !self.idempotency_store.check_and_reserve(&payment.uetr)? {
+            return Err(PaymentGateError::ConcurrentSubmissionBlocked(payment.uetr));
+        }
 
         Ok(AuthenticatedFinancialPayment {
             payment,
@@ -760,7 +637,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 2000000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
@@ -856,7 +733,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 2000000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
@@ -905,7 +782,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 2000000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
@@ -947,7 +824,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 2000000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
@@ -998,7 +875,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 2000000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
@@ -1044,7 +921,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 2000000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
@@ -1091,7 +968,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 2000000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
@@ -1135,7 +1012,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 2000000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
@@ -1187,7 +1064,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 2000000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         // Malformed non-UUID UETR
@@ -1234,7 +1111,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 2000000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
@@ -1279,7 +1156,7 @@ mod tests {
             ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
             ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
             authorized_message_types: vec!["pacs.008.001.08".into()],
-            valid_until_epoch: 2000000000,
+            valid_until_epoch: u64::MAX, // Positive fixture must not expire with wall time.
         });
 
         let uetr = "c0a80101-1234-4567-89ab-cdef01234567";
@@ -1308,5 +1185,79 @@ mod tests {
                 uetr.to_string()
             ))
         );
+    }
+
+    #[test]
+    fn regression_invalid_calendar_dates_rejected() {
+        for date in [
+            "2026-02-30T12:00:00Z",
+            "2026-13-01T00:00:00Z",
+            "2026-01-01T25:00:00Z",
+            "2026-01-01T12:00:00",
+            "1900-01-01T00:00:00Z",
+        ] {
+            assert!(parse_iso8601_to_unix(date).is_err(), "accepted {date}");
+        }
+    }
+
+    #[test]
+    fn regression_timezone_and_leap_year_are_exact() {
+        assert_eq!(
+            parse_iso8601_to_unix("2024-03-01T00:00:00Z").unwrap(),
+            1709251200
+        );
+        assert_eq!(
+            parse_iso8601_to_unix("2026-10-23T13:00:00+01:00").unwrap(),
+            parse_iso8601_to_unix("2026-10-23T12:00:00Z").unwrap()
+        );
+    }
+
+    #[test]
+    fn payment_fields_reject_duplicates_missing_accounts_and_alternate_amounts() {
+        let xml = sample_pacs008(
+            "DBEUMM21XXX",
+            "c0a80101-1234-4567-89ab-cdef01234567",
+            "100.00",
+            "USD",
+            "2026-10-23T12:00:00Z",
+        );
+        assert!(extract_financial_payment(&xml).is_ok());
+        for changed in [
+            xml.replace(
+                "<IntrBkSttlmAmt",
+                "<IntrBkSttlmAmt Ccy='USD'>1</IntrBkSttlmAmt><IntrBkSttlmAmt",
+            ),
+            xml.replace("DbtrAcct", "IgnoredAccount"),
+            xml.replace("100.00", "1e2"),
+            xml.replace("<NbOfTxs>1", "<NbOfTxs>2"),
+            xml.replace("<MsgId>", "<MsgId>other</MsgId><MsgId>"),
+        ] {
+            assert!(extract_financial_payment(&changed).is_err());
+        }
+    }
+    #[test]
+    fn malformed_payment_input_is_not_an_internal_fault() {
+        for timestamp in [
+            "not-a-timestamp",
+            "2026-10-23T12:00:00.1Z",
+            "1960-01-01T00:00:00Z",
+        ] {
+            let error = parse_iso8601_to_unix(timestamp).unwrap_err();
+            assert!(matches!(error, PaymentGateError::InvalidField(_)));
+        }
+        let xml = sample_pacs008(
+            "DBEUMM21XXX",
+            "c0a80101-1234-4567-89ab-cdef01234567",
+            "100.00",
+            "USD",
+            "2026-10-23T12:00:00Z",
+        );
+        for changed in [
+            xml.replace("<NbOfTxs>1", "<NbOfTxs>2"),
+            xml.replace("<MsgId>", &format!("<MsgId>{}", "X".repeat(36))),
+        ] {
+            let error = extract_financial_payment(&changed).unwrap_err();
+            assert!(matches!(error, PaymentGateError::InvalidField(_)));
+        }
     }
 }
