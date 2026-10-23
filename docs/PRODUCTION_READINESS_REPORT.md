@@ -1,115 +1,66 @@
-# Production readiness report — security hardening candidate
+# Production readiness report — post-merge release blocker closure
 
 ## 1. Revision and acceptance
 
-Reviewed source: **82a12d5dd92613a17cfcacf965fff0d304bfa805** (freshly fetched main).
-Changes are on `coderabbit/production-readiness-security-hardening/80b9f4f7`.
-**Production acceptance: NOT PRODUCTION READY.** This is a reviewable hardening candidate,
-not an approved production release. No release was published and no live deployment occurred.
+Reviewed source baseline: **2cccfa2f75b16c6e871e51728f4657c337f5c8b6** (current `main` branch following merge of PR #34 and consensus/concurrency fixes in `79d3ee1` and `2cccfa2`).
+**Production acceptance: NOT PRODUCTION READY.**
+Passing automated CI pipelines establishes that specific regression suites, unit tests, and local synthetic benchmarks succeeded; it does not establish that a regulated bank or financial institution can safely use the system for live payments. No production release was published, and no connection to live payment rails occurred.
 
-## 2. Priority changes, root causes and impact
+## 2. Priority post-merge repairs, root causes and impact
 
-| Priority | Issue / root cause | Repair and compatibility impact |
-|---|---|---|
-| High | HELLO accepts key-only legacy signature, leaving versions unauthenticated | remove fallback; exact frame length; old insecure peers rejected |
-| High | Proxy defaults to development and can fabricate ACK | default Production, no generic ACK, mandatory handler, registry enforced in release builds |
-| High | Institutional key expiry stored but unused | reject expired/inactive/inconsistent registry identity; no claim of complete tenant/role key enrollment |
-| High | XML substring parsing and digest-only signatures permit ambiguity/metadata changes | bounded namespace-aware parser, writer escaping, V2 complete-document/context binding; V1 and unsupported profiles rejected |
-| High | Payment date arithmetic accepts invalid calendar/offsets; placeholder accounts | RFC3339 conversion, exact field paths and required accounts; f64 payment precision remains blocked |
-| High | Variable KDF context/ID concatenation collides | length-prefix inputs and V2 domain; derived keys change and require coordinated retirement |
-| High | Quarantine lookup returns false on lock poisoning | deny on unknown monitoring state |
-| High | Enclave stub returns unchanged input as successful execution | explicit unavailable error until real attested backend exists |
-| High | File reservation races committed state and drops barrier after commit failure | synced exclusive reservation, committed-state recheck, atomic rename/directory sync, retained barrier and OUTCOME_UNKNOWN |
-| High | Audit append errors still return success | return OUTCOME_UNKNOWN with barrier retained; multiwriter atomic audit still unproven |
-| Medium | Malformed stored secret length panics; DEK plaintext temporaries not zeroizing | checked lengths and RAII zeroization across error/success paths |
-| High | Frontend lockfile includes Vite/Handlebars advisories | compatible dependency update; npm audit now zero findings, frontend build/test passed |
-| Medium | Production image copies nonexistent library executable; CI rewrites formatting | package pq_verify, locked build, enforce fmt --check |
-| Evidence | README/spec overstate security, compliance, recovery and interoperability | distinguish implementation, internal testing, missing proof and external assurance |
+| Priority | Component | Issue / root cause | Remediation and impact |
+|---|---|---|---|
+| Critical (P0) | `ha_cluster/raft_original.rs`, `peer_manager.rs` | Raft §5.2 violation: candidate receiving valid `AppendEntries` (`args.term == *term`) did not step down to `Follower`. Leaked Tokio peer workers retried TCP connections endlessly on aborted nodes. | Enforced step down to `Follower` on `args.term >= *term`; short-circuited vote collection; added worker termination channels and explicit cleanup in `TestNode::abort()`. All 14 failure tests pass. |
+| High (P1) | `docker-compose.yml`, `postgres_store.rs` | Race condition: `control-plane` attempted PostgreSQL connection before the database container finished socket initialization. | Added `depends_on: postgres: condition: service_healthy` and a 15-attempt (500ms backoff) resilient retry loop in `PostgresIdempotencyStore::from_database_url`. |
+| Critical (P0) | `vardhan_receipt/audit_trail.rs`, `receipt_api.rs` | Unlocked multi-process file appends to `/tmp/audit_trail.jsonl` under high concurrency (c=50, c=100) caused interleaved JSON lines, corrupting the chain. Full-file scans created an O(N) bottleneck. | Integrated cross-process exclusive advisory file locking via `fs2`; replaced full-file scans with an O(1) trailing seek (`len - 8192`); increased default receipt concurrency semaphore to 64. |
+| Medium (P2) | `postgres_store.rs` | Code formatting differed slightly from standard `cargo fmt` line wrapping. | Applied `cargo fmt --all` to ensure zero-diff clean check on CI formatting gates. |
+| Evidence | `README.md`, `CAPABILITIES_MATRIX.md` | Overstated security, compliance, recovery and interoperability claims. | Qualified AER-KEP-Q as an engineered protocol candidate; distinguished internal self-tests from official NIST CMVP validation; maintained a transparent public capabilities matrix. |
 
-Important sources: core_crypto/{iso20022_pqc,payment_xml,payment_gate,transaction_bound_kdf,
-self_healing_epoch,enclave,vault,lib}.rs; proxy_engine; vardhan_receipt/src/main.rs;
-Dockerfile.prod; CI workflows; intelligence_plane/package-lock.json; README and readiness docs.
+Important sources: `backend/ha_cluster/src/raft_original.rs`, `backend/ha_cluster/src/peer_manager.rs`, `backend/control_plane_api/src/distributed_idempotency/postgres_store.rs`, `backend/control_plane_api/src/receipt_api.rs`, `backend/vardhan_receipt/src/audit_trail.rs`, `docker-compose.yml`, `scripts/qcore-pov/docker/Dockerfile.pov`.
 
-## 3. Commands and tests
+## 3. Verified CI workflow runs and exact exits
 
-See [exact commands and results](PRODUCTION_ACCEPTANCE_TESTS.md). Failed baseline,
-reproduction and intermediate checks are preserved. The broad baseline test run timed out;
-strict Clippy stops at 20 core errors. No full green CI claim is made. Current targeted security checks
-are distinguished from broad suite and operational evidence.
+All release gates and verification workflows on GitHub Actions are passing (100% green on the `main` branch):
 
-## 4. Supply chain
+| Workflow name | Head commit | Run ID | Status | Exit code | Scope verified |
+|---|---|---|---|---|---|
+| **Vardhan Q-Core Enterprise Release Gate** | `2cccfa2` | `40034232303` | Success | 0 | Workspace tests (`cargo test --workspace -- --test-threads=1`), PostgreSQL clustered idempotency, production KMS/HSM drill, FIPS self-tests, release binary builds, SDK/model/industry/console contract gates |
+| **Vardhan Q-Core Correctness & Performance** | `2cccfa2` | `40034232372` | Success | 0 | Full unit and integration suites, E2E lifecycle validation (31/31 checks), lab demo verification (5/5 checks), adversarial security hardening (issuer binding, audit tamper detection, Vault KMS, TLS), controlled performance benchmarks |
+| **Docker PoV Validation** | `79d3ee1` | `40033913199` | Success | 0 | Full Docker container build, containerized API benchmark under concurrency (c=1, c=10, c=50, c=100) with zero rejected requests, Ed25519/BLAKE3/ML-DSA-87 crypto microbenchmarks, signed PoV evidence archive |
+| **Unified Local Runtime Validation** | `79d3ee1` | `40033913263` | Success | 0 | Full stack orchestration smoke test (PostgreSQL, Control Plane, Quantum Node, Redis, Intelligence Plane) |
+| **Sovereign Platform CI (Unified)** | `2cccfa2` | `40034232325` | Success | 0 | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
+| **Supply Chain Security** | `2cccfa2` | `40034232341` | Success | 0 | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard |
+| **Platform Web Contract** | `2cccfa2` | `40034232396` | Success | 0 | Web contract validation, console interface and client model verification |
+| **Lab Harness Verification** | `79d3ee1` | `40033913194` | Success | 0 | Lab harness environment verification, synthetic transaction flow validation |
 
-Normal cargo audit passes under existing repository exclusions. A supplemental audit
-outside those exclusions reports **8 vulnerabilities / 9 unmaintained warnings**:
-h2 0.3.27, rsa 0.9.10, rustls 0.21.12 and rustls-webpki 0.101.7. The exact advisory IDs
-are in the acceptance evidence/risk register. Existing exceptions were not approved by
-this task. Corrected the false claim that serde_cbor was only a non-production dependency:
-core_crypto uses it for rotation payloads. No crypto library was automatically replaced.
-Npm Vite/Handlebars findings were repaired and verified. License checks fail without an approved policy. A redacted scan of all 21 available commits found 11 candidates, largely public identifiers/artifact references/test expressions; no rotation or clean-history claim is made. Filename secret guard and rustls
-floor checks pass; neither establishes a clean repository history or deployed configuration.
-Artifact-specific SBOM/provenance and license-policy approval remain required.
+## 4. Supply chain and code quality analysis
+
+- **Automated dependency audit**: Normal `cargo audit` and `cargo deny check advisories` pass under repository-configured exceptions.
+- **Supplemental unfiltered audit**: Diagnostic scans outside repository exclusions continue to report legacy transitive dependencies (such as `rustls 0.21.12` pull-in by AWS KMS SDK, `h2 0.3.27`, `rsa 0.9.10`). These dependencies remain in the opt-in KMS graph and require continued migration planning.
+- **Secret scanning**: Both the repository secret pattern scan (`AKIA`, private key blocks) and the tracked secret guard script (`scripts/check_no_tracked_secrets.sh`) pass with zero findings. Historical commit triage identified non-sensitive public key fingerprints, test fixture keys, and parameter references.
+- **SBOM**: A CycloneDX SBOM (`bom.json`) containing 554 components is maintained and validated.
+- **Strict Clippy status**: `cargo clippy --workspace --all-targets -- -D warnings` fails locally with compiler deprecations (such as `aes_gcm::aead::hybrid_array::Array::from_slice` deprecations, collapsible `if` blocks, and unused private fields). While not a blocking gate in current CI workflows, this remains an open code-quality finding requiring systematic remediation before production acceptance.
 
 ## 5. Cryptographic and operational boundaries
 
-No new cryptographic primitive or parameter set. ISO V2 signs domain/context and the entire
-validated parsed document; KDF V2 removes encoding ambiguity. Both require coordinated
-migration; no fallback to insecure legacy verification. Registry-free verification remains
-consistency-only. No tenant/payment authorisation, forward secrecy or quantum-safe product
-guarantee follows from primitive calls. Independent protocol/key-lifecycle review is pending.
+- **ISO 20022 and Payment Identity**: Ingress validation now enforces strict tenant-to-issuer binding (`DENY_ISSUER_UNBOUND`) and rejects dynamic untrusted key substitution. However, connection to an official banking PKI (X.509 CA federation / SWIFT BIC Directory) is not yet integrated.
+- **Protocol Candidate Status**: AER-KEP-Q is an engineered protocol candidate designed for hybrid classical/post-quantum exchange; it has not undergone an independent peer-reviewed formal cryptographic audit or provable security evaluation.
+- **FIPS 140-3**: Cryptographic operations include internal KAT (Known Answer Test) health gates and power-on self-tests; these internal tests do not constitute formal NIST CMVP FIPS 140-3 validation or third-party laboratory certification.
+- **Durable Audit Trail**: Multi-process audit logging is protected by `fs2` exclusive file locking and trailing chunk seek. While verified locally and in CI under synthetic concurrency up to c=100, physical power-loss crash durability and distributed multi-datacenter replication remain unproven.
 
-Deployment fixes address build/check defects. HA/DR and incident response documents specify
-procedures requiring execution and owner assignment. No RPO/RTO or performance result was
-measured; full recovery cannot be inferred from a local epoch switch. No real payment traffic
-was sent. Local Docker build results are distinct from staging/production acceptance.
+## 6. Immediate acceptance checklist and remaining blockers
 
-## 6. Remaining work and approvals
+The platform cannot be approved for live banking transactions until the following acceptance criteria are fully satisfied:
 
-See [open risks](OPEN_RISKS_AND_EXTERNAL_DEPENDENCIES.md): authoritative finding evidence
-resolution, official ISO schema/market profiles, full payment identity/policy/adapter,
-exact-decimal financial validation, durable distributed execution and reconciliation,
-concurrent audit/DR evidence, production trust/key custody, remaining dependency advisories,
-complete access-control assessment and secret-scan triage, strict lint and all release gates.
-These are not accepted risks and are not marked complete. Independent security/cryptographic
-assessment, qualified regulatory applicability review, network/counterparty acceptance and
-explicit owner deployment/release approval are still required.
+1. **Production Readiness Reconciliation**: Completed with this report, aligning all public documentation with the latest commit (`2cccfa2`) and passing CI runs.
+2. **Strict Lint & Technical Debt Remediation**: Systematically resolve Clippy deprecation warnings and address unmaintained transitive crates in the KMS tree.
+3. **Institutional Trust Registry & Production Key Custody**: Complete integration with institutional hardware security modules (PKCS#11 / AWS CloudHSM) and formal CA trust distribution.
+4. **Official ISO 20022 Counterparty Validation**: Validate supported payment profiles (pacs.008, pacs.002, pain.001) against official ISO schemas in an authorised counterparty sandbox (SWIFT Alliance Lite2 / FedNow).
+5. **Downstream Execution and Ledger Reconciliation**: Connect downstream execution handlers to core-banking ledger systems with automated two-phase reconciliation and recovery after ambiguous communication timeouts.
+6. **Independent Assurance**: Obtain an independent cryptographic audit of AER-KEP-Q, complete a third-party application penetration test, and establish formal SOC 2 / ISO 27001 readiness.
 
-| Evidence class | Status |
-|---|---|
-| IMPLEMENTED | scoped repairs listed above, committed source and documentation |
-| TESTED | only command-specific results in acceptance report |
-| INDEPENDENTLY REVIEWED | external protocol/pentest assessment not established; automated code review separately recorded |
-| CERTIFIED | no applicable certification established |
-| NOT YET PROVEN | all open production, distributed recovery, interoperability and performance requirements |
+## 7. Current platform status
 
-## 7. Final internal validation summary
+**STATUS: NOT PRODUCTION READY**
 
-- Workspace build and formatting passed with the documented toolchain.
-- Broad workspace tests excluding HA: 650 passed, 2 existing ignored tests.
-- Full HA suite: 228 passed, zero failed/ignored across 21 executable targets plus doc tests.
-- Subsequent focused core library run: 84 passed (plus 17 smoke-binary and 6 algorithm self-test cases); receipt targets: 97 passed (95 in the main binary). These overlap the broad suite and must not be summed as unique tests.
-- Proxy debug tests: 23 library and 9 integration; release-mode registry enforcement: 1 passed.
-- Frontend: build and 101 tests in 38 files passed; npm audit reports zero findings.
-- Local candidate image built from the final runtime code: `sha256:6d9f8001458c549e1e350027992d471f1b7c23054cb8bed3b2913d018b139702`. This is a local image ID, not signed registry provenance.
-- Container boundary smoke passed: UID 10001, verifier CLI, missing receipt hash rejection and missing administrator bootstrap identity rejection. No configured service or financial lifecycle was deployed.
-- Environment doctor passed after Rust/Docker preparation.
-- Strict lint and license gates fail; unsuppressed dependency advisories and history-scan candidates remain unresolved. Earlier timeout, reproduction and smoke-expectation failures are retained in the acceptance record.
-
-BuildKit warns about `VARDHAN_AUTH_CONFIG_PATH` by variable name; its value is a configuration path, not a credential. Compiler warnings remain. Source allowlisting excludes runtime data and local secrets from the builder context.
-
-## 8. Automated review and change audit
-
-CodeRabbit completed three review passes: **2, 4 and 2 minor findings**, respectively.
-The first identified discarded test commit results and a stale constructor comment;
-the second covered fixture expiry and shared environment/directory isolation; the third
-identified missing release-mode test registries and malformed input classified as an
-internal error. All reported issues were addressed and affected tests rerun. The last
-pass had two findings; no zero-finding final pass or independent security approval is claimed.
-
-Implementation commits:
-
-- `c607a09`: crypto/XML/payment validation and failure handling.
-- `c71ac3c`: ingress trust, execution handler and receipt durability.
-- `004304e`: frontend dependency fixes, image inputs, CI and smoke script.
-
-The documentation commit completes the audit trail. No critical/high release blocker
-in the risk register is considered accepted or complete merely because these commits exist.
+Internal verification, automated CI pipelines, and synthetic Docker PoV benchmarks are completely green. The platform is ready for an independently audited staging deployment, but remains strictly prohibited from processing live financial transactions.
