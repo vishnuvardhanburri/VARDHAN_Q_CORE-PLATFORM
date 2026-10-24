@@ -8,7 +8,7 @@ The discipline is:
 
 - **Narrow entry problem:** determine whether a defined high-consequence workflow needs stronger provenance, tamper/replay rejection, or independently verifiable trust evidence.
 - **Broader market:** test that problem across regulated finance, financial-market infrastructure, communications/critical digital infrastructure, insurance, and selected public digital services.
-- **One gated commercial path per qualified buyer:** £15K discovery → £60K proof of value → £500K production. Each transition requires buyer confirmation, technical evidence, and a signed agreement.
+- **One gated commercial path per qualified buyer:** £15K discovery → £60K proof of value → annual enterprise production licensing (codified in [`docs/COMMERCIAL_PRICING_MODEL.md`](../COMMERCIAL_PRICING_MODEL.md)). Each transition requires buyer confirmation, technical evidence, and a signed agreement.
 
 The list below is a research queue, not a claim that any organisation has a problem, budget, active programme, or interest in VARDHAN Q-CORE.
 
