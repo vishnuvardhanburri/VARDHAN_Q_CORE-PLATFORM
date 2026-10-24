@@ -22,7 +22,7 @@ services:
     restart: always
     environment:
       VARDHAN_ENV: production
-      DATABASE_URL: ${DATABASE_URL:-postgres://vardhan:${POSTGRES_PASSWORD:-vardhan_prod_secure_secret}@postgres:5432/vardhan_control_plane}
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-vardhan}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required for enterprise deployment}@postgres:5432/${POSTGRES_DB:-vardhan_control_plane}}
       VARDHAN_CONTROL_PLANE_ADDR: 0.0.0.0:8080
       VARDHAN_CONTROL_PLANE_DATA_DIR: /var/lib/vardhan/control-plane
       VARDHAN_KEYSTORE_DIR: /var/lib/vardhan/keystore
@@ -30,7 +30,7 @@ services:
       VARDHAN_AUTH_CONFIG_PATH: /var/lib/vardhan/auth_config/auth_config.json
       VARDHAN_NODE_ID: ${VARDHAN_NODE_ID:-node-prod-01}
       VARDHAN_ADMIN_USERNAME: ${VARDHAN_ADMIN_USERNAME:-admin}
-      VARDHAN_ADMIN_PASSWORD: ${VARDHAN_ADMIN_PASSWORD}
+      VARDHAN_ADMIN_PASSWORD: ${VARDHAN_ADMIN_PASSWORD:?VARDHAN_ADMIN_PASSWORD is required for enterprise deployment}
       VARDHAN_ADMIN_PASSWORD_FILE: ${VARDHAN_ADMIN_PASSWORD_FILE:-}
       VARDHAN_TLS_TERMINATION: ingress
       VARDHAN_ALLOWED_ORIGINS: ${VARDHAN_ALLOWED_ORIGINS:-https://localhost,https://127.0.0.1}
@@ -108,7 +108,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-vardhan_control_plane}
       POSTGRES_USER: ${POSTGRES_USER:-vardhan}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vardhan_prod_secure_secret}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required for enterprise deployment}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
