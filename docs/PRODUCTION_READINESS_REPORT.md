@@ -2,7 +2,7 @@
 
 ## 1. Revision and acceptance
 
-Reviewed source baseline: **ed5a81524d55ed153a9d5341350fdf36939cf0d9** (and verified `main` branch commits `24d5ac1`, `452a8b8`, `51f64a4`, `101bcc1`, and `87c1fc5`).
+Reviewed source baseline: **ae612a71bd6b4b58137eb3c0d380f59b4268eee1** (and verified `main` branch commits `ed5a815`, `24d5ac1`, `452a8b8`, `51f64a4`, `101bcc1`, and `87c1fc5`).
 **Production status: LOCAL POV VERIFIED | STAGING ACCEPTANCE VERIFIED | PRODUCTION BLOCKED (NOT APPROVED FOR LIVE RAILS).**
 
 Passing automated CI pipelines and local staging verification establishes that specific regression suites, unit tests, local synthetic benchmarks, and enterprise configuration checks succeeded; it does not establish that a regulated bank or financial institution can safely use the system for live payments. No production release was published, and no connection to live payment rails occurred.
@@ -28,16 +28,16 @@ Important sources: `backend/ha_cluster/src/raft_original.rs`, `backend/ha_cluste
 
 ## 3. Verified CI workflow runs and exact exits
 
-Verification workflows on GitHub Actions for recent main-branch candidate commits (`ed5a815`, `24d5ac1`, `452a8b8`, `51f64a4`, `101bcc1`, and `87c1fc5`):
+Verification workflows on GitHub Actions for recent main-branch candidate commits (`ae612a7`, `ed5a815`, `24d5ac1`, `452a8b8`, `51f64a4`, `101bcc1`, and `87c1fc5`):
 
 | Workflow name | Head commit | Run ID | Status | Exit code | Scope verified |
 |---|---|---|---|---|---|
-| **Vardhan Q-Core Enterprise Release Gate** | `ed5a815` / `24d5ac1` / `452a8b8` / `101bcc1` | `40121573334` / `40117947472` / `40117305443` / `40113953033` | Success | 0 | Workspace tests (`cargo test --workspace -- --test-threads=1`), PostgreSQL clustered idempotency, production KMS/HSM drill, FIPS KAT health gate, release binary builds, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
-| **Vardhan Q-Core Correctness & Performance** | `ed5a815` / `24d5ac1` / `452a8b8` / `101bcc1` | `40121573313` / `40117947414` / `40117305366` / `40113953040` | Success | 0 | Full unit and integration suites, E2E lifecycle validation (33/33 checks), lab demo verification (5/5 checks), adversarial security hardening (issuer binding, audit tamper detection, Vault KMS, TLS), controlled performance benchmarks |
-| **Sovereign Platform CI (Unified)** | `ed5a815` / `24d5ac1` / `452a8b8` / `51f64a4` | `40121573316` / `40117947372` / `40117305343` / `40116242961` | Success | 0 | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
-| **Supply Chain Security** | `ed5a815` / `24d5ac1` / `452a8b8` / `51f64a4` | `40121573341` / `40117947455` / `40117305551` / `40116242976` | Success | 0 | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard, enterprise compose secret validation guard (isolated variable check) |
-| **Platform Web Contract** | `ed5a815` / `24d5ac1` / `452a8b8` / `51f64a4` | `40121573502` / `40117947349` / `40117305482` / `40116243048` | Success | 0 | Web contract validation, console interface and client model verification |
-| **Platform Web Contract** | `ed5a815` / `24d5ac1` / `452a8b8` / `51f64a4` | `40121573333` / `40117947339` / `40117305315` / `40116242977` | Success | 0 | Web contract verification runner |
+| **Vardhan Q-Core Enterprise Release Gate** | `ae612a7` / `ed5a815` / `24d5ac1` / `452a8b8` | `40131150657` / `40121573334` / `40117947472` / `40117305443` | Success | 0 | Workspace tests (`cargo test --workspace -- --test-threads=1`), PostgreSQL clustered idempotency, production KMS/HSM drill, FIPS KAT health gate, release binary builds, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
+| **Vardhan Q-Core Correctness & Performance** | `ae612a7` / `ed5a815` / `24d5ac1` / `452a8b8` | `40131150622` / `40121573313` / `40117947414` / `40117305366` | Success | 0 | Full unit and integration suites, E2E lifecycle validation (33/33 checks), lab demo verification (5/5 checks), adversarial security hardening (issuer binding, audit tamper detection, Vault KMS, TLS), controlled performance benchmarks |
+| **Sovereign Platform CI (Unified)** | `ae612a7` / `ed5a815` / `24d5ac1` / `452a8b8` | `40131150646` / `40121573316` / `40117947372` / `40117305343` | Success | 0 | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
+| **Supply Chain Security** | `ae612a7` / `ed5a815` / `24d5ac1` / `452a8b8` | `40131150625` / `40121573341` / `40117947455` / `40117305551` | Success | 0 | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard, enterprise compose secret validation guard (isolated variable check) |
+| **Platform Web Contract** | `ae612a7` / `ed5a815` / `24d5ac1` / `452a8b8` | `40131150747` / `40121573502` / `40117947349` / `40117305482` | Success | 0 | Consolidated Web contract validation, console interface and client model verification |
+| **Clean Deployments** | `ae612a7` / `e83043d` | `40131150643` / `40132094242` | Success | 0 | Automated deployment pruning, 13 stale deployments deleted down to 1 active record |
 | **Unified Local Runtime Validation** | `101bcc1` | `40113953078` | Success | 0 | Full stack orchestration smoke test (PostgreSQL, Control Plane, Quantum Node, Redis, Intelligence Plane) |
 | **Docker PoV Validation** | `87c1fc5` | `40047148907` | Success | 0 | Full Docker container build, containerized API benchmark under concurrency (c=1, c=10, c=50, c=100) with zero rejected requests, Ed25519/BLAKE3/ML-DSA-87 crypto microbenchmarks, signed PoV evidence archive |
 | **Lab Harness Verification** | `87c1fc5` | `40047148849` | Success | 0 | Lab harness environment verification, synthetic transaction flow validation |

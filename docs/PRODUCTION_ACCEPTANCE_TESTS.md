@@ -1,6 +1,6 @@
 # Production acceptance test evidence — final production acceptance programme
 
-**NOT PRODUCTION READY.** Source baseline: `ed5a81524d55ed153a9d5341350fdf36939cf0d9` (post-merge `main` branch following live runtime strict TLS enforcement, dynamic disposable credential resolution, consensus concurrency hardening, strict Clippy workspace zero-warning remediation, and financial exact decimal/minor-unit enforcement).
+**NOT PRODUCTION READY.** Source baseline: `ae612a71bd6b4b58137eb3c0d380f59b4268eee1` (post-merge `main` branch following workflow consolidation, deployment pruning, lifecycle check reconciliation, and UK institutional assurance packaging).
 Environment: Ubuntu 24.04 / macOS Darwin arm64; Rust 1.99.1 stable; Python 3.12+; Docker 27.x. Local synthetic fixtures and CI virtualized environments only. No real payment rails, live institutional keys, or customer funds.
 
 ## 1. Post-merge CI workflow execution matrix
@@ -9,12 +9,12 @@ All production and verification workflows are verified on the `main` branch on G
 
 | Workflow Name | Run ID | Head Commit | Result | Duration | Scope and Passing Criteria |
 |---|---|---|---|---|---|
-| **Vardhan Q-Core Enterprise Release Gate** | `40121573334` | `ed5a815` | PASS (exit 0) | 42m 39s | Formatting check (`cargo fmt --check`), full workspace test suite (`cargo test --workspace -- --test-threads=1`), clustered PostgreSQL idempotency verification, production KMS/HSM key drill, FIPS 140-3 KAT health gate, release binary compilation, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
-| **Vardhan Q-Core Correctness & Performance** | `40121573313` | `ed5a815` | PASS (exit 0) | 40m 26s | Full unit and integration tests, E2E lifecycle suite (33/33 checks), lab demo verification (5/5 checks), adversarial security tests (issuer binding `DENY_ISSUER_UNBOUND`, audit tamper detection, Vault KMS, TLS compilation), controlled performance benchmark |
-| **Sovereign Platform CI (Unified)** | `40121573316` | `ed5a815` | PASS (exit 0) | 6m 40s | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
-| **Supply Chain Security** | `40121573341` | `ed5a815` | PASS (exit 0) | 3m 48s | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard, enterprise compose secret guard |
-| **Platform Web Contract** | `40121573502` | `ed5a815` | PASS (exit 0) | 12s | Console contract gate, model compatibility, client TypeScript schemas |
-| **Platform Web Contract** | `40121573333` | `ed5a815` | PASS (exit 0) | 14s | Web contract verification runner |
+| **Vardhan Q-Core Enterprise Release Gate** | `40131150657` | `ae612a7` | PASS (exit 0) | 48m 52s | Formatting check (`cargo fmt --check`), full workspace test suite (`cargo test --workspace -- --test-threads=1`), clustered PostgreSQL idempotency verification, production KMS/HSM key drill, FIPS 140-3 KAT health gate, release binary compilation, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
+| **Vardhan Q-Core Correctness & Performance** | `40131150622` | `ae612a7` | PASS (exit 0) | 47m 01s | Full unit and integration tests, E2E lifecycle suite (33/33 checks), lab demo verification (5/5 checks), adversarial security tests (issuer binding `DENY_ISSUER_UNBOUND`, audit tamper detection, Vault KMS, TLS compilation), controlled performance benchmark |
+| **Sovereign Platform CI (Unified)** | `40131150646` | `ae612a7` | PASS (exit 0) | 8m 49s | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
+| **Supply Chain Security** | `40131150625` | `ae612a7` | PASS (exit 0) | 3m 40s | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard, enterprise compose secret guard |
+| **Platform Web Contract** | `40131150747` | `ae612a7` | PASS (exit 0) | 8s | Consolidated Web contract validation, console interface and client model verification |
+| **Clean Deployments** | `40131150643` | `ae612a7` | PASS (exit 0) | 14s | Automated deployment pruning, 13 stale deployments deleted down to 1 active record |
 | **Docker PoV Validation** | `40047148907` | `87c1fc5` | PASS (exit 0) | 13m 43s | End-to-end Docker container build, syntax validation, high-concurrency API performance bench (`perf_bench.py` c=1, 10, 50, 100 with zero rejected requests), crypto microbenchmarks (Ed25519, BLAKE3, ML-DSA-87), signed PoV evidence bundle upload |
 | **Unified Local Runtime Validation** | `40113953078` | `101bcc1` | PASS (exit 0) | 4m 46s | Local container stack orchestration smoke test (`docker compose up`) verifying clean PostgreSQL socket initialization and control plane health checks |
 | **Lab Harness Verification** | `40047148849` | `87c1fc5` | PASS (exit 0) | 1m 20s | Synthetic lab harness verification and end-to-end sandbox state validation |
