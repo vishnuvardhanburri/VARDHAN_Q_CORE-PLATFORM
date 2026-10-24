@@ -40,6 +40,11 @@ ignore = [
     # private-key decryption is architecturally disabled in our production path.
     { id = "RUSTSEC-2023-0071", reason = "Transitive via saml-rs/bergshamra; RSA private-key decryption is disabled and the reviewed SAML boundary does not expose a private-key oracle" },
 
+    # crypto-bigint 0.5.5 timing variability advisory (RUSTSEC-2026-0387, published 2026-10-23):
+    # Transitive via saml-rs/bergshamra/elliptic-curve 0.13.8. The 0.7 line was upgraded to 0.7.7.
+    # The 0.5 line has no upstream release from RustCrypto (solution requires >=0.7.6).
+    { id = "RUSTSEC-2026-0387", reason = "Transitive via saml-rs/bergshamra/elliptic-curve 0.13.8; crypto-bigint 0.7.x upgraded to 0.7.7, but 0.5.5 has no upstream patch on 0.5 line" },
+
     # pqcrypto-* crates: PQClean project being archived. These are our
     # production ML-DSA-87 signers — migration to an alternative PQ library
     # is tracked but no safe upgrade is available. These are NOT in the
