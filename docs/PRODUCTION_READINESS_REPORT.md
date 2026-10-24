@@ -2,7 +2,7 @@
 
 ## 1. Revision and acceptance
 
-Reviewed source baseline: **cbd4cf05797edd8f6db31b503f5ea38beb60b33d** (current `main` branch following PR #34 merge, consensus concurrency hardening, workspace lint remediation, and financial exact minor-unit enforcement).
+Reviewed source baseline: **87c1fc56e7f20461f1529b6dd85ce9eabc7de805** (current `main` branch following PR #34 merge, consensus concurrency hardening, elimination of blanket test clippy suppressions, ISO 20022 pacs.008/pacs.009 test verification, and financial exact minor-unit enforcement).
 **Production acceptance: NOT PRODUCTION READY.**
 Passing automated CI pipelines establishes that specific regression suites, unit tests, and local synthetic benchmarks succeeded; it does not establish that a regulated bank or financial institution can safely use the system for live payments. No production release was published, and no connection to live payment rails occurred.
 
@@ -22,24 +22,24 @@ Important sources: `backend/ha_cluster/src/raft_original.rs`, `backend/ha_cluste
 
 ## 3. Verified CI workflow runs and exact exits
 
-All release gates and verification workflows on GitHub Actions are verified on the `main` branch:
+All release gates and verification workflows on GitHub Actions are verified on the `main` branch on commit `87c1fc5`:
 
 | Workflow name | Head commit | Run ID | Status | Exit code | Scope verified |
 |---|---|---|---|---|---|
-| **Vardhan Q-Core Enterprise Release Gate** | `cbd4cf0` | `40043013533` | Success | 0 | Workspace tests (`cargo test --workspace -- --test-threads=1`), PostgreSQL clustered idempotency, production KMS/HSM drill, FIPS KAT health gate, release binary builds, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
-| **Vardhan Q-Core Correctness & Performance** | `cbd4cf0` | `40043013557` | Success | 0 | Full unit and integration suites, E2E lifecycle validation (31/31 checks), lab demo verification (5/5 checks), adversarial security hardening (issuer binding, audit tamper detection, Vault KMS, TLS), controlled performance benchmarks |
-| **Sovereign Platform CI (Unified)** | `cbd4cf0` | `40043013535` | Success | 0 | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
-| **Supply Chain Security** | `cbd4cf0` | `40043013524` | Success | 0 | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard |
-| **Platform Web Contract** | `cbd4cf0` | `40043013638` | Success | 0 | Web contract validation, console interface and client model verification |
-| **Platform Web Contract** | `cbd4cf0` | `40043013546` | Success | 0 | Web contract verification runner |
-| **Docker PoV Validation** | `79d3ee1` | `40033913199` | Success | 0 | Full Docker container build, containerized API benchmark under concurrency (c=1, c=10, c=50, c=100) with zero rejected requests, Ed25519/BLAKE3/ML-DSA-87 crypto microbenchmarks, signed PoV evidence archive |
+| **Vardhan Q-Core Enterprise Release Gate** | `87c1fc5` | `40047148854` | Success | 0 | Workspace tests (`cargo test --workspace -- --test-threads=1`), PostgreSQL clustered idempotency, production KMS/HSM drill, FIPS KAT health gate, release binary builds, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
+| **Vardhan Q-Core Correctness & Performance** | `87c1fc5` | `40047148875` | Success | 0 | Full unit and integration suites, E2E lifecycle validation (31/31 checks), lab demo verification (5/5 checks), adversarial security hardening (issuer binding, audit tamper detection, Vault KMS, TLS), controlled performance benchmarks |
+| **Sovereign Platform CI (Unified)** | `87c1fc5` | `40047148888` | Success | 0 | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
+| **Supply Chain Security** | `87c1fc5` | `40047148941` | Success | 0 | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard |
+| **Platform Web Contract** | `87c1fc5` | `40047148870` | Success | 0 | Web contract validation, console interface and client model verification |
+| **Platform Web Contract** | `87c1fc5` | `40047148855` | Success | 0 | Web contract verification runner |
+| **Docker PoV Validation** | `87c1fc5` | `40047148907` | Success | 0 | Full Docker container build, containerized API benchmark under concurrency (c=1, c=10, c=50, c=100) with zero rejected requests, Ed25519/BLAKE3/ML-DSA-87 crypto microbenchmarks, signed PoV evidence archive |
 | **Unified Local Runtime Validation** | `79d3ee1` | `40033913263` | Success | 0 | Full stack orchestration smoke test (PostgreSQL, Control Plane, Quantum Node, Redis, Intelligence Plane) |
-| **Lab Harness Verification** | `79d3ee1` | `40033913194` | Success | 0 | Lab harness environment verification, synthetic transaction flow validation |
+| **Lab Harness Verification** | `87c1fc5` | `40047148849` | Success | 0 | Lab harness environment verification, synthetic transaction flow validation |
 
 ## 4. Supply chain and code quality analysis
 
-- **Strict Clippy status**: `cargo clippy --workspace --all-targets -- -D warnings` passes cleanly with exit code 0 across the entire workspace (all libraries, tests, binaries, benchmarks, and examples). All deprecation warnings, unneeded borrows, and dead-code annotations have been resolved.
-- **Financial arithmetic precision**: `payment_gate.rs` parses transaction amounts into exact integer minor units (`amount_minor_units: u128`) mapped against ISO 4217 currency scale exponents (e.g. USD/EUR=2, BHD=3, JPY=0). Binary floating-point representation drift is eliminated from limit checks and validation gates.
+- **Strict Clippy status**: `cargo clippy --workspace --all-targets -- -D warnings` passes cleanly with exit code 0 across the entire workspace (all libraries, tests, binaries, benchmarks, and examples). All blanket `#![allow(..., clippy::all, ...)]` suppressions have been eradicated from the integration test suites in `ha_cluster/tests/`, and all lints have been surgically remediated.
+- **Financial arithmetic precision**: `payment_gate.rs` parses transaction amounts into exact integer minor units (`amount_minor_units: u128`) mapped against ISO 4217 currency scale exponents (e.g. USD/EUR=2, BHD=3, JPY=0). Binary floating-point representation drift is eliminated from limit checks and validation gates. Both `pacs.008.001.08` and `pacs.009.001.08` financial messaging schemas are validated with dual classical (Ed25519) and post-quantum (ML-DSA-87) signatures.
 - **Automated dependency audit**: Normal `cargo audit` and `cargo deny check advisories` pass under repository-configured exceptions.
 - **Supplemental unfiltered audit**: Diagnostic scans outside repository exclusions continue to report legacy transitive dependencies (such as `rustls 0.21.12` pull-in by AWS KMS SDK, `h2 0.3.27`, `rsa 0.9.10`). These dependencies remain isolated in the opt-in KMS graph and require continued migration planning.
 - **Secret scanning**: Both the repository secret pattern scan (`AKIA`, private key blocks) and the tracked secret guard script (`scripts/check_no_tracked_secrets.sh`) pass with zero findings. Historical commit triage identified non-sensitive public key fingerprints, test fixture keys, and parameter references.

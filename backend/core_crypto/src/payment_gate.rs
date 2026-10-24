@@ -709,6 +709,120 @@ mod tests {
         )
     }
 
+    fn sample_pacs009(
+        bic: &str,
+        uetr: &str,
+        amount: &str,
+        currency: &str,
+        cre_dt_tm: &str,
+    ) -> String {
+        format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pacs.009.001.08">
+    <FICdtTrf>
+        <GrpHdr>
+            <MsgId>MSG-20261023-9998</MsgId>
+            <CreDtTm>{cre_dt_tm}</CreDtTm>
+            <NbOfTxs>1</NbOfTxs>
+            <SttlmInf>
+                <SttlmMtd>CLRG</SttlmMtd>
+            </SttlmInf>
+            <InstgAgt>
+                <FinInstnId>
+                    <BICFI>{bic}</BICFI>
+                </FinInstnId>
+            </InstgAgt>
+        </GrpHdr>
+        <CdtTrfTxInf>
+            <PmtId>
+                <EndToEndId>E2E-TRANS-002</EndToEndId>
+                <UETR>{uetr}</UETR>
+            </PmtId>
+            <IntrBkSttlmAmt Ccy="{currency}">{amount}</IntrBkSttlmAmt>
+            <DbtrAgt>
+                <FinInstnId>
+                    <BICFI>{bic}</BICFI>
+                </FinInstnId>
+            </DbtrAgt>
+            <CdtrAgt>
+                <FinInstnId>
+                    <BICFI>BNPAFRPPXXX</BICFI>
+                </FinInstnId>
+            </CdtrAgt>
+            <DbtrAcct>
+                <Id>
+                    <IBAN>DE89370400440532013000</IBAN>
+                </Id>
+            </DbtrAcct>
+            <CdtrAcct>
+                <Id>
+                    <IBAN>FR7630006000011234567890189</IBAN>
+                </Id>
+            </CdtrAcct>
+        </CdtTrfTxInf>
+    </FICdtTrf>
+</Document>"#
+        )
+    }
+
+    #[test]
+    fn test_payment_gate_accepts_valid_pacs009() {
+        let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
+        let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
+        let gate = Iso20022PaymentGate::new(
+            registry.clone(),
+            idempotency.clone(),
+            PaymentPolicy::default(),
+        );
+
+        let (ed_sk, ml_sk, ml_pk) = generate_keypair();
+        registry.register_signer(InstitutionalSigner {
+            institution_id: "inst-dbeumm21".into(),
+            institution_name: "Deutsche Bank Frankfurt".into(),
+            bic: "DBEUMM21XXX".into(),
+            status: SignerStatus::Active,
+            ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
+            ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
+            authorized_message_types: vec!["pacs.009.001.08".into()],
+            valid_until_epoch: u64::MAX,
+        });
+
+        let uetr = "c0a80101-1234-4567-89ab-cdef01234568";
+        let xml = sample_pacs009(
+            "DBEUMM21XXX",
+            uetr,
+            "750000.00",
+            "EUR",
+            "2026-10-23T12:00:00Z",
+        );
+
+        let sealed = embed_pqc_seal_into_iso20022(
+            &xml,
+            "DBEUMM21XXX",
+            "key-01",
+            "pacs.009.001.08",
+            &ed_sk,
+            &ml_sk,
+            &ml_pk,
+            1792345000,
+        )
+        .unwrap();
+
+        let now = parse_iso8601_to_unix("2026-10-23T12:01:00Z").unwrap();
+        let res = gate.validate_and_gate(&sealed, now);
+        assert!(res.is_ok(), "Valid pacs.009 must pass gate: {res:?}");
+
+        let auth = res.unwrap();
+        assert_eq!(auth.signer_bic, "DBEUMM21XXX");
+        assert_eq!(auth.payment.message_type, "pacs.009.001.08");
+        assert_eq!(auth.payment.amount, 750000.00);
+        assert_eq!(auth.payment.amount_minor_units, 75000000);
+        assert_eq!(auth.payment.amount_scale, 2);
+        assert_eq!(auth.payment.amount_decimal_str, "750000.00");
+        assert_eq!(auth.payment.currency, "EUR");
+        assert_eq!(auth.payment.uetr, uetr);
+    }
+
     #[test]
     fn test_payment_gate_accepts_valid_pacs008() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());

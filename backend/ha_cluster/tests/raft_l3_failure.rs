@@ -11,7 +11,6 @@
     unused_imports,
     unused_variables,
     dead_code,
-    clippy::all,
     unused_mut,
     unused_must_use,
     path_statements,
@@ -20,7 +19,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
@@ -199,7 +198,7 @@ async fn spawn_test_node(
     addr: SocketAddr,
     membership: Arc<ClusterMembership>,
     peers: Vec<NodeId>,
-    persist_path: &PathBuf,
+    persist_path: &Path,
     config: RaftConfig,
 ) -> TestNode {
     let identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
@@ -215,7 +214,7 @@ async fn spawn_test_node(
 
     let raft_node = Arc::new(RaftNode::with_config(
         id.clone(),
-        persist_path.clone(),
+        persist_path.to_path_buf(),
         nc.clone() as Arc<dyn RaftRpcClient>,
         config,
     ));
@@ -275,7 +274,7 @@ async fn spawn_test_node(
         rpc_controller: nc,
         peer_manager: Some(peer_manager),
         raft_addr: bound_addr,
-        persist_path: persist_path.clone(),
+        persist_path: persist_path.to_path_buf(),
         killed: std::sync::atomic::AtomicBool::new(false),
     }
 }
@@ -1056,8 +1055,8 @@ async fn test_old_leader_returns_fencing() {
             let leaders = count_leaders(&nodes).await;
             if leaders == 1 {
                 let l = find_leader(&nodes).await;
-                if l.is_some() {
-                    return l.unwrap();
+                if let Some(leader) = l {
+                    return leader;
                 }
             }
             tokio::time::sleep(Duration::from_millis(50)).await;

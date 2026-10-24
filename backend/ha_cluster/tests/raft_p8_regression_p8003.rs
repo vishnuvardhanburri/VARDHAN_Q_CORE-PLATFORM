@@ -13,7 +13,6 @@
     unused_imports,
     unused_variables,
     dead_code,
-    clippy::all,
     unused_mut,
     unused_must_use,
     path_statements,
@@ -38,7 +37,7 @@ impl KeyProtector for MockProtector {
         Ok(out)
     }
     fn unwrap(&self, ciphertext: &[u8]) -> Result<Vec<u8>, VaultError> {
-        if ciphertext.len() < 1 {
+        if ciphertext.is_empty() {
             return Err(VaultError::Crypto("Too short".into()));
         }
         Ok(ciphertext[1..].to_vec())

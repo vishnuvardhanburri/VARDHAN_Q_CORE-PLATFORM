@@ -19,16 +19,10 @@
     unused_imports,
     unused_variables,
     dead_code,
-    clippy::all,
     unused_mut,
     unused_must_use,
     path_statements,
-    unused_assignments
-)]
-#![allow(
-    unused_variables,
-    dead_code,
-    unused_mut,
+    unused_assignments,
     clippy::ptr_arg,
     clippy::len_zero,
     clippy::map_identity

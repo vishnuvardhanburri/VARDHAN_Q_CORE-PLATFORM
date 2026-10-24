@@ -16,13 +16,11 @@
     unused_imports,
     unused_variables,
     dead_code,
-    clippy::all,
     unused_mut,
     unused_must_use,
     path_statements,
     unused_assignments
 )]
-#![allow(unused_imports, unused_variables, dead_code, clippy::all)]
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -1312,9 +1310,7 @@ async fn pqc_4_2_old_leader_steps_down() {
 /// **Invariant I4**: Committed state survives restart.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_4_3_committed_entries_survive() {
-    for f in &["/tmp/pqc_4_3_a.json"] {
-        std::fs::remove_file(f).ok();
-    }
+    std::fs::remove_file("/tmp/pqc_4_3_a.json").ok();
 
     let config = RaftConfig {
         election_timeout_min_ms: 200,
@@ -1382,9 +1378,7 @@ async fn pqc_4_3_committed_entries_survive() {
 /// **Invariant I2**: No stale term can modify current state.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_4_4_stale_term_rejected() {
-    for f in &["/tmp/pqc_4_4.json"] {
-        std::fs::remove_file(f).ok();
-    }
+    std::fs::remove_file("/tmp/pqc_4_4.json").ok();
 
     let config = RaftConfig::default();
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
@@ -1425,9 +1419,7 @@ async fn pqc_4_4_stale_term_rejected() {
 /// **Invariant I4, I7**: State recovery preserves identity and history.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_4_5_restarted_node_recovers_state() {
-    for f in &["/tmp/pqc_4_5.json"] {
-        std::fs::remove_file(f).ok();
-    }
+    std::fs::remove_file("/tmp/pqc_4_5.json").ok();
 
     let config = RaftConfig {
         election_timeout_min_ms: 200,
@@ -1962,9 +1954,7 @@ async fn pqc_7_1_unauthenticated_rpc_no_state_change() {
 /// I2: No stale term can modify current state.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_7_2_stale_term_no_state_change() {
-    for f in &["/tmp/pqc_7_2.json"] {
-        std::fs::remove_file(f).ok();
-    }
+    std::fs::remove_file("/tmp/pqc_7_2.json").ok();
 
     let config = RaftConfig::default();
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
@@ -2015,9 +2005,7 @@ async fn pqc_7_2_stale_term_no_state_change() {
 /// I3: No non-leader can commit client writes.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_7_3_non_leader_cannot_commit() {
-    for f in &["/tmp/pqc_7_3.json"] {
-        std::fs::remove_file(f).ok();
-    }
+    std::fs::remove_file("/tmp/pqc_7_3.json").ok();
 
     let config = RaftConfig::default();
     let cluster_map: Arc<RwLock<HashMap<NodeId, Arc<RaftNode>>>> =
@@ -2056,9 +2044,7 @@ async fn pqc_7_3_non_leader_cannot_commit() {
 /// I4: Committed state survives restart.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_7_4_committed_state_survives_restart() {
-    for f in &["/tmp/pqc_7_4.json"] {
-        std::fs::remove_file(f).ok();
-    }
+    std::fs::remove_file("/tmp/pqc_7_4.json").ok();
 
     let config = RaftConfig {
         election_timeout_min_ms: 200,
@@ -2273,9 +2259,7 @@ async fn pqc_7_9_fail_closed_on_crypto_failure() {
 /// I10: Evidence corresponds to the exact committed state.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn pqc_7_10_evidence_corresponds_to_committed_state() {
-    for f in &["/tmp/pqc_7_10.json"] {
-        std::fs::remove_file(f).ok();
-    }
+    std::fs::remove_file("/tmp/pqc_7_10.json").ok();
 
     let config = RaftConfig {
         election_timeout_min_ms: 200,
@@ -2450,7 +2434,7 @@ async fn pqc_8_1_end_to_end_with_boundary_attacks() {
                 if let Ok(state) =
                     serde_json::from_str::<ha_cluster::raft::RaftPersistentState>(&payload)
                 {
-                    if state.log.len() > 0 {
+                    if !state.log.is_empty() {
                         let entry_hash = blake3::hash(&serde_json::to_vec(&entry).unwrap());
                         let persisted_hash =
                             blake3::hash(&serde_json::to_vec(&state.log[0]).unwrap());

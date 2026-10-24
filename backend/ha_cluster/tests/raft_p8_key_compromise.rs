@@ -17,7 +17,6 @@
     unused_imports,
     unused_variables,
     dead_code,
-    clippy::all,
     unused_mut,
     unused_must_use,
     path_statements,

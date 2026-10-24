@@ -8,13 +8,11 @@
     unused_imports,
     unused_variables,
     dead_code,
-    clippy::all,
     unused_mut,
     unused_must_use,
     path_statements,
     unused_assignments
 )]
-#![allow(unused_imports, unused_variables, dead_code)]
 
 use core_crypto::QuantumNodeIdentity;
 use ha_cluster::{

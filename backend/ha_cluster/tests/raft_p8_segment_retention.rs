@@ -9,7 +9,6 @@
     unused_imports,
     unused_variables,
     dead_code,
-    clippy::all,
     unused_mut,
     unused_must_use,
     path_statements,
@@ -38,7 +37,7 @@ impl KeyProtector for MockProtector {
         Ok(out)
     }
     fn unwrap(&self, ciphertext: &[u8]) -> Result<Vec<u8>, VaultError> {
-        if ciphertext.len() < 1 {
+        if ciphertext.is_empty() {
             return Err(VaultError::Crypto("Too short".into()));
         }
         Ok(ciphertext[1..].to_vec())
@@ -415,7 +414,7 @@ fn p8_12g_authorized_retention_deletion() {
     // Total entries should now exclude the deleted segment
     assert_eq!(
         manifest_after.total_entries(),
-        10 - (last_seq - 0),
+        10 - last_seq,
         "Total entries minus deleted segment's entries"
     );
 

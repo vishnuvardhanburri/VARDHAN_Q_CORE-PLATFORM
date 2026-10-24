@@ -126,3 +126,4 @@ lab_keys/
 vardhan_receipt_idempotency*
 **/audit_trail.jsonl
 audit_trail.jsonl
+.aider*

@@ -14,7 +14,6 @@
     unused_imports,
     unused_variables,
     dead_code,
-    clippy::all,
     unused_mut,
     unused_must_use,
     path_statements,
@@ -248,7 +247,7 @@ async fn p8_8d_concurrent_frames_no_buffer_leak() {
     let read = received.load(Ordering::SeqCst);
 
     assert_eq!(*written, msg_count, "All frames should be written");
-    assert_eq!(read as u64, msg_count, "All frames should be read");
+    assert_eq!(read, msg_count, "All frames should be read");
 
     println!(
         "P8.8d PASSED: {} concurrent frames processed without buffer leak",

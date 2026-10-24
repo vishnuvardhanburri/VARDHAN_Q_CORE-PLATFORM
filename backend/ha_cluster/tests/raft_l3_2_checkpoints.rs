@@ -10,13 +10,11 @@
     unused_imports,
     unused_variables,
     dead_code,
-    clippy::all,
     unused_mut,
     unused_must_use,
     path_statements,
     unused_assignments
 )]
-#![allow(unused_imports, unused_variables, dead_code, clippy::all)]
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -85,8 +83,8 @@ async fn spawn_test_node_cp(
     addr: std::net::SocketAddr,
     membership: Arc<ClusterMembership>,
     peers: Vec<NodeId>,
-    persist_path: &PathBuf,
-    checkpoint_path: &PathBuf,
+    persist_path: &Path,
+    checkpoint_path: &Path,
     config: RaftConfig,
 ) -> TestNodeCP {
     let identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
@@ -101,7 +99,7 @@ async fn spawn_test_node_cp(
 
     let raft_node = Arc::new(RaftNode::with_config(
         id.clone(),
-        persist_path.clone(),
+        persist_path.to_path_buf(),
         rpc_client,
         config,
     ));
@@ -158,8 +156,8 @@ async fn spawn_test_node_cp(
         apply_handle,
         peer_manager,
         raft_addr: bound_addr,
-        persist_path: persist_path.clone(),
-        checkpoint_path: checkpoint_path.clone(),
+        persist_path: persist_path.to_path_buf(),
+        checkpoint_path: checkpoint_path.to_path_buf(),
         killed: AtomicBool::new(false),
     }
 }
@@ -352,7 +350,7 @@ fn read_checkpoint_file(path: &Path) -> Vec<CommittedCheckpoint> {
     content
         .lines()
         .filter(|l| !l.trim().is_empty())
-        .map(|l| serde_json::from_str::<CommittedCheckpoint>(l))
+        .map(serde_json::from_str::<CommittedCheckpoint>)
         .filter_map(Result::ok)
         .collect()
 }
@@ -525,7 +523,7 @@ async fn test_c2_timer_triggered_checkpoint() {
     // Apply committed entries (including checkpoint) on all nodes to persist
     // Since background loops are dead and followers might not have received the updated commit_index yet,
     // we must loop and apply until the checkpoints appear.
-    let _ = tokio::time::timeout(Duration::from_secs(5), async {
+    tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             for n in &nodes {
                 n.applier.apply_committed_entries().await.ok();
@@ -533,7 +531,7 @@ async fn test_c2_timer_triggered_checkpoint() {
             let mut all_done = true;
             for n in &nodes {
                 let cps = read_checkpoint_file(&n.checkpoint_path);
-                if cps.len() < 1 {
+                if cps.is_empty() {
                     all_done = false;
                     break;
                 }
@@ -645,7 +643,7 @@ async fn test_c4_racing_triggers() {
     // Apply committed entries (including checkpoint) on all nodes to persist
     // Since background loops are dead and followers might not have received the updated commit_index yet,
     // we must loop and apply until the checkpoints appear.
-    let _ = tokio::time::timeout(Duration::from_secs(5), async {
+    tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             for n in &nodes {
                 n.applier.apply_committed_entries().await.ok();
@@ -653,7 +651,7 @@ async fn test_c4_racing_triggers() {
             let mut all_done = true;
             for n in &nodes {
                 let cps = read_checkpoint_file(&n.checkpoint_path);
-                if cps.len() < 1 {
+                if cps.is_empty() {
                     all_done = false;
                     break;
                 }
