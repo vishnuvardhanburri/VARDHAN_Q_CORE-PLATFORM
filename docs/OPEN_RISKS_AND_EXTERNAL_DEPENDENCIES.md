@@ -51,8 +51,8 @@ exploits against a deployed Q CORE instance. No exceptions were newly approved.
 | rsa | 0.9.10 | RUSTSEC-2023-0071 |
 | rustls | 0.21.12 | RUSTSEC-2026-0346, RUSTSEC-2026-0349 |
 | rustls-webpki | 0.101.7 | RUSTSEC-2026-0098, RUSTSEC-2026-0099, RUSTSEC-2026-0104, RUSTSEC-2026-0382 |
+| crypto-bigint | 0.5.5 | RUSTSEC-2026-0387 (transitive via saml-rs/bergshamra; 0.7 line upgraded to 0.7.7) |
 
-Strict Clippy currently stops at 20 core library errors (including deprecated
-nonce constructors, duplicate module loading and public API argument count).
-Further crates may have additional errors. No suppression or API-breaking lint
-cleanup was used to represent this gate as passing.
+Strict Clippy status: passes cleanly with 0 warnings and 0 errors across the entire
+workspace (`cargo clippy --workspace --all-targets -- -D warnings`). Blanket test suppressions
+have been purged from all integration test suites.

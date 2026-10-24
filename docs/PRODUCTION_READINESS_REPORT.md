@@ -47,25 +47,29 @@ All release gates and verification workflows on GitHub Actions are verified on t
 
 ## 5. Cryptographic and operational boundaries
 
-- **ISO 20022 and Payment Identity**: Ingress validation now enforces strict tenant-to-issuer binding (`DENY_ISSUER_UNBOUND`), authenticated BIC mapping via `InstitutionalKeyRegistry`, and rejects dynamic untrusted key substitution. Connection to an official banking PKI (X.509 CA federation / SWIFT BIC Directory) remains an external integration milestone.
+- **ISO 20022 and Payment Identity**: Ingress validation enforces strict tenant-to-issuer binding (`DENY_ISSUER_UNBOUND`), authenticated BIC mapping via `InstitutionalKeyRegistry`, and rejects dynamic untrusted key substitution. Connection to an official banking PKI (X.509 CA federation / SWIFT BIC Directory) remains an external integration milestone.
 - **Protocol Candidate Status**: AER-KEP-Q is an engineered protocol candidate designed for hybrid classical/post-quantum exchange; it has not undergone an independent peer-reviewed formal cryptographic audit or provable security evaluation.
-- **FIPS 140-3**: Cryptographic operations include internal KAT (Known Answer Test) health gates and power-on self-tests; these internal tests do not constitute formal NIST CMVP FIPS 140-3 validation or third-party laboratory certification.
+- **FIPS 140-3 and Health Telemetry**: Cryptographic operations include internal Known Answer Test (KAT) health gates, Continuous Random Number Generator Tests (CRNGT), and Pairwise Consistency Tests (PCT). The control-plane health endpoint explicitly reports internal self-tests (`crypto_self_tests: "OPERATIONAL"`) as distinct from formal NIST CMVP validation (`fips_140_3_validation: "NOT_CERTIFIED"`, certificate: null). No claim of formal CMVP module validation is made.
+- **Staging Network Security**: Edge proxy (`tls-proxy`), control-plane API, intelligence-plane, and database ports are bound strictly to loopback (`127.0.0.1`) by default (`${VARDHAN_BIND_IP:-127.0.0.1}`), preventing accidental exposure to public or shared network interfaces.
+- **Isolated Database Restore**: Full transactional restoration from a `pg_dump` archive into a separate, isolated database (`vardhan_isolated_restore_test`) was verified with a measured RTO of 81.7 ms, preserving 100% byte-for-byte schema and record parity without mutating or destroying the active source dataset.
+- **Restart Recovery vs Automatic HA Failover**: Single-container stop/start testing is classified strictly as restart recovery. True multi-instance distributed coordination was verified across independent nodes sharing PostgreSQL (`multi_instance_concurrency_test`), proving atomic CAS single-winner election and cross-node duplicate prevention.
 - **Durable Audit Trail**: Multi-process audit logging is protected by `fs2` exclusive file locking and trailing chunk seek. While verified locally and in CI under synthetic concurrency up to c=100, physical power-loss crash durability and distributed multi-datacenter replication remain unproven.
 
 ## 6. Immediate acceptance checklist and remaining blockers
 
 The platform cannot be approved for live banking transactions until the following acceptance criteria are fully satisfied:
 
-1. **Production Readiness Reconciliation**: Completed with this report, aligning all public documentation with the latest baseline (`cbd4cf0`) and passing CI runs.
+1. **Production Readiness Reconciliation**: Completed, aligning public documentation, candidate commit SHA, and verified test results.
 2. **Strict Lint & Technical Debt Remediation**: Completed. `cargo clippy --workspace --all-targets -- -D warnings` passes with 0 warnings across the workspace.
 3. **Exact Financial Monetary Integrity**: Completed. Exact integer minor units and ISO 4217 scale parsing are implemented and tested in `core_crypto::payment_gate`.
-4. **Institutional Trust Registry & Production Key Custody**: Requires completion of real production integration with institutional hardware security modules (PKCS#11 / AWS CloudHSM) and formal CA trust distribution.
-5. **Official ISO 20022 Counterparty Validation**: Requires validation of supported payment profiles (pacs.008, pacs.009) against official ISO schemas in an authorised counterparty sandbox (SWIFT Alliance Lite2 / FedNow).
-6. **Downstream Execution and Ledger Reconciliation**: Requires connection of downstream execution handlers to core-banking ledger systems with automated two-phase reconciliation and recovery after ambiguous communication timeouts.
-7. **Independent Assurance**: Requires an independent cryptographic audit of AER-KEP-Q, a third-party application penetration test, and formal SOC 2 / ISO 27001 certification.
+4. **Institutional Trust Registry & Production Key Custody (BLK-001)**: Requires completion of real production integration with institutional hardware security modules (PKCS#11 / AWS CloudHSM) and formal CA trust distribution.
+5. **NIST CMVP FIPS 140-3 Module Certification (BLK-002)**: Requires formal accredited NVLAP laboratory evaluation and an issued NIST CMVP certificate.
+6. **Independent Cryptographic Audit (BLK-003)**: Requires an independent cryptographic protocol review and security reduction of AER-KEP-Q by an accredited external security firm.
+7. **Official ISO 20022 Counterparty Validation (BLK-004)**: Requires validation of supported payment profiles (pacs.008, pacs.009) against official ISO schemas in an authorised counterparty sandbox (SWIFT Alliance Lite2 / FedNow).
+8. **Downstream Execution and Ledger Reconciliation (BLK-005)**: Requires connection of downstream execution handlers to core-banking ledger systems with automated two-phase reconciliation and recovery after ambiguous communication timeouts.
 
-## 7. Current platform status
+## 7. Platform acceptance status tiers
 
-**STATUS: NOT PRODUCTION READY**
-
-Internal verification, automated CI pipelines, and synthetic Docker PoV benchmarks are completely green. The platform is ready for an independently audited staging deployment, but remains strictly prohibited from processing live financial transactions.
+- **Local PoV Runtime**: **VERIFIED** (Synthetic containerized benchmark, Ed25519/BLAKE3/ML-DSA-87 microbenchmarks, zero rejected requests under concurrency c=100).
+- **Staging Acceptance**: **VERIFIED** (Automated CI pipelines passing, isolated database restore verified at 81.7ms RTO, loopback proxy binding enforced, multi-instance idempotency proven, clean container orchestration).
+- **Production Rail Approval**: **BLOCKED / NOT APPROVED** (Strictly prohibited from live payment rail settlement until BLK-001 through BLK-005 are formally certified).

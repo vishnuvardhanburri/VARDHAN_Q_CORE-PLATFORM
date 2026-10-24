@@ -107,7 +107,10 @@ async fn test_fips_health_telemetry_includes_fips_status() {
 
     assert_eq!(json["service"], "vardhan-control-plane");
     assert_eq!(json["status"], "operational");
-    assert_eq!(json["fips_140_3"], "OPERATIONAL");
+    assert_eq!(json["crypto_self_tests"], "OPERATIONAL");
+    assert_eq!(json["fips_140_3_validation"], "NOT_CERTIFIED");
+    assert_eq!(json["fips_140_3"]["self_test_status"], "OPERATIONAL");
+    assert_eq!(json["fips_140_3"]["cmvp_validation"], "NOT_CERTIFIED");
 }
 
 #[tokio::test]

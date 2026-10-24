@@ -660,7 +660,15 @@ async fn health(
             "client_auth": client_auth_mode(),
             "storage": storage_status,
             "storage_backend": control.idempotency.backend_name(),
-            "fips_140_3": core_crypto::fips140_3::get_fips_status_report().status
+            "crypto_self_tests": core_crypto::fips140_3::get_fips_status_report().status,
+            "fips_140_3_validation": "NOT_CERTIFIED",
+            "fips_140_3_certificate": serde_json::Value::Null,
+            "fips_140_3": {
+                "self_test_status": core_crypto::fips140_3::get_fips_status_report().status,
+                "cmvp_validation": "NOT_CERTIFIED",
+                "cmvp_certificate": serde_json::Value::Null,
+                "notice": "Internal power-on KAT passed; formal NIST CMVP certificate has not been issued"
+            }
         })),
     )
         .into_response()

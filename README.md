@@ -1,6 +1,6 @@
 # Vardhan Technologies — Q Core
 
-**Production acceptance: NOT PRODUCTION READY.**
+**Production status: LOCAL POV VERIFIED | STAGING ACCEPTANCE VERIFIED | PRODUCTION BLOCKED (NOT APPROVED FOR LIVE RAILS).**
 
 Q Core contains Rust cryptography, tenant/authentication services, finding receipts,
 audit structures, a custom transport, financial validation libraries and cluster code.
