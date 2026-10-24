@@ -2,7 +2,7 @@
 
 ## 1. Revision and acceptance
 
-Reviewed source baseline: **101bcc106f192087d886483cd2956ba0a0a4e608** (and pending staging fixes commit on `main`).
+Reviewed source baseline: **51f64a4b5c5bec798cbe924dc9fa417045c72c1e** (and verified `main` branch commits `101bcc1` and `87c1fc5`).
 **Production status: LOCAL POV VERIFIED | STAGING ACCEPTANCE VERIFIED | PRODUCTION BLOCKED (NOT APPROVED FOR LIVE RAILS).**
 
 Passing automated CI pipelines and local staging verification establishes that specific regression suites, unit tests, local synthetic benchmarks, and enterprise configuration checks succeeded; it does not establish that a regulated bank or financial institution can safely use the system for live payments. No production release was published, and no connection to live payment rails occurred.
@@ -27,16 +27,16 @@ Important sources: `backend/ha_cluster/src/raft_original.rs`, `backend/ha_cluste
 
 ## 3. Verified CI workflow runs and exact exits
 
-Verification workflows on GitHub Actions for recent main-branch candidate commits (`87c1fc5` and `101bcc1`):
+Verification workflows on GitHub Actions for recent main-branch candidate commits (`51f64a4`, `101bcc1`, and `87c1fc5`):
 
 | Workflow name | Head commit | Run ID | Status | Exit code | Scope verified |
 |---|---|---|---|---|---|
-| **Vardhan Q-Core Enterprise Release Gate** | `101bcc1` / `87c1fc5` | `40113953033` / `40047148854` | Monitored / Success | 0 | Workspace tests (`cargo test --workspace -- --test-threads=1`), PostgreSQL clustered idempotency, production KMS/HSM drill, FIPS KAT health gate, release binary builds, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
+| **Vardhan Q-Core Enterprise Release Gate** | `101bcc1` / `87c1fc5` | `40113953033` / `40047148854` | Success | 0 | Workspace tests (`cargo test --workspace -- --test-threads=1`), PostgreSQL clustered idempotency, production KMS/HSM drill, FIPS KAT health gate, release binary builds, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
 | **Vardhan Q-Core Correctness & Performance** | `101bcc1` / `87c1fc5` | `40113953040` / `40047148875` | Monitored / Success | 0 | Full unit and integration suites, E2E lifecycle validation (31/31 checks), lab demo verification (5/5 checks), adversarial security hardening (issuer binding, audit tamper detection, Vault KMS, TLS), controlled performance benchmarks |
-| **Sovereign Platform CI (Unified)** | `101bcc1` | `40113953053` | Success | 0 | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
-| **Supply Chain Security** | `101bcc1` | `40113953042` | Success | 0 | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard, enterprise compose secret validation |
-| **Platform Web Contract** | `101bcc1` | `40113953082` | Success | 0 | Web contract validation, console interface and client model verification |
-| **Platform Web Contract** | `101bcc1` | `40113953039` | Success | 0 | Web contract verification runner |
+| **Sovereign Platform CI (Unified)** | `51f64a4` / `101bcc1` | `40116242961` / `40113953053` | Success | 0 | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
+| **Supply Chain Security** | `51f64a4` / `101bcc1` | `40116242976` / `40113953042` | Success | 0 | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard, enterprise compose secret validation guard (isolated variable check) |
+| **Platform Web Contract** | `51f64a4` / `101bcc1` | `40116243048` / `40113953082` | Success | 0 | Web contract validation, console interface and client model verification |
+| **Platform Web Contract** | `51f64a4` / `101bcc1` | `40116242977` / `40113953039` | Success | 0 | Web contract verification runner |
 | **Unified Local Runtime Validation** | `101bcc1` | `40113953078` | Success | 0 | Full stack orchestration smoke test (PostgreSQL, Control Plane, Quantum Node, Redis, Intelligence Plane) |
 | **Docker PoV Validation** | `87c1fc5` | `40047148907` | Success | 0 | Full Docker container build, containerized API benchmark under concurrency (c=1, c=10, c=50, c=100) with zero rejected requests, Ed25519/BLAKE3/ML-DSA-87 crypto microbenchmarks, signed PoV evidence archive |
 | **Lab Harness Verification** | `87c1fc5` | `40047148849` | Success | 0 | Lab harness environment verification, synthetic transaction flow validation |
