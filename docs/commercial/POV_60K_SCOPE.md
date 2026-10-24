@@ -68,10 +68,10 @@ Provide authorized access, approved test data or synthetic-data approval, integr
 - Unspecified production SLA or uptime/performance guarantees.
 - Independent penetration test, red-team, certification, or third-party audit unless explicitly contracted.
 - Custom features beyond the frozen backlog.
-- Any commitment that a £500K production contract will be awarded.
+- Any commitment that an annual production contract will be awarded.
 
-## Gate to £500K production
+## Gate to production engagement
 
-Proceed only after the buyer accepts the PoV and confirms material value; production-blocking security issues have owners and remediation/assurance plans; production architecture, deployment, identity, keys, transport, monitoring, backup/restore, incident handling, and audit-export requirements are agreed; security/procurement/legal/finance/operations stakeholders confirm their route; and both sides agree the production scope, milestones, acceptance, commercial basis/term, support/SLA, and contract terms.
+Proceed only after the buyer accepts the PoV and confirms material value; production-blocking security issues have owners and remediation/assurance plans; production architecture, deployment, identity, keys, transport, monitoring, backup/restore, incident handling, and audit-export requirements are agreed; security/procurement/legal/finance/operations stakeholders confirm their route; and both sides agree the production scope, milestones, acceptance, commercial basis/term (referencing [`docs/COMMERCIAL_PRICING_MODEL.md`](../COMMERCIAL_PRICING_MODEL.md)), support/SLA, and contract terms.
 
 A failed or inconclusive PoV does not justify a production claim.

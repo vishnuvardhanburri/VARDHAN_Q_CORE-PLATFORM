@@ -1,4 +1,7 @@
-# Stage 3 — £500K Production Engagement
+# Stage 3 — Production Engagement Brief (Historical £500K Staging Reference)
+
+> [!NOTE]
+> **Authoritative Production Catalogue Reference:** This brief documents a historical preliminary engagement staging placeholder (£500,000 target production scope). The authoritative enterprise production licensing catalogue is codified in [`docs/COMMERCIAL_PRICING_MODEL.md`](../COMMERCIAL_PRICING_MODEL.md) and exposed via `GET /api/v1/catalog/plans`: Foundation (£360,000/yr), Enterprise (£720,000/yr), Advanced Resilience (£1,200,000/yr), and Strategic / Sovereign (Bespoke / £12M target).
 
 **Offer status:** production planning brief; not a binding scope or a statement that the platform is production-ready.
 
