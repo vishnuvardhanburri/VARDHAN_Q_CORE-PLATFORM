@@ -1,6 +1,6 @@
 # Production architecture and implemented boundaries
 
-Status: **NOT PRODUCTION READY**, reviewed from 82a12d5dd92613a17cfcacf965fff0d304bfa805 plus this patch.
+Status: **NOT PRODUCTION READY**, reviewed from baseline `ed5a81524d55ed153a9d5341350fdf36939cf0d9` (and `main` branch HEAD).
 
 ## Actual architecture
 

@@ -1,6 +1,6 @@
 # Production acceptance test evidence — final production acceptance programme
 
-**NOT PRODUCTION READY.** Source baseline: `cbd4cf05797edd8f6db31b503f5ea38beb60b33d` (post-merge `main` branch following PR #34, consensus concurrency hardening, strict Clippy workspace zero-warning remediation, and financial exact decimal/minor-unit enforcement).
+**NOT PRODUCTION READY.** Source baseline: `ed5a81524d55ed153a9d5341350fdf36939cf0d9` (post-merge `main` branch following live runtime strict TLS enforcement, dynamic disposable credential resolution, consensus concurrency hardening, strict Clippy workspace zero-warning remediation, and financial exact decimal/minor-unit enforcement).
 Environment: Ubuntu 24.04 / macOS Darwin arm64; Rust 1.99.1 stable; Python 3.12+; Docker 27.x. Local synthetic fixtures and CI virtualized environments only. No real payment rails, live institutional keys, or customer funds.
 
 ## 1. Post-merge CI workflow execution matrix
@@ -9,15 +9,15 @@ All production and verification workflows are verified on the `main` branch on G
 
 | Workflow Name | Run ID | Head Commit | Result | Duration | Scope and Passing Criteria |
 |---|---|---|---|---|---|
-| **Vardhan Q-Core Enterprise Release Gate** | `40043013533` | `cbd4cf0` | PASS (exit 0) | ~40m | Formatting check (`cargo fmt --check`), full workspace test suite (`cargo test --workspace -- --test-threads=1`), clustered PostgreSQL idempotency verification, production KMS/HSM key drill, FIPS 140-3 KAT health gate, release binary compilation, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
-| **Vardhan Q-Core Correctness & Performance** | `40043013557` | `cbd4cf0` | PASS (exit 0) | ~46m | Full unit and integration tests, E2E lifecycle suite (31/31 checks), lab demo verification (5/5 checks), adversarial security tests (issuer binding `DENY_ISSUER_UNBOUND`, audit tamper detection, Vault KMS, TLS compilation), controlled performance benchmark |
-| **Sovereign Platform CI (Unified)** | `40043013535` | `cbd4cf0` | PASS (exit 0) | 8m 1s | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
-| **Supply Chain Security** | `40043013524` | `cbd4cf0` | PASS (exit 0) | 4m 53s | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard |
-| **Platform Web Contract** | `40043013638` | `cbd4cf0` | PASS (exit 0) | 9s | Console contract gate, model compatibility, client TypeScript schemas |
-| **Platform Web Contract** | `40043013546` | `cbd4cf0` | PASS (exit 0) | 15s | Web contract verification runner |
-| **Docker PoV Validation** | `40033913199` | `79d3ee1` | PASS (exit 0) | 13m 43s | End-to-end Docker container build, syntax validation, high-concurrency API performance bench (`perf_bench.py` c=1, 10, 50, 100 with zero rejected requests), crypto microbenchmarks (Ed25519, BLAKE3, ML-DSA-87), signed PoV evidence bundle upload |
-| **Unified Local Runtime Validation** | `40033913263` | `79d3ee1` | PASS (exit 0) | 4m 46s | Local container stack orchestration smoke test (`docker compose up`) verifying clean PostgreSQL socket initialization and control plane health checks |
-| **Lab Harness Verification** | `79d3ee1` | `40033913194` | PASS (exit 0) | 1m 20s | Synthetic lab harness verification and end-to-end sandbox state validation |
+| **Vardhan Q-Core Enterprise Release Gate** | `40121573334` | `ed5a815` | PASS (exit 0) | 42m 39s | Formatting check (`cargo fmt --check`), full workspace test suite (`cargo test --workspace -- --test-threads=1`), clustered PostgreSQL idempotency verification, production KMS/HSM key drill, FIPS 140-3 KAT health gate, release binary compilation, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
+| **Vardhan Q-Core Correctness & Performance** | `40121573313` | `ed5a815` | PASS (exit 0) | 40m 26s | Full unit and integration tests, E2E lifecycle suite (33/33 checks), lab demo verification (5/5 checks), adversarial security tests (issuer binding `DENY_ISSUER_UNBOUND`, audit tamper detection, Vault KMS, TLS compilation), controlled performance benchmark |
+| **Sovereign Platform CI (Unified)** | `40121573316` | `ed5a815` | PASS (exit 0) | 6m 40s | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
+| **Supply Chain Security** | `40121573341` | `ed5a815` | PASS (exit 0) | 3m 48s | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard, enterprise compose secret guard |
+| **Platform Web Contract** | `40121573502` | `ed5a815` | PASS (exit 0) | 12s | Console contract gate, model compatibility, client TypeScript schemas |
+| **Platform Web Contract** | `40121573333` | `ed5a815` | PASS (exit 0) | 14s | Web contract verification runner |
+| **Docker PoV Validation** | `40047148907` | `87c1fc5` | PASS (exit 0) | 13m 43s | End-to-end Docker container build, syntax validation, high-concurrency API performance bench (`perf_bench.py` c=1, 10, 50, 100 with zero rejected requests), crypto microbenchmarks (Ed25519, BLAKE3, ML-DSA-87), signed PoV evidence bundle upload |
+| **Unified Local Runtime Validation** | `40113953078` | `101bcc1` | PASS (exit 0) | 4m 46s | Local container stack orchestration smoke test (`docker compose up`) verifying clean PostgreSQL socket initialization and control plane health checks |
+| **Lab Harness Verification** | `40047148849` | `87c1fc5` | PASS (exit 0) | 1m 20s | Synthetic lab harness verification and end-to-end sandbox state validation |
 
 ## 2. Post-merge commands and observed exits
 
@@ -37,8 +37,11 @@ Commands executed from the repository root across local test environments and Gi
 | post-merge-audit-trail | `cargo test -p vardhan_receipt audit_trail` | PASS (exit 0) | 5/5 tests pass, verifying cross-process locking, tamper detection, and trail chain linkage |
 | post-merge-fips-kat | `bash scripts/test_fips_140_3_gate.sh` | PASS (exit 0) | FIPS 140-3 Known Answer Test health gate verified |
 | post-merge-postgres-cluster | `bash scripts/multi_node_cluster_verify.sh` | PASS (exit 0) | Multi-node clustered PostgreSQL idempotency verified |
-| post-merge-e2e-lifecycle | `python3 scripts/e2e_lifecycle_validation.py` | PASS (exit 0) | 31/31 end-to-end lifecycle verification checks passed |
+| post-merge-e2e-lifecycle | `python3 scripts/e2e_lifecycle_validation.py` | PASS (exit 0) | 33/33 end-to-end lifecycle verification checks passed |
 | post-merge-lab-demo | `bash lab_demo_verify.sh` | PASS (exit 0) | 5/5 lab demonstration sanity checks passed |
+| post-merge-enterprise-secrets | `bash scripts/check_enterprise_compose_secrets.sh` | PASS (exit 0) | Enterprise compose fail-closed missing variable validation, synthetic secrets verification, zero predictable fallbacks |
+| post-merge-live-runtime | `python3 scripts/verify_live_runtime.py` | PASS (exit 0) | Strict TLS verification (`CERT_REQUIRED`, `check_hostname=True`) against `https://localhost`, dynamic disposable credentials, 50 requests at 1,529.5 req/sec with 0 errors |
+| post-merge-representative-restore | `bash scripts/benchmark_representative_restore.sh` | PASS (exit 0) | Measured 432 ms RTO on 20,100 entities (10,000 transactions, 100 accounts, 10,000 audit records) with 100% sum parity |
 | post-merge-unsuppressed-audit | `cargo audit --file Cargo.lock --no-fetch --no-yanked --json` | DIAGNOSTIC | Reports legacy transitive dependencies (AWS KMS SDK tree: `rustls 0.21.12`, `h2 0.3.27`, `rsa 0.9.10`). Normal `cargo audit` passes under documented repository policy. |
 
 ## 3. Post-merge consensus and durability resolution

@@ -20,3 +20,7 @@ jobs:
           node-version: '22'
       - name: Run console contract test
         run: node platform_web/test.mjs
+      - name: Frontend source sanity
+        run: |
+          test -f platform_web/index.html
+          test -f platform_web/enterprise-console.html
