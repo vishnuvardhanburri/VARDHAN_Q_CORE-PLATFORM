@@ -126,13 +126,13 @@ jobs:
           path: cosign.bundle
 
   promote-release:
-    name: Production deployment gate
+    name: Staging acceptance deployment gate
     needs: [attest-and-sign]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
-      name: production
-      url: https://api.vardhan.internal
+      name: staging
+      url: https://staging.vardhan.internal
     permissions:
       contents: read
       id-token: write
@@ -155,4 +155,4 @@ jobs:
             --certificate-identity-regexp "https://github.com/vishnuvardhanburri/VARDHAN_Q_CORE-PLATFORM/.*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             release-checksums.sha256
-          echo "Cryptographic signature and SLSA provenance verified. Release approved for production deployment."
+          echo "Cryptographic signature and SLSA provenance verified. Staging release artifact verified. Production deployment remains blocked pending external institutional validation (BLK-001 through BLK-005)."

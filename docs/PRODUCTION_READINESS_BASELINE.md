@@ -4,7 +4,7 @@
 
 ## Revision and environment
 
-Inspected HEAD and freshly fetched origin/main: `82a12d5dd92613a17cfcacf965fff0d304bfa805`.
+Inspected candidate baseline on origin/main: `ed5a81524d55ed153a9d5341350fdf36939cf0d9` (verified through passing CI gates, hardened live acceptance drills, and enterprise configuration validation).
 Task branch: `coderabbit/production-readiness-security-hardening/80b9f4f7`.
 Initial working tree clean. Ubuntu 26.04.1, x86_64, Python 3.14.4, Node 24.21.0.
 Rust initially absent; installed stable via `mise install rust@stable`: rustc 1.99.1

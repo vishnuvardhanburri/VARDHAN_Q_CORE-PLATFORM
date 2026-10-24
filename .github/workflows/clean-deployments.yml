@@ -10,8 +10,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - ".github/workflows/clean-deployments.yml"
 
 permissions:
   deployments: write

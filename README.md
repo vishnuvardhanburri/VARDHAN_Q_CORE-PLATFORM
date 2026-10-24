@@ -22,6 +22,7 @@ These components do not yet establish an approved end-to-end financial execution
 - [Actual architecture](docs/PRODUCTION_ARCHITECTURE.md)
 - [Acceptance tests](docs/PRODUCTION_ACCEPTANCE_TESTS.md)
 - [Open risks and external dependencies](docs/OPEN_RISKS_AND_EXTERNAL_DEPENDENCIES.md)
+- [UK institutional assurance pack](docs/UK_INSTITUTIONAL_ASSURANCE_PACK.md)
 
 ## Implemented capabilities and boundaries
 

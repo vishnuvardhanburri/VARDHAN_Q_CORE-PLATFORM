@@ -95,7 +95,9 @@ def api_request(method, path, token=None, body=None):
         if new_token and new_token.startswith("Bearer "): new_token = new_token[7:]
         return e.code, json.loads(resp_body) if resp_body else {}, new_token
 
-def build_valid_contract(finding_id="find-e2e-001", actor="svc:vardhan-intelligence:e2e-valid", org_id="org-vardhan-intelligence"):
+def build_valid_contract(finding_id=None, actor="svc:vardhan-intelligence:e2e-valid", org_id="org-vardhan-intelligence"):
+    if finding_id is None:
+        finding_id = f"find-e2e-{int(time.time())}-{os.getpid()}"
     return {
         "contract": {
             "schema_version": "1.1",
@@ -294,6 +296,7 @@ def main():
         symbol = "[PASS]" if status == "PASS" else "[FAIL]"
         print(f"  {symbol} {label}: {detail}")
     print("=" * 60)
+    return 0 if FAIL_COUNT == 0 else 1
 
 if __name__ == "__main__":
     sys.exit(main())
