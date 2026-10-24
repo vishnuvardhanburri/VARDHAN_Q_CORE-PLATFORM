@@ -159,11 +159,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let peer_hb_port = peer_addr.port(); // Assume seeded port is the heartbeat port
                                                      // P3.5: If we have a region and the seed is in the same region, tag it.
                                                      // Cross-region seeds keep empty region (discovered via heartbeat).
-                let peer_node = if region.is_empty() {
-                    ha_cluster::ClusterNode::new(peer_id, peer_addr, peer_hb_port)
-                } else {
-                    ha_cluster::ClusterNode::new(peer_id, peer_addr, peer_hb_port)
-                };
+                let mut peer_node = ha_cluster::ClusterNode::new(peer_id, peer_addr, peer_hb_port);
+                if !region.is_empty() {
+                    peer_node.region = region.clone();
+                }
                 membership.apply_heartbeat(peer_node).await;
                 println!("[*] Seeded cluster peer: {}", peer_addr);
             }

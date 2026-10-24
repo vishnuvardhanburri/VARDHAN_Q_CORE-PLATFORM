@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::future::Future;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::PathBuf;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -759,14 +759,13 @@ impl RaftNode {
         let mut role_stepped_down = false;
         {
             let mut role_lock = self.role.write().await;
-            if stepped_down
+            if (stepped_down
                 || *role_lock == RaftRole::Candidate
-                || (*role_lock == RaftRole::Leader && args.leader_id != self.id)
+                || (*role_lock == RaftRole::Leader && args.leader_id != self.id))
+                && *role_lock != RaftRole::Follower
             {
-                if *role_lock != RaftRole::Follower {
-                    *role_lock = RaftRole::Follower;
-                    role_stepped_down = true;
-                }
+                *role_lock = RaftRole::Follower;
+                role_stepped_down = true;
             }
         }
 
@@ -776,20 +775,18 @@ impl RaftNode {
 
         let mut log = self.log.write().await;
 
-        if args.prev_log_index > 0 {
-            if args.prev_log_index as usize > log.len()
-                || (log.len() > 0
-                    && log[(args.prev_log_index - 1) as usize].term != args.prev_log_term)
-            {
-                return AppendEntriesReply {
-                    term: reply_term,
-                    success: false,
-                };
-            }
+        if args.prev_log_index > 0
+            && (args.prev_log_index as usize > log.len()
+                || (!log.is_empty()
+                    && log[(args.prev_log_index - 1) as usize].term != args.prev_log_term))
+        {
+            return AppendEntriesReply {
+                term: reply_term,
+                success: false,
+            };
         }
 
-        let needs_persist;
-        if !args.entries.is_empty() {
+        let needs_persist = if !args.entries.is_empty() {
             // Raft log matching: entries must be inserted starting at prev_log_index
             // (which is the count of entries the follower already has that are confirmed).
             let prev_idx = args.prev_log_index as usize;
@@ -802,10 +799,10 @@ impl RaftNode {
 
             // Append the new entries.
             log.extend(args.entries.clone());
-            needs_persist = true;
+            true
         } else {
-            needs_persist = false;
-        }
+            false
+        };
 
         // Capture values needed for persistence, then release log write lock.
         let commit_idx_val = std::cmp::min(args.leader_commit, log.len() as u64);
@@ -929,7 +926,7 @@ impl RaftNode {
         let mut votes = 1; // self
         let mut should_step_down = false;
         let mut max_reply_term = cur_term;
-        let needed_votes = (peers.len() + 1) / 2 + 1;
+        let needed_votes = peers.len().div_ceil(2) + 1;
 
         while let Some((peer, result)) = rpc_futures.next().await {
             // Raft §5.2: If candidate stepped down to Follower via concurrent AppendEntries,
@@ -995,7 +992,7 @@ impl RaftNode {
             return Ok(false);
         }
 
-        if votes >= (peers.len() + 1) / 2 + 1 {
+        if votes > peers.len().div_ceil(2) {
             // SAFETY: Re-check term and role atomically under write locks
             // before transitioning to Leader. Between the async join_all()
             // and here, a concurrent handle_request_vote or handle_append_entries
@@ -1032,7 +1029,7 @@ impl RaftNode {
         possible_commits.push(log.len() as u64);
         possible_commits.sort_by(|a, b| b.cmp(a));
 
-        let quorum = (match_indices.len() + 1) / 2 + 1;
+        let quorum = match_indices.len().div_ceil(2) + 1;
         if let Some(&n) = possible_commits.get(quorum - 1) {
             if n > *commit_idx && n > 0 && log[(n - 1) as usize].term == term {
                 if self.config.persist_on_submit {
@@ -1301,6 +1298,7 @@ impl RaftNode {
     }
 }
 
+#[allow(dead_code)]
 pub struct LedgerApplier {
     pub raft_node: Arc<RaftNode>,
     pub ledger: Arc<ledger_sync::MerkleLedger>,
@@ -1314,6 +1312,7 @@ pub struct LedgerApplier {
     pub ledger_prev_hash: RwLock<[u8; 32]>,
 }
 
+#[allow(dead_code)]
 impl LedgerApplier {
     pub fn new(
         raft_node: Arc<RaftNode>,
@@ -1551,7 +1550,7 @@ impl LedgerApplier {
         // Build CommittedCheckpoint with Raft commit metadata
         let committed = CommittedCheckpoint {
             checkpoint: cp.clone(),
-            raft_commit_term: entry.term.clone(),
+            raft_commit_term: entry.term,
             raft_commit_index: raft_log_index,
         };
 
@@ -1682,7 +1681,7 @@ impl LedgerApplier {
             "checkpoint-{}",
             cp.checkpoint_hash()
                 .map_err(|e| format!("Checkpoint hash computation failed: {e}"))
-                .map(|h| hex::encode(h))
+                .map(hex::encode)
                 .unwrap_or_else(|_| "unknown".to_string())
         );
 

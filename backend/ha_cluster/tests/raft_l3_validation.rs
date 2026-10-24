@@ -1,3 +1,14 @@
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use core_crypto::QuantumNodeIdentity;
 use ha_cluster::{
     raft::RaftRpcClient, ClusterMembership, NodeId, RaftNetworkListener, RaftNode, RaftPeerManager,
@@ -38,7 +49,7 @@ async fn spawn_node(
     ));
 
     // 3. Start the Network Listener
-    let (listener, tcp_listener, bound_addr) =
+    let (listener, tcp_listener, _bound_addr) =
         RaftNetworkListener::new_test_insecure(addr, identity.clone(), raft_node.clone())
             .await
             .unwrap();
@@ -51,14 +62,14 @@ async fn spawn_node(
     });
 
     // 4. Start the Raft run loop in its own task
-    let run_id = id.clone();
+    let _run_id = id.clone();
     let run_handle = {
         let raft_ref = raft_node.clone();
         tokio::spawn(async move {
             // raft_node.run is an infinite loop; if it returns the task has exited.
             let res = raft_ref.run(vec![]).await;
             // run() returns () — log if we somehow get here (shouldn't in normal operation)
-            let _ = res;
+            res;
         })
     };
 
@@ -177,7 +188,7 @@ async fn test_l3_leader_election() {
 
     // Check that no Raft run task has panicked or unexpectedly returned.
     // run() is an infinite loop; if it completes the task panicked.
-    for (name, handle) in [
+    for (_name, handle) in [
         ("A", &node_a.run_handle),
         ("B", &node_b.run_handle),
         ("C", &node_c.run_handle),

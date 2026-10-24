@@ -11,15 +11,26 @@
 //!
 //! Run: cargo test -p ha_cluster --test raft_p8_soak -- --test-threads=1 -- --test-threads=1
 
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
 use core_crypto::QuantumNodeIdentity;
-use ha_cluster::raft::{LogEntry, MockRpcClient, RaftRpcClient};
+use ha_cluster::raft::{LogEntry, RaftRpcClient};
 use ha_cluster::{
-    ClusterMembership, LedgerApplier, NodeId, RaftConfig, RaftNetworkListener, RaftNode,
-    RaftPeerManager, RaftRole,
+    ClusterMembership, LedgerApplier, NodeId, RaftNetworkListener, RaftNode, RaftPeerManager,
+    RaftRole,
 };
 use ledger_sync::MerkleLedger;
 use tokio::time::{sleep, timeout};
@@ -55,7 +66,7 @@ async fn spawn_node(
 
     let persist_path = std::path::PathBuf::from(format!("/tmp/p8_soak_{}.json", id.as_str()));
     let _ = std::fs::remove_file(&persist_path);
-    let _ = std::fs::remove_file(&persist_path.with_extension("tmp"));
+    let _ = std::fs::remove_file(persist_path.with_extension("tmp"));
 
     let raft_node = Arc::new(RaftNode::new(
         id.clone(),
@@ -238,7 +249,7 @@ async fn p8_9a_soak_continuous_writes_with_crashes() {
         }
 
         // Periodically crash and restart a follower
-        if start.elapsed().as_millis() % (crash_interval.as_millis() as u128) < 50 {
+        if start.elapsed().as_millis() % crash_interval.as_millis() < 50 {
             // Find a non-leader node to crash
             let crash_idx = {
                 let leaders = find_leaders(&nodes).await;

@@ -1,4 +1,3 @@
-use std::fs;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use vardhan_keystore::VardhanKeystore;

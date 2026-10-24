@@ -15,6 +15,25 @@
 //! Uses the real transport path: RaftNode → RaftRpcClient → NetworkController
 //! → AeadTransport → TCP → RaftNetworkListener → RaftNode
 
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+#![allow(
+    unused_variables,
+    dead_code,
+    unused_mut,
+    clippy::ptr_arg,
+    clippy::len_zero,
+    clippy::map_identity
+)]
+
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::PathBuf;

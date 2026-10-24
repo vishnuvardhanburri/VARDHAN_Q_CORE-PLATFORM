@@ -278,9 +278,7 @@ impl TelemetryEngine {
                             .await;
                         }
                         InternalMsg::SessionClosed(sid) => {
-                            if active_sessions > 0 {
-                                active_sessions -= 1;
-                            }
+                            active_sessions = active_sessions.saturating_sub(1);
                             prom_ref.active_sessions.set(active_sessions as i64);
 
                             let ev =

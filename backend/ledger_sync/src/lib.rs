@@ -33,7 +33,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use blake3::Hasher;
 use core_crypto::QuantumNodeIdentity;
-use futures_util::{SinkExt, StreamExt};
 use proxy_engine::{AeadTransport, ProxyError, SessionContext};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -379,7 +378,8 @@ impl MerkleLedger {
         let mut layer: Vec<[u8; 32]> = read.iter().map(|b| b.block_hash).collect();
 
         while layer.len() > 1 {
-            let mut next = Vec::with_capacity((layer.len() + 1) / 2);
+            let mut next = Vec::with_capacity(layer.len().div_ceil(2));
+            #[allow(clippy::chunks_exact_to_as_chunks)]
             let mut chunks = layer.chunks_exact(2);
             for pair in chunks.by_ref() {
                 let mut hasher = Hasher::new();

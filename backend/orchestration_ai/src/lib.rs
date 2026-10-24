@@ -66,10 +66,17 @@ impl OrchestrationIntelligence {
         }
     }
 
+    #[allow(dead_code)]
     async fn execute_zero_downtime_drain(node_id: &str) {
         // In a real system, this interacts with Kubernetes API or Envoy xDS
         // to gracefully shift gRPC weights away from the failing node to healthy peers.
         println!("[ORCHESTRATION-AI] ⚡ Executing zero-downtime traffic shift away from {}. Synchronizing P2P Mesh state...", node_id);
+    }
+}
+
+impl Default for OrchestrationIntelligence {
+    fn default() -> Self {
+        Self::new()
     }
 }
 pub mod assurance;

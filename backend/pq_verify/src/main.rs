@@ -139,7 +139,7 @@ fn run_verification(args: &Args) -> VerificationReport {
     let mut chain_ok = true;
     let mut sig_ok = true;
     let mut seq_ok = true;
-    let mut tip_hash = String::from("0".repeat(64));
+    let mut tip_hash = "0".repeat(64);
 
     for (line_no, line) in content.lines().enumerate() {
         if line.trim().is_empty() {

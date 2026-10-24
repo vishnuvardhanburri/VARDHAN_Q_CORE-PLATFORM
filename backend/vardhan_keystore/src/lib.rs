@@ -319,13 +319,13 @@ impl VardhanKeystore {
         let ed_private_bytes = self.ed25519_key.to_bytes();
         let ed_encrypted = provider
             .wrap_private_key(&ed_private_bytes)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| io::Error::other(e.to_string()))?;
         write_secure("ed25519.key.enc", &ed_encrypted)?;
 
         let mldsa_private_bytes = self.mldsa87_secret.as_bytes();
         let mldsa_encrypted = provider
-            .wrap_private_key(&mldsa_private_bytes)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            .wrap_private_key(mldsa_private_bytes)
+            .map_err(|e| io::Error::other(e.to_string()))?;
         write_secure("mldsa87.sec.enc", &mldsa_encrypted)?;
 
         // Public keys can be plaintext
@@ -459,7 +459,7 @@ impl VardhanKeystore {
         let ed_bytes: Vec<u8> = if meta.format_version >= 2 {
             let decrypted = provider
                 .unwrap_private_key(&ed_encrypted)
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+                .map_err(|e| io::Error::other(e.to_string()))?;
             decrypted.to_vec()
         } else {
             // Legacy plaintext format — only allowed in development
@@ -489,10 +489,9 @@ impl VardhanKeystore {
             fs::read(dir.join("mldsa87.sec.enc")).or_else(|_| fs::read(dir.join("mldsa87.sec")))?;
 
         let mldsa_plain_bytes: Zeroizing<Vec<u8>> = if meta.format_version >= 2 {
-            let decrypted = provider
+            provider
                 .unwrap_private_key(&mldsa_encrypted)
-                .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
-            decrypted
+                .map_err(|e| io::Error::other(e.to_string()))?
         } else {
             Zeroizing::new(mldsa_encrypted)
         };
@@ -573,10 +572,10 @@ impl VardhanKeystore {
 
         let ed_encrypted = provider
             .wrap_private_key(&ed_plain_z)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| io::Error::other(e.to_string()))?;
         let mldsa_encrypted = provider
             .wrap_private_key(&mldsa_plain_z)
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| io::Error::other(e.to_string()))?;
 
         // Write encrypted versions
         let write_secure = |filename: &str, data: &[u8]| -> io::Result<()> {
@@ -1063,7 +1062,7 @@ mod tests {
         set_env("VARDHAN_ENV", "production");
 
         let dir = tempfile::tempdir().unwrap();
-        let result = EnvironmentKeyProtectionProvider::select(&dir.path().join("kek.bin"));
+        let result = EnvironmentKeyProtectionProvider::select(dir.path().join("kek.bin"));
         assert!(result.is_err());
         assert!(matches!(
             result,
@@ -1090,7 +1089,7 @@ mod tests {
         );
 
         let dir = tempfile::tempdir().unwrap();
-        let result = EnvironmentKeyProtectionProvider::select(&dir.path().join("kek.bin"));
+        let result = EnvironmentKeyProtectionProvider::select(dir.path().join("kek.bin"));
         assert!(result.is_ok());
         let provider = result.unwrap();
         assert!(provider.is_production_safe());
@@ -1110,7 +1109,7 @@ mod tests {
         set_env("VARDHAN_ENV", "development");
 
         let dir = tempfile::tempdir().unwrap();
-        let result = EnvironmentKeyProtectionProvider::select(&dir.path().join("kek.bin"));
+        let result = EnvironmentKeyProtectionProvider::select(dir.path().join("kek.bin"));
         assert!(result.is_ok());
         let provider = result.unwrap();
         assert!(!provider.is_production_safe());
@@ -1132,7 +1131,7 @@ mod tests {
         remove_env("VARDHAN_PRODUCTION_KEK");
 
         let dir = tempfile::tempdir().unwrap();
-        let result = EnvironmentKeyProtectionProvider::select(&dir.path().join("kek.bin"));
+        let result = EnvironmentKeyProtectionProvider::select(dir.path().join("kek.bin"));
         assert!(result.is_err());
         assert!(matches!(
             result,
@@ -1270,6 +1269,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_plaintext_save_forbidden_in_production() {
         let _guard = ENV_MUTEX.lock().unwrap();
         let old_env = get_env("VARDHAN_ENV");
@@ -1296,7 +1296,7 @@ mod tests {
         set_env("VARDHAN_ENV", "development");
 
         let dir = tempfile::tempdir().unwrap();
-        let provider = DevelopmentLocalProtection::new(&dir.path().join("dev_kek.bin")).unwrap();
+        let provider = DevelopmentLocalProtection::new(dir.path().join("dev_kek.bin")).unwrap();
 
         let ks = VardhanKeystore::generate();
         ks.save_to_dir_with_provider(dir.path(), &provider).unwrap();

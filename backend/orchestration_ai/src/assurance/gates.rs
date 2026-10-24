@@ -60,6 +60,7 @@ pub struct Tolerance {
 }
 
 pub trait G2PerturbationRobustness {
+    #[allow(clippy::too_many_arguments)]
     fn evaluate(
         &mut self,
         ir: &SecurityIR,

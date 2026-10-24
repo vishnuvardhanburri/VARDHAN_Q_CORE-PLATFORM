@@ -22,7 +22,7 @@
 //! provider. In production mode, if no KEK is available, construction fails
 //! with `KeyProtectionError::NoProductionKeyProvider`.
 
-use aes_gcm::{Aes256Gcm, Nonce, aead::Aead, aead::Key, aead::KeyInit};
+use aes_gcm::{Aes256Gcm, Nonce, aead::Aead, aead::KeyInit};
 use rand::RngCore;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
@@ -228,14 +228,14 @@ impl KeyProtectionProvider for ProductionEnvelopeProtection {
     }
 
     fn wrap_private_key(&self, plaintext: &[u8]) -> Result<Vec<u8>, KeyProtectionError> {
-        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&self.kek[..]));
+        let cipher = Aes256Gcm::new((&*self.kek).into());
         // Generate a fresh 96-bit nonce for each wrap operation
         let mut nonce_bytes = [0u8; 12];
         OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
         // Encrypt: plaintext || nonce (prepended) || ciphertext+tag
-        let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|e| {
+        let ciphertext = cipher.encrypt(&nonce, plaintext).map_err(|e| {
             KeyProtectionError::Crypto(format!("AES-256-GCM encryption failed: {e}"))
         })?;
 
@@ -254,12 +254,13 @@ impl KeyProtectionProvider for ProductionEnvelopeProtection {
             return Err(KeyProtectionError::DecryptionFailed);
         }
 
-        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&self.kek[..]));
-        let nonce = Nonce::from_slice(&ciphertext[..12]);
+        let cipher = Aes256Gcm::new((&*self.kek).into());
+        let nonce =
+            Nonce::try_from(&ciphertext[..12]).map_err(|_| KeyProtectionError::DecryptionFailed)?;
         let ct = &ciphertext[12..];
 
         let plaintext = cipher
-            .decrypt(nonce, ct)
+            .decrypt(&nonce, ct)
             .map_err(|_| KeyProtectionError::DecryptionFailed)?;
 
         Ok(Zeroizing::new(plaintext))
@@ -361,12 +362,12 @@ impl KeyProtectionProvider for DevelopmentLocalProtection {
     }
 
     fn wrap_private_key(&self, plaintext: &[u8]) -> Result<Vec<u8>, KeyProtectionError> {
-        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&self.kek[..]));
+        let cipher = Aes256Gcm::new((&*self.kek).into());
         let mut nonce_bytes = [0u8; 12];
         OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
-        let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|e| {
+        let ciphertext = cipher.encrypt(&nonce, plaintext).map_err(|e| {
             KeyProtectionError::Crypto(format!("AES-256-GCM encryption failed: {e}"))
         })?;
 
@@ -385,12 +386,13 @@ impl KeyProtectionProvider for DevelopmentLocalProtection {
             return Err(KeyProtectionError::DecryptionFailed);
         }
 
-        let cipher = Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&self.kek[..]));
-        let nonce = Nonce::from_slice(&ciphertext[..12]);
+        let cipher = Aes256Gcm::new((&*self.kek).into());
+        let nonce =
+            Nonce::try_from(&ciphertext[..12]).map_err(|_| KeyProtectionError::DecryptionFailed)?;
         let ct = &ciphertext[12..];
 
         let plaintext = cipher
-            .decrypt(nonce, ct)
+            .decrypt(&nonce, ct)
             .map_err(|_| KeyProtectionError::DecryptionFailed)?;
 
         Ok(Zeroizing::new(plaintext))
@@ -707,7 +709,7 @@ mod tests {
         set_env("VARDHAN_ENV", "production");
 
         let dir = tempfile::tempdir().unwrap();
-        let result = EnvironmentKeyProtectionProvider::select(&dir.path().join("kek.bin"));
+        let result = EnvironmentKeyProtectionProvider::select(dir.path().join("kek.bin"));
         assert!(result.is_err());
         assert!(matches!(
             result,
@@ -732,7 +734,7 @@ mod tests {
         set_env("VARDHAN_ENV", "development");
 
         let dir = tempfile::tempdir().unwrap();
-        let result = EnvironmentKeyProtectionProvider::select(&dir.path().join("kek.bin"));
+        let result = EnvironmentKeyProtectionProvider::select(dir.path().join("kek.bin"));
         assert!(result.is_ok());
         let provider = result.unwrap();
         assert!(!provider.is_production_safe());
@@ -756,7 +758,7 @@ mod tests {
         );
 
         let dir = tempfile::tempdir().unwrap();
-        let result = EnvironmentKeyProtectionProvider::select(&dir.path().join("kek.bin"));
+        let result = EnvironmentKeyProtectionProvider::select(dir.path().join("kek.bin"));
         assert!(result.is_ok());
         let provider = result.unwrap();
         assert!(provider.is_production_safe());

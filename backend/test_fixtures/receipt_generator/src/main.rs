@@ -3,7 +3,6 @@ use ed25519_dalek::{Signer, SigningKey};
 use fips204::ml_dsa_87;
 use fips204::traits::{SerDes, Signer as PqSigner};
 use std::env;
-use std::path::Path;
 use uuid::Uuid;
 use vardhan_verifier::{VerifiableDualSignature, VerifiableReceipt};
 

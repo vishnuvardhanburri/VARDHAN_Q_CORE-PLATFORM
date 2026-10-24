@@ -6,11 +6,19 @@
 //!
 //! Run: cargo test -p ha_cluster --test raft_p8_regression_p8004 -- --test-threads=1
 
-use std::path::PathBuf;
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
 
 use audit_ledger::{Checkpoint, CheckpointWriter, CommittedCheckpoint};
 use core_crypto::QuantumNodeIdentity;
-use ha_cluster::NodeId;
 
 /// Helper: create a valid signed checkpoint with the given identity.
 fn create_valid_checkpoint(
@@ -118,7 +126,7 @@ fn p8_11b_checkpoint_chain_breaks_on_fingerprint_tamper() {
 
     // Now tamper: create a 2nd checkpoint with a wrong fingerprint,
     // re-signed with identity (so signature is valid for the tampered content)
-    let fp_b = hex::encode(QuantumNodeIdentity::hash_ledger_block(
+    let _fp_b = hex::encode(QuantumNodeIdentity::hash_ledger_block(
         &identity.dsa_public_key_bytes(),
     ));
 

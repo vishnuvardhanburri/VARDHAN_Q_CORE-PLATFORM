@@ -184,7 +184,7 @@ impl RaftRpcClient for RaftPeerManager {
                 response_tx,
             };
 
-            if let Err(_) = tx.send(req).await {
+            if tx.send(req).await.is_err() {
                 inner.clear_worker(&to).await;
                 return Err("Peer worker closed".to_string());
             }
@@ -193,7 +193,7 @@ impl RaftRpcClient for RaftPeerManager {
                 .map_err(|_| "RPC timeout".to_string())?
                 .map_err(|_| "Response channel closed".to_string())?;
 
-            let bytes = resp_bytes.map_err(|e| e)?;
+            let bytes = resp_bytes?;
             serde_json::from_slice(&bytes)
                 .map_err(|e| format!("Deserialize RequestVoteReply failed: {}", e))
         })
@@ -216,7 +216,7 @@ impl RaftRpcClient for RaftPeerManager {
                 response_tx,
             };
 
-            if let Err(_) = tx.send(req).await {
+            if tx.send(req).await.is_err() {
                 inner.clear_worker(&to).await;
                 return Err("Peer worker closed".to_string());
             }
@@ -225,7 +225,7 @@ impl RaftRpcClient for RaftPeerManager {
                 .map_err(|_| "RPC timeout".to_string())?
                 .map_err(|_| "Response channel closed".to_string())?;
 
-            let bytes = resp_bytes.map_err(|e| e)?;
+            let bytes = resp_bytes?;
             serde_json::from_slice(&bytes)
                 .map_err(|e| format!("Deserialize AppendEntriesReply failed: {}", e))
         })
@@ -425,7 +425,6 @@ async fn run_peer_worker(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rand::Rng;
     use std::collections::HashSet;
     use std::sync::atomic::{AtomicU64, Ordering};

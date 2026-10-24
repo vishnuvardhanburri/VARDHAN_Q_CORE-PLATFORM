@@ -100,6 +100,7 @@ fn org_role(state: &ControlPlaneState, org: &str, username: &str) -> Option<Stri
     member_role(&state.db, org, username).ok().flatten()
 }
 
+#[allow(clippy::result_large_err)]
 fn require_org_admin(
     state: &ControlPlaneState,
     org: &str,
@@ -130,13 +131,10 @@ pub async fn list_members(
     }
     let prefix = format!("{}{}:", String::from_utf8_lossy(crate::MEMBER_PREFIX), org);
     let mut members = Vec::new();
-    for item in state.db.scan_prefix(prefix.as_bytes()) {
-        if let Ok((key_bytes, value)) = item {
-            if let Ok(key_text) = String::from_utf8(key_bytes.to_vec()) {
-                if let Some(username) = key_text.rsplit(':').next() {
-                    members
-                        .push(json!({"username":username,"role":String::from_utf8_lossy(&value)}));
-                }
+    for (key_bytes, value) in state.db.scan_prefix(prefix.as_bytes()).flatten() {
+        if let Ok(key_text) = String::from_utf8(key_bytes.to_vec()) {
+            if let Some(username) = key_text.rsplit(':').next() {
+                members.push(json!({"username":username,"role":String::from_utf8_lossy(&value)}));
             }
         }
     }
@@ -208,19 +206,17 @@ pub async fn create_invitation(
     // An outstanding invitation is an authority grant.  Do not mint multiple
     // active grants for the same identity in the same organization.
     let prefix = format!("{}{}:", String::from_utf8_lossy(INVITE_PREFIX), org);
-    for item in state.db.scan_prefix(prefix.as_bytes()) {
-        if let Ok((_, value)) = item {
-            if let Ok(existing) = serde_json::from_slice::<Invitation>(&value) {
-                if existing.email == email
-                    && !existing.revoked
-                    && existing.accepted_at_ms.is_none()
-                    && now < existing.expires_at_ms
-                {
-                    return bad(
-                        StatusCode::CONFLICT,
-                        "An active invitation already exists for this identity.",
-                    );
-                }
+    for (_, value) in state.db.scan_prefix(prefix.as_bytes()).flatten() {
+        if let Ok(existing) = serde_json::from_slice::<Invitation>(&value) {
+            if existing.email == email
+                && !existing.revoked
+                && existing.accepted_at_ms.is_none()
+                && now < existing.expires_at_ms
+            {
+                return bad(
+                    StatusCode::CONFLICT,
+                    "An active invitation already exists for this identity.",
+                );
             }
         }
     }
@@ -258,12 +254,10 @@ pub async fn list_invitations(
     }
     let prefix = format!("{}{}:", String::from_utf8_lossy(INVITE_PREFIX), org);
     let mut items = Vec::new();
-    for item in state.db.scan_prefix(prefix.as_bytes()) {
-        if let Ok((_, value)) = item {
-            if let Ok(mut invitation) = serde_json::from_slice::<Invitation>(&value) {
-                invitation.token_hash.clear();
-                items.push(invitation);
-            }
+    for (_, value) in state.db.scan_prefix(prefix.as_bytes()).flatten() {
+        if let Ok(mut invitation) = serde_json::from_slice::<Invitation>(&value) {
+            invitation.token_hash.clear();
+            items.push(invitation);
         }
     }
     Json(json!({"organization_id":org,"invitations":items})).into_response()
@@ -297,18 +291,16 @@ pub async fn accept_invitation(
     let token_hash = hash_token(req.token.trim());
     let now = now_ms();
     let mut matched = None;
-    for item in state.db.scan_prefix(INVITE_PREFIX) {
-        if let Ok((key_bytes, value)) = item {
-            if let Ok(invitation) = serde_json::from_slice::<Invitation>(&value) {
-                if subtle::ConstantTimeEq::ct_eq(
-                    invitation.token_hash.as_bytes(),
-                    token_hash.as_bytes(),
-                )
-                .into()
-                {
-                    matched = Some((key_bytes, value.to_vec(), invitation));
-                    break;
-                }
+    for (key_bytes, value) in state.db.scan_prefix(INVITE_PREFIX).flatten() {
+        if let Ok(invitation) = serde_json::from_slice::<Invitation>(&value) {
+            if subtle::ConstantTimeEq::ct_eq(
+                invitation.token_hash.as_bytes(),
+                token_hash.as_bytes(),
+            )
+            .into()
+            {
+                matched = Some((key_bytes, value.to_vec(), invitation));
+                break;
             }
         }
     }
@@ -454,11 +446,9 @@ pub async fn scim_list_users(
     }
     let prefix = format!("{}{}:", String::from_utf8_lossy(SCIM_PREFIX), org);
     let mut resources = Vec::new();
-    for item in state.db.scan_prefix(prefix.as_bytes()) {
-        if let Ok((_, value)) = item {
-            if let Ok(u) = serde_json::from_slice::<ScimProvisionedUser>(&value) {
-                resources.push(json!({"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],"id":u.external_id,"externalId":u.external_id,"userName":u.user_name,"displayName":u.display_name,"active":u.active}));
-            }
+    for (_, value) in state.db.scan_prefix(prefix.as_bytes()).flatten() {
+        if let Ok(u) = serde_json::from_slice::<ScimProvisionedUser>(&value) {
+            resources.push(json!({"schemas":["urn:ietf:params:scim:schemas:core:2.0:User"],"id":u.external_id,"externalId":u.external_id,"userName":u.user_name,"displayName":u.display_name,"active":u.active}));
         }
     }
     if let Some(filter) = query.filter.as_deref() {
@@ -656,10 +646,8 @@ pub async fn delete_organization(
     ];
 
     for prefix in delete_prefixes {
-        for item in state.db.scan_prefix(&prefix) {
-            if let Ok((k, _)) = item {
-                let _ = state.db.remove(k);
-            }
+        for (k, _) in state.db.scan_prefix(&prefix).flatten() {
+            let _ = state.db.remove(k);
         }
     }
 
@@ -737,11 +725,9 @@ pub async fn leave_organization(
 fn count_owners(state: &ControlPlaneState, org: &str) -> usize {
     let prefix = format!("{}{}:", String::from_utf8_lossy(crate::MEMBER_PREFIX), org);
     let mut count = 0;
-    for item in state.db.scan_prefix(prefix.as_bytes()) {
-        if let Ok((_, value)) = item {
-            if String::from_utf8_lossy(&value) == "owner" {
-                count += 1;
-            }
+    for (_, value) in state.db.scan_prefix(prefix.as_bytes()).flatten() {
+        if String::from_utf8_lossy(&value) == "owner" {
+            count += 1;
         }
     }
     count

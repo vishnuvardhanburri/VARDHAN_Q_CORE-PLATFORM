@@ -10,6 +10,17 @@
 //!
 //! Run: cargo test -p ha_cluster --test raft_p8_resource_exhaustion -- --test-threads=1
 
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;

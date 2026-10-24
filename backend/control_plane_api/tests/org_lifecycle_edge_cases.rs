@@ -4,6 +4,13 @@
 //! privilege escalation, cross-org data access, member removal/revocation,
 //! concurrent idempotency/replay, restart & persistence, DB errors.
 
+#![allow(
+    unused_assignments,
+    unused_variables,
+    unused_mut,
+    clippy::await_holding_lock
+)]
+
 use auth_service::{session::SessionStore, store::CredentialStore, AuthState};
 use control_plane_api::{router, ControlPlaneState};
 use sled::Config;

@@ -6,6 +6,8 @@
 //! Auth reuses the existing session flow (login → Bearer); unauthenticated
 //! access must be rejected, preserving tenant isolation.
 
+#![allow(unused_assignments, clippy::await_holding_lock)]
+
 use auth_service::{session::SessionStore, store::CredentialStore, AuthState};
 use control_plane_api::{router, ControlPlaneState};
 use sled::Config;
@@ -303,7 +305,7 @@ async fn intelligence_briefs_stage8_tenant_isolation_shared_operator_read() {
     let _env_guard = lock_test_env();
     let (base, _state, auth) = spawn_test_server().await;
     let client = reqwest::Client::new();
-    let mut token_a = login_user_token(&client, &base, &auth, "alice-a").await;
+    let token_a = login_user_token(&client, &base, &auth, "alice-a").await;
     let mut token_b = login_user_token(&client, &base, &auth, "bob-b").await;
 
     // Seed a temp ranked-brief JSON file with 2 briefs (GO + HOLD).

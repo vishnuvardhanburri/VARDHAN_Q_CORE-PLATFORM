@@ -15,6 +15,8 @@ use std::collections::HashSet;
 use thiserror::Error;
 use zeroize::Zeroizing;
 
+pub use crate::exposure_detector;
+
 pub const AER_KEY_LEN: usize = 32;
 pub const AER_CIPHERTEXT_LEN: usize = 1568;
 const DOMAIN_TAG: &[u8] = b"VARDHAN-AER-KEP-Q-v2";
@@ -407,6 +409,3 @@ mod tests {
         ));
     }
 }
-
-#[path = "exposure_detector.rs"]
-pub mod exposure_detector;

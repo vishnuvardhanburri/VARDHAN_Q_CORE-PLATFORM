@@ -154,9 +154,9 @@ impl KeyProtectionProvider for KmsKeyProtectionProvider {
         let cipher = Aes256Gcm::new((&*zeroizing_dek).into());
         let mut nonce_bytes = [0u8; 12];
         OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
-        let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|e| {
+        let ciphertext = cipher.encrypt(&nonce, plaintext).map_err(|e| {
             KeyProtectionError::Crypto(format!("Envelope encryption failed: {:?}", e))
         })?;
 
@@ -207,11 +207,12 @@ impl KeyProtectionProvider for KmsKeyProtectionProvider {
 
         // 2. Decrypt payload under DEK using AES-256-GCM
         let cipher = Aes256Gcm::new((&*dek).into());
-        let nonce = Nonce::from_slice(&wrapped_payload[..12]);
+        let nonce = Nonce::try_from(&wrapped_payload[..12])
+            .map_err(|_| KeyProtectionError::DecryptionFailed)?;
         let data = &wrapped_payload[12..];
 
         let plaintext = cipher
-            .decrypt(nonce, data)
+            .decrypt(&nonce, data)
             .map_err(|_| KeyProtectionError::DecryptionFailed)?;
 
         Ok(Zeroizing::new(plaintext))

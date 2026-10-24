@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 use auth_service::{session::SessionStore, store::CredentialStore, AuthState};
 use control_plane_api::receipt_key_registry::{KeyState, ReceiptIssuerKey, ReceiptKeyRegistry};
 use control_plane_api::{router, ControlPlaneState};

@@ -265,7 +265,7 @@ impl VardhanEvent {
         );
         map.insert(
             "event_type".to_string(),
-            serde_json::to_value(&self.event_type).unwrap(),
+            serde_json::to_value(self.event_type).unwrap(),
         );
         map.insert("source".to_string(), serde_json::json!(self.source));
         map.insert("action".to_string(), serde_json::json!(self.action));
@@ -279,11 +279,11 @@ impl VardhanEvent {
         );
         map.insert(
             "severity".to_string(),
-            serde_json::to_value(&self.severity).unwrap(),
+            serde_json::to_value(self.severity).unwrap(),
         );
         map.insert(
             "confidence".to_string(),
-            serde_json::to_value(&self.confidence).unwrap(),
+            serde_json::to_value(self.confidence).unwrap(),
         );
         map.insert(
             "correlation_id".to_string(),

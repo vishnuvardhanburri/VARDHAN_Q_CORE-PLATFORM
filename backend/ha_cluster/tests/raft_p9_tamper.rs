@@ -1,6 +1,16 @@
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use ha_cluster::raft::{
-    AppendEntriesArgs, AppendEntriesReply, LogEntry, RaftRpcClient, RequestVoteArgs,
-    RequestVoteReply,
+    AppendEntriesArgs, AppendEntriesReply, RaftRpcClient, RequestVoteArgs, RequestVoteReply,
 };
 use ha_cluster::{NodeId, RaftConfig, RaftNode};
 use std::future::Future;

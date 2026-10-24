@@ -1,9 +1,6 @@
-use proofmesh::identity::{CanonicalObjectRef, VerificationClaimId};
 use proofmesh::scope::{CanonicalTenantId, VerificationScope};
-use serde_json::json;
 use uuid::uuid;
 use vardhan_state::id::TenantId;
-use vardhan_state::transition::TransitionType;
 
 #[test]
 fn test_canonical_tenant_id_validation() {

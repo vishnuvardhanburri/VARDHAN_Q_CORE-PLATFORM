@@ -12,6 +12,7 @@ pub enum Role {
 }
 
 impl Role {
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         match s.trim().to_lowercase().as_str() {
             "admin" | "ciso_admin" | "security_admin" | "root" => Role::Admin,

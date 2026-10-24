@@ -115,17 +115,28 @@ pub async fn update_passport_state(
     let current_state = &passport.lifecycle_state;
     let next_state = &req.state;
 
-    let valid = match (current_state, next_state) {
-        (MigrationLifecycleState::DISCOVERED, MigrationLifecycleState::ASSESSED) => true,
-        (MigrationLifecycleState::ASSESSED, MigrationLifecycleState::BLUEPRINT_PROPOSED) => true,
-        (MigrationLifecycleState::BLUEPRINT_PROPOSED, MigrationLifecycleState::AUTHORIZED) => true,
-        (MigrationLifecycleState::AUTHORIZED, MigrationLifecycleState::TESTED) => true,
-        (MigrationLifecycleState::TESTED, MigrationLifecycleState::EXECUTED) => true,
-        (MigrationLifecycleState::EXECUTED, MigrationLifecycleState::INDEPENDENTLY_VERIFIED) => {
-            true
-        }
-        _ => false,
-    };
+    let valid = matches!(
+        (current_state, next_state),
+        (
+            MigrationLifecycleState::DISCOVERED,
+            MigrationLifecycleState::ASSESSED
+        ) | (
+            MigrationLifecycleState::ASSESSED,
+            MigrationLifecycleState::BLUEPRINT_PROPOSED
+        ) | (
+            MigrationLifecycleState::BLUEPRINT_PROPOSED,
+            MigrationLifecycleState::AUTHORIZED
+        ) | (
+            MigrationLifecycleState::AUTHORIZED,
+            MigrationLifecycleState::TESTED
+        ) | (
+            MigrationLifecycleState::TESTED,
+            MigrationLifecycleState::EXECUTED
+        ) | (
+            MigrationLifecycleState::EXECUTED,
+            MigrationLifecycleState::INDEPENDENTLY_VERIFIED
+        )
+    );
 
     if !valid {
         return (StatusCode::BAD_REQUEST, Json(json!({"error": format!("Invalid lifecycle transition from {:?} to {:?}", current_state, next_state)}))).into_response();
@@ -221,9 +232,8 @@ pub async fn update_passport_state(
     }
 
     if let Some(exec) = req.evidence.as_object() {
-        if let Some(evidence) =
+        if let Ok(evidence) =
             serde_json::from_value::<ExecutionEvidence>(serde_json::Value::Object(exec.clone()))
-                .ok()
         {
             passport.execution_evidence = Some(evidence);
         }

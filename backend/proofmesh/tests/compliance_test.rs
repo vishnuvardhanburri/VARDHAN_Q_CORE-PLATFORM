@@ -33,7 +33,7 @@ fn mock_evidence(id: u8, entity: u8, src: &str, env: u8) -> EvidenceRecord {
 #[test]
 fn test_quorum_common_mode_failures() {
     let claim_id = VerificationClaimId(uuid::Uuid::new_v4());
-    let mut quorum = QuorumAccumulator::new(claim_id.clone(), 2);
+    let mut quorum = QuorumAccumulator::new(claim_id, 2);
 
     quorum.add_evidence(mock_evidence(1, 42, "validator_A", 100));
     quorum.add_evidence(mock_evidence(2, 42, "validator_A", 100));
@@ -46,7 +46,7 @@ fn test_quorum_common_mode_failures() {
 #[test]
 fn test_deterministic_snapshot_generation() {
     let claim_id = VerificationClaimId(uuid::Uuid::new_v4());
-    let mut quorum = QuorumAccumulator::new(claim_id.clone(), 2);
+    let mut quorum = QuorumAccumulator::new(claim_id, 2);
 
     quorum.add_evidence(mock_evidence(1, 10, "src1", 1));
     quorum.add_evidence(mock_evidence(2, 20, "src2", 2));
@@ -77,7 +77,7 @@ fn test_deterministic_snapshot_generation() {
 #[test]
 fn test_multi_dimensional_independence() {
     let claim_id = VerificationClaimId(uuid::Uuid::new_v4());
-    let mut quorum = QuorumAccumulator::new(claim_id.clone(), 3);
+    let mut quorum = QuorumAccumulator::new(claim_id, 3);
 
     quorum.add_evidence(mock_evidence(1, 10, "srcA", 1));
     quorum.add_evidence(mock_evidence(2, 20, "srcB", 2));

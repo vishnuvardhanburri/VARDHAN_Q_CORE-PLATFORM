@@ -101,7 +101,7 @@ async fn auth_middleware(
 
     // Persisted session/API-key identity must resolve an authoritative role.
     if let Some(user) =
-        auth_service::extract_authenticated_user(&state.auth_state, &req.headers()).await
+        auth_service::extract_authenticated_user(&state.auth_state, req.headers()).await
     {
         let mut req = req;
         req.extensions_mut().insert(user);
@@ -643,12 +643,12 @@ async fn ledger_verify(State(state): State<AdminState>) -> impl IntoResponse {
 
     (
         StatusCode::OK,
-        Json(serde_json::json!({
-            "chain_valid": chain_valid,
-            "blocks_verified": blocks_verified,
-            "root_hash": hex::encode(tip_hash),
-            "signer_pub_fingerprint": signer_fp,
-        })),
+        Json(LedgerVerification {
+            chain_valid,
+            blocks_verified,
+            root_hash: hex::encode(tip_hash),
+            signer_pub_fingerprint: signer_fp,
+        }),
     )
         .into_response()
 }

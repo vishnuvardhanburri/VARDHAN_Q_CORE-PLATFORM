@@ -8,9 +8,8 @@ mod tests {
     use crate::assurance::g4::*;
     use crate::assurance::gates::*;
     use crate::assurance::types::*;
-    use uuid::Uuid;
+
     use vardhan_state::authorization::{PolicyEvaluation, ProvenanceTrail};
-    use vardhan_state::id::{ConfigurationHash, EvidenceId, StateHash, TenantId};
 
     struct MockCrypto {
         valid: bool,
@@ -21,6 +20,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     struct MockProver {
         res: Result<bool, String>,
     }
@@ -30,6 +30,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     struct MockMetrics {
         cov: Option<u32>,
         rej: Option<u8>,
@@ -43,6 +44,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     struct MockVerifier {
         res: Result<PolicyEvaluation, String>,
     }
@@ -52,6 +54,7 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
     struct MockIdGen;
     impl IdentityGenerator for MockIdGen {
         fn derive_assurance_result_id(

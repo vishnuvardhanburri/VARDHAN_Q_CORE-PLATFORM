@@ -12,6 +12,18 @@
 //!
 //! Run: cargo test -p ha_cluster --test pqc_consensus_integration -- --test-threads=1 --nocapture
 
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+#![allow(unused_imports, unused_variables, dead_code, clippy::all)]
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;

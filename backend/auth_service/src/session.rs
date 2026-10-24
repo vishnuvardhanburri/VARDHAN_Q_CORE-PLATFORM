@@ -45,6 +45,7 @@ impl SessionToken {
         OsRng.fill_bytes(&mut b);
         Self(hex::encode(b))
     }
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         Self(s.to_string())
     }
@@ -388,7 +389,7 @@ impl SessionStore {
     pub async fn list_sessions(&self) -> Vec<SessionView> {
         let mut v = self.inner.iter().map(|e| e.view()).collect::<Vec<_>>();
         v.extend(self.revoked.iter().map(|e| e.value().clone()));
-        v.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        v.sort_by_key(|a| std::cmp::Reverse(a.created_at));
         v
     }
     pub async fn get_session_by_id(&self, id: &str) -> Option<SessionView> {
@@ -418,12 +419,11 @@ impl SessionStore {
             .inner
             .iter()
             .filter(|e| {
-                pd.as_ref()
+                !pd.as_ref()
                     .map(|d| {
                         d == &e.current_token_digest || e.previous_token_digest.as_ref() == Some(d)
                     })
                     .unwrap_or(false)
-                    == false
             })
             .map(|e| e.key().clone())
             .collect::<Vec<_>>();

@@ -415,7 +415,7 @@ pub fn merkle_root_from_hashes(hashes: &[Vec<u8>]) -> [u8; 32] {
 
     let mut layer: Vec<Vec<u8>> = hashes.to_vec();
     while layer.len() > 1 {
-        let mut next = Vec::with_capacity((layer.len() + 1) / 2);
+        let mut next = Vec::with_capacity(layer.len().div_ceil(2));
         let mut i = 0;
         while i < layer.len() {
             if i + 1 < layer.len() {
@@ -1721,7 +1721,7 @@ mod tests {
         // Corrupt the first byte of line 2 (seq=1)
         let content = std::fs::read_to_string(&path).unwrap();
         let mut lines: Vec<&str> = content.lines().collect();
-        let mut bad = lines[1].to_string();
+        let bad = lines[1].to_string();
         // Flip a char in the prev_hash field
         let tampered = bad.replacen("\"seq\":1", "\"seq\":999", 1);
         lines[1] = Box::leak(tampered.into_boxed_str());

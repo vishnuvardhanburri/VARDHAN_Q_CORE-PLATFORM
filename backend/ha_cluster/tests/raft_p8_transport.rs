@@ -11,6 +11,17 @@
 //!
 //! Run: cargo test -p ha_cluster --test raft_p8_transport -- --test-threads=1
 
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;

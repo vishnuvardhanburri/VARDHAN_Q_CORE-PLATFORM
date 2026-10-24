@@ -57,7 +57,7 @@ pub fn validate_policy(policy: &ResiliencePolicy) -> Result<(), ResilienceError>
     if policy.production && policy.min_nodes < 3 {
         return Err(ResilienceError::InsufficientNodes);
     }
-    if policy.production && policy.require_kms == false {
+    if policy.production && !policy.require_kms {
         return Err(ResilienceError::KmsRequired);
     }
     if policy.production && !policy.backup_enabled {

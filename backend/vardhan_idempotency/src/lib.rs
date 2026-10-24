@@ -68,13 +68,11 @@ impl IdempotencyRegistry {
 
         let map_key = (tenant_id.to_string(), key.as_str().to_string());
         let now = Self::now_ms();
-        if let Some(record) = self.store.get(&map_key) {
-            if record.expires_at_ms > now {
-                return Err(DuplicateDetected {
-                    original_transaction_id: record.transaction_id.clone(),
-                    registered_at_ms: record.registered_at_ms,
-                });
-            }
+        if let Some(record) = self.store.get(&map_key).filter(|r| r.expires_at_ms > now) {
+            return Err(DuplicateDetected {
+                original_transaction_id: record.transaction_id.clone(),
+                registered_at_ms: record.registered_at_ms,
+            });
         }
 
         let expires_at_ms = now.saturating_add(window_ms);

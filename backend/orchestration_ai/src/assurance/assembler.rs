@@ -10,6 +10,7 @@ pub struct AssuranceAssembler<I: IdentityGenerator> {
 }
 
 impl<I: IdentityGenerator> AssuranceAssembler<I> {
+    #[allow(clippy::too_many_arguments)]
     pub fn assemble(
         &self,
         ir: &SecurityIR,

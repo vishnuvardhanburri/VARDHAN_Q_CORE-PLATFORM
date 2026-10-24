@@ -32,7 +32,7 @@ fn main() {
     println!("[*] Tenant: {}", receipt.tenant_id);
     println!(
         "[*] BLAKE3 Merkle Hash: {}",
-        hex::encode(&receipt.blake3_audit_hash)
+        hex::encode(receipt.blake3_audit_hash)
     );
 
     match generator.generate_dora_report(&receipt, output_file) {

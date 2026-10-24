@@ -113,6 +113,12 @@ impl DecisionTwinStore {
     }
 }
 
+impl Default for DecisionTwinStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// The inbound asynchronous queue for Intelligence models to submit candidates.
 pub struct DecisionCandidateQueue {
     sender: mpsc::Sender<DecisionCandidate>,

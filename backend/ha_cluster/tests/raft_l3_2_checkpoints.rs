@@ -6,6 +6,18 @@
 //!
 //! Run: cargo test -p ha_cluster --test raft_l3_2_checkpoints
 
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+#![allow(unused_imports, unused_variables, dead_code, clippy::all)]
+
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};

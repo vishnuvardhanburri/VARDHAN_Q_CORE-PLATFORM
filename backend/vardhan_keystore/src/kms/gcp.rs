@@ -126,9 +126,9 @@ impl GcpKmsEmulator {
         let cipher = Aes256Gcm::new(&(*current_master).into());
         let mut nonce_bytes = [0u8; 12];
         OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
-        let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|e| {
+        let ciphertext = cipher.encrypt(&nonce, plaintext).map_err(|e| {
             KeyProtectionError::Crypto(format!("GCP KMS encryption failed: {:?}", e))
         })?;
 
@@ -179,11 +179,12 @@ impl GcpKmsEmulator {
             .ok_or(KeyProtectionError::DecryptionFailed)?;
 
         let cipher = Aes256Gcm::new(&(*master).into());
-        let nonce = Nonce::from_slice(&ciphertext[1..13]);
+        let nonce = Nonce::try_from(&ciphertext[1..13])
+            .map_err(|_| KeyProtectionError::DecryptionFailed)?;
         let data = &ciphertext[13..];
 
         cipher
-            .decrypt(nonce, data)
+            .decrypt(&nonce, data)
             .map_err(|_| KeyProtectionError::DecryptionFailed)
     }
 }

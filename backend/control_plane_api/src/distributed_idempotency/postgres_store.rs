@@ -26,12 +26,14 @@ impl PostgresIdempotencyStore {
         let pg_config = tokio_postgres::Config::from_str(database_url)
             .map_err(|e| IdempotencyError::Configuration(format!("invalid DATABASE_URL: {e}")))?;
 
-        let mut config = Config::default();
-        config.user = pg_config.get_user().map(str::to_owned);
-        config.password = pg_config
-            .get_password()
-            .map(|p| String::from_utf8_lossy(p).into_owned());
-        config.dbname = pg_config.get_dbname().map(str::to_owned);
+        let mut config = Config {
+            user: pg_config.get_user().map(str::to_owned),
+            password: pg_config
+                .get_password()
+                .map(|p| String::from_utf8_lossy(p).into_owned()),
+            dbname: pg_config.get_dbname().map(str::to_owned),
+            ..Config::default()
+        };
 
         // Host / port
         let hosts = pg_config.get_hosts();

@@ -81,11 +81,11 @@ impl OidcFlowState {
             return Err("OIDC state mismatch");
         }
         let nonce_len = self.nonce.len();
-        if nonce_len < 16 || nonce_len > 128 {
+        if !(16..=128).contains(&nonce_len) {
             return Err("OIDC flow binding is invalid");
         }
         let pkce_len = self.pkce_verifier.len();
-        if pkce_len < 43 || pkce_len > 128 {
+        if !(43..=128).contains(&pkce_len) {
             return Err("OIDC flow binding is invalid");
         }
         if !self

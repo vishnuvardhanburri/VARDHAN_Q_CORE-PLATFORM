@@ -49,14 +49,8 @@ pub use crate::transport::AeadTransport;
 use std::io;
 use std::net::SocketAddr;
 
-use aes_gcm::{
-    aead::{Aead, KeyInit},
-    Aes256Gcm, Key, Nonce,
-};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use core_crypto::QuantumNodeIdentity;
-use hkdf::Hkdf;
-use sha2::Sha256;
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -65,7 +59,6 @@ use tokio::sync::Semaphore;
 
 use tokio_util::codec::{Decoder, Encoder};
 use tracing::{debug, error, info, instrument, warn};
-use zeroize::Zeroizing;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Protocol Versioning
@@ -96,6 +89,7 @@ const DSA_PUB_LEN: usize = core_crypto::DSA_PUB_KEY_LEN; // 2592
 const MAX_HANDSHAKE_FRAME: usize = 4 * 1024 * 1024;
 
 /// HELLO frame: version_count (1B) || versions (N*2B) || encap_key || sig || dsa_pub
+#[allow(dead_code)]
 const HELLO_FRAME_LEN: usize =
     1 + SUPPORTED_VERSIONS.len() * 2 + ENCAP_KEY_LEN + SIGNATURE_LEN + DSA_PUB_LEN; // 8792
 
@@ -284,6 +278,7 @@ fn build_kem_ct(identity: &QuantumNodeIdentity, ct: &[u8]) -> Result<Vec<u8>, Pr
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Parse a HELLO/HELLO_ACK frame. Returns `(negotiated_version, peer_ek_bytes, peer_dsa_pub_bytes, peer_supported_versions)`.
+#[allow(clippy::type_complexity)]
 fn parse_hello(frame: &Bytes) -> Result<(u16, Vec<u8>, Vec<u8>, Vec<u16>), ProxyError> {
     if frame.len() < 1 + ENCAP_KEY_LEN + SIGNATURE_LEN + DSA_PUB_LEN {
         return Err(ProxyError::MalformedFrame {
@@ -511,10 +506,9 @@ pub async fn run_responder_authenticated(
 
     // 1. Receive HELLO
     let f1 = read_frame(stream).await?;
-    let (negotiated_version, peer_ek, peer_dsa_pub, _peer_versions) =
-        parse_hello(&f1).map_err(|e| {
+    let (negotiated_version, peer_ek, peer_dsa_pub, _peer_versions) = parse_hello(&f1)
+        .inspect_err(|_| {
             warn!("Responder: HELLO parse/verify failed");
-            e
         })?;
 
     // Verify peer identity against trusted institutional registry if configured
@@ -542,9 +536,8 @@ pub async fn run_responder_authenticated(
 
     // 4. Receive KEM_CT_A
     let f4 = read_frame(stream).await?;
-    let ct_a = parse_kem_ct(&f4, &peer_dsa_pub).map_err(|e| {
+    let ct_a = parse_kem_ct(&f4, &peer_dsa_pub).inspect_err(|_| {
         warn!("Responder: KEM_CT_A verify failed");
-        e
     })?;
 
     // 5. Decapsulate
@@ -588,10 +581,9 @@ pub async fn run_initiator_authenticated(
 
     // 2. Receive HELLO_ACK
     let f2 = read_frame(stream).await?;
-    let (negotiated_version, peer_ek, peer_dsa_pub, _peer_versions) =
-        parse_hello(&f2).map_err(|e| {
+    let (negotiated_version, peer_ek, peer_dsa_pub, _peer_versions) = parse_hello(&f2)
+        .inspect_err(|_| {
             warn!("Initiator: HELLO_ACK parse/verify failed");
-            e
         })?;
 
     // Verify peer identity against trusted institutional registry if configured
@@ -606,9 +598,8 @@ pub async fn run_initiator_authenticated(
 
     // 3. Receive KEM_CT_B
     let f3 = read_frame(stream).await?;
-    let ct_b = parse_kem_ct(&f3, &peer_dsa_pub).map_err(|e| {
+    let ct_b = parse_kem_ct(&f3, &peer_dsa_pub).inspect_err(|_| {
         warn!("Initiator: KEM_CT_B verify failed");
-        e
     })?;
 
     // 4. Encapsulate toward responder; send KEM_CT_A

@@ -23,7 +23,7 @@ pub async fn start_server(port: u16) {
 }
 
 async fn handle_seal(Json(payload): Json<QCoreValidationRequest>) -> impl IntoResponse {
-    let organization_id = payload.contract.organization.organization_id.clone();
+    let _organization_id = payload.contract.organization.organization_id.clone();
     // Enforce idempotent replay protection at the API gateway boundary.
     // This mirrors the CLI ValidateCanonical path — durable lifecycle enforcement.
     if crate::is_finding_already_sealed(&payload.contract.finding_id) {

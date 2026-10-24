@@ -26,6 +26,7 @@ pub fn blake3_hex(s: &str) -> String {
 }
 
 /// Emit an audit event to the durable append-only ledger signed with ML-DSA-87.
+#[allow(clippy::too_many_arguments)]
 pub fn emit_admin_audit(
     ledger: Option<&Arc<audit_ledger::LedgerWriter>>,
     identity: Option<&Arc<core_crypto::QuantumNodeIdentity>>,

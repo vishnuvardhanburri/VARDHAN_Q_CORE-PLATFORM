@@ -126,9 +126,9 @@ impl AwsKmsEmulator {
         let cipher = Aes256Gcm::new(&(*current_master).into());
         let mut nonce_bytes = [0u8; 12];
         OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
-        let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|e| {
+        let ciphertext = cipher.encrypt(&nonce, plaintext).map_err(|e| {
             KeyProtectionError::Crypto(format!("AWS KMS encryption failed: {:?}", e))
         })?;
 
@@ -166,13 +166,14 @@ impl AwsKmsEmulator {
             .entry(key_id.to_string())
             .or_insert_with(|| vec![Self::derive_master(key_id, 1)]);
 
-        let nonce = Nonce::from_slice(&ciphertext[..12]);
+        let nonce =
+            Nonce::try_from(&ciphertext[..12]).map_err(|_| KeyProtectionError::DecryptionFailed)?;
         let data = &ciphertext[12..];
 
         // Try decrypting with versions from latest to oldest (AWS KMS rotation model)
         for master in versions.iter().rev() {
             let cipher = Aes256Gcm::new(&(*master).into());
-            if let Ok(pt) = cipher.decrypt(nonce, data) {
+            if let Ok(pt) = cipher.decrypt(&nonce, data) {
                 return Ok(pt);
             }
         }

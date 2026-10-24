@@ -120,17 +120,15 @@ impl DurableIdempotencyRegistry {
                 .records
                 .retain(|entry| entry.record.expires_at_ms > now);
 
-            if let Some(entry) = state
-                .records
-                .iter()
-                .find(|entry| entry.record.tenant_id == tenant_id && entry.key == key.as_str())
-            {
-                if entry.record.status != IdempotencyStatus::Failed {
-                    return Ok(Err(DuplicateDetected {
-                        original_transaction_id: entry.record.transaction_id.clone(),
-                        registered_at_ms: entry.record.registered_at_ms,
-                    }));
-                }
+            if let Some(entry) = state.records.iter().find(|entry| {
+                entry.record.tenant_id == tenant_id
+                    && entry.key == key.as_str()
+                    && entry.record.status != IdempotencyStatus::Failed
+            }) {
+                return Ok(Err(DuplicateDetected {
+                    original_transaction_id: entry.record.transaction_id.clone(),
+                    registered_at_ms: entry.record.registered_at_ms,
+                }));
             }
 
             let expires_at_ms = now.saturating_add(window_ms);

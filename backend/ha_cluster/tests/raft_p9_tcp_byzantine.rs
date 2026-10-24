@@ -5,6 +5,17 @@
 //! with DSA key X CANNOT claim to be NodeId Y — even though the outer AEAD
 //! frame is encrypted and integrity-protected.
 
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use core_crypto::QuantumNodeIdentity;
 use ha_cluster::raft::{
     AppendEntriesArgs, AppendEntriesReply, RaftRpcClient, RaftRpcEnvelope, RaftRpcType,
@@ -12,10 +23,8 @@ use ha_cluster::raft::{
 };
 use ha_cluster::raft_listener::{PeerRegistry, RaftNetworkListener};
 use ha_cluster::{NodeId, RaftConfig, RaftNode};
-use proxy_engine::{run_initiator, run_responder, AeadTransport};
-use std::collections::HashMap;
+use proxy_engine::{run_initiator, AeadTransport};
 use std::future::Future;
-use std::path::PathBuf;
 use std::pin::Pin;
 use std::sync::Arc;
 use tokio::net::TcpStream;
@@ -51,9 +60,11 @@ async fn setup_test_listener() -> (
     let _ = std::fs::remove_dir_all(&db_path);
     std::fs::create_dir_all(&db_path).unwrap();
 
-    let mut config = RaftConfig::default();
-    config.persist_on_submit = true;
-    config.state_machine_mac_key = Some([0x42; 32]);
+    let config = RaftConfig {
+        persist_on_submit: true,
+        state_machine_mac_key: Some([0x42; 32]),
+        ..RaftConfig::default()
+    };
     let persist_path = db_path.join("server.json");
 
     let server_id = NodeId::new("server-node");
@@ -240,7 +251,7 @@ async fn sec018_stale_unknown_peer_rejected() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn sec018_envelope_sender_mismatch_rejected() {
-    let (node, valid_identity, valid_id, port, _) = setup_test_listener().await;
+    let (node, valid_identity, _valid_id, port, _) = setup_test_listener().await;
 
     let other_id = NodeId::new("some-other-id");
 

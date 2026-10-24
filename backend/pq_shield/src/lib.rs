@@ -159,6 +159,25 @@ impl IngressShield {
         shield
     }
 
+    pub fn calculate_entropy(data: &[u8]) -> f64 {
+        if data.is_empty() {
+            return 0.0;
+        }
+        let mut counts = [0usize; 256];
+        for &b in data {
+            counts[b as usize] += 1;
+        }
+        let len = data.len() as f64;
+        let mut entropy = 0.0;
+        for &count in &counts {
+            if count > 0 {
+                let p = count as f64 / len;
+                entropy -= p * p.log2();
+            }
+        }
+        entropy
+    }
+
     pub async fn run_interceptor_loop(&self) -> Result<(), Box<dyn std::error::Error>> {
         let listener = TcpListener::bind(self.listen_addr).await?;
         info!(addr = %self.listen_addr, upstream = %self.upstream_addr, "pq_shield Quantum Reverse Proxy Active");
@@ -364,7 +383,7 @@ impl IngressShield {
                         warn!(session.id = %sid, role = ?role, peer = %peer_addr, "P7.2: Leadership lost after handshake — rejecting forwarded request");
                         let leader_hint = if let Some(ref cluster) = cluster_for_leader_hint {
                             let nodes = cluster.all_nodes().await;
-                            let self_id = self_node_id_clone.as_ref().map(|n| n.clone());
+                            let self_id = self_node_id_clone.clone();
                             nodes
                                 .iter()
                                 .find(|n| Some(&n.node_id) != self_id.as_ref())

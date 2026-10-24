@@ -140,10 +140,10 @@ impl SystemicAuthorityGate for VardhanGate {
         // 6. Expiry / Time validation
         let now_dt = now_utc();
         let now = now_dt.timestamp_millis() as u64;
-        if let Some(deadline) = systemic_auth.authorized_at.deadline_time {
-            if now_dt > deadline {
-                return Err("Authorization expired".to_string());
-            }
+        if let Some(deadline) = systemic_auth.authorized_at.deadline_time
+            && now_dt > deadline
+        {
+            return Err("Authorization expired".to_string());
         }
 
         // 7. Provenance completeness

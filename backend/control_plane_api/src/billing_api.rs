@@ -399,7 +399,7 @@ pub async fn renew_license(
     }
     let ref_id = format!(
         "LIC-REQ-{}",
-        &uuid::Uuid::new_v4().simple().to_string()[..8].to_uppercase()
+        uuid::Uuid::new_v4().simple().to_string()[..8].to_uppercase()
     );
     let renewal_record = json!({
         "reference_id": ref_id,

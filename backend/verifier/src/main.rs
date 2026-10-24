@@ -18,6 +18,7 @@ async fn connect_and_handshake()
 }
 
 // Custom frame writer for adversarial tests
+#[allow(clippy::too_many_arguments)]
 async fn send_tampered_frame(
     stream: &mut TcpStream,
     key: &[u8; 32],

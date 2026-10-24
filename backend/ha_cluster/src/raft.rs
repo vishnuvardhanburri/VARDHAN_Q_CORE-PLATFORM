@@ -330,7 +330,7 @@ impl LedgerApplier {
             "checkpoint-{}",
             cp.checkpoint_hash()
                 .map_err(|e| format!("Checkpoint hash computation failed: {e}"))
-                .map(|h| hex::encode(h))
+                .map(hex::encode)
                 .unwrap_or_else(|_| "unknown".to_string())
         );
 

@@ -15,6 +15,17 @@
 //!
 //! Run: cargo test -p ha_cluster --test raft_p8_byzantine -- --test-threads=1
 
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -303,7 +314,7 @@ async fn p8_001_committed_entry_overwrite_by_byzantine() {
 
     if reply_trunc.success {
         let log = id_b.log.read().await;
-        let overwritten = log.get(0).map(|e| e.client_id.as_str()) == Some("byzantine-forged");
+        let overwritten = log.first().map(|e| e.client_id.as_str()) == Some("byzantine-forged");
         if overwritten {
             // P8-001 FINDING: Committed entry was silently overwritten
             println!("P8-001 FINDING: Committed entry overwritten by same-term Byzantine leader");

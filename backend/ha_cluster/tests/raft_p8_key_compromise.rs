@@ -13,7 +13,18 @@
 //!
 //! Run: cargo test -p ha_cluster --test raft_p8_key_compromise -- --test-threads=1
 
-use std::path::PathBuf;
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
+use std::path::{Path, PathBuf};
 
 use audit_ledger::{
     merkle_root_from_ledger_file, Checkpoint, CommittedCheckpoint, LedgerEntry, LedgerWriter,
@@ -21,7 +32,7 @@ use audit_ledger::{
 use core_crypto::QuantumNodeIdentity;
 
 /// Helper: write N valid ledger entries, returning the path.
-fn write_valid_ledger(identity: &QuantumNodeIdentity, path: &PathBuf, count: u64) {
+fn write_valid_ledger(identity: &QuantumNodeIdentity, path: &Path, count: u64) {
     let writer = LedgerWriter::open(path, identity).unwrap_or_else(|e| panic!("{}", e));
     for i in 0..count {
         writer
@@ -84,7 +95,7 @@ fn p8_7a_signature_verification_detects_key_substitution() {
 
     // Attacker creates a forged entry, signing with their OWN key
     // but claiming to be the legitimate signer (forged fingerprint)
-    let mut lines: Vec<String> = std::fs::read_to_string(&ledger_path)
+    let lines: Vec<String> = std::fs::read_to_string(&ledger_path)
         .unwrap()
         .lines()
         .map(|l| l.to_string())
@@ -97,7 +108,7 @@ fn p8_7a_signature_verification_detects_key_substitution() {
     // Attacker signs with their own key — but the fingerprint is still the
     // legitimate signer's (we don't change it). This simulates an attacker
     // who has access to a compromised signing environment.
-    let event_json = serde_json::to_string(&entry1.event).unwrap();
+    let _event_json = serde_json::to_string(&entry1.event).unwrap();
     let canonical = entry1.canonical_hash().unwrap();
     let attacker_sig = attacker.sign_payload(&canonical).unwrap();
     entry1.signature = hex::encode(&attacker_sig);
@@ -165,7 +176,7 @@ fn p8_7b_key_switch_detection() {
     drop(writer_b);
 
     // Read all entries and check signer fingerprints
-    let mut lines: Vec<String> = std::fs::read_to_string(&ledger_path)
+    let lines: Vec<String> = std::fs::read_to_string(&ledger_path)
         .unwrap()
         .lines()
         .map(|l| l.to_string())

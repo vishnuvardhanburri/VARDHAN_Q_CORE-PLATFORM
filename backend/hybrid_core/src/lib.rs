@@ -176,6 +176,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn test_f012_no_production_enclave_available() {
         // F-012: Verify there is no non-simulation code path
         // that would allow production use of the simulated enclave

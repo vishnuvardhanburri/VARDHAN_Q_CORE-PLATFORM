@@ -50,7 +50,7 @@ impl<'a> ReplayCache for SledReplayCache<'a> {
             .map_err(|_| SamlError::Invalid("SAML replay expiry precedes Unix epoch".into()))?
             .as_millis() as u64;
         let new_value = expiry_ms.to_be_bytes();
-        let now_ms = SystemTime::now()
+        let _now_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|_| SamlError::Invalid("system clock precedes Unix epoch".into()))?
             .as_millis() as u64;
@@ -86,6 +86,7 @@ impl<'a> ReplayCache for SledReplayCache<'a> {
     }
 }
 
+#[allow(clippy::result_large_err)]
 fn env_required(name: &str) -> Result<String, axum::response::Response> {
     std::env::var(name)
         .ok()

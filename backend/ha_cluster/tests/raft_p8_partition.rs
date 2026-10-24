@@ -11,6 +11,17 @@
 //!
 //! Run: cargo test -p ha_cluster --test raft_p8_partition -- --test-threads=1
 
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -56,6 +67,7 @@ impl PartitionedRpcClient {
         self.blocked.write().await.insert(peer.clone(), true);
     }
 
+    #[allow(dead_code)]
     async fn unblock_peer(&self, peer: &ha_cluster::NodeId) {
         self.blocked.write().await.insert(peer.clone(), false);
     }
@@ -347,7 +359,7 @@ async fn p8_4c_partition_recovery() {
 
     // Start election on A (everyone can communicate initially)
     let peers_a = vec![id_b.clone(), id_c.clone()];
-    let election_result = nodes[0].start_election(&peers_a).await;
+    let _election_result = nodes[0].start_election(&peers_a).await;
 
     tokio::time::sleep(Duration::from_millis(200)).await;
 
@@ -395,7 +407,7 @@ async fn p8_4c_partition_recovery() {
 
     let log = leader.log.read().await;
     let last_idx = log.len() as u64;
-    let last_term = if log.is_empty() {
+    let _last_term = if log.is_empty() {
         0
     } else {
         log.last().unwrap().term

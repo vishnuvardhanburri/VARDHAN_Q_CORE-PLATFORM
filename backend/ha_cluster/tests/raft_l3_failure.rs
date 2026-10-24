@@ -7,6 +7,17 @@
 //! (which implements RaftRpcClient) and can inject message drops (partitions)
 //! and send delays (stale/delayed delivery).
 
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -309,7 +320,7 @@ async fn spawn_cluster_with_config(
         std::fs::remove_file(p).ok();
     }
 
-    let mut nodes = vec![
+    let nodes = vec![
         spawn_test_node(
             node_a_id.clone(),
             addr_a,
@@ -675,7 +686,7 @@ async fn test_follower_crash_and_recovery() {
 
     // Submit one entry that replicates to ALL nodes first
     let _idx1 = submit_and_replicate(&leader, &nodes, "client-1", "req-1", b"data-1").await;
-    let idx2 = submit_and_replicate(&leader, &nodes, "client-1", "req-2", b"data-2").await;
+    let _idx2 = submit_and_replicate(&leader, &nodes, "client-1", "req-2", b"data-2").await;
 
     // Find a follower to kill
     let follower_idx = nodes
@@ -1040,7 +1051,7 @@ async fn test_old_leader_returns_fencing() {
     // an election before receiving B's heartbeat. We wait for B to send
     // AppendEntries (term ≥ new_term) and for A to absorb it.
     // Use a stable wait: exactly 1 leader, 0 candidates, then verify A is not the leader.
-    let stable_wait = tokio::time::timeout(Duration::from_secs(5), async {
+    let _stable_wait = tokio::time::timeout(Duration::from_secs(5), async {
         loop {
             let leaders = count_leaders(&nodes).await;
             if leaders == 1 {
@@ -1117,7 +1128,7 @@ async fn test_network_partition() {
 
     let idx = submit_and_replicate(&leader, &nodes, "client-1", "req-001", b"data-1").await;
 
-    let leader_idx = nodes.iter().position(|n| n.id == leader.id).unwrap();
+    let _leader_idx = nodes.iter().position(|n| n.id == leader.id).unwrap();
     let minority_idx = nodes
         .iter()
         .position(|n| n.id != leader.id)
@@ -1236,7 +1247,7 @@ async fn test_partition_healing() {
 
     let idx = submit_and_replicate(&leader, &nodes, "client-1", "req-001", b"data-1").await;
 
-    let leader_idx = nodes.iter().position(|n| n.id == leader.id).unwrap();
+    let _leader_idx = nodes.iter().position(|n| n.id == leader.id).unwrap();
     let minority_idx = nodes.iter().position(|n| n.id != leader.id).unwrap();
     let minority_id = nodes[minority_idx].id.clone();
 
@@ -1560,7 +1571,7 @@ async fn test_persistence_torn_write() {
     let bytes = serde_json::to_vec(&state).unwrap();
     std::fs::write(&persist_path, &bytes).unwrap();
 
-    let identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
+    let _identity = Arc::new(QuantumNodeIdentity::generate_node_identity().unwrap());
     let mock_rpc: Arc<dyn RaftRpcClient> =
         Arc::new(MockRpcClient::new(Arc::new(RwLock::new(HashMap::new()))));
     let raft_node = RaftNode::new(
@@ -1924,8 +1935,7 @@ async fn run_leader_crash_10x_scenario(run_id: usize) -> Result<(u64, Duration, 
             request_id: format!("r{}-1", run_id),
             data: b"d".to_vec(),
         })
-        .await
-        .map_err(|e| e)?;
+        .await?;
     if !wait_for_commit(&leader, idx).await {
         abort_all(&mut nodes).await;
         return Err("Initial commit failed".to_string());
@@ -2024,7 +2034,7 @@ async fn run_follower_crash_10x_scenario(run_id: usize) -> Result<(), String> {
         .await
         .ok_or("Election timeout".to_string())?;
 
-    let idx = submit_and_replicate(&leader, &nodes, "c1", &format!("r{}-1", run_id), b"d1").await;
+    let _idx = submit_and_replicate(&leader, &nodes, "c1", &format!("r{}-1", run_id), b"d1").await;
 
     let follower_idx = nodes
         .iter()
@@ -2063,8 +2073,7 @@ async fn run_follower_crash_10x_scenario(run_id: usize) -> Result<(), String> {
             request_id: format!("r{}-2", run_id),
             data: b"d2".to_vec(),
         })
-        .await
-        .map_err(|e| e)?;
+        .await?;
     if !wait_for_commit(&leader, idx2).await {
         abort_all(&mut nodes).await;
         return Err("Entry not committed on majority".to_string());
@@ -2126,7 +2135,7 @@ async fn run_follower_crash_10x_scenario(run_id: usize) -> Result<(), String> {
     };
     if has_duplicates {
         abort_all(&mut nodes).await;
-        return Err(format!("Duplicate entries found"));
+        return Err("Duplicate entries found".to_string());
     }
 
     info!("10x follower run {}: OK", run_id);
@@ -2149,7 +2158,7 @@ async fn test_follower_crash_10x() {
                 info!("  Follower crash run {}: PASS", i);
             }
             Err(e) => {
-                std::fs::write("/tmp/flake_err.log", e.to_string());
+                std::fs::write("/tmp/flake_err.log", &e);
                 panic!("FAIL: {}", e);
             }
         }
@@ -2182,8 +2191,7 @@ async fn run_stale_rpc_10x_scenario(run_id: usize) -> Result<(), String> {
             request_id: format!("s{}-1", run_id),
             data: b"s".to_vec(),
         })
-        .await
-        .map_err(|e| e)?;
+        .await?;
     if !wait_for_commit(&leader, idx).await {
         abort_all(&mut nodes).await;
         return Err("Initial commit failed".to_string());
@@ -2216,8 +2224,7 @@ async fn run_stale_rpc_10x_scenario(run_id: usize) -> Result<(), String> {
             request_id: format!("s{}-2", run_id),
             data: b"s2".to_vec(),
         })
-        .await
-        .map_err(|e| e)?;
+        .await?;
     if !wait_for_commit(&new_leader, idx2).await {
         abort_all(&mut nodes).await;
         return Err("New entry not committed".to_string());
@@ -2247,7 +2254,7 @@ async fn test_stale_rpc_10x() {
                 info!("  Stale RPC run {}: PASS", i);
             }
             Err(e) => {
-                std::fs::write("/tmp/flake_rpc.log", e.to_string());
+                std::fs::write("/tmp/flake_rpc.log", &e);
                 panic!("FAIL: {}", e);
             }
         }
@@ -2267,9 +2274,9 @@ async fn run_partition_10x_scenario(run_id: usize) -> Result<(), String> {
         .ok_or("Election timeout".to_string())?;
 
     let leader_id = leader.id.clone();
-    let idx = submit_and_replicate(&leader, &nodes, "c1", &format!("r{}-1", run_id), b"d1").await;
+    let _idx = submit_and_replicate(&leader, &nodes, "c1", &format!("r{}-1", run_id), b"d1").await;
 
-    let leader_idx = nodes.iter().position(|n| n.id == leader_id).unwrap();
+    let _leader_idx = nodes.iter().position(|n| n.id == leader_id).unwrap();
     let minority_idx = nodes.iter().position(|n| n.id != leader.id).unwrap();
     let minority_id = nodes[minority_idx].id.clone();
 
@@ -2299,8 +2306,7 @@ async fn run_partition_10x_scenario(run_id: usize) -> Result<(), String> {
             request_id: format!("r{}-2", run_id),
             data: b"d2".to_vec(),
         })
-        .await
-        .map_err(|e| e)?;
+        .await?;
     if !wait_for_commit(&leader, idx2).await {
         abort_all(&mut nodes).await;
         return Err("Entry not committed on majority during partition".to_string());

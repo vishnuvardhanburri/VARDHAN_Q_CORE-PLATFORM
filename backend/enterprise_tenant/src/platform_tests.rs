@@ -36,8 +36,7 @@ fn industry_registry_has_all_seven_packages_and_control_mapping() {
     assert!(banking.controls.iter().any(|c| c.id == "BANK-PQ-001"));
     assert!(banking
         .required_integrations
-        .iter()
-        .any(|i| *i == IntegrationKind::Siem));
+        .contains(&IntegrationKind::Siem));
 }
 
 #[test]

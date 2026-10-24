@@ -154,7 +154,7 @@ fn render_ccc_ui(f: &mut Frame, state: &CccDashboardState) {
             Constraint::Length(5), // Real-Time Metrics Gauges
             Constraint::Length(6), // Event Logs & Audit Stream
         ])
-        .split(f.size());
+        .split(f.area());
 
     // --- Header ---
     let header_text = format!(

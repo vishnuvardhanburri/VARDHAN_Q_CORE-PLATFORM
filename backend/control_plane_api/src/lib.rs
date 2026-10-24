@@ -1035,8 +1035,8 @@ pub async fn serve(
     }
     #[cfg(feature = "tls")]
     if let Some(ref ca) = client_ca_path {
-        let missing_tls_material = cert_path.as_ref().map_or(true, |v| v.is_empty())
-            || key_path.as_ref().map_or(true, |v| v.is_empty())
+        let missing_tls_material = cert_path.as_ref().is_none_or(|v| v.is_empty())
+            || key_path.as_ref().is_none_or(|v| v.is_empty())
             || !cert_path
                 .as_ref()
                 .map(|p| std::path::Path::new(p).exists())
@@ -1109,8 +1109,7 @@ pub async fn serve(
         _ => {
             if std::env::var("VARDHAN_ENV").as_deref() == Ok("production") {
                 if std::env::var("VARDHAN_TLS_TERMINATION").as_deref() != Ok("ingress") {
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
+                    return Err(std::io::Error::other(
                         "FATAL: Production mode requires TLS. Configure VARDHAN_TLS_CERT_PATH and VARDHAN_TLS_KEY_PATH (or set VARDHAN_TLS_TERMINATION=ingress if terminated at proxy).",
                     ));
                 }

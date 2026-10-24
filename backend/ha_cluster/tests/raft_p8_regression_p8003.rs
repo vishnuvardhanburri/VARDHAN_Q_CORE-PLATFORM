@@ -9,6 +9,17 @@
 //!
 //! Run: cargo test -p ha_cluster --test raft_p8_regression_p8003 -- --test-threads=1
 
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use core_crypto::serde_cbor;
 use core_crypto::vault::{EncryptedEnvelope, KeyProtector, VaultError};
 use core_crypto::{KeyTransitionPayload, KeyTransitionRecord, QuantumNodeIdentity};

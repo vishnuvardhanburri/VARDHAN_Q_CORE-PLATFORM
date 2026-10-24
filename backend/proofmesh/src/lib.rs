@@ -3,7 +3,6 @@ pub mod identity;
 #[cfg(test)]
 mod tests {
     use super::identity::*;
-    use serde_json::json;
     use uuid::Uuid;
     use vardhan_state::transition::*;
 

@@ -189,8 +189,7 @@ impl QuantumNodeIdentity {
             old_pubkey_bytes: transition_payload.old_pubkey_bytes,
             new_pubkey_bytes: transition_payload.new_pubkey_bytes,
             transition_sig_bytes: old_sig,
-            transition_timestamp_ms: SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis()
-                as u128,
+            transition_timestamp_ms: SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis(),
         };
         self.dsa_public_key = new_dsa_pk;
         self.dsa_private_key_bytes = zeroize::Zeroizing::new(new_dsa_sk.into_bytes());

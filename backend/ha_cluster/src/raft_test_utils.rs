@@ -1,5 +1,5 @@
 use crate::raft::{
-    AppendEntriesArgs, AppendEntriesReply, LogEntry, RaftNode, RequestVoteArgs, RequestVoteReply,
+    AppendEntriesArgs, AppendEntriesReply, RaftNode, RequestVoteArgs, RequestVoteReply,
 };
 use crate::NodeId;
 use std::collections::{HashMap, HashSet};
@@ -8,6 +8,12 @@ use tokio::sync::RwLock;
 
 pub struct NetworkController {
     pub partitions: Arc<RwLock<HashSet<(NodeId, NodeId)>>>,
+}
+
+impl Default for NetworkController {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl NetworkController {

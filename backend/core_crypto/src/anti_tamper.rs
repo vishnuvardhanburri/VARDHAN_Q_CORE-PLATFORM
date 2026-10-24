@@ -17,7 +17,6 @@ use std::time::Instant;
 /// Returns true if a debugger is currently attached to this process.
 #[cfg(target_os = "macos")]
 pub fn is_debugger_attached() -> bool {
-    use std::mem;
     // sysctl CTL_KERN / KERN_PROC / KERN_PROC_PID
     extern "C" {
         fn sysctl(
@@ -99,7 +98,7 @@ pub fn detect_single_step() -> bool {
     let elapsed = start.elapsed().as_micros();
     // Prevent the loop from being optimized away
     if x == 0 {
-        eprintln!("");
+        eprintln!();
     }
     elapsed > 5_000 // > 5 ms means a debugger is stepping
 }
@@ -230,7 +229,7 @@ mod tests {
     #[test]
     fn test_self_hash_hex_is_64_chars() {
         let hash = compute_self_hash().unwrap();
-        let hex = hex::encode(&hash);
+        let hex = hex::encode(hash);
         assert_eq!(hex.len(), 64, "BLAKE3 hex should be 64 characters");
     }
 

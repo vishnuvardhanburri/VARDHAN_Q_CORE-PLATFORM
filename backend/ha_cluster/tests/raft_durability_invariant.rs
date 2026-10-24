@@ -1,3 +1,14 @@
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use std::collections::HashSet;
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -7,9 +18,7 @@ use tokio::time::{timeout, Duration};
 use tracing::{info, warn};
 
 use core_crypto::QuantumNodeIdentity;
-use ha_cluster::raft::{
-    AppendEntriesArgs, AppendEntriesReply, LogEntry, RaftConfig, RaftNode, RaftRole, RaftRpcClient,
-};
+use ha_cluster::raft::{LogEntry, RaftConfig, RaftNode, RaftRole, RaftRpcClient};
 use ha_cluster::{ClusterMembership, NodeId, RaftNetworkListener, RaftPeerManager};
 
 struct TestNode {
@@ -366,7 +375,7 @@ async fn run_durability_cycle(cycle_id: usize) {
     {
         let restarted_log = nodes[follower_idx].node.log.read().await;
         assert!(
-            restarted_log.len() >= 1,
+            !restarted_log.is_empty(),
             "Restarted node must have recovered entry 1"
         );
         assert_eq!(restarted_log[0].term, term1, "Entry 1 term mismatch");

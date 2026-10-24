@@ -1,3 +1,14 @@
+#![allow(
+    unused_imports,
+    unused_variables,
+    dead_code,
+    clippy::all,
+    unused_mut,
+    unused_must_use,
+    path_statements,
+    unused_assignments
+)]
+
 use core_crypto::QuantumNodeIdentity;
 use ha_cluster::{ClusterMembership, NodeId, RaftPeerManager};
 use proxy_engine::run_responder;

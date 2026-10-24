@@ -95,10 +95,10 @@ pub fn run_aes_256_gcm_kat() -> Result<(), KatFailure> {
         )));
     }
 
-    if &ciphertext[..16] != expected_ct {
+    if ciphertext[..16] != expected_ct[..] {
         return Err(KatFailure::AesGcm("Ciphertext mismatch".to_string()));
     }
-    if &ciphertext[16..] != expected_tag {
+    if ciphertext[16..] != expected_tag[..] {
         return Err(KatFailure::AesGcm(
             "Authentication tag mismatch".to_string(),
         ));

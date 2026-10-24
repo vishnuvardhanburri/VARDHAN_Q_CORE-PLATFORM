@@ -37,6 +37,7 @@ pub struct VerificationClaim {
 }
 
 impl VerificationClaim {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         claim_id: VerificationClaimId,
         claim_type: String,

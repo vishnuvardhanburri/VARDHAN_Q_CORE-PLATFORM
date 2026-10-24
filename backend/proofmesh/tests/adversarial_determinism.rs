@@ -4,7 +4,6 @@ use proofmesh::execution_plan::{
 use proofmesh::executor::IsolatedExecutor;
 use proofmesh::identity::{ExecutionPlanId, VerificationClaimId};
 use proofmesh::quorum::{QuorumAccumulator, QuorumStatus};
-use std::sync::Arc;
 use vardhan_state::authorization::ProvenanceTrail;
 use vardhan_state::evidence::{EvidenceCategory, EvidenceRecord, EvidenceStatus};
 use vardhan_state::id::{ContentHash, StateHash};
@@ -73,7 +72,7 @@ async fn test_quorum_common_mode_detection() {
     let claim_id = VerificationClaimId(uuid::Uuid::new_v4());
     let mut accumulator = QuorumAccumulator::new(claim_id, 2);
 
-    let mut ev1 = EvidenceRecord {
+    let ev1 = EvidenceRecord {
         evidence_id: EvidenceId::from([1u8; 32]),
         tenant_id: TenantId::from(uuid::Uuid::new_v4()),
         event_id: None,

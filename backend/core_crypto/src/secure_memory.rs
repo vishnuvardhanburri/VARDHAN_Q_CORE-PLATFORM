@@ -28,7 +28,14 @@ impl SecureKeyMaterial {
 /// Eliminates Mutex contention during heavy Raft consensus loads.
 pub struct LockFreeState {
     head: AtomicUsize,
+    #[allow(dead_code)]
     tail: AtomicUsize,
+}
+
+impl Default for LockFreeState {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LockFreeState {

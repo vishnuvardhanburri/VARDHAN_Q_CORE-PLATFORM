@@ -104,15 +104,13 @@ impl AuditWriter {
         let reader = BufReader::new(file_clone);
         let mut last_entry: Option<AuditEntry> = None;
 
-        for line in reader.lines() {
-            if let Ok(line) = line {
-                let trimmed = line.trim();
-                if trimmed.is_empty() {
-                    continue;
-                }
-                if let Ok(entry) = serde_json::from_str::<AuditEntry>(trimmed) {
-                    last_entry = Some(entry);
-                }
+        for line in reader.lines().map_while(Result::ok) {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            if let Ok(entry) = serde_json::from_str::<AuditEntry>(trimmed) {
+                last_entry = Some(entry);
             }
         }
 
@@ -188,7 +186,7 @@ impl AuditWriter {
             schema_version: 1,
             seq,
             timestamp_ms,
-            prev_hash: hex::encode(&prev_hash_bytes),
+            prev_hash: hex::encode(prev_hash_bytes),
             event: event.clone(),
             signature: signature_hex.clone(),
             signer_fingerprint: self.signer_fingerprint.clone(),
@@ -345,7 +343,7 @@ mod tests {
 
         // Re-scan
         let check_file = File::open(&path).unwrap();
-        let (next_seq, prev_hash) = AuditWriter::scan_to_tip(&check_file).unwrap();
+        let (next_seq, _prev_hash) = AuditWriter::scan_to_tip(&check_file).unwrap();
 
         // The seq should still be 2
         assert_eq!(next_seq, 2);
@@ -400,14 +398,14 @@ mod tests {
         // Write 3 entries then close
         {
             let mut writer = AuditWriter::open(&path, "fp1".to_string()).unwrap();
-            let e1 = writer.append(json!({"seq": 0}), dummy_sign).unwrap();
-            let e2 = writer.append(json!({"seq": 1}), dummy_sign).unwrap();
-            let e3 = writer.append(json!({"seq": 2}), dummy_sign).unwrap();
+            let _e1 = writer.append(json!({"seq": 0}), dummy_sign).unwrap();
+            let _e2 = writer.append(json!({"seq": 1}), dummy_sign).unwrap();
+            let _e3 = writer.append(json!({"seq": 2}), dummy_sign).unwrap();
         }
 
         // Reopen: should continue from seq=3 with correct prev_hash
         let mut writer = AuditWriter::open(&path, "fp1".to_string()).unwrap();
-        let (tip_seq, tip_hash) = writer.chain_tip();
+        let (tip_seq, _tip_hash) = writer.chain_tip();
         assert_eq!(tip_seq, 3);
 
         // Append a fourth entry — it should chain correctly

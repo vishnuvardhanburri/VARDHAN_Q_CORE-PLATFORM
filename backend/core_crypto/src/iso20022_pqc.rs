@@ -239,6 +239,7 @@ fn parse_seal(xml: &str) -> Result<Iso20022PqcSeal, Iso20022Error> {
 }
 
 /// Signs the entire parsed business document and seal metadata under profile V2.
+#[allow(clippy::too_many_arguments)]
 pub fn embed_pqc_seal_into_iso20022(
     original_xml: &str,
     signer_bic: &str,

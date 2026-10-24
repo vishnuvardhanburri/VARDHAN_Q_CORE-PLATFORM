@@ -109,6 +109,9 @@ pub struct Iso20022FinancialPayment {
     pub debtor_account: String,
     pub creditor_account: String,
     pub amount: f64,
+    pub amount_minor_units: u128,
+    pub amount_scale: u32,
+    pub amount_decimal_str: String,
     pub currency: String,
     pub uetr: String,
     pub end_to_end_id: String,
@@ -132,6 +135,7 @@ pub struct PaymentPolicy {
     pub allowed_message_types: Vec<String>,
     pub allowed_currencies: Vec<String>,
     pub max_single_transaction_limit: f64,
+    pub max_single_transaction_minor_units: Option<u128>,
     pub max_freshness_age_seconds: i64,
     pub max_future_skew_seconds: i64,
     pub blocked_bics: HashSet<String>,
@@ -153,6 +157,7 @@ impl Default for PaymentPolicy {
                 "CAD".into(),
             ],
             max_single_transaction_limit: 100_000_000.0,
+            max_single_transaction_minor_units: None,
             max_freshness_age_seconds: 300,
             max_future_skew_seconds: 60,
             blocked_bics: HashSet::new(),
@@ -276,6 +281,87 @@ pub fn parse_iso8601_to_unix(dt_str: &str) -> Result<u64, PaymentGateError> {
         .map_err(|_| PaymentGateError::InvalidField("Timestamp before Unix epoch"))
 }
 
+/// Standard ISO 4217 minor unit exponent (scale) definition.
+pub fn iso4217_minor_unit_scale(currency: &str) -> u32 {
+    match currency {
+        "JPY" | "KRW" | "VND" | "UGX" | "PYG" | "RWF" | "BIF" | "CLP" | "DJF" | "GNF" | "KMF" => 0,
+        "BHD" | "KWD" | "OMR" | "JOD" | "TND" | "LYD" | "IQD" => 3,
+        _ => 2,
+    }
+}
+
+/// Parses an exact unsigned decimal monetary amount string into exact minor integer units
+/// and record of decimal scale without binary floating-point representation drift.
+pub fn parse_exact_minor_units(
+    amount_text: &str,
+    currency: &str,
+) -> Result<(u128, u32), PaymentGateError> {
+    let parts: Vec<&str> = amount_text.split('.').collect();
+    if parts.len() > 2
+        || parts
+            .iter()
+            .any(|p| p.is_empty() || !p.bytes().all(|b| b.is_ascii_digit()))
+    {
+        return Err(PaymentGateError::InvalidAmount {
+            amount: 0.0,
+            reason: "Expected unsigned decimal amount".into(),
+        });
+    }
+
+    let whole: u128 = parts[0]
+        .parse()
+        .map_err(|_| PaymentGateError::InvalidAmount {
+            amount: 0.0,
+            reason: "Invalid whole amount digits".into(),
+        })?;
+
+    let target_scale = iso4217_minor_unit_scale(currency);
+    let (frac_val, scale) = if parts.len() == 2 {
+        let frac_str = parts[1];
+        let scale = frac_str.len() as u32;
+        let mut padded = frac_str.to_string();
+        if padded.len() < target_scale as usize {
+            padded.push_str(&"0".repeat(target_scale as usize - padded.len()));
+        } else if padded.len() > target_scale as usize {
+            let excess = &padded[target_scale as usize..];
+            if excess.chars().any(|c| c != '0') {
+                return Err(PaymentGateError::InvalidAmount {
+                    amount: 0.0,
+                    reason: format!(
+                        "Amount has {} decimal places, but currency {} specifies scale {}",
+                        scale, currency, target_scale
+                    ),
+                });
+            }
+            padded.truncate(target_scale as usize);
+        }
+        let frac: u128 = if padded.is_empty() {
+            0
+        } else {
+            padded
+                .parse()
+                .map_err(|_| PaymentGateError::InvalidAmount {
+                    amount: 0.0,
+                    reason: "Invalid fractional digits".into(),
+                })?
+        };
+        (frac, scale)
+    } else {
+        (0u128, 0u32)
+    };
+
+    let multiplier = 10u128.pow(target_scale);
+    let minor_units = whole
+        .checked_mul(multiplier)
+        .and_then(|w| w.checked_add(frac_val))
+        .ok_or_else(|| PaymentGateError::InvalidAmount {
+            amount: 0.0,
+            reason: "Amount overflow in minor units calculation".into(),
+        })?;
+
+    Ok((minor_units, scale))
+}
+
 /// Extracts one payment through namespace-qualified, unambiguous structural paths.
 /// Does not implement official ISO XSD or network usage validation.
 pub fn extract_financial_payment(xml: &str) -> Result<Iso20022FinancialPayment, PaymentGateError> {
@@ -314,28 +400,18 @@ pub fn extract_financial_payment(xml: &str) -> Result<Iso20022FinancialPayment, 
     };
     let amount_node = child(tx, "IntrBkSttlmAmt")?;
     let amount_text = text(amount_node)?;
-    // Reject scientific notation, signs and non-decimal floating point strings.
-    let parts: Vec<_> = amount_text.split('.').collect();
-    if parts.len() > 2
-        || parts
-            .iter()
-            .any(|p| p.is_empty() || !p.bytes().all(|b| b.is_ascii_digit()))
-    {
-        return Err(PaymentGateError::InvalidAmount {
-            amount: 0.0,
-            reason: "Expected unsigned decimal amount".into(),
-        });
-    }
+    let currency = amount_node
+        .attribute("Ccy")
+        .ok_or(PaymentGateError::MissingElement("Ccy"))?
+        .to_owned();
+    let (amount_minor_units, amount_scale) = parse_exact_minor_units(&amount_text, &currency)?;
     let amount = amount_text
         .parse()
         .map_err(|_| PaymentGateError::InvalidAmount {
             amount: 0.0,
             reason: "Invalid decimal amount".into(),
         })?;
-    let currency = amount_node
-        .attribute("Ccy")
-        .ok_or(PaymentGateError::MissingElement("Ccy"))?
-        .to_owned();
+    let amount_decimal_str = amount_text.to_owned();
     Ok(Iso20022FinancialPayment {
         message_type: crate::payment_xml::message_type(&doc).to_owned(),
         msg_id,
@@ -347,6 +423,9 @@ pub fn extract_financial_payment(xml: &str) -> Result<Iso20022FinancialPayment, 
         debtor_account: account("DbtrAcct")?,
         creditor_account: account("CdtrAcct")?,
         amount,
+        amount_minor_units,
+        amount_scale,
+        amount_decimal_str,
         currency,
         uetr: text(path(tx, &["PmtId", "UETR"])?)?,
         end_to_end_id: text(path(tx, &["PmtId", "EndToEndId"])?)?,
@@ -459,14 +538,27 @@ impl Iso20022PaymentGate {
             return Err(PaymentGateError::InvalidCurrency(payment.currency));
         }
 
-        // 6. Amount Invariants
-        if payment.amount.is_nan() || payment.amount.is_infinite() || payment.amount <= 0.0 {
+        // 6. Amount Invariants (Exact Minor-Unit Integer & Decimal Validation)
+        if payment.amount.is_nan()
+            || payment.amount.is_infinite()
+            || payment.amount <= 0.0
+            || payment.amount_minor_units == 0
+        {
             return Err(PaymentGateError::InvalidAmount {
                 amount: payment.amount,
-                reason: "Amount must be finite and strictly positive".into(),
+                reason:
+                    "Amount must be finite, strictly positive, and represent non-zero minor units"
+                        .into(),
             });
         }
-        if payment.amount > self.policy.max_single_transaction_limit {
+        if let Some(limit_minor) = self.policy.max_single_transaction_minor_units {
+            if payment.amount_minor_units > limit_minor {
+                return Err(PaymentGateError::AmountExceedsLimit {
+                    amount: payment.amount,
+                    limit: self.policy.max_single_transaction_limit,
+                });
+            }
+        } else if payment.amount > self.policy.max_single_transaction_limit {
             return Err(PaymentGateError::AmountExceedsLimit {
                 amount: payment.amount,
                 limit: self.policy.max_single_transaction_limit,
@@ -668,6 +760,9 @@ mod tests {
         let auth = res.unwrap();
         assert_eq!(auth.signer_bic, "DBEUMM21XXX");
         assert_eq!(auth.payment.amount, 150000.50);
+        assert_eq!(auth.payment.amount_minor_units, 15000050);
+        assert_eq!(auth.payment.amount_scale, 2);
+        assert_eq!(auth.payment.amount_decimal_str, "150000.50");
         assert_eq!(auth.payment.currency, "EUR");
         assert_eq!(auth.payment.uetr, uetr);
     }
@@ -998,8 +1093,10 @@ mod tests {
     fn test_payment_gate_rejects_exceeded_transaction_limit() {
         let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
         let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
-        let mut policy = PaymentPolicy::default();
-        policy.max_single_transaction_limit = 1_000_000.0; // $1M limit
+        let policy = PaymentPolicy {
+            max_single_transaction_limit: 1_000_000.0, // $1M limit
+            ..PaymentPolicy::default()
+        };
         let gate = Iso20022PaymentGate::new(registry.clone(), idempotency.clone(), policy);
 
         let (ed_sk, ml_sk, ml_pk) = generate_keypair();
@@ -1259,5 +1356,77 @@ mod tests {
             let error = extract_financial_payment(&changed).unwrap_err();
             assert!(matches!(error, PaymentGateError::InvalidField(_)));
         }
+    }
+
+    #[test]
+    fn test_payment_gate_exact_minor_unit_limits_and_scales() {
+        // 1. Verify minor unit parsing across different currency scales
+        let (jpy_units, jpy_scale) = parse_exact_minor_units("5000", "JPY").unwrap();
+        assert_eq!(jpy_units, 5000);
+        assert_eq!(jpy_scale, 0);
+
+        let (usd_units, usd_scale) = parse_exact_minor_units("123.45", "USD").unwrap();
+        assert_eq!(usd_units, 12345);
+        assert_eq!(usd_scale, 2);
+
+        let (bhd_units, bhd_scale) = parse_exact_minor_units("50.125", "BHD").unwrap();
+        assert_eq!(bhd_units, 50125);
+        assert_eq!(bhd_scale, 3);
+
+        // USD cannot have 3 non-zero decimal places
+        let usd_subminor = parse_exact_minor_units("10.005", "USD");
+        assert!(usd_subminor.is_err());
+
+        // Trailing zeros within currency scale are normalized
+        let (usd_padded, _) = parse_exact_minor_units("10.5", "USD").unwrap();
+        assert_eq!(usd_padded, 1050);
+
+        // 2. Exact minor unit limit enforcement in gate
+        let registry = Arc::new(InMemoryInstitutionalKeyRegistry::new());
+        let (ed_sk, ml_sk, ml_pk) = generate_keypair();
+        registry.register_signer(InstitutionalSigner {
+            institution_id: "inst-dbeumm21".into(),
+            institution_name: "Deutsche Bank Frankfurt".into(),
+            bic: "DBEUMM21XXX".into(),
+            status: SignerStatus::Active,
+            ed25519_public_key_hex: hex::encode(ed_sk.verifying_key().to_bytes()),
+            ml_dsa_87_public_key_hex: hex::encode(ml_pk.clone().into_bytes()),
+            authorized_message_types: vec!["pacs.008.001.08".into()],
+            valid_until_epoch: u64::MAX,
+        });
+        let idempotency = Arc::new(InMemoryPaymentIdempotencyStore::new());
+
+        let policy = PaymentPolicy {
+            max_single_transaction_minor_units: Some(50000),
+            ..PaymentPolicy::default()
+        };
+
+        let gate = Iso20022PaymentGate::new(registry, idempotency, policy);
+
+        let xml = sample_pacs008(
+            "DBEUMM21XXX",
+            "c0a80101-1234-4567-89ab-cdef01234567",
+            "500.01",
+            "USD",
+            "2026-10-23T12:00:00Z",
+        );
+        let sealed = embed_pqc_seal_into_iso20022(
+            &xml,
+            "DBEUMM21XXX",
+            "key-01",
+            "pacs.008.001.08",
+            &ed_sk,
+            &ml_sk,
+            &ml_pk,
+            1792345000,
+        )
+        .unwrap();
+
+        let now = parse_iso8601_to_unix("2026-10-23T12:01:00Z").unwrap();
+        let res = gate.validate_and_gate(&sealed, now);
+        assert!(matches!(
+            res,
+            Err(PaymentGateError::AmountExceedsLimit { .. })
+        ));
     }
 }

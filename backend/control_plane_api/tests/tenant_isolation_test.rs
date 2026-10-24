@@ -1,3 +1,5 @@
+#![allow(clippy::await_holding_lock)]
+
 use auth_service::{session::SessionStore, store::CredentialStore, AuthState};
 use control_plane_api::{router, ControlPlaneState};
 use sled::Config;
@@ -695,7 +697,7 @@ async fn scim_token_is_organization_bound_and_lifecycle_is_idempotent() {
     control_plane_api::enterprise_api::set_scim_token_hash(
         &control,
         &org,
-        &blake3::hash(secret.as_bytes()).to_hex().to_string(),
+        blake3::hash(secret.as_bytes()).to_hex().as_ref(),
     )
     .unwrap();
 

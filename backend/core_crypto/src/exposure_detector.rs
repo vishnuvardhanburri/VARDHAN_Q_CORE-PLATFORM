@@ -463,7 +463,7 @@ mod tests {
         ));
 
         let second_detector = AerKepQ::new("bank-a", 11).unwrap();
-        let mut conflicting = second_detector.descriptor(&signer).unwrap();
+        let conflicting = second_detector.descriptor(&signer).unwrap();
         assert_eq!(conflicting.epoch, first.descriptor.epoch);
         assert!(matches!(
             registry.apply(&conflicting, &pubkey),

@@ -153,9 +153,9 @@ impl Pkcs11SoftHsmEmulator {
         let cipher = Aes256Gcm::new(&(*master).into());
         let mut nonce_bytes = [0u8; 12];
         OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
-        let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|e| {
+        let ciphertext = cipher.encrypt(&nonce, plaintext).map_err(|e| {
             KeyProtectionError::Crypto(format!("C_WrapKey mechanism failure: {:?}", e))
         })?;
 
@@ -188,12 +188,13 @@ impl Pkcs11SoftHsmEmulator {
             .entry(key_label.to_string())
             .or_insert_with(|| vec![Self::derive_master(key_label, self.slot_id, 1)]);
 
-        let nonce = Nonce::from_slice(&ciphertext[..12]);
+        let nonce =
+            Nonce::try_from(&ciphertext[..12]).map_err(|_| KeyProtectionError::DecryptionFailed)?;
         let data = &ciphertext[12..];
 
         for master in versions.iter().rev() {
             let cipher = Aes256Gcm::new(&(*master).into());
-            if let Ok(pt) = cipher.decrypt(nonce, data) {
+            if let Ok(pt) = cipher.decrypt(&nonce, data) {
                 return Ok(pt);
             }
         }
@@ -439,9 +440,9 @@ impl KeyProtectionProvider for Pkcs11HsmProvider {
         let cipher = Aes256Gcm::new((&*zeroizing_dek).into());
         let mut nonce_bytes = [0u8; 12];
         OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
-        let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|e| {
+        let ciphertext = cipher.encrypt(&nonce, plaintext).map_err(|e| {
             KeyProtectionError::Crypto(format!("Envelope encryption failed: {:?}", e))
         })?;
 
@@ -486,11 +487,12 @@ impl KeyProtectionProvider for Pkcs11HsmProvider {
         let dek = self.decrypt_dek(&self.key_label, &wrapped_dek)?;
 
         let cipher = Aes256Gcm::new((&*dek).into());
-        let nonce = Nonce::from_slice(&wrapped_payload[..12]);
+        let nonce = Nonce::try_from(&wrapped_payload[..12])
+            .map_err(|_| KeyProtectionError::DecryptionFailed)?;
         let data = &wrapped_payload[12..];
 
         let plaintext = cipher
-            .decrypt(nonce, data)
+            .decrypt(&nonce, data)
             .map_err(|_| KeyProtectionError::DecryptionFailed)?;
 
         Ok(Zeroizing::new(plaintext))

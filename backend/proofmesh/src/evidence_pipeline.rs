@@ -100,7 +100,7 @@ impl<E: EvidenceStore + Send + Sync> EvidencePipeline<E> {
             commit_index: None,
             related_object_refs: vec![],
             status: EvidenceStatus::Created,
-            logical_id: logical_id.clone(),
+            logical_id,
         };
 
         // Finalize Identity - deterministically hash the full serialized struct
@@ -123,14 +123,11 @@ impl<E: EvidenceStore + Send + Sync> EvidencePipeline<E> {
             if start.elapsed() > timeout_duration {
                 break;
             }
-            match self.evidence_store.get(final_evidence_id) {
-                Ok(stored_record) => {
-                    if stored_record.commit_index.is_some() {
-                        committed = true;
-                        break;
-                    }
+            if let Ok(stored_record) = self.evidence_store.get(final_evidence_id) {
+                if stored_record.commit_index.is_some() {
+                    committed = true;
+                    break;
                 }
-                Err(_) => {}
             }
             tokio::time::sleep(Duration::from_millis(50)).await;
         }

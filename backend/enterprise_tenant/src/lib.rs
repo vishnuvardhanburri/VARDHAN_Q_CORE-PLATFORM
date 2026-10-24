@@ -45,6 +45,12 @@ pub struct TenantManager {
     tenants: RwLock<HashMap<String, TenantSession>>,
 }
 
+impl Default for TenantManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TenantManager {
     pub fn new() -> Self {
         Self {

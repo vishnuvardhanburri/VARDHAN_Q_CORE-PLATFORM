@@ -83,11 +83,9 @@ pub async fn list_webhooks(
     }
     let prefix = format!("{}{}:", String::from_utf8_lossy(WEBHOOK_PREFIX), org_id);
     let mut webhooks = Vec::new();
-    for item in state.db.scan_prefix(prefix.as_bytes()) {
-        if let Ok((_, val)) = item {
-            if let Ok(wh) = serde_json::from_slice::<WebhookEndpoint>(&val) {
-                webhooks.push(wh);
-            }
+    for (_, val) in state.db.scan_prefix(prefix.as_bytes()).flatten() {
+        if let Ok(wh) = serde_json::from_slice::<WebhookEndpoint>(&val) {
+            webhooks.push(wh);
         }
     }
     Json(json!({ "organization_id": org_id, "webhooks": webhooks })).into_response()
@@ -289,14 +287,12 @@ pub async fn list_webhook_deliveries(
     }
     let prefix = format!("{}{}:", String::from_utf8_lossy(WEBHOOK_LOG_PREFIX), org_id);
     let mut logs = Vec::new();
-    for item in state.db.scan_prefix(prefix.as_bytes()) {
-        if let Ok((_, val)) = item {
-            if let Ok(l) = serde_json::from_slice::<WebhookDeliveryLog>(&val) {
-                logs.push(l);
-            }
+    for (_, val) in state.db.scan_prefix(prefix.as_bytes()).flatten() {
+        if let Ok(l) = serde_json::from_slice::<WebhookDeliveryLog>(&val) {
+            logs.push(l);
         }
     }
-    logs.sort_by(|a, b| b.timestamp_ms.cmp(&a.timestamp_ms));
+    logs.sort_by_key(|a| std::cmp::Reverse(a.timestamp_ms));
     logs.truncate(50);
     Json(json!({ "organization_id": org_id, "deliveries": logs })).into_response()
 }

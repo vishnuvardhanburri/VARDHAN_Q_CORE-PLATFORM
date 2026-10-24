@@ -132,9 +132,9 @@ impl VaultTransitEmulator {
         let cipher = Aes256Gcm::new(&(*master).into());
         let mut nonce_bytes = [0u8; 12];
         OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
-        let ciphertext = cipher.encrypt(nonce, plaintext).map_err(|e| {
+        let ciphertext = cipher.encrypt(&nonce, plaintext).map_err(|e| {
             KeyProtectionError::Crypto(format!("Vault transit encryption failed: {:?}", e))
         })?;
 
@@ -218,11 +218,12 @@ impl VaultTransitEmulator {
             .ok_or(KeyProtectionError::DecryptionFailed)?;
 
         let cipher = Aes256Gcm::new(&(*master).into());
-        let nonce = Nonce::from_slice(&raw[..12]);
+        let nonce =
+            Nonce::try_from(&raw[..12]).map_err(|_| KeyProtectionError::DecryptionFailed)?;
         let data = &raw[12..];
 
         cipher
-            .decrypt(nonce, data)
+            .decrypt(&nonce, data)
             .map_err(|_| KeyProtectionError::DecryptionFailed)
     }
 }

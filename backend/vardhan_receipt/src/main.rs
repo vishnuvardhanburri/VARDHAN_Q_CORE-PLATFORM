@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use clap::{Parser, Subcommand};
 use core_crypto::anti_tamper;
 use ed25519_dalek::{Signature as EdSignature, Signer, SigningKey};
@@ -47,6 +49,7 @@ enum Commands {
     },
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct EvidencePackage {
     evidence_id: String,
@@ -54,12 +57,14 @@ pub struct EvidencePackage {
     category: String,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct DecisionCandidate {
     action_type: String,
     policy_reference: String,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct Provenance {
     source_identity: String,
@@ -121,6 +126,7 @@ pub struct VardhanSealedReceipt {
 }
 
 impl VardhanSealedReceipt {
+    #[allow(clippy::too_many_arguments)]
     pub fn build(
         transaction_id: String,
         status: String,
@@ -180,6 +186,7 @@ impl VardhanSealedReceipt {
     /// policy_id, policy_version. Now covers ALL signed fields including
     /// evidence_commitments, decision, outcome_code, authority_reference,
     /// and state_hash_at_decision.
+    #[allow(clippy::too_many_arguments)]
     pub fn canonical_payload(
         tenant_id: &str,
         transaction_id: &str,
@@ -309,7 +316,7 @@ async fn main() {
     match &cli.command {
         Commands::ValidateCanonical => {
             let mut input = String::new();
-            if let Err(_) = io::stdin().read_to_string(&mut input) {
+            if io::stdin().read_to_string(&mut input).is_err() {
                 print_error("REJECTED_MALFORMED", "Failed to read STDIN");
                 return;
             }
@@ -406,7 +413,7 @@ async fn main() {
         }
         Commands::Verify { receipt_id: _ } => {
             let mut input = String::new();
-            if let Err(_) = io::stdin().read_to_string(&mut input) {
+            if io::stdin().read_to_string(&mut input).is_err() {
                 eprintln!("Failed to read receipt from STDIN");
                 std::process::exit(1);
             }
@@ -651,7 +658,7 @@ pub fn process_transaction(
         provenance,
     );
 
-    if let Err(_) = tx.transition(TransactionState::Validating) {
+    if tx.transition(TransactionState::Validating).is_err() {
         release_finding_reservation(&finding_id);
         return Err((
             "REJECTED_MALFORMED".to_string(),
@@ -686,7 +693,7 @@ pub fn process_transaction(
         reason: decision.reason().to_string(),
     };
 
-    if let Err(_) = tx.apply_authority_result(authority_result.clone()) {
+    if tx.apply_authority_result(authority_result.clone()).is_err() {
         release_finding_reservation(&finding_id);
         return Err((
             "ERROR".to_string(),
@@ -1293,7 +1300,7 @@ mod e2e_boundary_tests {
         // Spawn num_threads threads that ALL submit the same finding_id
         // simultaneously, using a barrier to maximize race window.
         let results: Vec<_> = (0..num_threads)
-            .map(|i| {
+            .map(|_i| {
                 let b = barrier.clone();
                 let req_clone = req.clone();
                 thread::spawn(move || {
@@ -1411,7 +1418,7 @@ mod e2e_boundary_tests {
             original_sig.replacen('a', "b", 1)
         } else {
             let mut chars: Vec<char> = original_sig.chars().collect();
-            if chars.len() > 0 {
+            if !chars.is_empty() {
                 chars[0] = 'a';
                 chars.iter().collect()
             } else {
@@ -1463,7 +1470,7 @@ mod e2e_boundary_tests {
             original_sig.replacen('a', "b", 1)
         } else {
             let mut chars: Vec<char> = original_sig.chars().collect();
-            if chars.len() > 0 {
+            if !chars.is_empty() {
                 chars[0] = 'a';
                 chars.iter().collect()
             } else {

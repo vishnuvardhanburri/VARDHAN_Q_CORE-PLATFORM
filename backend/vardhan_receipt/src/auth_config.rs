@@ -236,8 +236,6 @@ impl AuthConfigLoader {
 mod tests {
     use super::*;
 
-    use std::io::Write;
-
     #[test]
     fn test_load_from_file_valid() {
         let dir = tempfile::tempdir().unwrap();
@@ -362,11 +360,11 @@ mod tests {
         assert!(result.is_ok());
         let config = result.unwrap();
         assert!(
-            config.tenants.len() >= 1,
+            !config.tenants.is_empty(),
             "Development default must have at least one tenant"
         );
         assert!(
-            config.policies.len() >= 1,
+            !config.policies.is_empty(),
             "Development default must have at least one policy"
         );
 

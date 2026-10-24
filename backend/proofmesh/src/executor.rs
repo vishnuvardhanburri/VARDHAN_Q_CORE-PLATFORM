@@ -7,6 +7,12 @@ pub struct IsolatedExecutor {
     allowed_executables: HashSet<String>,
 }
 
+impl Default for IsolatedExecutor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IsolatedExecutor {
     pub fn new() -> Self {
         let mut allowed = HashSet::new();

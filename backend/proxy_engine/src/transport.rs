@@ -3,11 +3,10 @@ use aes_gcm::{
     aead::{Aead, KeyInit, Payload},
     Aes256Gcm, Key, Nonce,
 };
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{Buf, BytesMut};
 use std::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use zeroize::Zeroize;
 
 /// Maximum AEAD frame size. Raft AppendEntries messages carrying checkpoint
 /// entries (ML-DSA-87 signatures ~4627 bytes + ledger Merkle data) can exceed

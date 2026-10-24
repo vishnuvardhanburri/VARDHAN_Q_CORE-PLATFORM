@@ -45,6 +45,7 @@ impl PeerRegistry {
 }
 
 pub struct GossipEngine {
+    #[allow(dead_code)]
     identity: Arc<QuantumNodeIdentity>,
     local_node_id: NodeId,
     registry: PeerRegistry,

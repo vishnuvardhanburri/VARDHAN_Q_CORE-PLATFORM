@@ -115,10 +115,10 @@ impl KeyProtector for LocalDevKeyProtector {
         let cipher = Aes256Gcm::new(&key.into());
         let mut nonce_bytes = [0u8; 12];
         rand::rngs::OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
         let mut ciphertext = cipher
-            .encrypt(nonce, plaintext)
+            .encrypt(&nonce, plaintext)
             .map_err(|e| VaultError::Crypto(format!("Envelope encryption failed: {:?}", e)))?;
 
         let mut final_payload = nonce_bytes.to_vec();
@@ -132,11 +132,12 @@ impl KeyProtector for LocalDevKeyProtector {
         }
         let key = self.get_kek()?;
         let cipher = Aes256Gcm::new(&key.into());
-        let nonce = Nonce::from_slice(&ciphertext[..12]);
+        let nonce = Nonce::try_from(&ciphertext[..12])
+            .map_err(|e| VaultError::Crypto(format!("Invalid nonce: {:?}", e)))?;
         let data = &ciphertext[12..];
 
         let plaintext = cipher
-            .decrypt(nonce, data)
+            .decrypt(&nonce, data)
             .map_err(|e| VaultError::Crypto(format!("Envelope decryption failed: {:?}", e)))?;
         Ok(plaintext)
     }
@@ -243,10 +244,10 @@ impl KmsClient for MockKmsClient {
         let cipher = Aes256Gcm::new(&(*current_master).into());
         let mut nonce_bytes = [0u8; 12];
         rand::rngs::OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
         let mut ciphertext = cipher
-            .encrypt(nonce, plaintext)
+            .encrypt(&nonce, plaintext)
             .map_err(|e| VaultError::Crypto(format!("KMS mock encryption failed: {:?}", e)))?;
 
         let mut wrapped = nonce_bytes.to_vec();
@@ -278,13 +279,14 @@ impl KmsClient for MockKmsClient {
             .entry(key_str.to_string())
             .or_insert_with(|| (1..=5).map(|v| Self::derive_master(key_str, v)).collect());
 
-        let nonce = Nonce::from_slice(&ciphertext[..12]);
+        let nonce = Nonce::try_from(&ciphertext[..12])
+            .map_err(|e| VaultError::Crypto(format!("Invalid nonce: {:?}", e)))?;
         let data = &ciphertext[12..];
 
         // Try from latest version back to oldest (AWS KMS automatic key rotation model)
         for master in versions.iter().rev() {
             let cipher = Aes256Gcm::new(&(*master).into());
-            if let Ok(pt) = cipher.decrypt(nonce, data) {
+            if let Ok(pt) = cipher.decrypt(&nonce, data) {
                 return Ok(pt);
             }
         }
@@ -561,10 +563,10 @@ impl KeyProtector for HsmKeyProtector {
         let cipher = Aes256Gcm::new(&self.master_key.into());
         let mut nonce_bytes = [0u8; 12];
         rand::rngs::OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
 
         let mut ciphertext = cipher
-            .encrypt(nonce, dek.as_ref())
+            .encrypt(&nonce, dek.as_ref())
             .map_err(|e| VaultError::Crypto(format!("HSM C_WrapKey failed: {:?}", e)))?;
 
         let mut wrapped = nonce_bytes.to_vec();
@@ -577,12 +579,13 @@ impl KeyProtector for HsmKeyProtector {
             return Err(VaultError::Crypto("HSM wrapped key too short".into()));
         }
         let cipher = Aes256Gcm::new(&self.master_key.into());
-        let nonce = Nonce::from_slice(&wrapped_dek[..12]);
+        let nonce = Nonce::try_from(&wrapped_dek[..12])
+            .map_err(|e| VaultError::Crypto(format!("Invalid nonce: {:?}", e)))?;
         let data = &wrapped_dek[12..];
 
         let pt = Zeroizing::new(
             cipher
-                .decrypt(nonce, data)
+                .decrypt(&nonce, data)
                 .map_err(|e| VaultError::Crypto(format!("HSM C_UnwrapKey failed: {:?}", e)))?,
         );
 
@@ -600,9 +603,9 @@ impl KeyProtector for HsmKeyProtector {
         let cipher = Aes256Gcm::new(&self.master_key.into());
         let mut nonce_bytes = [0u8; 12];
         rand::rngs::OsRng.fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
+        let nonce = Nonce::from(nonce_bytes);
         let mut ct = cipher
-            .encrypt(nonce, plaintext)
+            .encrypt(&nonce, plaintext)
             .map_err(|e| VaultError::Crypto(format!("HSM wrap failed: {:?}", e)))?;
         let mut out = nonce_bytes.to_vec();
         out.append(&mut ct);
@@ -614,9 +617,10 @@ impl KeyProtector for HsmKeyProtector {
             return Err(VaultError::Crypto("HSM ciphertext too short".into()));
         }
         let cipher = Aes256Gcm::new(&self.master_key.into());
-        let nonce = Nonce::from_slice(&ciphertext[..12]);
+        let nonce = Nonce::try_from(&ciphertext[..12])
+            .map_err(|e| VaultError::Crypto(format!("Invalid nonce: {:?}", e)))?;
         cipher
-            .decrypt(nonce, &ciphertext[12..])
+            .decrypt(&nonce, &ciphertext[12..])
             .map_err(|e| VaultError::Crypto(format!("HSM unwrap failed: {:?}", e)))
     }
 
@@ -667,10 +671,10 @@ pub fn wrap_envelope<P: KeyProtector>(
     let cipher = Aes256Gcm::new((&*zeroizing_dek).into());
     let mut nonce_bytes = [0u8; 12];
     rand::rngs::OsRng.fill_bytes(&mut nonce_bytes);
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let nonce = Nonce::from(nonce_bytes);
 
     let mut ciphertext = cipher
-        .encrypt(nonce, plaintext)
+        .encrypt(&nonce, plaintext)
         .map_err(|e| VaultError::Crypto(format!("Envelope payload encryption failed: {:?}", e)))?;
 
     let mut wrapped_payload = nonce_bytes.to_vec();
@@ -716,11 +720,12 @@ pub fn unwrap_envelope<P: KeyProtector>(
     }
 
     let cipher = Aes256Gcm::new((&*dek).into());
-    let nonce = Nonce::from_slice(&envelope.wrapped_payload[..12]);
+    let nonce = Nonce::try_from(&envelope.wrapped_payload[..12])
+        .map_err(|e| VaultError::Crypto(format!("Invalid nonce: {:?}", e)))?;
     let data = &envelope.wrapped_payload[12..];
 
     let plaintext = cipher
-        .decrypt(nonce, data)
+        .decrypt(&nonce, data)
         .map_err(|e| VaultError::Crypto(format!("Envelope payload decryption failed: {:?}", e)))?;
 
     Ok(Zeroizing::new(plaintext))

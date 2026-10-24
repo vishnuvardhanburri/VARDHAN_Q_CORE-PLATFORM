@@ -121,7 +121,7 @@ fn verify_mldsa87(public_key: &[u8], message: &[u8], signature_hex: &str) -> boo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ed25519_dalek::{Signer, SigningKey};
+    use ed25519_dalek::SigningKey;
     use fips204::traits::Signer as PqSigner;
     use std::time::{SystemTime, UNIX_EPOCH};
 

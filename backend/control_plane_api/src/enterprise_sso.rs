@@ -3,7 +3,7 @@
 use crate::{is_member, ControlPlaneState};
 use auth_service::AdminProfile;
 use axum::{
-    extract::{Form, Query, State},
+    extract::{Query, State},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Redirect},
     Json,
@@ -43,6 +43,7 @@ struct Discovery {
     issuer: String,
 }
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct TokenResponse {
     id_token: String,
     access_token: Option<String>,
@@ -53,6 +54,7 @@ struct Jwks {
     keys: Vec<Jwk>,
 }
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct Jwk {
     kid: Option<String>,
     kty: String,
@@ -99,6 +101,7 @@ fn state_key(state: &str) -> Vec<u8> {
 fn pkce_challenge(verifier: &str) -> String {
     URL_SAFE_NO_PAD.encode(Sha256::digest(verifier.as_bytes()))
 }
+#[allow(clippy::result_large_err)]
 fn configured(name: &str) -> Result<String, axum::response::Response> {
     std::env::var(name)
         .ok()

@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn test_execute_ephemerally_wipes_input() {
         let mut raw = [0xDE, 0xAD, 0xBE, 0xEF];
-        let hash = execute_ephemerally(raw, |data| blake3::hash(data));
+        let hash = execute_ephemerally(raw, blake3::hash);
 
         assert_ne!(hash.as_bytes(), &[0u8; 32]);
         raw.zeroize();

@@ -219,13 +219,13 @@ impl DependencyGraph {
     /// Add a directed relationship.
     pub fn add_edge(&mut self, edge: Edge) -> Result<(), GraphError> {
         // Cycle detection for DependsOn relationships
-        if edge.relationship == Relationship::DependsOn {
-            if self.path_exists(&edge.to, &edge.from, &[Relationship::DependsOn]) {
-                return Err(GraphError::CycleDetected(vec![
-                    edge.from.clone(),
-                    edge.to.clone(),
-                ]));
-            }
+        if edge.relationship == Relationship::DependsOn
+            && self.path_exists(&edge.to, &edge.from, &[Relationship::DependsOn])
+        {
+            return Err(GraphError::CycleDetected(vec![
+                edge.from.clone(),
+                edge.to.clone(),
+            ]));
         }
 
         self.nodes.insert(edge.from.clone());

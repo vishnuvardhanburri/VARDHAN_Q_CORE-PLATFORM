@@ -1,7 +1,7 @@
 //! Local epoch quarantine and replacement controller.
 //! Does not prove anomaly detection, safe connection resumption or recovery latency.
 
-use crate::aer_kep_q::{AerKepQ, AerKepQError, EpochDescriptor, EpochStatus};
+use crate::aer_kep_q::{AerKepQ, EpochDescriptor};
 use crate::QuantumNodeIdentity;
 use std::sync::{Arc, Mutex};
 use thiserror::Error;
@@ -119,6 +119,7 @@ impl SelfHealingEpochController {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::aer_kep_q::EpochStatus;
 
     #[test]
     fn test_self_healing_rotation_flow() {
