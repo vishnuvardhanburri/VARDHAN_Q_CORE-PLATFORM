@@ -4,7 +4,7 @@
 
 ## Revision and environment
 
-Inspected candidate baseline on origin/main: `ad7897aacac8956cfd38466e383f9cbeba4374e0` (verified through passing CI gates, hardened live acceptance drills, and enterprise configuration validation).
+Inspected candidate baseline on origin/main: `f7c0dc823cebb6338e3e7f4577884483321db80b` (verified through passing CI gates, hardened live acceptance drills, and enterprise configuration validation).
 Task branch: `coderabbit/production-readiness-security-hardening/80b9f4f7`.
 Initial working tree clean. Ubuntu 26.04.1, x86_64, Python 3.14.4, Node 24.21.0.
 Rust initially absent; installed stable via `mise install rust@stable`: rustc 1.99.1
