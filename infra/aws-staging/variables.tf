@@ -13,7 +13,7 @@ variable "vpc_cidr" {
 variable "allowed_client_cidrs" {
   description = "CIDRs permitted to reach the public ALB. Use office/VPN egress CIDRs, not 0.0.0.0/0, for restricted evaluation."
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = []
 }
 
 variable "acm_certificate_arn" {
