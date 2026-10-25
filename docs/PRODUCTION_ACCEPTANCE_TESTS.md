@@ -1,6 +1,6 @@
 # Production acceptance test evidence — final production acceptance programme
 
-**NOT PRODUCTION READY.** Source baseline: `f7c0dc823cebb6338e3e7f4577884483321db80b` (post-merge `main` branch following enterprise release gate SLSA attestation fail-safe remediation, global banking positioning, authoritative pricing catalogue, repository mapping, and bank deployment level definitions).
+**NOT PRODUCTION READY.** Source baseline: `eaf08f21a160cdfe532204c2693273f36b9e06a9` (post-merge `main` branch following PQC liboqs cross-implementation interop gate, network resilience netem suite, enterprise release gate SLSA attestation fail-safe remediation, global banking positioning, authoritative pricing catalogue, repository mapping, and bank deployment level definitions).
 Environment: Ubuntu 24.04 / macOS Darwin arm64; Rust 1.99.1 stable; Python 3.12+; Docker 27.x. Local synthetic fixtures and CI virtualized environments only. No real payment rails, live institutional keys, or customer funds.
 
 ## 1. Post-merge CI workflow execution matrix
@@ -9,12 +9,13 @@ All production and verification workflows are verified on the `main` branch on G
 
 | Workflow Name | Run ID | Head Commit | Result | Duration | Scope and Passing Criteria |
 |---|---|---|---|---|---|
-| **Vardhan Q-Core Enterprise Release Gate** | `40186065957` / `40134765993` | `f7c0dc8` / `ad7897a` | PASS (exit 0) | 50m 34s | Formatting check (`cargo fmt --check`), full workspace test suite (`cargo test --workspace -- --test-threads=1`), clustered PostgreSQL idempotency verification, production KMS/HSM key drill, FIPS 140-3 KAT health gate, release binary compilation, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation fail-safe |
-| **Vardhan Q-Core Correctness & Performance** | `40186066007` / `40134765765` | `f7c0dc8` / `ad7897a` | PASS (exit 0) | 53m 15s | Full unit and integration tests, E2E lifecycle suite (33/33 checks), lab demo verification (5/5 checks), adversarial security tests (issuer binding `DENY_ISSUER_UNBOUND`, audit tamper detection, Vault KMS, TLS compilation), controlled performance benchmark |
-| **Sovereign Platform CI (Unified)** | `40186065950` / `40134765789` | `f7c0dc8` / `ad7897a` | PASS (exit 0) | 15m 14s | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
-| **Supply Chain Security** | `40186065945` / `40134765800` | `f7c0dc8` / `ad7897a` | PASS (exit 0) | 8m 22s | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard, enterprise compose secret guard |
-| **Platform Web Contract** | `40186065946` / `40134765848` | `f7c0dc8` / `ad7897a` | PASS (exit 0) | 10s | Consolidated Web contract validation, console interface and client model verification |
-| **Clean Deployments** | `40186065949` / `40134765876` | `f7c0dc8` / `ad7897a` | PASS (exit 0) | 6s | Automated deployment pruning, all historical stale deployments pruned down to 1 active record (`7312532946`, staging) |
+| **Vardhan Q-Core Enterprise Release Gate** | `40195381181` / `40186065957` | `42347ac` / `f7c0dc8` | PASS (exit 0) | 50m 34s | Formatting check (`cargo fmt --check`), full workspace test suite (`cargo test --workspace -- --test-threads=1`), clustered PostgreSQL idempotency verification, production KMS/HSM key drill, FIPS 140-3 KAT health gate, release binary compilation, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation fail-safe |
+| **Vardhan Q-Core Correctness & Performance** | `40195381166` / `40186066007` | `42347ac` / `f7c0dc8` | PASS (exit 0) | 53m 15s | Full unit and integration tests, E2E lifecycle suite (33/33 checks), lab demo verification (5/5 checks), adversarial security tests (issuer binding `DENY_ISSUER_UNBOUND`, audit tamper detection, Vault KMS, TLS compilation), controlled performance benchmark |
+| **Sovereign Platform CI (Unified)** | `40195381133` / `40186065950` | `42347ac` / `f7c0dc8` | PASS (exit 0) | 17m 42s | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests, PQC liboqs cross-implementation interop gate (job ID `121174982785`, 8/8 suites passed, `[INTEROP PASS]`) |
+| **Supply Chain Security** | `40213732941` / `40195381137` | `eaf08f2` / `42347ac` | PASS (exit 0) | 8m 22s | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard, enterprise compose secret guard |
+| **Platform Web Contract** | `40213733167` / `40195381161` | `eaf08f2` / `42347ac` | PASS (exit 0) | 10s | Consolidated Web contract validation, console interface and client model verification |
+| **Clean Deployments** | `40213732936` / `40195381136` | `eaf08f2` / `42347ac` | PASS (exit 0) | 6s | Automated deployment pruning, all historical stale deployments pruned down to 1 active record (`7313977232`, staging); prior audit record (`7313023978`) preserved in documentation |
+| **PQC Network Resilience & Netem Benchmark** | `40213746034` | `eaf08f2` | PASS (exit 0) | 3m 48s | Standalone manual/scheduled workflow: Linux network namespace with symmetrical `tc netem` (MTU 1400B, delay 20ms, loss 0.5%), explicit `X25519MLKEM768` hybrid TLS 1.3 negotiation, 10 packets captured, zero IP fragmentation, RAM-backed tmpfs (`[NET-TRACE PASS]`) |
 | **Docker PoV Validation** | `40047148907` | `87c1fc5` | PASS (exit 0) | 13m 43s | End-to-end Docker container build, syntax validation, high-concurrency API performance bench (`perf_bench.py` c=1, 10, 50, 100 with zero rejected requests), crypto microbenchmarks (Ed25519, BLAKE3, ML-DSA-87), signed PoV evidence bundle upload |
 | **Unified Local Runtime Validation** | `40113953078` | `101bcc1` | PASS (exit 0) | 4m 46s | Local container stack orchestration smoke test (`docker compose up`) verifying clean PostgreSQL socket initialization and control plane health checks |
 | **Lab Harness Verification** | `40047148849` | `87c1fc5` | PASS (exit 0) | 1m 20s | Synthetic lab harness verification and end-to-end sandbox state validation |
@@ -28,6 +29,28 @@ All production and verification workflows are verified on the `main` branch on G
 
 - **Historical Failure (Commit `ae5dda1`)**: `Vardhan Q-Core Enterprise Release Gate` failed at step `Generate SLSA build provenance attestation` with `Error: Failed to persist attestation: Feature not available for user-owned private repositories`. GitHub restricts artifact attestation persistence to public repositories or GitHub Enterprise Cloud organizations.
 - **Remediation & Proof (Commit `f7c0dc8`)**: Added `continue-on-error: true` to `Generate SLSA build provenance attestation` in `.github/workflows/enterprise-release.yml`. This allows the attestation action to attempt persistence when permitted by repository visibility while preventing failure on private personal plans. Primary Cosign cryptographic signing and signature verification (`cosign verify-blob`) in the deployment gate remain fully enforced. Subsequent run `40186065957` completed with 100% success.
+
+### Post-quantum cryptographic assurance: Rust/liboqs interoperability and network resilience
+
+Evidence is partitioned strictly by assurance type:
+- **`[KAT]` Known Answer Tests**: 6 embedded FIPS 140-3 known answer tests in `core_crypto::fips140_3` pass on startup.
+- **`[INTEROP]` Independent Cross-Implementation Validation**: Bidirectional tests executed against `liboqs 0.16.0` (C reference implementation) via length-delimited binary protocol (`interop_runner`):
+  - Direction A KEM: liboqs encapsulated to Rust ML-KEM-1024 public key (1568B), Rust decapsulated identical 32B shared secret (`[PASS]`).
+  - Direction B KEM: Rust encapsulated to liboqs ML-KEM-1024 public key, liboqs decapsulated identical 32B shared secret (`[PASS]`).
+  - Direction A Signatures: liboqs verified Rust ML-DSA-87 signature over test message (`[PASS]`).
+  - Direction B Signatures: Rust verified liboqs ML-DSA-87 signature over test message (`[PASS]`).
+  - Negative controls: Tampered signatures, tampered messages, and altered ciphertexts properly rejected (`[PASS]`).
+  - ML-KEM implicit rejection: Altered ciphertext yields non-matching shared secret without crashing (`[PASS]`).
+  - Memory isolation: State reset dropped retained keys from process memory; subsequent decap/sign calls fail closed (`[PASS]`).
+  - Protocol resilience: Bad magic, unsupported version, and unknown commands rejected (`[PASS]`).
+  - CI verification: Run `40195381133`, job `121174982785`, exit 0.
+- **`[NET-TRACE]` Network Transport & Wire Resilience**: Standalone workflow `pqc-network-bench.yml` (run `40213746034`, exit 0) executed in a disposable Linux network namespace with symmetrical `tc netem` impairment (MTU=1400B, Delay=20ms, Loss=0.5%):
+  - Explicit PQC/hybrid group: `X25519MLKEM768` negotiated under TLS 1.3 via OpenSSL + `oqsprovider 0.12.0` / `liboqs 0.16.0`.
+  - Cipher suite: `TLS_AES_256_GCM_SHA384`.
+  - Handshake latency: 93.14 ms (threshold <= 5000 ms).
+  - Packet capture: 10 packets captured, 8 TLS records decoded by TShark, zero TCP retransmissions, zero L3 IP fragmentation (TCP MSS segmentation active).
+  - Ephemeral secret hygiene: Certificates, key logs, and captures stored in RAM tmpfs (`/dev/shm`), shredded and unlinked on test completion. No physical hardware zeroisation claimed. Zero persistent CI artifacts.
+- **`[FORMAL-AUDIT]` Formal Cryptographic Review**: Open institutional blocker (BLK-003). AER-KEP-Q remains an engineered candidate protocol pending external academic/institutional review.
 
 ## 2. Post-merge commands and observed exits
 
@@ -46,6 +69,8 @@ Commands executed from the repository root across local test environments and Gi
 | post-merge-ha-failure | `cargo test -p ha_cluster --test raft_l3_failure` | PASS (exit 0) | 14/14 tests pass, including `test_leader_crash_10x`, `test_stale_delayed_rpc`, `test_partition_healing`, `test_stale_rpc_10x`, `test_duplicate_client_request` |
 | post-merge-audit-trail | `cargo test -p vardhan_receipt audit_trail` | PASS (exit 0) | 5/5 tests pass, verifying cross-process locking, tamper detection, and trail chain linkage |
 | post-merge-fips-kat | `bash scripts/test_fips_140_3_gate.sh` | PASS (exit 0) | FIPS 140-3 Known Answer Test health gate verified |
+| post-merge-pqc-interop | `.venv-pqc/bin/python3 scripts/pqc_cross_validate_liboqs.py` | PASS (exit 0) | 8/8 bidirectional ML-KEM-1024 and ML-DSA-87 suites pass against liboqs 0.16.0 |
+| post-merge-pqc-netem | `sudo -E bash scripts/run_network_pqc_bench.sh` | PASS (exit 0) | X25519MLKEM768 hybrid TLS 1.3 handshake under netem (93 ms, 10 packets, 0 IP fragmentation) |
 | post-merge-postgres-cluster | `bash scripts/multi_node_cluster_verify.sh` | PASS (exit 0) | Multi-node clustered PostgreSQL idempotency verified |
 | post-merge-e2e-lifecycle | `python3 scripts/e2e_lifecycle_validation.py` | PASS (exit 0) | 33/33 end-to-end lifecycle verification checks passed |
 | post-merge-lab-demo | `bash lab_demo_verify.sh` | PASS (exit 0) | 5/5 lab demonstration sanity checks passed |

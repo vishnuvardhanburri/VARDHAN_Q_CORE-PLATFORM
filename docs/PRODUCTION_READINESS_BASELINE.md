@@ -4,7 +4,7 @@
 
 ## Revision and environment
 
-Inspected candidate baseline on origin/main: `f7c0dc823cebb6338e3e7f4577884483321db80b` (verified through passing CI gates, hardened live acceptance drills, and enterprise configuration validation).
+Inspected candidate baseline on origin/main: `eaf08f21a160cdfe532204c2693273f36b9e06a9` (verified through passing CI gates, PQC liboqs cross-implementation interop gate, network resilience netem benchmark, hardened live acceptance drills, and enterprise configuration validation).
 Task branch: `coderabbit/production-readiness-security-hardening/80b9f4f7`.
 Initial working tree clean. Ubuntu 26.04.1, x86_64, Python 3.14.4, Node 24.21.0.
 Rust initially absent; installed stable via `mise install rust@stable`: rustc 1.99.1
@@ -23,7 +23,7 @@ sdk and sdks (Rust/Go/Java/Python/TypeScript clients). These are separate trust 
 | Crate | Directory | Executables |
 |---|---|---|
 | `receipt_generator` | `backend/test_fixtures/receipt_generator` | receipt_generator |
-| `core_crypto` | `backend/core_crypto` | vendor_admin, aer_kep_q_smoke |
+| `core_crypto` | `backend/core_crypto` | vendor_admin, aer_kep_q_smoke, interop_runner |
 | `proxy_engine` | `backend/proxy_engine` | library |
 | `ledger_sync` | `backend/ledger_sync` | library |
 | `quantum_node` | `backend/quantum_node` | quantum_node |
