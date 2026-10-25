@@ -1,0 +1,33 @@
+name: AWS Staging Infrastructure Validation
+
+on:
+  pull_request:
+    paths:
+      - "infra/aws-staging/**"
+      - ".github/workflows/aws-staging-infra.yml"
+  push:
+    branches: ["infra/aws-staging-ap-south-1"]
+    paths:
+      - "infra/aws-staging/**"
+      - ".github/workflows/aws-staging-infra.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/aws-staging
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: "1.9.8"
+      - name: Format check
+        run: terraform fmt -check -recursive
+      - name: Initialize without backend
+        run: terraform init -backend=false -input=false
+      - name: Validate configuration
+        run: terraform validate -no-color
