@@ -327,7 +327,6 @@ resource "aws_ecs_task_definition" "api" {
       { name = "VARDHAN_CONTROL_PLANE_ADDR", value = "0.0.0.0:8080" },
       { name = "VARDHAN_TLS_TERMINATION", value = "ingress" },
       { name = "VARDHAN_NODE_ID", value = "staging-task" },
-      { name = "DATABASE_URL", value = "" }
     ]
     secrets = [
       { name = "DATABASE_URL", valueFrom = var.database_url_secret_arn },
