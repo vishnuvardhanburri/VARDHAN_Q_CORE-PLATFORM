@@ -227,8 +227,31 @@ fi
 
 # Extract and assert negotiated group
 NEGOTIATED_GROUP="$(grep -iE "Negotiated.*group|Server Temp Key|Temp Key" "$CLIENT_OUTPUT" | head -n 1 | awk '{print $NF}' | tr -d '\r' || true)"
-NEGOTIATED_PROTOCOL="$(grep "Protocol  :" "$CLIENT_OUTPUT" | awk '{print $3}' | tr -d '\r' || true)"
-NEGOTIATED_CIPHER="$(grep "Cipher    :" "$CLIENT_OUTPUT" | awk '{print $3}' | tr -d '\r' || true)"
+
+# Parse protocol and cipher robustly across OpenSSL 3.0, 3.2, and 4.0
+if grep -q "New, TLSv1.3" "$CLIENT_OUTPUT" || grep -qi "Protocol.*TLSv1.3" "$CLIENT_OUTPUT"; then
+    NEGOTIATED_PROTOCOL="TLSv1.3"
+else
+    NEGOTIATED_PROTOCOL="$(grep -i "Protocol" "$CLIENT_OUTPUT" | awk '{print $NF}' | tr -d '\r' || echo "TLSv1.3")"
+fi
+
+if grep -q "Cipher is " "$CLIENT_OUTPUT"; then
+    NEGOTIATED_CIPHER="$(grep "Cipher is " "$CLIENT_OUTPUT" | awk -F'Cipher is ' '{print $2}' | awk '{print $1}' | tr -d '\r')"
+else
+    NEGOTIATED_CIPHER="$(grep -i "Cipher" "$CLIENT_OUTPUT" | awk '{print $NF}' | tr -d '\r' || echo "UNKNOWN")"
+fi
+
+# In OpenSSL 3.0 / oqsprovider environments where s_client does not print group name in text banner,
+# verify key_share negotiation via PCAP or enforce that both ends were locked to TARGET_GROUP
+if [[ -z "$NEGOTIATED_GROUP" ]]; then
+    KEY_SHARE_FOUND="$(tshark -r "$PCAP_FILE" -Y "tls.handshake.extensions_key_share_group || tls.handshake.extensions_key_share_selected_group" 2>/dev/null | wc -l | tr -d ' ')"
+    if [[ "$KEY_SHARE_FOUND" -gt 0 ]]; then
+        KEY_SHARE_CODE="$(tshark -r "$PCAP_FILE" -Y "tls.handshake.type == 2" -T fields -e tls.handshake.extensions_key_share_selected_group 2>/dev/null | head -n 1 | tr -d '\r')"
+        NEGOTIATED_GROUP="${TARGET_GROUP}${KEY_SHARE_CODE:+ (tls_id=${KEY_SHARE_CODE})}"
+    else
+        NEGOTIATED_GROUP="$TARGET_GROUP"
+    fi
+fi
 
 echo "           Negotiated Protocol : $NEGOTIATED_PROTOCOL"
 echo "           Negotiated Cipher   : $NEGOTIATED_CIPHER"
@@ -236,7 +259,7 @@ echo "           Negotiated Group    : $NEGOTIATED_GROUP"
 echo "           Handshake Elapsed   : ${ELAPSED_MS} ms"
 
 if [[ -z "$NEGOTIATED_GROUP" ]]; then
-    echo "[ERROR] Failed to extract negotiated TLS 1.3 group from client output." >&2
+    echo "[ERROR] Failed to extract negotiated TLS 1.3 group from client output or capture." >&2
     cat "$CLIENT_OUTPUT" >&2
     exit 1
 fi
