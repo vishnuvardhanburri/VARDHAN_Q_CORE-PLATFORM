@@ -130,3 +130,4 @@ audit_trail.jsonl
 .aider*
 scripts/p5_results.json
 scripts/p6_results.json
+checkpoints.jsonl

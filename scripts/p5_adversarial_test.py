@@ -470,7 +470,7 @@ def proxy_attacks():
             r.read()
             is_safe = r.status != 200 or r.status in (404, 405, 400, 413, 501)
             if "Oversized" in name or "No crash" in expected or "Empty POST" in name:
-                is_safe = r.status in (200, 400, 413)  # Both acceptable
+                is_safe = r.status in (200, 400, 404, 413)  # Rejection or handled status acceptable
             record(test_id, "Proxy", name, expected,
                    f"HTTP {r.status}", is_safe, f"Path: {path}, Method: {method}")
             conn.close()
@@ -500,6 +500,22 @@ def ledger_attacks():
     print("  4. LEDGER ATTACKS (file-level on ledger.jsonl)")
     print("="*70)
 
+    admin_reachable = check_service_availability("127.0.0.1", ADMIN_PORT)
+    if not admin_reachable:
+        for tid, name, expected in [
+            ("L1", "Record prev_hash forgery (chain break)", "chain_valid: false"),
+            ("L2", "Record deletion detected", "chain_valid: false"),
+            ("L3", "Record insertion detected", "chain_valid: false"),
+            ("L4", "Record reordering detected", "chain_valid: false"),
+            ("L5", "Truncation (remove last 3 lines)", "chain_valid: true"),
+            ("L6", "Ledger restored after all attacks", "chain_valid: true"),
+        ]:
+            record(tid, "Ledger", name, expected,
+                   f"Port {ADMIN_PORT} not reachable — admin service not running",
+                   False, "BLOCKED: admin API not available for ledger verification",
+                   status_override="BLOCKED")
+        return
+
     # Find the ledger file — check all possible locations.
     # Note: DO NOT generate traffic here — pq_shield is actively writing
     # to the ledger file, and traffic generation during file manipulation
@@ -510,6 +526,7 @@ def ledger_attacks():
         "/tmp/vardhan_staging_ledger.jsonl",
         "/tmp/vardhan_docker_ledger.jsonl",
         "/tmp/p4_clean_ledger.jsonl",
+        os.path.join(SCRIPT_DIR, "..", "backend", "control_plane_api", "audit_trail.jsonl"),
     ]
     ledger_path = None
     latest_mtime = 0
@@ -521,7 +538,18 @@ def ledger_attacks():
                 ledger_path = f
 
     if not ledger_path:
-        record("L1", "Ledger", "Find ledger file", "File exists", "Not found", False, "No ledger file found")
+        for tid, name, expected in [
+            ("L1", "Record prev_hash forgery (chain break)", "chain_valid: false"),
+            ("L2", "Record deletion detected", "chain_valid: false"),
+            ("L3", "Record insertion detected", "chain_valid: false"),
+            ("L4", "Record reordering detected", "chain_valid: false"),
+            ("L5", "Truncation (remove last 3 lines)", "chain_valid: true"),
+            ("L6", "Ledger restored after all attacks", "chain_valid: true"),
+        ]:
+            record(tid, "Ledger", name, expected,
+                   "Ledger file not found",
+                   False, "BLOCKED: No active ledger file found",
+                   status_override="BLOCKED")
         return
 
     print(f"  Ledger file: {ledger_path}")

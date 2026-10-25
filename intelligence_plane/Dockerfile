@@ -23,12 +23,12 @@ ARG VITE_API_URL=http://localhost:8080
 ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
-# Runtime contains only the built static frontend and its server.
+# Runtime contains only the built static frontend and its hardened server.
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
-RUN npm install --global serve && npm cache clean --force
 COPY --from=builder --chown=node:node /workspace/intelligence_plane/dist ./dist
+COPY --chown=node:node intelligence_plane/server.cjs ./server.cjs
 ENV NODE_ENV=production
 EXPOSE 3000
 USER node
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["node", "server.cjs"]
