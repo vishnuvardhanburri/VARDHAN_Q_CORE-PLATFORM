@@ -11,6 +11,12 @@ Categories:
   2. Authentication (JWT/HTTP token attacks on 8081 + 3000)
   3. Proxy (HTTP proxy attacks on port 3000)
   4. Ledger (file-level attacks on ledger.jsonl)
+
+Exit codes:
+  0  All executed tests passed (no FAIL, no mandatory BLOCKED).
+  1  One or more tests FAILED (security property not verified).
+  2  All executed tests passed but one or more were BLOCKED
+     (required services unreachable; no security assertion was made).
 """
 
 import json
@@ -54,18 +60,45 @@ if not JWT_SECRET:
 
 results = []
 
-def record(test_id, category, test_name, expected, observed, passed, evidence=""):
-    status = "PASS" if passed else "FAIL"
+
+def check_service_availability(host: str, port: int, timeout: float = 2.0) -> bool:
+    """Return True if the TCP port is accepting connections, False otherwise.
+
+    A False return means the target service is not reachable from this host.
+    Tests that depend on this service must be recorded as BLOCKED, not PASS.
+    """
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def record(test_id, category, test_name, expected, observed, passed, evidence="",
+           status_override=None):
+    """Record one test result.
+
+    status_override may be "BLOCKED" to mark infrastructure-unavailable results.
+    BLOCKED results are neither PASS nor FAIL; they represent absent evidence.
+    """
+    if status_override == "BLOCKED":
+        display_status = "BLOCKED"
+        is_pass = False
+    else:
+        display_status = "PASS" if passed else "FAIL"
+        is_pass = passed
+
     results.append({
         "id": test_id,
         "category": category,
         "test": test_name,
         "expected": expected,
         "observed": observed,
-        "pass": passed,
+        "pass": is_pass,
+        "status": status_override if status_override else display_status,
         "evidence": evidence,
     })
-    icon = "[PASS]" if passed else "[FAIL]"
+    icon = f"[{display_status}]"
     print(f"  [{test_id}] {icon} {test_name}")
     print(f"       Expected: {expected}")
     print(f"       Observed: {observed}")
@@ -78,6 +111,15 @@ def transport_attacks():
     print("\n" + "="*70)
     print("  1. TRANSPORT ATTACKS (TCP port 8080)")
     print("="*70)
+
+    if not check_service_availability("127.0.0.1", PROXY_PORT):
+        for tid in ["T1", "T2", "T3", "T4", "T5", "T6", "T7"]:
+            record(tid, "Transport", f"Transport attack {tid}",
+                   "Service reachable on port 8080",
+                   f"Port {PROXY_PORT} not reachable — service not running",
+                   False, "BLOCKED: pq_shield proxy not available",
+                   status_override="BLOCKED")
+        return
 
     # T1: Send garbage data (pre-handshake)
     try:
@@ -94,14 +136,15 @@ def transport_attacks():
         s.close()
         record("T1", "Transport", "Garbage data to port 8080",
                "Connection rejected or handshake fails",
-               "Connection accepted, data ignored (no crash)" if got_response or True else "Connection rejected",
+               "Connection accepted, data ignored (no crash)" if got_response else "Connection closed without response",
                True,  # Service didn't crash — it should handle gracefully
                f"Sent 8 bytes garbage, got response: {got_response}")
     except Exception as e:
         record("T1", "Transport", "Garbage data to port 8080",
                "Connection rejected or handshake fails",
                f"Error: {e}",
-               True, f"Service handled gracefully")
+               False, f"Connection failed: {e}",
+               status_override="BLOCKED")
 
     # T2: Very large frame length prefix (0xFFFFFFFF = 4GB)
     try:
@@ -124,7 +167,8 @@ def transport_attacks():
     except Exception as e:
         record("T2", "Transport", "Oversized frame length prefix (4GB)",
                "Connection rejected, no crash, no OOM",
-               f"Error: {e}", True, "Service handled gracefully")
+               f"Error: {e}", False, f"Connection error: {e}",
+               status_override="BLOCKED")
 
     # T3: Connection flood (50 simultaneous connections)
     try:
@@ -239,6 +283,18 @@ def auth_attacks():
     print("  2. AUTHENTICATION ATTACKS (HTTP ports 8081 + 3000)")
     print("="*70)
 
+    admin_reachable = check_service_availability("127.0.0.1", ADMIN_PORT)
+    if not admin_reachable:
+        for tid in ["A1", "A2", "A3-Bearer only no toke", "A3-No Bearer prefix",
+                    "A3-Wrong scheme", "A3-SQL injection", "A3-Very long token",
+                    "A4", "A5", "A6", "A7"]:
+            record(tid, "Auth", f"Auth attack {tid}",
+                   f"HTTP 401 from admin API on port {ADMIN_PORT}",
+                   f"Port {ADMIN_PORT} not reachable — service not running",
+                   False, "BLOCKED: admin API not available",
+                   status_override="BLOCKED")
+        return
+
     # A1: No auth header
     try:
         conn = http.client.HTTPConnection("127.0.0.1", ADMIN_PORT, timeout=3)
@@ -249,7 +305,8 @@ def auth_attacks():
                f"HTTP {r.status}")
         conn.close()
     except Exception as e:
-        record("A1", "Auth", "No auth header → 401", "401", str(e), True, str(e))
+        record("A1", "Auth", "No auth header → 401", "401", str(e), False, str(e),
+               status_override="BLOCKED")
 
     # A2: Empty auth header
     try:
@@ -260,7 +317,8 @@ def auth_attacks():
                "401 Unauthorized", f"{r.status}", r.status == 401, f"HTTP {r.status}")
         conn.close()
     except Exception as e:
-        record("A2", "Auth", "Empty auth header → 401", "401", str(e), True, str(e))
+        record("A2", "Auth", "Empty auth header → 401", "401", str(e), False, str(e),
+               status_override="BLOCKED")
 
     # A3: Malformed auth header
     for desc, auth_val in [
@@ -281,7 +339,8 @@ def auth_attacks():
             conn.close()
         except Exception as e:
             record(f"A3-{desc[:20]}", "Auth", f"Malformed: {desc}",
-                   "No crash", str(e), True, str(e))
+                   "No crash", str(e), False, str(e),
+                   status_override="BLOCKED")
 
     # A4: JWT with modified payload (keep old signature)
     if TOKEN and JWT_SECRET:
@@ -308,7 +367,8 @@ def auth_attacks():
                    r.status == 401, f"HTTP {r.status} — tampered JWT rejected")
             conn.close()
         except Exception as e:
-            record("A4", "Auth", "JWT payload tampering", "No crash", str(e), True, str(e))
+            record("A4", "Auth", "JWT payload tampering", "No crash", str(e), False, str(e),
+                   status_override="BLOCKED")
 
     # A5: Expired JWT
     try:
@@ -325,9 +385,11 @@ def auth_attacks():
                    f"HTTP {r.status} — expired JWT rejected")
             conn.close()
         else:
-            record("A5", "Auth", "Expired JWT → 401", "Test skipped", "JWT_SECRET not found", True, "Skipped")
+            record("A5", "Auth", "Expired JWT → 401", "Test skipped", "JWT_SECRET not found", False, "Skipped",
+                   status_override="BLOCKED")
     except Exception as e:
-        record("A5", "Auth", "Expired JWT", "No crash", str(e), True, str(e))
+        record("A5", "Auth", "Expired JWT", "No crash", str(e), False, str(e),
+               status_override="BLOCKED")
 
     # A6: Token replay (use same token twice)
     try:
@@ -349,7 +411,8 @@ def auth_attacks():
         conn1.close()
         conn2.close()
     except Exception as e:
-        record("A6", "Auth", "Token replay", "No crash", str(e), True, str(e))
+        record("A6", "Auth", "Token replay", "No crash", str(e), False, str(e),
+               status_override="BLOCKED")
 
     # A7: Admin API rejects admin token on frontend login endpoint
     try:
@@ -362,7 +425,8 @@ def auth_attacks():
                r.status in (401, 405), f"HTTP {r.status}")
         conn.close()
     except Exception as e:
-        record("A7", "Auth", "Admin token on wrong endpoint", "No crash", str(e), True, str(e))
+        record("A7", "Auth", "Admin token on wrong endpoint", "No crash", str(e), False, str(e),
+               status_override="BLOCKED")
 
 # ── 3. PROXY ATTACKS ───────────────────────────────────────────────────────
 def proxy_attacks():
@@ -383,6 +447,20 @@ def proxy_attacks():
         ("P10", "Empty POST with no body", "POST", "/api/v1/ledger/verify", "No crash, proper handling (200 or 400 acceptable)"),
     ]
 
+    fe_reachable = check_service_availability("127.0.0.1", FE_PORT)
+    if not fe_reachable:
+        for test_id, name, _, _, expected in attacks:
+            record(test_id, "Proxy", name, expected,
+                   f"Port {FE_PORT} not reachable — frontend service not running",
+                   False, "BLOCKED: frontend proxy not available",
+                   status_override="BLOCKED")
+        record("P11", "Proxy", "Admin token not in error responses",
+               "Token not present in body",
+               f"Port {FE_PORT} not reachable",
+               False, "BLOCKED: frontend proxy not available",
+               status_override="BLOCKED")
+        return
+
     for test_id, name, method, path, expected in attacks:
         try:
             conn = http.client.HTTPConnection("localhost", FE_PORT, timeout=5)
@@ -397,7 +475,8 @@ def proxy_attacks():
                    f"HTTP {r.status}", is_safe, f"Path: {path}, Method: {method}")
             conn.close()
         except Exception as e:
-            record(test_id, "Proxy", name, expected, str(e), True, str(e))
+            record(test_id, "Proxy", name, expected, str(e), False, str(e),
+                   status_override="BLOCKED")
 
     # P11: Verify proxy doesn't expose admin token in error responses
     try:
@@ -412,7 +491,8 @@ def proxy_attacks():
                not token_in_body, f"HTTP {r.status}, body length: {len(body)}")
         conn.close()
     except Exception as e:
-        record("P11", "Proxy", "Token not in error responses", "No crash", str(e), True, str(e))
+        record("P11", "Proxy", "Token not in error responses", "No crash", str(e), False, str(e),
+               status_override="BLOCKED")
 
 # ── 4. LEDGER ATTACKS ──────────────────────────────────────────────────────
 def ledger_attacks():
@@ -605,12 +685,13 @@ if __name__ == "__main__":
     ledger_attacks()
 
     # Summary
-    passed = sum(1 for r in results if r["pass"])
-    failed = sum(1 for r in results if not r["pass"])
+    passed = sum(1 for r in results if r["status"] == "PASS")
+    blocked = sum(1 for r in results if r["status"] == "BLOCKED")
+    failed = sum(1 for r in results if r["status"] == "FAIL")
     total = len(results)
 
     print("\n" + "#"*70)
-    print(f"#  P5 RESULTS: {passed}/{total} passed, {failed} failed")
+    print(f"#  P5 RESULTS: {passed} passed, {failed} failed, {blocked} blocked (total: {total})")
     print("#"*70)
 
     # Write JSON results for evidence
@@ -618,5 +699,23 @@ if __name__ == "__main__":
     
     results_file = os.path.join(SCRIPT_DIR, "p5_results.json")
     with open(results_file, 'w') as f:
-        json.dump({"results": results, "summary": {"total": total, "passed": passed, "failed": failed}}, f, indent=2)
+        json.dump({
+            "results": results,
+            "summary": {
+                "total": total,
+                "passed": passed,
+                "failed": failed,
+                "blocked": blocked,
+            }
+        }, f, indent=2)
     print(f"\n  Results saved to: {results_file}")
+
+    if failed > 0:
+        print("\n[RESULT] FAILED — One or more adversarial security assertions failed.")
+        sys.exit(1)
+    elif blocked > 0:
+        print("\n[RESULT] BLOCKED — Required service(s) were unavailable. Tests did not execute as passing.")
+        sys.exit(2)
+    else:
+        print("\n[RESULT] SUCCESS — All adversarial security assertions verified.")
+        sys.exit(0)

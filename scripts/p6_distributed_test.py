@@ -23,14 +23,21 @@ import subprocess
 import socket
 import signal
 
-REPO_ROOT = "/Users/vishnuvardhanburri/vardhan-quantum-proxy"
+REPO_ROOT = os.environ.get(
+    "QCORE_REPO_ROOT",
+    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+)
 BACKEND_DIR = os.path.join(REPO_ROOT, "backend")
-TOKEN = None
+TOKEN = os.environ.get("VARDHAN_ADMIN_TOKEN", "")
 ENV_FILE = os.path.join(REPO_ROOT, "frontend", ".env.local")
-with open(ENV_FILE) as f:
-    for line in f:
-        if line.startswith("ADMIN_TOKEN="):
-            TOKEN = line.strip().split("=", 1)[1]
+if os.path.exists(ENV_FILE):
+    try:
+        with open(ENV_FILE) as f:
+            for line in f:
+                if line.startswith("ADMIN_TOKEN="):
+                    TOKEN = line.strip().split("=", 1)[1]
+    except Exception as e:
+        print(f"[WARN] Failed reading {ENV_FILE}: {e}")
 
 # 3-node cluster ports (must match running pq_shield instances)
 NODES = [
@@ -44,18 +51,23 @@ results = []
 def record(test_id, test_name, expected, observed, passed, evidence="", status="pass"):
     """Record a test result.
 
-    status: "pass" | "partial" | "open" | "fail"
+    status: "pass" | "partial" | "open" | "fail" | "blocked"
       - "pass": The property under test is verified.
       - "partial": The test executes correctly but documents a limitation
         or partial property (e.g., leader-only ledger, not quorum-replicated).
       - "open": Known-open requirement, not yet implemented.
       - "fail": The property under test was NOT verified.
+      - "blocked": Infrastructure unavailable to verify the property.
     """
+    if not passed and status == "pass":
+        status = "fail"
+    if status == "blocked":
+        passed = False
     results.append({
         "id": test_id, "test": test_name, "expected": expected,
         "observed": observed, "pass": passed, "evidence": evidence, "status": status,
     })
-    icon = {"pass": "[PASS]", "partial": "[PARTIAL]", "open": "[OPEN]", "fail": "[FAIL]"}.get(status, "[?]")
+    icon = {"pass": "[PASS]", "partial": "[PARTIAL]", "open": "[OPEN]", "fail": "[FAIL]", "blocked": "[BLOCKED]"}.get(status, "[?]")
     print(f"  [{test_id}] {icon} {test_name}")
     print(f"       Expected: {expected}")
     print(f"       Observed: {observed}")
@@ -1005,12 +1017,18 @@ def summarize_rust_tests():
     total = 0
     passed = 0
     for test_file, tests in rust_results.items():
+        cmd = ["cargo", "test", "-p", "ha_cluster", "--test", test_file]
+        res = subprocess.run(cmd, cwd=REPO_ROOT, capture_output=True, text=True)
+        is_ok = (res.returncode == 0)
         for test_name, description in tests:
             total += 1
-            passed += 1  # All verified passing
+            test_passed = is_ok and (f"test {test_name} ... ok" in res.stdout)
+            if test_passed:
+                passed += 1
             record(f"P6-RUST-{test_name[:18]}", f"L3: {description}",
-                   "PASSES", "PASS", True,
-                   f"Verified: cargo test -p ha_cluster --test {test_file} -- {test_name}")
+                   "PASSES", "PASS" if test_passed else "FAIL", test_passed,
+                   f"Verified: cargo test -p ha_cluster --test {test_file} -- {test_name}",
+                   status="pass" if test_passed else "fail")
 
     print(f"\n  Rust L3 Summary: {passed}/{total} tests passed")
 
@@ -1019,50 +1037,71 @@ def main():
     print("\n" + "#"*70)
     print("#  P6 — Distributed Security & Consensus Assurance")
     print(f"#  Token: {'Found' if TOKEN else 'NOT FOUND'}")
-    print(f"#  pq_shield binary: {'Found' if os.path.exists('/tmp/p4-clean-checkout/target/release/pq_shield') else 'NOT FOUND'}")
+    target_binary = os.path.join(REPO_ROOT, "target", "release", "pq_shield")
+    binary_found = os.path.exists(target_binary) or os.path.exists("/tmp/p4-clean-checkout/target/release/pq_shield")
+    print(f"#  pq_shield binary: {'Found' if binary_found else 'NOT FOUND'}")
     print("#"*70)
 
     # Check cluster is running
     print("\n>>> Verifying 3-node cluster is running...")
-    leader, _ = wait_for_election(10)
+    leader, _ = wait_for_election(5)
     if leader:
         print(f"  [OK] Cluster operational - leader: {leader.get('node_id')}")
+        test_election()       # P6.1
+        test_fencing()        # P6.2
+        test_rpc_handling()   # P6.3
+        test_crash_recovery() # P6.4
+        test_partition()      # P6.5
+        test_ledger_raft_consistency()  # P6.6 (Partial — leader-only ledger, no quorum replication)
+        test_adversarial_election_race(iterations=20, convergence_timeout=25)  # P6-HARDENING
+        test_p7_write_path_fencing()    # P7.1: Application write-path fencing (W1-W12)
+        test_p72_race_testing()         # P7.2: Adversarial check→stepdown→write race
     else:
-        print("  [WARN] Cluster not responding - proceeding with API tests only")
+        print("  [WARN] Cluster not running (ports 8200-8205 unreachable).")
+        print("         Live-cluster network tests marked BLOCKED.")
+        record("P6.1", "Raft Election Correctness", "Live cluster operational", "Unreachable", False, "BLOCKED: 3-node cluster not running", status="blocked")
+        record("P6.2", "Term/Fencing Correctness", "Live cluster operational", "Unreachable", False, "BLOCKED: 3-node cluster not running", status="blocked")
+        record("P6.3", "RPC Handling", "Live cluster operational", "Unreachable", False, "BLOCKED: 3-node cluster not running", status="blocked")
+        record("P6.4", "Crash Recovery", "Live cluster operational", "Unreachable", False, "BLOCKED: 3-node cluster not running", status="blocked")
+        record("P6.5", "Network Partition & Healing", "Live cluster operational", "Unreachable", False, "BLOCKED: 3-node cluster not running", status="blocked")
+        record("P6.6", "Ledger/Raft Integration", "Live cluster operational", "Unreachable", False, "BLOCKED: 3-node cluster not running", status="blocked")
+        record("P6-HARDENING", "Adversarial Election Race", "Live cluster operational", "Unreachable", False, "BLOCKED: 3-node cluster not running", status="blocked")
+        record("P7.1", "Application Write-Path Fencing", "Live cluster operational", "Unreachable", False, "BLOCKED: 3-node cluster not running", status="blocked")
+        record("P7.2", "Check-Stepdown-Write Race", "Live cluster operational", "Unreachable", False, "BLOCKED: 3-node cluster not running", status="blocked")
 
-    # Run all test categories
-    test_election()       # P6.1
-    test_fencing()        # P6.2
-    test_rpc_handling()   # P6.3
-    test_crash_recovery() # P6.4
-    test_partition()      # P6.5
-    test_ledger_raft_consistency()  # P6.6 (Partial — leader-only ledger, no quorum replication)
-    test_adversarial_election_race(iterations=20, convergence_timeout=25)  # P6-HARDENING
-    test_p7_write_path_fencing()    # P7.1: Application write-path fencing (W1-W12)
-    test_p72_race_testing()         # P7.2: Adversarial check→stepdown→write race
     summarize_rust_tests()  # Rust L3 results
 
     # Summary
     passed = sum(1 for r in results if r["status"] == "pass")
     partial = sum(1 for r in results if r["status"] == "partial")
+    blocked = sum(1 for r in results if r["status"] == "blocked")
     failed = sum(1 for r in results if r["status"] == "fail")
     total = len(results)
 
     print("\n" + "#"*70)
-    print(f"#  P6 RESULTS: {passed}/{total} passed, {partial} partial, {failed} failed")
+    print(f"#  P6 RESULTS: {passed} passed, {partial} partial, {blocked} blocked, {failed} failed (total: {total})")
     print("#"*70)
     if partial > 0:
-        print(f"#  (🟡 = Partial: validates current architecture, does not achieve "
-              f"the ideal property yet)")
+        print(f"#  (Partial: validates current architecture, does not achieve ideal property yet)")
     print("#"*70)
 
     # Save
     results_file = os.path.join(REPO_ROOT, "scripts", "p6_results.json")
     with open(results_file, 'w') as f:
         json.dump({"results": results, "summary": {
-            "total": total, "passed": passed, "partial": partial, "failed": failed
+            "total": total, "passed": passed, "partial": partial, "blocked": blocked, "failed": failed
         }}, f, indent=2)
     print(f"\n  Results saved to: {results_file}")
+
+    if failed > 0:
+        print("\n[RESULT] FAILED — One or more distributed consensus tests failed.")
+        sys.exit(1)
+    elif blocked > 0:
+        print("\n[RESULT] BLOCKED — Live cluster unreachable; Rust L3 deterministic tests executed.")
+        sys.exit(2)
+    else:
+        print("\n[RESULT] Finished consensus evaluation.")
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
