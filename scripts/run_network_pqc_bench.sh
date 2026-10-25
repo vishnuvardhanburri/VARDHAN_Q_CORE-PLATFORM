@@ -90,7 +90,7 @@ echo "[CONFIG] Netem Loss                : ${LOSS_PCT} %"
 echo "[CONFIG] Storage Backend           : $RAM_BASE (RAM-backed tmpfs)"
 
 SERVER_PID=""
-TSHARK_PID=""
+CAPTURE_PID=""
 KEY_FILE="$TMP_DIR/test_server.key"
 KEYLOG_FILE="$TMP_DIR/tls_session.keylog"
 CERT_FILE="$TMP_DIR/test_server.crt"
@@ -104,9 +104,9 @@ cleanup() {
         kill "$SERVER_PID" 2>/dev/null || true
         wait "$SERVER_PID" 2>/dev/null || true
     fi
-    if [[ -n "${TSHARK_PID:-}" ]] && kill -0 "$TSHARK_PID" 2>/dev/null; then
-        kill -INT "$TSHARK_PID" 2>/dev/null || true
-        wait "$TSHARK_PID" 2>/dev/null || true
+    if [[ -n "${CAPTURE_PID:-}" ]] && kill -0 "$CAPTURE_PID" 2>/dev/null; then
+        kill -INT "$CAPTURE_PID" 2>/dev/null || true
+        wait "$CAPTURE_PID" 2>/dev/null || true
     fi
     if [[ -n "${NS_NAME:-}" ]]; then
         ip link del "$VETH_HOST" 2>/dev/null || true
@@ -188,10 +188,15 @@ fi
 echo "           Server listening and operational (PID: $SERVER_PID)."
 
 # 7. Start Packet Capture
-echo "[Step 4/6] Initializing TShark packet capture on $VETH_HOST..."
-tshark -i "$VETH_HOST" -w "$PCAP_FILE" -f "tcp port $SERVER_PORT" >/dev/null 2>&1 &
-TSHARK_PID=$!
-sleep 0.5
+echo "[Step 4/6] Initializing packet capture on port $SERVER_PORT..."
+if command -v tcpdump >/dev/null 2>&1; then
+    tcpdump -l -i any -w "$PCAP_FILE" "tcp port $SERVER_PORT" >"$TMP_DIR/capture.log" 2>&1 &
+    CAPTURE_PID=$!
+else
+    tshark -l -i any -w "$PCAP_FILE" -f "tcp port $SERVER_PORT" >"$TMP_DIR/capture.log" 2>&1 &
+    CAPTURE_PID=$!
+fi
+sleep 1
 
 # 8. Execute Client Handshake Workload inside Namespace
 echo "[Step 5/6] Executing TLS client handshake workload inside namespace..."
@@ -207,10 +212,13 @@ ip netns exec "$NS_NAME" env SSLKEYLOGFILE="$KEYLOG_FILE" \
 END_TIME=$(date +%s%N)
 ELAPSED_MS=$(awk "BEGIN {print ($END_TIME - $START_TIME) / 1000000}")
 
-# Terminate packet capture cleanly
-kill -INT "$TSHARK_PID" 2>/dev/null || true
-wait "$TSHARK_PID" 2>/dev/null || true
-TSHARK_PID=""
+# Allow trailing packets to settle and terminate packet capture cleanly
+sleep 1
+if [[ -n "${CAPTURE_PID:-}" ]] && kill -0 "$CAPTURE_PID" 2>/dev/null; then
+    kill -INT "$CAPTURE_PID" 2>/dev/null || true
+    wait "$CAPTURE_PID" 2>/dev/null || true
+    CAPTURE_PID=""
+fi
 
 # Assertions on client outcome
 if [[ "$CLIENT_RC" -ne 0 ]]; then
@@ -292,6 +300,10 @@ fi
 PACKET_COUNT="$(tshark -r "$PCAP_FILE" 2>/dev/null | wc -l | tr -d ' ')"
 if [[ "$PACKET_COUNT" -le 0 ]]; then
     echo "[ERROR] Captured 0 packets in PCAP file." >&2
+    if [[ -f "$TMP_DIR/capture.log" ]]; then
+        echo "=== Capture Engine Log ===" >&2
+        cat "$TMP_DIR/capture.log" >&2
+    fi
     exit 1
 fi
 echo "  [PASS] Mandatory Assertion: Packet capture is non-empty ($PACKET_COUNT packets)."

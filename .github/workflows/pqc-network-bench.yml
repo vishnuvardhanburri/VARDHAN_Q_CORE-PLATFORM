@@ -36,7 +36,7 @@ jobs:
       - name: Install system build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build gcc g++ libssl-dev tshark iproute2 netcat-openbsd
+          sudo apt-get install -y cmake ninja-build gcc g++ libssl-dev tshark tcpdump iproute2 netcat-openbsd
 
       - name: Install pinned liboqs 0.16.0 C library
         run: |
