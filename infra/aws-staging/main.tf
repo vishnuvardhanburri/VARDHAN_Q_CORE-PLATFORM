@@ -102,19 +102,25 @@ resource "aws_security_group" "alb" {
   name        = "qcore-staging-alb"
   description = "HTTPS ingress to Q-Core staging"
   vpc_id      = aws_vpc.staging.id
-  ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_client_cidrs
+  dynamic "ingress" {
+    for_each = var.allowed_client_cidrs
+    content {
+      description = "HTTPS from approved client CIDR"
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      cidr_blocks = [ingress.value]
+    }
   }
-  ingress {
-    description = "HTTP for redirect only"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_client_cidrs
+  dynamic "ingress" {
+    for_each = var.allowed_client_cidrs
+    content {
+      description = "HTTP redirect from approved client CIDR"
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      cidr_blocks = [ingress.value]
+    }
   }
   egress {
     from_port   = 0
