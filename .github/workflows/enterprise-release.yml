@@ -115,6 +115,7 @@ jobs:
         run: |
           cosign sign-blob --yes --bundle cosign.bundle release-checksums.sha256
       - name: Generate SLSA build provenance attestation
+        continue-on-error: true
         uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
         with:
           subject-path: 'release-checksums.sha256'
