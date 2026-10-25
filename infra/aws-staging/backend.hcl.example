@@ -1,0 +1,7 @@
+# Copy to backend.hcl outside version control and replace values.
+# Create this bucket and its KMS key under an authorized bootstrap identity first.
+bucket       = "REPLACE_WITH_UNIQUE_QCORE_TERRAFORM_STATE_BUCKET"
+key          = "qcore/staging/terraform.tfstate"
+region       = "ap-south-1"
+encrypt      = true
+use_lockfile = true
