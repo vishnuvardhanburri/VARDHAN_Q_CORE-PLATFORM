@@ -1,6 +1,6 @@
 # Production acceptance test evidence — final production acceptance programme
 
-**NOT PRODUCTION READY.** Source baseline: `ae612a71bd6b4b58137eb3c0d380f59b4268eee1` (post-merge `main` branch following workflow consolidation, deployment pruning, lifecycle check reconciliation, and UK institutional assurance packaging).
+**NOT PRODUCTION READY.** Source baseline: `ad7897aacac8956cfd38466e383f9cbeba4374e0` (post-merge `main` branch following global banking positioning, authoritative pricing catalogue, repository mapping, and bank deployment level definitions).
 Environment: Ubuntu 24.04 / macOS Darwin arm64; Rust 1.99.1 stable; Python 3.12+; Docker 27.x. Local synthetic fixtures and CI virtualized environments only. No real payment rails, live institutional keys, or customer funds.
 
 ## 1. Post-merge CI workflow execution matrix
@@ -9,15 +9,20 @@ All production and verification workflows are verified on the `main` branch on G
 
 | Workflow Name | Run ID | Head Commit | Result | Duration | Scope and Passing Criteria |
 |---|---|---|---|---|---|
-| **Vardhan Q-Core Enterprise Release Gate** | `40131150657` | `ae612a7` | PASS (exit 0) | 48m 52s | Formatting check (`cargo fmt --check`), full workspace test suite (`cargo test --workspace -- --test-threads=1`), clustered PostgreSQL idempotency verification, production KMS/HSM key drill, FIPS 140-3 KAT health gate, release binary compilation, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
-| **Vardhan Q-Core Correctness & Performance** | `40131150622` | `ae612a7` | PASS (exit 0) | 47m 01s | Full unit and integration tests, E2E lifecycle suite (33/33 checks), lab demo verification (5/5 checks), adversarial security tests (issuer binding `DENY_ISSUER_UNBOUND`, audit tamper detection, Vault KMS, TLS compilation), controlled performance benchmark |
-| **Sovereign Platform CI (Unified)** | `40131150646` | `ae612a7` | PASS (exit 0) | 8m 49s | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
-| **Supply Chain Security** | `40131150625` | `ae612a7` | PASS (exit 0) | 3m 40s | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard, enterprise compose secret guard |
-| **Platform Web Contract** | `40131150747` | `ae612a7` | PASS (exit 0) | 8s | Consolidated Web contract validation, console interface and client model verification |
-| **Clean Deployments** | `40131150643` | `ae612a7` | PASS (exit 0) | 14s | Automated deployment pruning, 13 stale deployments deleted down to 1 active record |
+| **Vardhan Q-Core Enterprise Release Gate** | `40134765993` / `40131150657` | `ad7897a` / `ae612a7` | PASS (exit 0) | 45m 52s | Formatting check (`cargo fmt --check`), full workspace test suite (`cargo test --workspace -- --test-threads=1`), clustered PostgreSQL idempotency verification, production KMS/HSM key drill, FIPS 140-3 KAT health gate, release binary compilation, SDK/model/industry/console contract gates, Cosign signing, SLSA provenance attestation |
+| **Vardhan Q-Core Correctness & Performance** | `40134765765` / `40131150622` | `ad7897a` / `ae612a7` | PASS (exit 0) | 40m 23s | Full unit and integration tests, E2E lifecycle suite (33/33 checks), lab demo verification (5/5 checks), adversarial security tests (issuer binding `DENY_ISSUER_UNBOUND`, audit tamper detection, Vault KMS, TLS compilation), controlled performance benchmark |
+| **Sovereign Platform CI (Unified)** | `40134765789` / `40131150646` | `ad7897a` / `ae612a7` | PASS (exit 0) | 8m 20s | Intelligence Plane build/tests, SDK contract validation, seven industry plane contracts, zero-knowledge engine, eBPF Linux build, Quantum Core build, control plane contract tests |
+| **Supply Chain Security** | `40134765800` / `40131150625` | `ad7897a` / `ae612a7` | PASS (exit 0) | 5m 33s | Patched rustls 0.23 line enforcement, cargo audit under repository exclusions, cargo deny advisories, CycloneDX SBOM verification (554 components), repository secret scanning, fail-closed tracked secret guard, enterprise compose secret guard |
+| **Platform Web Contract** | `40134765848` / `40131150747` | `ad7897a` / `ae612a7` | PASS (exit 0) | 8s | Consolidated Web contract validation, console interface and client model verification |
+| **Clean Deployments** | `40134765876` / `40131150643` | `ad7897a` / `ae612a7` | PASS (exit 0) | 7s | Automated deployment pruning, all historical stale deployments pruned down to 1 active record (`7305221204`, staging) |
 | **Docker PoV Validation** | `40047148907` | `87c1fc5` | PASS (exit 0) | 13m 43s | End-to-end Docker container build, syntax validation, high-concurrency API performance bench (`perf_bench.py` c=1, 10, 50, 100 with zero rejected requests), crypto microbenchmarks (Ed25519, BLAKE3, ML-DSA-87), signed PoV evidence bundle upload |
 | **Unified Local Runtime Validation** | `40113953078` | `101bcc1` | PASS (exit 0) | 4m 46s | Local container stack orchestration smoke test (`docker compose up`) verifying clean PostgreSQL socket initialization and control plane health checks |
 | **Lab Harness Verification** | `40047148849` | `87c1fc5` | PASS (exit 0) | 1m 20s | Synthetic lab harness verification and end-to-end sandbox state validation |
+
+### Supply chain security historical audit trail: failure on 91a8fd4 and remediation on 58726a2
+
+- **Historical Failure (Commit `91a8fd4`)**: The `Supply Chain Security` workflow failed with exit code 1. RustCrypto published advisory RUSTSEC-2026-0387 on 2026-10-23 reporting timing variability during modular inversion and multiplication in `crypto-bigint`. The workspace was pinned to `crypto-bigint 0.7.5` and also transitively included `0.5.5` via `saml-rs`.
+- **Remediation & Proof (Commit `58726a2`)**: Upgraded the direct dependency to `crypto-bigint 0.7.7` in `Cargo.lock` (resolving the vulnerability for the 0.7 line). Because `saml-rs` depends on unpatched `elliptic-curve 0.13.8` (requiring `crypto-bigint 0.5.5` with no upstream 0.5 release), an explicit, time-bounded exemption was added to `.cargo/audit.toml` and `deny.toml` with architectural justification (RSA private key decryption is disabled and the reviewed SAML boundary exposes no private-key oracle). Subsequent runs on `58726a2`, `ed5a815`, `ae612a7`, `e83043d`, and `ad7897a` passed with 0 advisory errors.
 
 ## 2. Post-merge commands and observed exits
 
