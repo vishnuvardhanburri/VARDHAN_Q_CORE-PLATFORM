@@ -45,3 +45,8 @@ harness = false
 [[bin]]
 name = "vendor_admin"
 path = "src/bin/vendor_admin.rs"
+
+[[bin]]
+name = "interop_runner"
+path = "src/bin/interop_runner.rs"
+

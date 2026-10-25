@@ -1,0 +1,37 @@
+name: PQC Network Impairment and Packet Analysis Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      mtu:
+        description: "Target interface MTU in bytes (default: 1400)"
+        required: false
+        default: "1400"
+      delay_ms:
+        description: "Round-trip delay impairment in ms (default: 20)"
+        required: false
+        default: "20"
+      loss_pct:
+        description: "Packet loss impairment percentage (default: 0.5)"
+        required: false
+        default: "0.5"
+  schedule:
+    - cron: '0 3 * * 0' # Weekly Sunday at 03:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  network-pqc-bench:
+    name: Controlled Network Resilience & PQC Netem Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y tshark iproute2 openssl netcat-openbsd
+      - name: Execute Controlled Network Netem Benchmark
+        env:
+          VARDHAN_BENCH_MTU: ${{ github.event.inputs.mtu || '1400' }}
+          VARDHAN_BENCH_DELAY_MS: ${{ github.event.inputs.delay_ms || '20' }}
+          VARDHAN_BENCH_LOSS_PCT: ${{ github.event.inputs.loss_pct || '0.5' }}
+        run: sudo -E bash scripts/run_network_pqc_bench.sh

@@ -22,6 +22,7 @@ pq_vault_c.json
 test_kek.bin
 raft_state.json
 venv/
+.venv*/
 scripts/venv/
 data/
 "vardhan quantum frontend "
