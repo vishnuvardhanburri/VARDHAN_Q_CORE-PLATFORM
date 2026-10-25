@@ -325,7 +325,7 @@ def run_interoperability_suite():
         # Attempting signing after reset must fail with STATUS_ERROR_NO_RETAINED_KEY
         status, _ = client.request(CMD_DSA_SIGN, b"hello")
         assert status == STATUS_ERROR_NO_RETAINED_KEY, f"Expected STATUS_ERROR_NO_RETAINED_KEY after reset, got {status}"
-        print("  [PASS] 7: State reset successfully zeroized retained keys; unauthenticated operations fail closed.")
+        print("  [PASS] 7: State reset successfully dropped retained keys from process memory; subsequent decap/sign requests fail closed.")
 
     finally:
         client.close()

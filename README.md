@@ -55,7 +55,7 @@ Vardhan Q Core maintains an evidence-backed, 3-tier operational deployment bound
 | - Enterprise Docker Compose secrets fail-closed validation verified         |
 | - Loopback interface isolation (127.0.0.1) on all published ports           |
 | - Raft HA clustering: 14/14 node failure, split-brain, and recovery tests   |
-| - Automated deployment record pruning active (1 deployment retained)        |
+| - Automated deployment record pruning active (1 active deployment retained; prior audit/rollback record preserved) |
 | - Strict TLS verification with configured test CA trust anchors             |
 +-----------------------------------------------------------------------------+
                                       |

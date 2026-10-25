@@ -3,6 +3,10 @@ name: PQC Network Impairment and Packet Analysis Benchmark
 on:
   workflow_dispatch:
     inputs:
+      group:
+        description: "Target PQC or hybrid TLS key exchange group (default: X25519MLKEM768)"
+        required: false
+        default: "X25519MLKEM768"
       mtu:
         description: "Target interface MTU in bytes (default: 1400)"
         required: false
@@ -26,12 +30,46 @@ jobs:
     name: Controlled Network Resilience & PQC Netem Benchmark
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y tshark iproute2 openssl netcat-openbsd
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install system build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build gcc g++ libssl-dev tshark iproute2 netcat-openbsd
+
+      - name: Install pinned liboqs 0.16.0 C library
+        run: |
+          git clone --depth 1 --branch 0.16.0 https://github.com/open-quantum-safe/liboqs.git
+          cd liboqs
+          mkdir build && cd build
+          cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr/local -DBUILD_SHARED_LIBS=ON ..
+          ninja
+          sudo ninja install
+          sudo ldconfig
+          cd ../..
+          rm -rf liboqs
+
+      - name: Build and install oqs-provider 0.12.0
+        run: |
+          git clone --depth 1 --branch 0.12.0 https://github.com/open-quantum-safe/oqs-provider.git
+          cd oqs-provider
+          cmake -S . -B _build -GNinja -DCMAKE_INSTALL_PREFIX=/usr/local
+          cmake --build _build
+          sudo cmake --install _build
+          sudo ldconfig
+          cd ..
+          rm -rf oqs-provider
+
+      - name: Verify PQC KEM algorithms in OpenSSL via oqsprovider
+        run: |
+          openssl list -kem-algorithms -provider oqsprovider -provider default
+
       - name: Execute Controlled Network Netem Benchmark
         env:
+          VARDHAN_PQC_TLS_GROUP: ${{ github.event.inputs.group || 'X25519MLKEM768' }}
           VARDHAN_BENCH_MTU: ${{ github.event.inputs.mtu || '1400' }}
           VARDHAN_BENCH_DELAY_MS: ${{ github.event.inputs.delay_ms || '20' }}
           VARDHAN_BENCH_LOSS_PCT: ${{ github.event.inputs.loss_pct || '0.5' }}
-        run: sudo -E bash scripts/run_network_pqc_bench.sh
+        run: |
+          sudo -E bash scripts/run_network_pqc_bench.sh

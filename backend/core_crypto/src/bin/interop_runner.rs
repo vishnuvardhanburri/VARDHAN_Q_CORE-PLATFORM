@@ -56,8 +56,9 @@ impl RunnerState {
     }
 
     fn reset(&mut self) {
-        self.retained_kem_decap = None;
-        self.retained_dsa_sk = None;
+        // Drop and release retained keys from process memory
+        let _ = self.retained_kem_decap.take();
+        let _ = self.retained_dsa_sk.take();
     }
 }
 
@@ -392,6 +393,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             CMD_RESET_STATE => {
                 state.reset();
+                eprintln!("[interop_runner] Retained keys dropped from process memory");
                 send_response(&mut stdout, STATUS_SUCCESS, &[])?;
             }
 
