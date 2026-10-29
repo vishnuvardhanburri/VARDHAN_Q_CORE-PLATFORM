@@ -172,24 +172,18 @@ def main():
     ]
 
     qcore_ascii = [
-        "   ██████╗         ██████╗ ██████╗ ██████╗ ███████╗",
-        "  ██╔═══██╗       ██╔════╝██╔═══██╗██╔══██╗██╔════╝",
-        "  ██║   ██║       ██║     ██║   ██║██████╔╝█████╗  ",
-        "  ██║▄▄ ██║       ██║     ██║   ██║██╔══██╗██╔══╝  ",
-        "  ╚██████╔╝       ╚██████╗╚██████╔╝██║  ██║███████╗",
-        "   ╚══▀▀═╝         ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝"
+        " ██████╗   ██████╗ ██████╗ ██████╗ ███████╗",
+        "██╔═══██╗ ██╔════╝██╔═══██╗██╔══██╗██╔════╝",
+        "██║   ██║ ██║     ██║   ██║██████╔╝█████╗  ",
+        "██║ ▄▄██║ ██║     ██║   ██║██╔══██╗██╔══╝  ",
+        "╚██████╔╝ ╚██████╗╚██████╔╝██║  ██║███████╗",
+        " ╚══▀▀═╝   ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝"
     ]
 
-    # Pulse in VARDHAN
-    for line in vardhan_ascii:
-        print(f"  {bld(cyn(line))}")
-        time.sleep(0.04)
-    print()
-
-    # Pulse in Q-CORE with glowing accent
-    for line in qcore_ascii:
-        print(f"  {bld(blu(line))}")
-        time.sleep(0.04)
+    # Side-by-side animated scan
+    for v_line, q_line in zip(vardhan_ascii, qcore_ascii):
+        print(f"  {bld(cyn(v_line))}   {bld(blu(q_line))}")
+        time.sleep(0.045)
 
     # Subtitle typewriter animation
     tagline = "  ⚛  POST-QUANTUM CRYPTOGRAPHIC VERIFICATION INFRASTRUCTURE  ⚛"
