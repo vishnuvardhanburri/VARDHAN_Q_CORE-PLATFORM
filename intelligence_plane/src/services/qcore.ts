@@ -1078,6 +1078,68 @@ export function listWebhookDeliveries(
   );
 }
 
+// ── Organization Email Notifications ─────────────────────────────────────────
+
+export interface OrganizationEmailConfig {
+  organization_id: string;
+  recipients: string[];
+  enabled: boolean;
+  notify_on_critical_finding: boolean;
+  notify_on_replay_attack: boolean;
+  notify_on_tamper: boolean;
+  smtp_host?: string;
+  smtp_port?: number;
+  from_address: string;
+  relay_mode: string;
+  updated_at_ms: number;
+}
+
+export interface EmailNotificationLog {
+  id: string;
+  organization_id: string;
+  event_type: string;
+  recipients: string[];
+  subject: string;
+  body_snippet: string;
+  delivered: boolean;
+  timestamp_ms: number;
+  proof_hash: string;
+}
+
+export function getEmailNotificationConfig(orgId: string): Promise<{
+  config: OrganizationEmailConfig;
+  recent_dispatches: EmailNotificationLog[];
+  active_recipients_count: number;
+}> {
+  return request(`/api/v1/organizations/${encodeURIComponent(orgId)}/notifications/email`);
+}
+
+export function updateEmailNotificationConfig(
+  orgId: string,
+  input: Partial<OrganizationEmailConfig>,
+): Promise<{ status: string; config: OrganizationEmailConfig }> {
+  return request(`/api/v1/organizations/${encodeURIComponent(orgId)}/notifications/email`, {
+    method: 'POST',
+    body: input,
+  });
+}
+
+export function sendTestEmailNotification(
+  orgId: string,
+  recipient?: string,
+): Promise<{
+  status: string;
+  notification_id: string;
+  recipient: string;
+  proof_blake3: string;
+  timestamp_ms: number;
+}> {
+  return request(`/api/v1/organizations/${encodeURIComponent(orgId)}/notifications/email/test`, {
+    method: 'POST',
+    body: { recipient },
+  });
+}
+
 // ── Cryptographic Licensing & Direct Subscriptions ───────────────────────────
 
 export interface MintLicenseParams {

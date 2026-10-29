@@ -136,6 +136,19 @@ pub async fn validate_canonical(
             Ok(distributed_idempotency::ReservationOutcome::AlreadySealed {
                 receipt_id, ..
             }) => {
+                let db_alert = state.db.clone();
+                let org_alert = organization_id.clone();
+                let key_alert = idem_key.clone();
+                tokio::spawn(async move {
+                    crate::email_notifications::dispatch_email_alert(
+                        &db_alert,
+                        &org_alert,
+                        "REPLAY_ATTACK_BLOCKED",
+                        &format!("[Q-Core Security Alert] Replay Attack Blocked: {key_alert}"),
+                        &format!("Duplicate submission for finding '{key_alert}' was blocked by durable idempotency guard on tenant '{org_alert}'."),
+                    );
+                });
+
                 return (
                     StatusCode::OK,
                     Json(json!({
@@ -362,34 +375,53 @@ pub async fn validate_canonical(
                 .and_then(|s| s.as_str())
                 .unwrap_or(&tx_id);
 
-            // Record sealed receipt into authoritative telemetry
+            // Record sealed receipt into authoritative telemetry & dispatch org notifications asynchronously
             let payload_hash_val = receipt
                 .get("payload_hash")
                 .and_then(|s| s.as_str())
-                .unwrap_or("");
+                .unwrap_or("")
+                .to_string();
             let issuer_fp = receipt
                 .get("issuer_key_fingerprint")
                 .and_then(|s| s.as_str())
-                .unwrap_or("");
-            let telemetry_store =
-                crate::qcore_telemetry::QCoreTelemetryStore::new(state.db.clone());
-            let _ =
-                telemetry_store.record_receipt(&crate::qcore_telemetry::QCoreReceiptTelemetry {
-                    organization_id: organization_id.clone(),
-                    receipt_id: receipt_id.to_string(),
-                    transaction_id: tx_id.clone(),
-                    tenant_id: organization_id.clone(),
-                    status: "sealed".to_string(),
-                    decision: "allow".to_string(),
-                    outcome_code: "200".to_string(),
-                    policy_id: "fips204-ml-dsa-87".to_string(),
-                    policy_version: "v1".to_string(),
-                    ledger_commit_index: 1,
-                    timestamp_ms: crate::continuous_operations::now_ms(),
-                    payload_hash: payload_hash_val.to_string(),
-                    issuer_key_fingerprint: issuer_fp.to_string(),
-                    verification: crate::qcore_telemetry::ReceiptVerificationState::Verified,
-                });
+                .unwrap_or("")
+                .to_string();
+            let db_telemetry = state.db.clone();
+            let org_telemetry = organization_id.clone();
+            let rid_telemetry = receipt_id.to_string();
+            let tx_id_telemetry = tx_id.clone();
+
+            tokio::spawn(async move {
+                let telemetry_store =
+                    crate::qcore_telemetry::QCoreTelemetryStore::new(db_telemetry.clone());
+                let _ = telemetry_store.record_receipt(
+                    &crate::qcore_telemetry::QCoreReceiptTelemetry {
+                        organization_id: org_telemetry.clone(),
+                        receipt_id: rid_telemetry.clone(),
+                        transaction_id: tx_id_telemetry,
+                        tenant_id: org_telemetry.clone(),
+                        status: "sealed".to_string(),
+                        decision: "allow".to_string(),
+                        outcome_code: "200".to_string(),
+                        policy_id: "fips204-ml-dsa-87".to_string(),
+                        policy_version: "v1".to_string(),
+                        ledger_commit_index: 1,
+                        timestamp_ms: crate::continuous_operations::now_ms(),
+                        payload_hash: payload_hash_val,
+                        issuer_key_fingerprint: issuer_fp,
+                        verification: crate::qcore_telemetry::ReceiptVerificationState::Verified,
+                    },
+                );
+
+                // Dispatch Organization Security Email Notification
+                crate::email_notifications::dispatch_email_alert(
+                    &db_telemetry,
+                    &org_telemetry,
+                    "CRITICAL_FINDING_SEALED",
+                    &format!("[Q-Core] Post-Quantum Receipt Sealed: {rid_telemetry}"),
+                    &format!("Receipt {rid_telemetry} was sealed with ML-DSA-87 (FIPS 204) + Ed25519 dual-signature for tenant '{org_telemetry}'."),
+                );
+            });
 
             if let Some(ref idem_key) = idempotency_key {
                 state

@@ -13,7 +13,9 @@ import {
   Code,
   Terminal,
   Activity,
-  X
+  X,
+  Mail,
+  Bell
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import {
@@ -22,8 +24,13 @@ import {
   deleteWebhook,
   testWebhook,
   listWebhookDeliveries,
+  getEmailNotificationConfig,
+  updateEmailNotificationConfig,
+  sendTestEmailNotification,
   type WebhookEndpoint,
   type WebhookDeliveryLog,
+  type OrganizationEmailConfig,
+  type EmailNotificationLog,
 } from '../services/qcore';
 
 const AVAILABLE_EVENTS = [
@@ -43,6 +50,14 @@ export function WebhooksView(): React.ReactElement {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [activeTab, setActiveTab] = useState<'webhooks' | 'email'>('webhooks');
+  const [emailConfig, setEmailConfig] = useState<OrganizationEmailConfig | null>(null);
+  const [emailLogs, setEmailLogs] = useState<EmailNotificationLog[]>([]);
+  const [emailRecipients, setEmailRecipients] = useState('');
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [emailNotice, setEmailNotice] = useState<string | null>(null);
+  const [testEmailSending, setTestEmailSending] = useState(false);
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [url, setUrl] = useState('');
   const [description, setDescription] = useState('');
@@ -58,12 +73,18 @@ export function WebhooksView(): React.ReactElement {
     if (!orgId) return;
     setLoading(true);
     try {
-      const [whRes, delRes] = await Promise.all([
+      const [whRes, delRes, emailRes] = await Promise.all([
         listWebhooks(orgId).catch(() => ({ organization_id: orgId, webhooks: [] })),
         listWebhookDeliveries(orgId).catch(() => ({ organization_id: orgId, deliveries: [] })),
+        getEmailNotificationConfig(orgId).catch(() => null),
       ]);
       setWebhooks(whRes.webhooks);
       setLogs(delRes.deliveries);
+      if (emailRes) {
+        setEmailConfig(emailRes.config);
+        setEmailLogs(emailRes.recent_dispatches);
+        setEmailRecipients(emailRes.config.recipients.join(', '));
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load webhooks.');
     } finally {
@@ -154,51 +175,314 @@ export function WebhooksView(): React.ReactElement {
     }
   };
 
+  const handleSaveEmailConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orgId) return;
+    setSavingEmail(true);
+    setEmailNotice(null);
+    try {
+      const recipients = emailRecipients
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
+      const res = await updateEmailNotificationConfig(orgId, {
+        recipients,
+        enabled: emailConfig?.enabled ?? true,
+        notify_on_critical_finding: emailConfig?.notify_on_critical_finding ?? true,
+        notify_on_replay_attack: emailConfig?.notify_on_replay_attack ?? true,
+        notify_on_tamper: emailConfig?.notify_on_tamper ?? true,
+      });
+      setEmailConfig(res.config);
+      setEmailNotice('Email notification preferences saved successfully.');
+    } catch (err: unknown) {
+      setEmailNotice(err instanceof Error ? err.message : 'Failed to save email settings.');
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!orgId) return;
+    setTestEmailSending(true);
+    setEmailNotice(null);
+    try {
+      const res = await sendTestEmailNotification(orgId);
+      setEmailNotice(`Test security notification dispatched to ${res.recipient} (Proof: ${res.proof_blake3.slice(0, 16)}…)`);
+      void loadData();
+    } catch (err: unknown) {
+      setEmailNotice(err instanceof Error ? err.message : 'Failed to send test email.');
+    } finally {
+      setTestEmailSending(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* ── Top Header & Actions ────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2.5">
-            <Webhook className="h-5 w-5 text-blue-400" />
-            <span>Outbound Webhooks & SIEM Dispatch</span>
+            {activeTab === 'webhooks' ? (
+              <>
+                <Webhook className="h-5 w-5 text-blue-400" />
+                <span>Outbound Webhooks & SIEM Dispatch</span>
+              </>
+            ) : (
+              <>
+                <Mail className="h-5 w-5 text-blue-400" />
+                <span>Organization Email Notifications & Alerting</span>
+              </>
+            )}
           </h2>
           <p className="mt-1 text-xs text-slate-400">
-            Real-time, HMAC-signed event notifications delivered directly to your SecOps, Datadog, or Slack pipelines
+            {activeTab === 'webhooks'
+              ? 'Real-time, HMAC-signed event notifications delivered directly to your SecOps, Datadog, or Slack pipelines'
+              : 'Automated post-quantum verification notifications and cryptographic replay alerts routed to your security team'}
           </p>
         </div>
 
+        {activeTab === 'webhooks' ? (
+          <button
+            type="button"
+            onClick={() => setIsCreateOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-sm cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Add Webhook Endpoint</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSendTestEmail}
+            disabled={testEmailSending}
+            className="flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-950/40 px-3.5 py-1.5 text-xs font-semibold text-blue-300 hover:bg-blue-900/50 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <Send className="h-3.5 w-3.5" />
+            <span>{testEmailSending ? 'Dispatching…' : 'Send Test Notification'}</span>
+          </button>
+        )}
+      </div>
+
+      {/* ── Channel Selector Tabs ─────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 border-b border-slate-800">
         <button
           type="button"
-          onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-sm"
+          onClick={() => setActiveTab('webhooks')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'webhooks'
+              ? 'border-blue-500 text-white'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
         >
-          <Plus className="h-4 w-4" />
-          <span>Add Webhook Endpoint</span>
+          <Webhook className="h-3.5 w-3.5 text-blue-400" />
+          <span>Outbound Webhooks ({webhooks.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('email')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'email'
+              ? 'border-blue-500 text-white'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Mail className="h-3.5 w-3.5 text-blue-400" />
+          <span>Organization Email Alerts ({emailConfig?.recipients.length || 0})</span>
         </button>
       </div>
 
-      {pingStatus && (
-        <div
-          className={`rounded-xl p-3.5 text-xs flex items-center justify-between ${
-            pingStatus.ok
-              ? 'border border-emerald-500/30 bg-emerald-950/20 text-emerald-300'
-              : 'border border-rose-500/30 bg-rose-950/20 text-rose-300'
-          }`}
-        >
+      {emailNotice && (
+        <div className="rounded-xl border border-blue-500/30 bg-blue-950/20 p-3.5 text-xs text-blue-300 flex items-center justify-between">
           <div className="flex items-center gap-2 font-medium">
-            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-            <span>{pingStatus.message}</span>
+            <CheckCircle2 className="h-4 w-4 text-blue-400 shrink-0" />
+            <span>{emailNotice}</span>
           </div>
           <button
             type="button"
-            onClick={() => setPingStatus(null)}
-            className="text-slate-400 hover:text-white"
+            onClick={() => setEmailNotice(null)}
+            className="text-slate-400 hover:text-white cursor-pointer"
           >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
       )}
+
+      {activeTab === 'email' ? (
+        /* ── Email Notifications & Alerting Management ────────────────────── */
+        <div className="space-y-6">
+          <div className="rounded-xl border border-slate-800/80 bg-[#0d121d] p-6 shadow-sm">
+            <div className="border-b border-slate-800 pb-4 mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-blue-400" />
+                  Organization Security Email Notifications
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Automated dispatch of verified post-quantum transaction receipts, tamper alerts, and blocked replay attempts
+                </p>
+              </div>
+              <span className="rounded bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-mono text-emerald-400 font-bold uppercase">
+                {emailConfig?.enabled ? 'Active Alerts' : 'Disabled'}
+              </span>
+            </div>
+
+            <form onSubmit={handleSaveEmailConfig} className="space-y-5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Notification Recipients (Comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={emailRecipients}
+                  onChange={(e) => setEmailRecipients(e.target.value)}
+                  placeholder="e.g. security-team@acmebank.com, ciso@acmebank.com, compliance@acmebank.com"
+                  className="w-full rounded-lg border border-slate-800 bg-[#070a10] px-3.5 py-2.5 text-xs font-mono text-white placeholder-slate-600 focus:border-blue-500 focus:outline-none"
+                />
+                <p className="mt-1 text-[11px] text-slate-400">
+                  All recipients will receive signed notifications with verifiable BLAKE3 integrity proofs.
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <p className="text-xs font-semibold text-slate-300">Subscribed Event Categories</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <label className="flex items-start gap-2.5 rounded-lg border border-slate-800/80 bg-[#090d16] p-3 text-xs cursor-pointer hover:border-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={emailConfig?.notify_on_critical_finding ?? true}
+                      onChange={(e) =>
+                        setEmailConfig(
+                          emailConfig
+                            ? { ...emailConfig, notify_on_critical_finding: e.target.checked }
+                            : null
+                        )
+                      }
+                      className="mt-0.5 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-0"
+                    />
+                    <div>
+                      <span className="font-semibold text-white block text-[11px]">Post-Quantum Seals</span>
+                      <span className="text-[10px] text-slate-400">ML-DSA-87 + Ed25519 dual-signed transactions</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 rounded-lg border border-slate-800/80 bg-[#090d16] p-3 text-xs cursor-pointer hover:border-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={emailConfig?.notify_on_replay_attack ?? true}
+                      onChange={(e) =>
+                        setEmailConfig(
+                          emailConfig
+                            ? { ...emailConfig, notify_on_replay_attack: e.target.checked }
+                            : null
+                        )
+                      }
+                      className="mt-0.5 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-0"
+                    />
+                    <div>
+                      <span className="font-semibold text-white block text-[11px]">Replay Attacks Blocked</span>
+                      <span className="text-[10px] text-slate-400">Sub-millisecond idempotency lease violations</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 rounded-lg border border-slate-800/80 bg-[#090d16] p-3 text-xs cursor-pointer hover:border-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={emailConfig?.notify_on_tamper ?? true}
+                      onChange={(e) =>
+                        setEmailConfig(
+                          emailConfig
+                            ? { ...emailConfig, notify_on_tamper: e.target.checked }
+                            : null
+                        )
+                      }
+                      className="mt-0.5 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-0"
+                    />
+                    <div>
+                      <span className="font-semibold text-white block text-[11px]">Signature Tamper Detected</span>
+                      <span className="text-[10px] text-slate-400">Invalid lattice equations or actor mismatches</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+                <span className="text-[11px] font-mono text-slate-400">
+                  Relay Mode: {emailConfig?.relay_mode ?? 'simulated_relay'}
+                </span>
+                <button
+                  type="submit"
+                  disabled={savingEmail}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                >
+                  {savingEmail ? 'Saving Preferences…' : 'Save Notification Preferences'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* ── Email Notification History Table ── */}
+          <div className="rounded-xl border border-slate-800/80 bg-[#0d121d] shadow-sm">
+            <div className="border-b border-slate-800 p-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-400" />
+                  Recent Email Security Dispatches
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Cryptographically audited email dispatch ledger with BLAKE3 non-repudiation proofs
+                </p>
+              </div>
+              <span className="text-[11px] font-mono text-slate-400">
+                {emailLogs.length} Dispatched Alerts
+              </span>
+            </div>
+
+            {emailLogs.length === 0 ? (
+              <div className="p-12 text-center text-xs text-slate-400">
+                No email notifications dispatched yet for this tenant. Click "Send Test Notification" above to verify routing.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="border-b border-slate-800 bg-[#090d16] text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <tr>
+                      <th className="px-5 py-3">Event Type</th>
+                      <th className="px-4 py-3">Recipient(s)</th>
+                      <th className="px-4 py-3">Subject & Snippet</th>
+                      <th className="px-4 py-3">Proof Hash (BLAKE3)</th>
+                      <th className="px-4 py-3 text-right">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
+                    {emailLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-800/20">
+                        <td className="px-5 py-3 font-semibold text-blue-400">
+                          {log.event_type}
+                        </td>
+                        <td className="px-4 py-3 text-slate-300">
+                          {log.recipients.join(', ')}
+                        </td>
+                        <td className="px-4 py-3 text-slate-200">
+                          <p className="font-semibold text-white">{log.subject}</p>
+                          <p className="text-[10px] text-slate-400 font-sans truncate max-w-sm">{log.body_snippet}</p>
+                        </td>
+                        <td className="px-4 py-3 text-slate-400 font-mono text-[10px]">
+                          {log.proof_hash.slice(0, 16)}…
+                        </td>
+                        <td className="px-4 py-3 text-right text-slate-400">
+                          {new Date(log.timestamp_ms).toLocaleTimeString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* ── Webhooks Channel View ─────────────────────────────────────────── */
+        <>
 
       {/* ── Active Endpoints Table ──────────────────────────────────────────── */}
       <div className="rounded-xl border border-slate-800/80 bg-[#0d121d] shadow-sm">
@@ -380,6 +664,8 @@ function verifyWebhook(payload, signatureHeader, secret) {
           </pre>
         </div>
       </div>
+      </>
+      )}
 
       {/* ── Create Webhook Modal ─────────────────────────────────────────────── */}
       {isCreateOpen && (

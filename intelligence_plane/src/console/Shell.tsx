@@ -450,8 +450,19 @@ export function Shell({
         </header>
 
         {orgsError && (
-          <div className="border-b border-rose-500/30 bg-rose-950/40 px-8 py-2 text-xs text-rose-300">
-            Tenant synchronization notice: {orgsError}
+          <div className="border-b border-rose-500/30 bg-rose-950/40 px-8 py-2.5 text-xs text-rose-300 flex items-center justify-between">
+            <span>Tenant synchronization notice: {orgsError}</span>
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.clear();
+                localStorage.removeItem('vardhan.console.org_id');
+                window.location.reload();
+              }}
+              className="rounded border border-rose-500/40 bg-rose-900/50 px-2.5 py-1 text-[11px] font-semibold text-rose-200 hover:bg-rose-800/60 cursor-pointer"
+            >
+              Clear Stale Session & Reconnect
+            </button>
           </div>
         )}
 

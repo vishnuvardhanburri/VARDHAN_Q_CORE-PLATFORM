@@ -124,6 +124,20 @@ export default function Login(): React.ReactElement {
               : planeState === 'reachable'
                 ? `Operational • ${API_BASE}`
                 : `Unreachable • ${API_BASE}`}
+            {planeState === 'unreachable' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPlaneState('checking');
+                  platformHealth()
+                    .then(() => setPlaneState('reachable'))
+                    .catch(() => setPlaneState('unreachable'));
+                }}
+                className="ml-1.5 underline hover:text-white cursor-pointer"
+              >
+                Retry
+              </button>
+            )}
           </div>
         </div>
 
@@ -182,9 +196,23 @@ export default function Login(): React.ReactElement {
         </div>
 
         {error && (
-          <div className="mb-4 flex items-start gap-2 rounded-lg border border-rose-500/40 bg-rose-950/30 p-3 text-xs text-rose-300">
-            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{error}</span>
+          <div className="mb-4 rounded-lg border border-rose-500/40 bg-rose-950/30 p-3 text-xs text-rose-300 space-y-2">
+            <div className="flex items-start gap-2">
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              <span className="flex-1">{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.clear();
+                localStorage.removeItem('vardhan.console.session_token');
+                localStorage.removeItem('vardhan.console.org_id');
+                window.location.reload();
+              }}
+              className="w-full rounded border border-rose-500/40 bg-rose-900/40 px-2.5 py-1.5 text-center text-[11px] font-semibold text-rose-200 hover:bg-rose-800/50 cursor-pointer"
+            >
+              Clear Cached Session & Reconnect
+            </button>
           </div>
         )}
 

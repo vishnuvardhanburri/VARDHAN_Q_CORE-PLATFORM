@@ -27,6 +27,7 @@ pub mod billing_api;
 pub mod continuous_operations;
 pub mod distributed_idempotency;
 pub mod durable_event_queue;
+pub mod email_notifications;
 pub mod enterprise_api;
 pub mod enterprise_integrations;
 pub mod enterprise_sso;
@@ -432,6 +433,15 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
         .route(
             "/api/v1/organizations/{id}/aer-kep-q/status",
             get(operations_api::aer_kep_q_status),
+        )
+        .route(
+            "/api/v1/organizations/{id}/notifications/email",
+            get(email_notifications::get_email_config)
+                .post(email_notifications::update_email_config),
+        )
+        .route(
+            "/api/v1/organizations/{id}/notifications/email/test",
+            post(email_notifications::send_test_email),
         )
         .route(
             "/api/v1/organizations/{id}/members",
