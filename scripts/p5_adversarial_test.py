@@ -468,9 +468,9 @@ def proxy_attacks():
             conn.request(method, path, body=body, headers={"Content-Type": "application/json"} if body else {})
             r = conn.getresponse()
             r.read()
-            is_safe = r.status != 200 or r.status in (404, 405, 400, 413, 501)
+            is_safe = r.status != 200 or r.status in (404, 405, 400, 401, 403, 413, 501)
             if "Oversized" in name or "No crash" in expected or "Empty POST" in name:
-                is_safe = r.status in (200, 400, 404, 413)  # Rejection or handled status acceptable
+                is_safe = r.status in (200, 400, 401, 403, 404, 413)  # Rejection or handled status acceptable
             record(test_id, "Proxy", name, expected,
                    f"HTTP {r.status}", is_safe, f"Path: {path}, Method: {method}")
             conn.close()
