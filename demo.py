@@ -159,15 +159,46 @@ def main():
 
     import atexit; atexit.register(cleanup)
 
-    # Banner ──────────────────────────────────────────────────────────────────
-    print("\033[2J\033[H", end="")  # clear screen
-    print(bld("""
-  ██╗   ██╗ █████╗ ██████╗ ██████╗ ██╗  ██╗ █████╗ ███╗   ██╗
-  ██║   ██║██╔══██╗██╔══██╗██╔══██╗██║  ██║██╔══██╗████╗  ██║
-  ██║   ██║███████║██████╔╝██║  ██║███████║███████║██╔██╗ ██║
-  ╚██╗ ██╔╝██╔══██║██╔══██╗██║  ██║██╔══██║██╔══██║██║╚██╗██║
-   ╚████╔╝ ██║  ██║██║  ██║██████╔╝██║  ██║██║  ██║██║ ╚████║
-    ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝"""))
+    # Banner & Kinetic Intro Animation ─────────────────────────────────────────
+    print("\033[2J\033[H", end="", flush=True)  # clear screen
+
+    vardhan_ascii = [
+        "██╗   ██╗ █████╗ ██████╗ ██████╗ ██╗  ██╗ █████╗ ███╗   ██╗",
+        "██║   ██║██╔══██╗██╔══██╗██╔══██╗██║  ██║██╔══██╗████╗  ██║",
+        "██║   ██║███████║██████╔╝██║  ██║███████║███████║██╔██╗ ██║",
+        "╚██╗ ██╔╝██╔══██║██╔══██╗██║  ██║██╔══██║██╔══██║██║╚██╗██║",
+        " ╚████╔╝ ██║  ██║██║  ██║██████╔╝██║  ██║██║  ██║██║ ╚████║",
+        "  ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝"
+    ]
+
+    qcore_ascii = [
+        "   ██████╗         ██████╗ ██████╗ ██████╗ ███████╗",
+        "  ██╔═══██╗       ██╔════╝██╔═══██╗██╔══██╗██╔════╝",
+        "  ██║   ██║       ██║     ██║   ██║██████╔╝█████╗  ",
+        "  ██║▄▄ ██║       ██║     ██║   ██║██╔══██╗██╔══╝  ",
+        "  ╚██████╔╝       ╚██████╗╚██████╔╝██║  ██║███████╗",
+        "   ╚══▀▀═╝         ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝"
+    ]
+
+    # Pulse in VARDHAN
+    for line in vardhan_ascii:
+        print(f"  {bld(cyn(line))}")
+        time.sleep(0.04)
+    print()
+
+    # Pulse in Q-CORE with glowing accent
+    for line in qcore_ascii:
+        print(f"  {bld(blu(line))}")
+        time.sleep(0.04)
+
+    # Subtitle typewriter animation
+    tagline = "  ⚛  POST-QUANTUM CRYPTOGRAPHIC VERIFICATION INFRASTRUCTURE  ⚛"
+    print("\n", end="")
+    for char in tagline:
+        sys.stdout.write(bld(ylw(char)))
+        sys.stdout.flush()
+        time.sleep(0.015)
+    print("\n")
 
     commit = subprocess.check_output(
         ["git","rev-parse","--short","HEAD"], cwd=REPO, text=True).strip()
