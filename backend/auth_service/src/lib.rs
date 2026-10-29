@@ -535,14 +535,22 @@ pub async fn change_password_handler(
 
 pub async fn get_settings_handler(
     State(state): State<AuthState>,
+    caller: Option<Extension<AuthenticatedUser>>,
     headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-    if extract_authenticated_user(&state, &headers).await.is_none() {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({ "error": "Unauthorized" })),
-        );
-    }
+    let _caller = match caller {
+        Some(Extension(u)) => u,
+        None => match extract_authenticated_user(&state, &headers).await {
+            Some(u) => u,
+            None => {
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({ "error": "Unauthorized" })),
+                )
+                    .into_response();
+            }
+        },
+    };
     let node_id = state.node_id.as_deref().unwrap_or("local-node");
     let fingerprint = state
         .identity
@@ -554,33 +562,40 @@ pub async fn get_settings_handler(
         })
         .unwrap_or_else(|| "0".repeat(64));
     match state.credentials.get_settings(node_id, &fingerprint) {
-        Ok(s) => (StatusCode::OK, Json(serde_json::to_value(s).unwrap())),
+        Ok(s) => (StatusCode::OK, Json(serde_json::to_value(s).unwrap())).into_response(),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": e.to_string() })),
-        ),
+        )
+            .into_response(),
     }
 }
 
 pub async fn update_settings_handler(
     State(state): State<AuthState>,
+    caller: Option<Extension<AuthenticatedUser>>,
     headers: axum::http::HeaderMap,
     Json(req): Json<settings::UpdateSettingsRequest>,
-) -> impl IntoResponse {
-    let caller = match extract_authenticated_user(&state, &headers).await {
-        Some(u) => u,
-        None => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({ "error": "Unauthorized" })),
-            )
-        }
+) -> axum::response::Response {
+    let caller = match caller {
+        Some(Extension(u)) => u,
+        None => match extract_authenticated_user(&state, &headers).await {
+            Some(u) => u,
+            None => {
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({ "error": "Unauthorized" })),
+                )
+                    .into_response();
+            }
+        },
     };
     if !caller.can(Permission::UpdateSettings) {
         return (
             StatusCode::FORBIDDEN,
             Json(serde_json::json!({ "error": "Forbidden" })),
-        );
+        )
+            .into_response();
     }
     let node_id = state.node_id.as_deref().unwrap_or("local-node");
     let fingerprint = state
@@ -596,11 +611,12 @@ pub async fn update_settings_handler(
         .credentials
         .update_settings(req, node_id, &fingerprint)
     {
-        Ok(s) => (StatusCode::OK, Json(serde_json::to_value(s).unwrap())),
+        Ok(s) => (StatusCode::OK, Json(serde_json::to_value(s).unwrap())).into_response(),
         Err(e) => (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({ "error": e.to_string() })),
-        ),
+        )
+            .into_response(),
     }
 }
 
@@ -696,74 +712,96 @@ pub fn extract_request_id(headers: &axum::http::HeaderMap) -> Option<String> {
 
 pub async fn list_sessions_handler(
     State(state): State<AuthState>,
+    caller: Option<Extension<AuthenticatedUser>>,
     headers: axum::http::HeaderMap,
 ) -> axum::response::Response {
-    if extract_authenticated_user(&state, &headers).await.is_none() {
-        return (
-            StatusCode::UNAUTHORIZED,
-            Json(serde_json::json!({ "error": "Unauthorized" })),
-        )
-            .into_response();
-    }
+    let _caller = match caller {
+        Some(Extension(u)) => u,
+        None => match extract_authenticated_user(&state, &headers).await {
+            Some(u) => u,
+            None => {
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({ "error": "Unauthorized" })),
+                )
+                    .into_response();
+            }
+        },
+    };
     (StatusCode::OK, Json(state.sessions.list_sessions().await)).into_response()
 }
 pub async fn revoke_session_handler(
     State(state): State<AuthState>,
     Path(id): Path<String>,
+    caller: Option<Extension<AuthenticatedUser>>,
     headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-    let caller = match extract_authenticated_user(&state, &headers).await {
-        Some(u) => u,
-        None => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({ "error": "Unauthorized" })),
-            )
-        }
+    let caller = match caller {
+        Some(Extension(u)) => u,
+        None => match extract_authenticated_user(&state, &headers).await {
+            Some(u) => u,
+            None => {
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({ "error": "Unauthorized" })),
+                )
+                    .into_response();
+            }
+        },
     };
     if !caller.can(Permission::RevokeSession) {
         return (
             StatusCode::FORBIDDEN,
             Json(serde_json::json!({ "error": "Forbidden" })),
-        );
+        )
+            .into_response();
     }
     match state.sessions.revoke_by_id(&id).await {
         Some(v) => (
             StatusCode::OK,
             Json(serde_json::json!({ "status": "revoked", "session": v })),
-        ),
+        )
+            .into_response(),
         None => (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": "Session not found" })),
-        ),
+        )
+            .into_response(),
     }
 }
 pub async fn flush_sessions_handler(
     State(state): State<AuthState>,
+    caller: Option<Extension<AuthenticatedUser>>,
     headers: axum::http::HeaderMap,
     body: Option<Json<FlushSessionsRequest>>,
-) -> impl IntoResponse {
-    let caller = match extract_authenticated_user(&state, &headers).await {
-        Some(u) => u,
-        None => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({ "error": "Unauthorized" })),
-            )
-        }
+) -> axum::response::Response {
+    let caller = match caller {
+        Some(Extension(u)) => u,
+        None => match extract_authenticated_user(&state, &headers).await {
+            Some(u) => u,
+            None => {
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({ "error": "Unauthorized" })),
+                )
+                    .into_response();
+            }
+        },
     };
     let req = body.map(|Json(req)| req).unwrap_or_default();
     if !caller.can(Permission::RevokeSession) {
         return (
             StatusCode::FORBIDDEN,
             Json(serde_json::json!({ "error": "Forbidden" })),
-        );
+        )
+            .into_response();
     }
     if !req.confirm {
         return (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({ "error": "Admin confirmation required" })),
-        );
+        )
+            .into_response();
     }
     let count = state
         .sessions
@@ -773,6 +811,7 @@ pub async fn flush_sessions_handler(
         StatusCode::OK,
         Json(serde_json::json!({ "status": "flushed", "revoked": count })),
     )
+        .into_response()
 }
 pub async fn list_api_keys_handler(
     State(state): State<AuthState>,

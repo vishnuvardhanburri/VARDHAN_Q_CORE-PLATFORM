@@ -418,6 +418,10 @@ pub fn router(control: ControlPlaneState, auth: AuthState, allowed_origins: Cors
             get(operations_api::findings).post(operations_api::ingest_finding),
         )
         .route(
+            "/api/v1/organizations/{id}/receipts",
+            post(operations_api::ingest_receipt),
+        )
+        .route(
             "/api/v1/organizations/{id}/incidents",
             get(operations_api::incidents).post(operations_api::update_incident),
         )

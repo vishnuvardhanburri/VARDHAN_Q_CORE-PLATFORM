@@ -173,7 +173,12 @@ export function Shell({
         if (cancelled) return;
         setOrgs(res.organizations);
         setOrgsError(null);
-        if (!orgId && res.organizations.length > 0) selectOrg(res.organizations[0].id);
+        if (res.organizations.length > 0) {
+          const currentValid = res.organizations.some((o) => o.id === orgId);
+          if (!orgId || !currentValid) {
+            selectOrg(res.organizations[0].id);
+          }
+        }
       } catch (err: unknown) {
         if (!cancelled) setOrgsError(err instanceof Error ? err.message : 'Failed to load organizations.');
       }

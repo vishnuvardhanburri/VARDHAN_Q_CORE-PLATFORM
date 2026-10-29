@@ -357,11 +357,39 @@ pub async fn validate_canonical(
 
     if let Ok(receipt) = serde_json::from_str::<serde_json::Value>(last_line) {
         if receipt.get("status").and_then(|s| s.as_str()) == Some("SEALED") {
+            let receipt_id = receipt
+                .get("receipt_id")
+                .and_then(|s| s.as_str())
+                .unwrap_or(&tx_id);
+
+            // Record sealed receipt into authoritative telemetry
+            let payload_hash_val = receipt
+                .get("payload_hash")
+                .and_then(|s| s.as_str())
+                .unwrap_or("");
+            let issuer_fp = receipt
+                .get("issuer_key_fingerprint")
+                .and_then(|s| s.as_str())
+                .unwrap_or("");
+            let telemetry_store = crate::qcore_telemetry::QCoreTelemetryStore::new(state.db.clone());
+            let _ = telemetry_store.record_receipt(&crate::qcore_telemetry::QCoreReceiptTelemetry {
+                organization_id: organization_id.clone(),
+                receipt_id: receipt_id.to_string(),
+                transaction_id: tx_id.clone(),
+                tenant_id: organization_id.clone(),
+                status: "sealed".to_string(),
+                decision: "allow".to_string(),
+                outcome_code: "200".to_string(),
+                policy_id: "fips204-ml-dsa-87".to_string(),
+                policy_version: "v1".to_string(),
+                ledger_commit_index: 1,
+                timestamp_ms: crate::continuous_operations::now_ms(),
+                payload_hash: payload_hash_val.to_string(),
+                issuer_key_fingerprint: issuer_fp.to_string(),
+                verification: crate::qcore_telemetry::ReceiptVerificationState::Verified,
+            });
+
             if let Some(ref idem_key) = idempotency_key {
-                let receipt_id = receipt
-                    .get("receipt_id")
-                    .and_then(|s| s.as_str())
-                    .unwrap_or(&tx_id);
                 state
                     .idempotency
                     .commit_sealed(
