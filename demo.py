@@ -505,6 +505,13 @@ def main():
     if not args.no_ui and UI_PROC:
         print(f"""   Console UI     → http://localhost:{UI_PORT}
    Login          → {ADMIN_USER} / {ADMIN_PASS}""")
+        print(f"\n  {grn(bld('>> SYSTEM IS LIVE!'))} Browser console & control plane are running.")
+        print(f"  You can browse {cyn(f'http://localhost:{UI_PORT}')} and login now.")
+        print(f"  {dim('Press Ctrl+C or Enter to shutdown the demo and clean up ports...')}")
+        try:
+            input()
+        except KeyboardInterrupt:
+            print("\nShutting down demo...")
 
     print(f"""
   {ylw(bld('Outstanding production blockers (hard gates, not bypassed):'))}
