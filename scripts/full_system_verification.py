@@ -26,8 +26,22 @@ DATA_DIR = f"/tmp/vardhan_matrix_{PORT}"
 KS_DIR = f"/tmp/vardhan_matrix_ks_{PORT}"
 IDEM_DIR = f"/tmp/vardhan_matrix_idem_{PORT}"
 
-ADMIN_USER = "admin"
-ADMIN_PASS = "demo-password-q-core-2026"
+def load_admin_credentials():
+    user = os.environ.get("VARDHAN_ADMIN_USERNAME", "admin")
+    pw = os.environ.get("VARDHAN_ADMIN_PASSWORD")
+    if not pw:
+        env_file = REPO / ".env"
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.startswith("VARDHAN_ADMIN_PASSWORD="):
+                    pw = line.split("=", 1)[1].strip()
+                    break
+    if not pw:
+        import secrets
+        pw = f"QCore-Vault-{secrets.token_hex(12)}"
+    return user, pw
+
+ADMIN_USER, ADMIN_PASS = load_admin_credentials()
 
 PASS_COUNT = 0
 FAIL_COUNT = 0

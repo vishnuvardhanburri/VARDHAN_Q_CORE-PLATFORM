@@ -33,8 +33,22 @@ DATA_DIR = f"/tmp/vardhan_speed_{PORT}"
 KS_DIR = f"/tmp/vardhan_speed_ks_{PORT}"
 IDEM_DIR = f"/tmp/vardhan_speed_idem_{PORT}"
 
-ADMIN_USER = "admin"
-ADMIN_PASS = "demo-password-q-core-2026"
+def load_admin_credentials():
+    user = os.environ.get("VARDHAN_ADMIN_USERNAME", "admin")
+    pw = os.environ.get("VARDHAN_ADMIN_PASSWORD")
+    if not pw:
+        env_file = REPO / ".env"
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.startswith("VARDHAN_ADMIN_PASSWORD="):
+                    pw = line.split("=", 1)[1].strip()
+                    break
+    if not pw:
+        import secrets
+        pw = f"QCore-Vault-{secrets.token_hex(12)}"
+    return user, pw
+
+ADMIN_USER, ADMIN_PASS = load_admin_credentials()
 
 def _c(code: str, text: str) -> str:
     return f"\033[{code}m{text}\033[0m"
@@ -201,6 +215,7 @@ def main():
     )
     with urllib.request.urlopen(req_validate) as resp:
         canonical_receipt_raw = resp.read().decode()
+    canonical_receipt_bytes = len(canonical_receipt_raw.encode("utf-8"))
 
     # Benchmark offline verification
     env_verify = {**os.environ, "VARDHAN_KEYSTORE_DIR": KS_DIR, "VARDHAN_ENV": "development"}
@@ -296,28 +311,43 @@ def main():
   Ed25519 Classical Public Key           32 bytes     RFC 8032 Classical Curve
   Ed25519 Classical Signature            64 bytes     High-Speed Classical Seal
   Blake3 Cryptographic Payload Hash      32 bytes     256-bit Collision Resistant
-  Composite Signed Receipt (JSON)    ~8,200 bytes     Full Multi-Party Evidence
+  Composite Signed Receipt (JSON)    {canonical_receipt_bytes:>5,d} bytes     Full Multi-Party Evidence
 """)
 
     # --------------------------------------------------------------------------
     # COMPARISON WITH CLASSICAL ALGORITHMS
     # --------------------------------------------------------------------------
-    print(bld("[PHASE 5] COMPARATIVE LATENCY vs CLASSICAL STANDARDS"))
+    print(bld("[PHASE 5] COMPARATIVE LATENCY vs CLASSICAL STANDARDS (EXTERNAL LITERATURE BASELINE)"))
     sign_m = f"{sign_stats['mean_ms']:>5.2f} ms"
     veri_m = f"{verify_stats['mean_ms']:>5.2f} ms"
     print(f"""
   {dim('ALGORITHM')}              {dim('SECURITY CLAIM')}         {dim('AVG SIGN')}      {dim('AVG VERIFY')}    {dim('QUANTUM RESISTANT')}
   ──────────────────────────────────────────────────────────────────────────────
-  RSA-4096               128-bit classical       4.520 ms        0.180 ms       {red('NO (Broken by Shor)')}
-  ECDSA P-384            192-bit classical       0.890 ms        1.250 ms       {red('NO (Broken by Shor)')}
-  Ed25519 (RFC 8032)     128-bit classical       0.065 ms        0.120 ms       {red('NO (Broken by Shor)')}
+  RSA-4096*              128-bit classical       4.520 ms        0.180 ms       {red('NO (Broken by Shor)')}
+  ECDSA P-384*           192-bit classical       0.890 ms        1.250 ms       {red('NO (Broken by Shor)')}
+  Ed25519 (RFC 8032)*    128-bit classical       0.065 ms        0.120 ms       {red('NO (Broken by Shor)')}
   {grn(bld('ML-DSA-87 (FIPS 204)'))}   {grn('256-bit Post-Quantum')}    {grn(sign_m)}        {grn(veri_m)}       {grn(bld('YES (FIPS 204 Ready)'))}
+
+  {dim('*Literature Reference Figures:')} Classical algorithm measurements represent published baseline figures
+  (OpenSSL 3.0 / NIST Cryptographic Algorithm Validation reference runs on 64-bit architectures),
+  provided strictly for baseline comparative context. They are not head-to-head internal benchmarks.
+
+  {ylw('⚠ Non-Production Notice:')} All Q-Core latencies are synthetic local measurements gathered on
+  Apple Silicon ARM64 under non-production test conditions. They characterize raw algorithmic and loopback
+  API execution for technical evaluation; they do not represent distributed banking settlement SLAs
+  or production throughput commitments.
 """)
 
     # Save summary report
     report = {
         "timestamp": time.time(),
         "hardware": "Apple Silicon ARM64 (Local Synthetic)",
+        "methodology": {
+            "environment": "Local Synthetic Non-Production Benchmark",
+            "hardware": "Apple Silicon ARM64",
+            "external_reference_notes": "Classical RSA-4096 and ECDSA P-384 figures cited from OpenSSL 3.0 literature reference baselines.",
+            "production_disclaimer": "Local measurements do not constitute high-volume banking settlement SLAs or production guarantees."
+        },
         "signing_speed": sign_stats,
         "verification_speed": verify_stats,
         "api_sealing_latency": api_seal_stats,
@@ -328,7 +358,7 @@ def main():
             "ml_dsa_87_signature_bytes": 4627,
             "ed25519_public_key_bytes": 32,
             "ed25519_signature_bytes": 64,
-            "average_receipt_json_bytes": receipt_bytes_sample or 8250
+            "average_receipt_json_bytes": canonical_receipt_bytes
         }
     }
 

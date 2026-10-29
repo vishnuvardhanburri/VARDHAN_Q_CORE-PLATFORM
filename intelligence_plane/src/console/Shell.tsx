@@ -178,6 +178,8 @@ export function Shell({
           if (!orgId || !currentValid) {
             selectOrg(res.organizations[0].id);
           }
+        } else if (orgId) {
+          selectOrg(null);
         }
       } catch (err: unknown) {
         if (!cancelled) setOrgsError(err instanceof Error ? err.message : 'Failed to load organizations.');

@@ -21,10 +21,8 @@ export const API_BASE: string = (() => {
   if (envUrl && envUrl.length > 0) {
     return envUrl;
   }
-  if (import.meta.env.PROD) {
-    if (typeof window !== 'undefined' && window.location && window.location.origin) {
-      return window.location.origin;
-    }
+  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    return window.location.origin;
   }
   return 'http://localhost:8080';
 })();
