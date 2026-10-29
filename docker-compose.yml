@@ -78,6 +78,7 @@ services:
       - "127.0.0.1:${VARDHAN_INTELLIGENCE_PORT:-3000}:3000"
     environment:
       NODE_ENV: production
+      VARDHAN_CONTROL_PLANE_URL: "http://control-plane:8080"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 10s
