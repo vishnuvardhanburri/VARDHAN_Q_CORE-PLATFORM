@@ -262,7 +262,7 @@ def main():
         UI_PROC = subprocess.Popen(
             ["node", str(server_cjs)],
             cwd=REPO/"intelligence_plane",
-            env={**os.environ, "PORT": str(UI_PORT)},
+            env={**os.environ, "PORT": str(UI_PORT), "VARDHAN_CONTROL_PLANE_URL": BASE},
             stdout=open("/tmp/vardhan_ui.log","w"), stderr=subprocess.STDOUT)
         time.sleep(2)
         try:

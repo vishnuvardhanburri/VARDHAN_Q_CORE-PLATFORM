@@ -2,7 +2,9 @@
 // VARDHAN Q-CORE — Intelligence Plane Hardened Production Web Server
 // ===================================================================
 // Serves the pre-compiled Vite Single Page Application (SPA) with
-// strict HTTP method validation, path traversal defense, and security headers.
+// strict HTTP method validation, path traversal defense, and security
+// headers. Proxies /api/ requests to the control plane backend so the
+// React app can run on a single origin without CORS issues.
 // ===================================================================
 
 const http = require('http');
@@ -10,6 +12,9 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
+// Control-plane URL — override with VARDHAN_CONTROL_PLANE_URL env var.
+// Defaults to localhost:8080 (Docker / production layout).
+const CONTROL_PLANE_URL = (process.env.VARDHAN_CONTROL_PLANE_URL || 'http://127.0.0.1:8080').replace(/\/$/, '');
 const DIST_DIR = path.resolve(__dirname, 'dist');
 const INDEX_HTML = path.join(DIST_DIR, 'index.html');
 
@@ -88,14 +93,69 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ error: 'Bad Request: Path traversal rejected' }));
   }
 
-  // 3. API route separation: Web console does not serve /api/
+  // 3. API proxy: forward /api/ to the control plane backend
   const urlPath = decodedUrl.split('?')[0];
   if (urlPath.startsWith('/api/') || urlPath === '/api') {
-    res.writeHead(404, {
-      ...SECURITY_HEADERS,
-      'Content-Type': 'application/json'
+    // Parse the control plane URL
+    let cpHost, cpPort, cpBase;
+    try {
+      const cpUrl = new URL(CONTROL_PLANE_URL);
+      cpHost = cpUrl.hostname;
+      cpPort = parseInt(cpUrl.port || (cpUrl.protocol === 'https:' ? '443' : '80'), 10);
+      cpBase = cpUrl.pathname.replace(/\/$/, '');
+    } catch (_e) {
+      cpHost = '127.0.0.1';
+      cpPort = 8080;
+      cpBase = '';
+    }
+
+    // Collect request body
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => {
+      const body = Buffer.concat(chunks);
+      const proxyPath = cpBase + req.url;
+      const proxyReq = http.request(
+        {
+          hostname: cpHost,
+          port: cpPort,
+          method: req.method,
+          path: proxyPath,
+          headers: {
+            ...req.headers,
+            host: `${cpHost}:${cpPort}`,
+            'x-forwarded-for': req.socket.remoteAddress || '127.0.0.1',
+            'x-forwarded-host': req.headers.host || `localhost:${PORT}`,
+          },
+        },
+        (proxyRes) => {
+          // Forward all response headers except hop-by-hop
+          const forwardHeaders = { ...proxyRes.headers };
+          delete forwardHeaders['transfer-encoding'];
+          // Expose token rotation header to the browser
+          if (proxyRes.headers['authorization-new-token']) {
+            forwardHeaders['access-control-expose-headers'] =
+              (forwardHeaders['access-control-expose-headers'] || '') +
+              ',authorization-new-token';
+          }
+          res.writeHead(proxyRes.statusCode || 502, forwardHeaders);
+          proxyRes.pipe(res);
+        }
+      );
+      proxyReq.on('error', (err) => {
+        if (!res.headersSent) {
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+        }
+        res.end(JSON.stringify({
+          error: 'Control plane unreachable',
+          detail: err.message,
+          target: CONTROL_PLANE_URL,
+        }));
+      });
+      if (body.length > 0) proxyReq.write(body);
+      proxyReq.end();
     });
-    return res.end(JSON.stringify({ error: 'Not Found: API requests must target control plane' }));
+    return; // response handled by proxy
   }
 
   // 4. Method restriction for static frontend: only GET, HEAD, OPTIONS allowed
