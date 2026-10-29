@@ -359,7 +359,7 @@ async fn admin_get_settings(
     State(state): State<AdminState>,
     headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-    auth_service::get_settings_handler(State(state.auth_state), headers).await
+    auth_service::get_settings_handler(State(state.auth_state), None, headers).await
 }
 
 async fn admin_update_settings(
@@ -367,14 +367,14 @@ async fn admin_update_settings(
     headers: axum::http::HeaderMap,
     Json(req): Json<auth_service::UpdateSettingsRequest>,
 ) -> impl IntoResponse {
-    auth_service::update_settings_handler(State(state.auth_state), headers, Json(req)).await
+    auth_service::update_settings_handler(State(state.auth_state), None, headers, Json(req)).await
 }
 
 async fn admin_list_sessions(
     State(state): State<AdminState>,
     headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-    auth_service::list_sessions_handler(State(state.auth_state), headers).await
+    auth_service::list_sessions_handler(State(state.auth_state), None, headers).await
 }
 
 async fn admin_revoke_session(
@@ -382,7 +382,8 @@ async fn admin_revoke_session(
     Path(session_id): Path<String>,
     headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-    auth_service::revoke_session_handler(State(state.auth_state), Path(session_id), headers).await
+    auth_service::revoke_session_handler(State(state.auth_state), Path(session_id), None, headers)
+        .await
 }
 
 async fn admin_flush_sessions(
@@ -390,7 +391,7 @@ async fn admin_flush_sessions(
     headers: axum::http::HeaderMap,
     body: Option<Json<auth_service::FlushSessionsRequest>>,
 ) -> impl IntoResponse {
-    auth_service::flush_sessions_handler(State(state.auth_state), headers, body).await
+    auth_service::flush_sessions_handler(State(state.auth_state), None, headers, body).await
 }
 
 async fn admin_list_api_keys(
