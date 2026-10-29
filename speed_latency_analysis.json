@@ -1,0 +1,71 @@
+{
+  "timestamp": 1793296122.2606442,
+  "hardware": "Apple Silicon ARM64 (Local Synthetic)",
+  "signing_speed": {
+    "count": 30,
+    "min_ms": 3.368,
+    "mean_ms": 3.793,
+    "median_p50_ms": 3.576,
+    "p90_ms": 3.934,
+    "p95_ms": 4.474,
+    "p99_ms": 9.516,
+    "max_ms": 9.516,
+    "stddev_ms": 1.101,
+    "ops_per_sec": 263.7
+  },
+  "verification_speed": {
+    "count": 30,
+    "min_ms": 3.374,
+    "mean_ms": 3.682,
+    "median_p50_ms": 3.562,
+    "p90_ms": 4.049,
+    "p95_ms": 4.092,
+    "p99_ms": 4.742,
+    "max_ms": 4.742,
+    "stddev_ms": 0.288,
+    "ops_per_sec": 271.6
+  },
+  "api_sealing_latency": {
+    "count": 25,
+    "min_ms": 28.208,
+    "mean_ms": 33.985,
+    "median_p50_ms": 33.748,
+    "p90_ms": 38.3,
+    "p95_ms": 40.821,
+    "p99_ms": 41.548,
+    "max_ms": 41.548,
+    "stddev_ms": 3.391,
+    "ops_per_sec": 29.4
+  },
+  "replay_rejection_latency": {
+    "count": 25,
+    "min_ms": 0.272,
+    "mean_ms": 0.576,
+    "median_p50_ms": 0.57,
+    "p90_ms": 0.944,
+    "p95_ms": 0.952,
+    "p99_ms": 1.071,
+    "max_ms": 1.071,
+    "stddev_ms": 0.193,
+    "ops_per_sec": 1734.7
+  },
+  "health_latency": {
+    "count": 30,
+    "min_ms": 0.167,
+    "mean_ms": 0.22,
+    "median_p50_ms": 0.199,
+    "p90_ms": 0.276,
+    "p95_ms": 0.283,
+    "p99_ms": 0.605,
+    "max_ms": 0.605,
+    "stddev_ms": 0.08,
+    "ops_per_sec": 4537.2
+  },
+  "payload_sizes": {
+    "ml_dsa_87_public_key_bytes": 2592,
+    "ml_dsa_87_signature_bytes": 4627,
+    "ed25519_public_key_bytes": 32,
+    "ed25519_signature_bytes": 64,
+    "average_receipt_json_bytes": 9704
+  }
+}
