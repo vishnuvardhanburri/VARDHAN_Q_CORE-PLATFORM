@@ -583,6 +583,8 @@ main() {
         logs)            cmd_logs "$@" ;;
         test)            cmd_test ;;
         pov)             cmd_pov ;;
+        aws)             python3 "$REPO_ROOT/scripts/aws_custody_control.py" "$@" ;;
+        share)           "$REPO_ROOT/scripts/share_demo_tunnel.sh" ;;
         preflight)       "$REPO_ROOT/scripts/server_preflight.sh" "$@" ;;
         package)         "$REPO_ROOT/scripts/package_offline_bundle.sh" "$@" ;;
         down)            cmd_down ;;
