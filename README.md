@@ -1,10 +1,10 @@
 # Vardhan Technologies — Q Core
 
-### Top-Level Post-Quantum Cryptographic (PQC) Core Platform for Global Banking and Financial Infrastructure
+### Advanced Post-Quantum Cryptographic Platform — Bringing the Next Decade of Quantum-Safe Financial Security to Today
 
 **Production status: LOCAL POV VERIFIED | STAGING ACCEPTANCE VERIFIED | PRODUCTION BLOCKED (NOT APPROVED FOR LIVE RAILS).**
 
-Vardhan Q Core is a top-level post-quantum cryptographic (PQC) and quantum-resilient financial transaction infrastructure platform. Engineered from first principles for mission-critical banking environments, Q Core provides quantum-safe digital signatures, immutable finding receipts, deterministic idempotency, exact minor-unit financial arithmetic, and high-throughput tamper-evident audit chaining.
+Vardhan Q Core is an advanced post-quantum cryptographic (PQC) infrastructure platform engineered to bring 10-year future quantum resilience to today's financial institutions. Built from first principles for mission-critical banking environments, Q Core protects financial transactions against future cryptanalytic quantum threats (Shor's and Grover's algorithms) through quantum-safe dual signatures (ML-DSA-87 + Ed25519), immutable finding receipts, deterministic idempotency, exact minor-unit financial arithmetic, and cloud-agnostic hardware key custody.
 
 ---
 
