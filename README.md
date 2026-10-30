@@ -23,11 +23,26 @@ While the initial deployment and regulatory sandboxing anchor in the **United Ki
 ### Core Cryptographic and Invariant Engine
 
 - **Dual-Signature Hybrid Scheme:** Classical Ed25519 (RFC 8032) paired with NIST FIPS 204 ML-DSA-87 (quantum-resistant digital signatures) for post-quantum defense with backwards compatibility.
+- **Hardware-Backed Key Custody (Cloud-Agnostic & On-Prem):** Envelope encryption with hardware security modules (HSM) across **AWS KMS / CloudHSM**, **Google Cloud KMS**, **Azure Key Vault**, **HashiCorp Vault Transit**, and physical on-premise banking HSM appliances (**Thales Luna**, **Utimaco**, **YubiHSM**) via standard PKCS#11.
 - **Post-Quantum Key Encapsulation:** NIST FIPS 203 ML-KEM-1024 for quantum-safe transport channel key establishment.
 - **Cryptographic Digest:** BLAKE3 256-bit tree-hashing substrate delivering high-speed integrity verification.
 - **Ephemeral Key Rotation:** AER-KEP-Q deterministic epoch-transition protocol.
 - **Exact Financial Arithmetic:** Pure integer minor-unit accounting (`amount_minor_units: u128`), decimal scale tracking (`amount_scale: u32`), and ISO 4217 minor-unit exponent mapping. Binary floating-point representation drift is eliminated.
 - **Audit Ledger Substrate:** Cross-process advisory locking (`fs2`) with O(1) trailing-seek verification, preventing multi-process line interleaving and guaranteeing sequential hash chaining.
+
+---
+
+## Cloud & Infrastructure Agnosticism
+
+Vardhan Q-Core is engineered to eliminate cloud vendor lock-in. Tier-1 financial institutions can deploy Q-Core natively across any cloud provider or private air-gapped infrastructure:
+
+| Infrastructure Environment | Cryptographic Key Custody Bridge | Integration File | Deployment Status |
+| :--- | :--- | :--- | :--- |
+| **Amazon Web Services (AWS)** | AWS KMS Hardware Modules (FIPS 140-2 Level 3) & AWS CloudHSM | `backend/vardhan_keystore/src/kms/aws.rs` | **VERIFIED LIVE** (Europe Stockholm `eu-north-1`) |
+| **Google Cloud Platform (GCP)** | Google Cloud KMS & Cloud HSM | `backend/vardhan_keystore/src/kms/gcp.rs` | Supported |
+| **Microsoft Azure** | Azure Key Vault Managed HSM | `backend/vardhan_keystore/src/kms/` | Supported |
+| **On-Premise Banking Data Centers** | Physical HSMs (Thales Luna, Utimaco, YubiHSM) via ISO/IEC 7816 PKCS#11 | `backend/vardhan_keystore/src/kms/pkcs11.rs` | Supported (PKCS#11 v2.40) |
+| **Enterprise Secret Management** | HashiCorp Vault Transit Engine | `backend/vardhan_keystore/src/kms/vault_transit.rs` | Supported |
 
 ---
 
@@ -230,6 +245,8 @@ VARDHAN_Q_CORE-PLATFORM/
 | `./qcore logs [service]` | Stream service logs with optional component filtering |
 | `./qcore test` | Execute format checks, Rust workspace tests, SDK checks, E2E lifecycle, and HA tests |
 | `./qcore pov` | Execute Docker-based security, throughput, and cryptographic benchmark suite |
+| `./scripts/share_demo_tunnel.sh` | One-click zero-cost secure Cloudflare tunnel to share live web UI with remote clients |
+| `./scripts/aws_kms_qcore_live_verification.py` | Verify live hardware key custody and envelope encryption with AWS KMS HSM |
 | `./qcore down` | Gracefully shut down services and clean up network resources |
 | `./qcore clean` | Clean compilation artifacts while preserving database state |
 | `./qcore clean --destructive` | Remove all build artifacts, volumes, and persisted state |
