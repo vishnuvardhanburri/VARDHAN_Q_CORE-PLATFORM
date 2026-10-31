@@ -50,19 +50,23 @@ pub async fn require_session(
 
     let token = SessionToken::from_str(&token_str);
 
-    let (username, new_token) = state
-        .sessions
-        .validate_and_rotate(&token)
-        .await
-        .ok_or_else(|| {
-            (
+    let username = match state.sessions.validate_session(&token).await {
+        Ok(Some(u)) => u,
+        Ok(None) => {
+            return Err((
                 StatusCode::UNAUTHORIZED,
                 Json(serde_json::json!({ "error": "Invalid or expired session" })),
-            )
-        })?;
+            ));
+        }
+        Err(crate::session::SessionError::AuthoritativeStateUnavailable) => {
+            return Err((
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(serde_json::json!({ "error": "Authoritative security state unavailable" })),
+            ));
+        }
+    };
 
-    // Authorization must come from persisted role state. Never synthesize an
-    // administrative role from the mere existence of a valid session.
+    // Authorization must come from authoritative role profile state (versioned in memory).
     let role = state.credentials.authoritative_role(&username).ok_or_else(|| {
         (
             StatusCode::UNAUTHORIZED,
@@ -72,18 +76,20 @@ pub async fn require_session(
 
     req.extensions_mut()
         .insert(AuthenticatedUser::new_user(username, role));
-    req.extensions_mut().insert(new_token.clone());
+    req.extensions_mut().insert(token.clone());
 
     let mut response = next.run(req).await;
 
+    // Return the active token in authorization-new-token for contract compatibility
+    // without performing per-request mutation or disk writes.
     response.headers_mut().insert(
         header::HeaderName::from_static("authorization-new-token"),
-        header::HeaderValue::from_str(&format!("Bearer {}", new_token.as_str())).unwrap(),
+        header::HeaderValue::from_str(&format!("Bearer {}", token.as_str())).unwrap(),
     );
 
     let cookie_val = format!(
         "qcore_session={}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=28800",
-        new_token.as_str()
+        token.as_str()
     );
     if let Ok(val) = header::HeaderValue::from_str(&cookie_val) {
         response.headers_mut().insert(header::SET_COOKIE, val);

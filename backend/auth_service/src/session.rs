@@ -6,10 +6,31 @@ use serde::{Deserialize, Serialize};
 use std::{
     net::IpAddr,
     path::Path,
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, AtomicU64, Ordering},
+        Arc,
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SessionError {
+    AuthoritativeStateUnavailable,
+}
+
+impl std::fmt::Display for SessionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SessionError::AuthoritativeStateUnavailable => {
+                write!(f, "Authoritative security state unavailable")
+            }
+        }
+    }
+}
+
+impl std::error::Error for SessionError {}
+
 pub const SESSION_HARD_EXPIRY_SECS: u64 = 8 * 60 * 60;
 pub const SESSION_IDLE_TIMEOUT_SECS: u64 = 30 * 60;
 /// Grace window during which the *previous* token of a rotated session is
@@ -68,6 +89,8 @@ struct Persisted {
     /// Milliseconds at which the current rotation happened. `None` until the
     /// first rotation. Bounds the replay grace window for `previous_digest`.
     rotated_at: Option<u128>,
+    #[serde(default)]
+    session_version: u64,
 }
 #[derive(Debug, Clone)]
 pub struct SessionEntry {
@@ -85,6 +108,7 @@ pub struct SessionEntry {
     pub previous_token_digest: Option<String>,
     /// When the latest rotation happened (`None` before the first rotation).
     pub rotated_at_ms: Option<u128>,
+    pub session_version: u64,
 }
 impl SessionEntry {
     fn expired(&self) -> bool {
@@ -106,6 +130,7 @@ impl SessionEntry {
             current_digest: self.current_token_digest.clone(),
             previous_digest: self.previous_token_digest.clone(),
             rotated_at: self.rotated_at_ms,
+            session_version: self.session_version,
         }
     }
     fn view(&self) -> SessionView {
@@ -148,6 +173,7 @@ impl Persisted {
             // rotation timestamp so the grace window still bounds replays
             // instead of collapsing to "no grace" after every restart.
             rotated_at_ms: self.rotated_at,
+            session_version: self.session_version,
         }
     }
     fn view(&self) -> SessionView {
@@ -185,6 +211,10 @@ pub struct SessionStore {
     inner: Arc<DashMap<String, SessionEntry>>,
     token_to_id: Arc<DashMap<String, String>>,
     revoked: Arc<DashMap<String, SessionView>>,
+    user_revocations: Arc<DashMap<String, u64>>,
+    revoked_sessions: Arc<DashMap<String, u64>>,
+    authoritative_revocation_epoch: Arc<AtomicU64>,
+    authoritative_state_available: Arc<AtomicBool>,
     db: Option<sled::Db>,
 }
 impl Default for SessionStore {
@@ -198,6 +228,10 @@ impl SessionStore {
             inner: Arc::new(DashMap::new()),
             token_to_id: Arc::new(DashMap::new()),
             revoked: Arc::new(DashMap::new()),
+            user_revocations: Arc::new(DashMap::new()),
+            revoked_sessions: Arc::new(DashMap::new()),
+            authoritative_revocation_epoch: Arc::new(AtomicU64::new(1)),
+            authoritative_state_available: Arc::new(AtomicBool::new(true)),
             db: None,
         }
     }
@@ -207,6 +241,10 @@ impl SessionStore {
             inner: Arc::new(DashMap::new()),
             token_to_id: Arc::new(DashMap::new()),
             revoked: Arc::new(DashMap::new()),
+            user_revocations: Arc::new(DashMap::new()),
+            revoked_sessions: Arc::new(DashMap::new()),
+            authoritative_revocation_epoch: Arc::new(AtomicU64::new(1)),
+            authoritative_state_available: Arc::new(AtomicBool::new(true)),
             db: Some(db.clone()),
         };
         for item in db.iter() {
@@ -254,6 +292,7 @@ impl SessionStore {
         let id = format!("sess_{}", hex::encode(b));
         let now = now_ms();
         let d = digest(t.as_str());
+        let session_version = self.authoritative_revocation_epoch.load(Ordering::Acquire);
         let e = SessionEntry {
             session_id: id.clone(),
             username: u.into(),
@@ -268,6 +307,7 @@ impl SessionStore {
             current_token_digest: d.clone(),
             previous_token_digest: None,
             rotated_at_ms: None,
+            session_version,
         };
         let _ = self.persist(&e);
         self.inner.insert(id.clone(), e);
@@ -286,6 +326,76 @@ impl SessionStore {
         } else {
             None
         }
+    }
+
+    /// Read-only concurrent session validation with reduced write contention.
+    /// Performs zero writes to database storage, zero disk flushes, and zero mutable session locking.
+    /// Fails closed (503) if authoritative security state is unavailable.
+    /// Returns None (401) if token is unknown, expired, or revoked.
+    pub async fn validate_session(&self, t: &SessionToken) -> Result<Option<String>, SessionError> {
+        if !self.authoritative_state_available.load(Ordering::Acquire) {
+            return Err(SessionError::AuthoritativeStateUnavailable);
+        }
+
+        let d = digest(t.as_str());
+        let id = match self.token_to_id.get(&d) {
+            Some(id) => id.clone(),
+            None => return Ok(None),
+        };
+
+        if self.revoked.contains_key(&id) || self.revoked_sessions.contains_key(&id) {
+            return Ok(None);
+        }
+
+        let e = match self.inner.get(&id) {
+            Some(e) => e,
+            None => return Ok(None),
+        };
+
+        if e.revoked || now_ms() >= e.expires_at_ms {
+            return Ok(None);
+        }
+
+        // Monotonic user-level revocation epoch check
+        if let Some(user_epoch) = self.user_revocations.get(&e.username) {
+            if e.session_version <= *user_epoch {
+                return Ok(None);
+            }
+        }
+
+        if d == e.current_token_digest
+            || (Some(&d) == e.previous_token_digest.as_ref()
+                && e.rotated_at_ms
+                    .map(|rot| now_ms().saturating_sub(rot) < ROTATION_GRACE_SECS as u128 * 1000)
+                    .unwrap_or(false))
+        {
+            Ok(Some(e.username.clone()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn set_authoritative_state_available(&self, available: bool) {
+        self.authoritative_state_available
+            .store(available, Ordering::Release);
+    }
+
+    pub fn is_authoritative_state_available(&self) -> bool {
+        self.authoritative_state_available.load(Ordering::Acquire)
+    }
+
+    pub fn authoritative_revocation_epoch(&self) -> u64 {
+        self.authoritative_revocation_epoch.load(Ordering::Acquire)
+    }
+
+    pub fn revoke_user_all_sessions(&self, username: &str) -> u64 {
+        let current = self
+            .authoritative_revocation_epoch
+            .fetch_add(1, Ordering::SeqCst);
+        self.user_revocations.insert(username.to_string(), current);
+        self.authoritative_revocation_epoch
+            .fetch_add(1, Ordering::SeqCst);
+        current
     }
     pub async fn validate_and_rotate(&self, t: &SessionToken) -> Option<(String, SessionToken)> {
         let d = digest(t.as_str());
@@ -402,6 +512,12 @@ impl SessionStore {
         if let Some(v) = self.revoked.get(id) {
             return Some(v.clone());
         }
+        let epoch = self
+            .authoritative_revocation_epoch
+            .fetch_add(1, Ordering::SeqCst)
+            + 1;
+        self.revoked_sessions.insert(id.to_string(), epoch);
+
         let (_, mut e) = self.inner.remove(id)?;
         e.revoked = true;
         self.token_to_id.remove(&e.current_token_digest);
@@ -511,6 +627,99 @@ mod tests {
         assert!(
             !store.list_sessions().await.is_empty() || store.validate(&original).await.is_some(),
             "burst must not revoke the session"
+        );
+    }
+
+    #[tokio::test]
+    async fn validate_session_concurrent_reads_succeed() {
+        let store = SessionStore::new();
+        let token = store.create("charlie", "127.0.0.1".parse().unwrap()).await;
+
+        let mut handles = Vec::new();
+        for _ in 0..50 {
+            let s = store.clone();
+            let t = token.clone();
+            handles.push(tokio::spawn(async move { s.validate_session(&t).await }));
+        }
+
+        for h in handles {
+            let res = h.await.expect("join handle");
+            assert_eq!(res.unwrap(), Some("charlie".to_string()));
+        }
+    }
+
+    #[tokio::test]
+    async fn validate_session_revocation_by_id_is_immediate() {
+        let store = SessionStore::new();
+        let token = store.create("david", "127.0.0.1".parse().unwrap()).await;
+        assert_eq!(
+            store.validate_session(&token).await.unwrap(),
+            Some("david".to_string())
+        );
+
+        let _info = store.get_info(&token).await.unwrap();
+        let sessions = store.list_sessions().await;
+        let session_id = &sessions[0].session_id;
+
+        store
+            .revoke_by_id(session_id)
+            .await
+            .expect("revoke session");
+
+        assert_eq!(
+            store.validate_session(&token).await.unwrap(),
+            None,
+            "Revoked session ID must be rejected immediately"
+        );
+    }
+
+    #[tokio::test]
+    async fn validate_session_user_level_monotonic_revocation() {
+        let store = SessionStore::new();
+        let token1 = store.create("eve", "127.0.0.1".parse().unwrap()).await;
+        assert_eq!(
+            store.validate_session(&token1).await.unwrap(),
+            Some("eve".to_string())
+        );
+
+        // Revoke all sessions for eve
+        store.revoke_user_all_sessions("eve");
+
+        assert_eq!(
+            store.validate_session(&token1).await.unwrap(),
+            None,
+            "Pre-revocation epoch token must be rejected"
+        );
+
+        // New token issued after revocation must succeed
+        let token2 = store.create("eve", "127.0.0.1".parse().unwrap()).await;
+        assert_eq!(
+            store.validate_session(&token2).await.unwrap(),
+            Some("eve".to_string()),
+            "Token created after revocation epoch must succeed"
+        );
+    }
+
+    #[tokio::test]
+    async fn validate_session_fails_closed_when_authoritative_state_unavailable() {
+        let store = SessionStore::new();
+        let token = store.create("frank", "127.0.0.1".parse().unwrap()).await;
+        assert_eq!(
+            store.validate_session(&token).await.unwrap(),
+            Some("frank".to_string())
+        );
+
+        // Simulate partition / unavailable authoritative revocation consensus
+        store.set_authoritative_state_available(false);
+
+        let err = store.validate_session(&token).await.unwrap_err();
+        assert_eq!(err, SessionError::AuthoritativeStateUnavailable);
+
+        // Recover authoritative availability
+        store.set_authoritative_state_available(true);
+        assert_eq!(
+            store.validate_session(&token).await.unwrap(),
+            Some("frank".to_string())
         );
     }
 }

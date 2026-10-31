@@ -19,15 +19,19 @@
 //!   after hashing
 //! - PHC format is self-describing — parameter migration works without schema changes
 
+use dashmap::DashMap;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 const CRED_PREFIX: &[u8] = b"cred:";
 
-/// Thread-safe handle to the credential store.
+/// Thread-safe handle to the credential store with versioned identity caching.
 #[derive(Clone)]
 pub struct CredentialStore {
     pub(crate) db: Arc<sled::Db>,
+    pub(crate) identity_cache: Arc<DashMap<String, (crate::authorization::Role, u64)>>,
+    pub(crate) identity_version: Arc<AtomicU64>,
 }
 
 impl CredentialStore {
@@ -35,7 +39,11 @@ impl CredentialStore {
     pub fn open(path: &Path) -> Result<Self, String> {
         let db = sled::open(path)
             .map_err(|e| format!("Failed to open credential store at {}: {e}", path.display()))?;
-        Ok(Self { db: Arc::new(db) })
+        Ok(Self {
+            db: Arc::new(db),
+            identity_cache: Arc::new(DashMap::new()),
+            identity_version: Arc::new(AtomicU64::new(1)),
+        })
     }
 
     /// Open the store and bootstrap from env vars if no users exist.
@@ -129,10 +137,18 @@ impl CredentialStore {
 
     /// Remove a user. Returns `true` if the user existed.
     pub async fn remove_user(&self, username: &str) -> Result<bool, String> {
+        self.identity_version.fetch_add(1, Ordering::Release);
+        self.identity_cache.remove(username);
         self.db
             .remove(Self::key(username))
             .map(|old| old.is_some())
             .map_err(|e| format!("Credential remove failed: {e}"))
+    }
+
+    /// Invalidate identity cache entry across monotonic versions.
+    pub fn invalidate_identity(&self, username: &str) {
+        self.identity_version.fetch_add(1, Ordering::Release);
+        self.identity_cache.remove(username);
     }
 
     /// Count all stored users.

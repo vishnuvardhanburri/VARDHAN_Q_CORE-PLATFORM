@@ -153,10 +153,20 @@ impl CredentialStore {
     /// Resolve the role used for authorization without creating or mutating a profile.
     /// Missing profiles fail closed and return `None`; this is intentionally stricter
     /// than `get_profile`, whose legacy bootstrap behavior may materialize an admin profile.
+    /// Uses versioned in-memory caching to avoid Sled disk reads on the hot authenticated request path.
     pub fn authoritative_role(&self, username: &str) -> Option<crate::authorization::Role> {
+        if let Some(entry) = self.identity_cache.get(username) {
+            return Some(entry.0.clone());
+        }
         let raw = self.db.get(Self::profile_key(username)).ok().flatten()?;
         let profile: AdminProfile = serde_json::from_slice(&raw).ok()?;
-        Some(crate::authorization::Role::from_str(&profile.role))
+        let role = crate::authorization::Role::from_str(&profile.role);
+        let version = self
+            .identity_version
+            .load(std::sync::atomic::Ordering::Acquire);
+        self.identity_cache
+            .insert(username.to_string(), (role.clone(), version));
+        Some(role)
     }
 
     pub fn save_profile(&self, profile: &AdminProfile) -> Result<(), ProfileError> {
@@ -168,6 +178,9 @@ impl CredentialStore {
         self.db
             .flush()
             .map_err(|e| ProfileError::DbError(e.to_string()))?;
+        self.identity_version
+            .fetch_add(1, std::sync::atomic::Ordering::Release);
+        self.identity_cache.remove(&profile.username);
         Ok(())
     }
 
@@ -328,5 +341,47 @@ mod tests {
         let bob_phc = store.get_phc_sync("bob").unwrap();
         assert!(!verify_password("original_password_12", &bob_phc));
         assert!(verify_password("new_secure_password_12", &bob_phc));
+    }
+
+    #[test]
+    fn test_versioned_identity_cache_invalidation_on_role_change() {
+        let dir = tempdir().unwrap();
+        let store = CredentialStore::open(dir.path()).unwrap();
+        let phc = hash_password("test_pass_12345").unwrap();
+        store.set_phc_sync("alice", &phc).unwrap();
+
+        store
+            .save_profile(&AdminProfile {
+                username: "alice".to_string(),
+                display_name: "Alice".to_string(),
+                email: "alice@example.com".to_string(),
+                role: "user".to_string(),
+                updated_at_ms: 1,
+            })
+            .unwrap();
+
+        // Initial lookup populates cache
+        assert_eq!(
+            store.authoritative_role("alice"),
+            Some(crate::authorization::Role::User)
+        );
+        assert!(store.identity_cache.contains_key("alice"));
+
+        // Role escalation/update
+        store
+            .save_profile(&AdminProfile {
+                username: "alice".to_string(),
+                display_name: "Alice Admin".to_string(),
+                email: "alice@example.com".to_string(),
+                role: "admin".to_string(),
+                updated_at_ms: 2,
+            })
+            .unwrap();
+
+        // Cache was invalidated and reloaded with the new role
+        assert_eq!(
+            store.authoritative_role("alice"),
+            Some(crate::authorization::Role::Admin)
+        );
     }
 }
