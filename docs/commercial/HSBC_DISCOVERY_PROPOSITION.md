@@ -5,7 +5,7 @@
 **Target Entity:** HSBC Holdings plc (Emerging Technology, Innovation and Ventures / Group Cyber Security)  
 **Offer Status:** Exploratory Discovery Proposal Template — Requires Buyer Agreement & Formal Statement of Work  
 **Commercial Baseline:** £15,000 GBP Fixed Fee (Codified in [`docs/COMMERCIAL_PRICING_MODEL.md`](../COMMERCIAL_PRICING_MODEL.md))  
-**Delivery Timeline:** 2 Weeks (10 Working Days from Kickoff)  
+**Delivery Timeline:** 48 Hours from Kickoff (Rapid, Decision-Oriented Engagement)  
 **Opportunity Baseline:** Derived from verified public evidence in [`HSBC_OPPORTUNITY_VALIDATION.md`](../../HSBC_OPPORTUNITY_VALIDATION.md)  
 
 ---
@@ -14,6 +14,11 @@
 
 > [!IMPORTANT]
 > **Commercial Disclaimer & Reality Check:**
+> - **Commercial Engagement Progression:**
+>   - **Stage 1 (Discovery):** 48 hours | £15,000 fixed fee. Rapid, decision-oriented engagement to identify the problem, map workflows, and define PoP scope.
+>   - **Stage 2 (Proof of Product - PoP):** 10 days | £60,000 fixed fee. Controlled technical validation running selected workflow in an authorized sandbox.
+>   - **Stage 3 (Implementation / Deployment):** 10–15 working days. Integrations, deployment environment, and handover.
+>   - **Stage 4 (Annual Licensing):** Foundation (£360K/yr) | Enterprise (£720K/yr) | Advanced Resilience (£1.2M/yr) | Strategic/Sovereign (separately scoped).
 > - **Score Meaning:** The internal score of `96 / 100 (P0)` represents a *technical problem and initiative ranking* based exclusively on publicly verified disclosures (Quantinuum tokenized gold pilot, IBM Quantum collaboration, and public statements by Philip Intallura).
 > - **Commercial Readiness:** Commercial readiness is strictly **`NOT_ASSESSED (50/100)`**.
 > - **Zero Fabricated Intent:** There is **no active purchasing dialogue**, **no confirmed procurement budget**, and **no active vendor tender** at HSBC for Q-Core.
@@ -33,34 +38,35 @@ However, moving from an isolated partner pilot on tokenized gold to a repeatable
 3. **Hardware Isolation:** How to bind post-quantum key envelopes to external hardware security modules (HSMs / AWS KMS) without persisting plaintext key material in application memory.
 
 ### The Objective
-A bounded, 2-week technical evaluation to evaluate the architectural feasibility of Q-Core's **hybrid dual-signing** and **AER-KEP-Q epoch key management** on synthetic tokenized asset transaction records. The outcome is a decision-ready roadmap: **Proceed to £65K Bounded PoV / Proceed after prerequisites / Stop**.
+A rapid, 48-hour decision-oriented engagement to identify HSBC's specific tokenized asset transaction problem, map target signing workflows and trust boundaries, establish architectural feasibility and security requirements, and define the precise scope and acceptance criteria for a 10-day **Stage 2 Proof of Product (PoP, £60,000)**. The outcome is a decision-ready roadmap: **Proceed to £60K PoP / Proceed after prerequisites / Stop**.
 
 ---
 
-## 3. Scope of Work (Two-Week Timeline)
+## 3. Scope of Work (48-Hour Rapid Discovery)
 
 ```
 +-----------------------------------------------------------------------------------+
-| WEEK 1: ARCHITECTURE MAPPING & TRUST BOUNDARIES                                   |
-| - Review tokenized asset transaction schema & current signing pipelines.          |
-| - Map trust boundaries: client origin -> signing gateway -> ledger verification.  |
-| - Establish synthetic asset dataset & classical baseline benchmarks.              |
+| DAY 1 (HOURS 1–24): PROBLEM, WORKFLOW & TRUST BOUNDARIES                          |
+| - Sponsor & architecture kickoff: review tokenized asset transaction schema.       |
+| - Identify target workflow: client origin -> signing gateway -> ledger verifier.  |
+| - Map trust boundaries, KMS/HSM dependencies, and legacy verification formats.    |
 +-----------------------------------------------------------------------------------+
                                          |
                                          v
 +-----------------------------------------------------------------------------------+
-| WEEK 2: SYNTHETIC-DATA BENCHMARKING & DECISION REPORT                             |
-| - Execute Q-Core ML-DSA-87 + Ed25519 dual-signing against synthetic payloads.     |
-| - Simulate exposure detection and test AER-KEP-Q automated epoch quarantine.      |
-| - Compile empirical gap register and deliver final Discovery Decision Workshop.   |
+| DAY 2 (HOURS 25–48): FEASIBILITY, GAP REGISTER & POP SPECIFICATION               |
+| - Evaluate architectural feasibility of ML-DSA-87 dual-signing on token payloads.  |
+| - Formulate prioritized security & operational gap register.                      |
+| - Define Stage 2 Proof of Product (PoP) Statement of Work (SOW) & success metrics. |
+| - Final executive decision workshop: Proceed / Proceed after prerequisites / Stop.|
 +-----------------------------------------------------------------------------------+
 ```
 
 ### Detailed Activities
-1. **Current-State & Trust-Boundary Mapping:** Map the agreed transaction ingestion, signing, and verification path; identify actors, trust boundaries, KMS dependencies, and downstream consumers.
-2. **Hybrid Envelope Design:** Model supplementary data placement for `ML-DSA-87` signatures alongside classical `Ed25519` signatures so legacy nodes verify classical signatures while quantum-aware validators inspect PQC proofs.
-3. **Key Lifecycle & Quarantine Simulation:** Test Q-Core’s state machine (`Active` → `Rotating` → `Deprecated` → `Quarantined`) under simulated compromise triggers.
-4. **Gap Analysis & PoV Planning:** Evaluate integration dependencies, latency budgets, and security controls against NIST FIPS 203/204 and UK NCSC guidelines.
+1. **Problem & Workflow Identification:** Scope the exact message formats (ISO 20022 `pacs.008` supplementary data or digital asset transfer payloads) where cryptographic agility is required.
+2. **Current-State & Trust-Boundary Mapping:** Map the agreed transaction ingestion, signing, and verification path; identify actors, trust boundaries, KMS dependencies, and downstream consumers.
+3. **Feasibility & Security Requirements:** Evaluate latency budgets, HSM key custody integration options, and NIST FIPS 203/204 alignment.
+4. **PoP SOW Formulation:** Establish the agreed synthetic datasets, test environments, and measurable pass/fail criteria that will govern Stage 2.
 
 ---
 
@@ -108,7 +114,7 @@ At the conclusion of the 10-day engagement, Vardhan Technologies delivers:
 1. **Sponsor Problem Statement & Cryptographic Boundary Blueprint:** Verified architectural map of tokenized asset message signing.
 2. **Empirical Benchmarking Report:** Reproducible latency, CPU, and payload overhead measurements from synthetic execution runs.
 3. **Prioritized Security & Operations Gap Register:** Concrete gap analysis against NIST FIPS 203/204, NCSC PQC timelines, and PRA resilience standards.
-4. **Stage 2 PoV Specification:** Detailed test plan, environment requirements, and measurable success metrics for a £65K bounded PoV.
+4. **Stage 2 PoP Specification:** Detailed test plan, environment requirements, and measurable success metrics for a 10-day £60K Proof of Product (PoP).
 5. **Final Executive Decision Workshop:** Formal readout with a decision recommendation: **Proceed / Proceed after prerequisites / Stop**.
 
 ---
@@ -117,6 +123,7 @@ At the conclusion of the 10-day engagement, Vardhan Technologies delivers:
 
 ### Commercial Pricing
 - **Fixed Fee:** **£15,000 GBP** (Exclusive of applicable VAT).
+- **Duration:** **48 Hours** (Rapid decision-oriented discovery).
 - **Invoice Schedule:** 100% upon SOW execution; 30-day payment terms.
 - **Prerequisites:** Named sponsor, confirmed access to authorized sandbox/synthetic environment, agreed data-handling rules.
 
@@ -125,7 +132,7 @@ At the conclusion of the 10-day engagement, Vardhan Technologies delivers:
 - **OUT OF SCOPE:** Institutional PKI federation or cross-bank certificate authority exchange.
 - **OUT OF SCOPE:** Production SLAs, penetration testing, formal CMVP/FIPS lab certification, or regulatory attestation.
 - **OUT OF SCOPE:** Proprietary bank source code or live customer data.
-- **STOP IS A VALID OUTCOME:** If the Discovery proves that hybrid PQC introduces unacceptable latency or that existing controls suffice, a stop recommendation is delivered. The £15K fee entails no obligation to purchase the £65K PoV or production software.
+- **STOP IS A VALID OUTCOME:** If the Discovery proves that hybrid PQC introduces unacceptable latency or that existing controls suffice, a stop recommendation is delivered. The £15K fee entails no obligation to purchase the £60K PoP or production software.
 
 ---
 
@@ -146,9 +153,9 @@ At the conclusion of the 10-day engagement, Vardhan Technologies delivers:
 >
 > Is evaluating hybrid dual-signing and automated key epoch management across tokenized asset records a problem your Quantum Technologies team is actively assessing—or is this already solved within your existing architecture?
 >
-> We are developing VARDHAN Q-CORE, an isolated cryptographic agility layer providing ML-DSA dual-signing and epoch key rotation with hardware-backed KMS recovery. We have validated this in controlled lab environments (not production rails), and we offer a bounded, 2-week technical discovery (£15k fixed fee) using strictly synthetic transaction data to test architectural feasibility.
+> We are developing VARDHAN Q-CORE, an isolated cryptographic agility layer providing ML-DSA dual-signing and epoch key rotation with hardware-backed KMS recovery. We have validated this in controlled lab environments (not production rails), and we offer a rapid 48-hour Discovery (£15k fixed fee) using strictly synthetic transaction data to map feasibility and define a bounded 10-day Proof of Product.
 >
-> Would a brief technical exchange be useful to understand your team's success criteria and determine whether a synthetic discovery would be relevant?
+> Would a brief technical exchange be useful to understand your team's success criteria and determine whether a 48-hour discovery would be relevant?
 >
 > Regards,  
 > **Vardhan Technologies**

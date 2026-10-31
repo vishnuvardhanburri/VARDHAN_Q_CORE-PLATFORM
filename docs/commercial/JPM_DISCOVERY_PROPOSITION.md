@@ -5,7 +5,7 @@
 **Target Entity:** JPMorgan Chase & Co. (Global Technology Applied Research / Blockchain and Privacy Team)  
 **Offer Status:** Technical Research & Benchmarking Proposal Template — Requires Buyer Agreement & Formal Statement of Work  
 **Commercial Baseline:** £15,000 GBP Fixed Fee (Codified in [`docs/COMMERCIAL_PRICING_MODEL.md`](../COMMERCIAL_PRICING_MODEL.md))  
-**Delivery Timeline:** 2 Weeks (10 Working Days from Kickoff)  
+**Delivery Timeline:** 48 Hours from Kickoff (Rapid Scoping & Feasibility Mapping)  
 **Opportunity Baseline:** Derived from verified public evidence in [`JPM_OPPORTUNITY_VALIDATION.md`](../../JPM_OPPORTUNITY_VALIDATION.md)  
 
 ---
@@ -14,6 +14,11 @@
 
 > [!IMPORTANT]
 > **Commercial Disclaimer & Reality Check:**
+> - **Commercial Engagement Progression:**
+>   - **Stage 1 (Discovery):** 48 hours | £15,000 fixed fee. Rapid, decision-oriented scoping to understand target workflows, assess feasibility, and formulate Stage 2 PoP criteria.
+>   - **Stage 2 (Proof of Product - PoP):** 10 days | £60,000 fixed fee. Controlled technical validation & empirical benchmarking running selected workflow in an authorized sandbox.
+>   - **Stage 3 (Implementation / Deployment):** 10–15 working days. Integrations, deployment environment, and handover.
+>   - **Stage 4 (Annual Licensing):** Foundation (£360K/yr) | Enterprise (£720K/yr) | Advanced Resilience (£1.2M/yr) | Strategic/Sovereign (separately scoped).
 > - **Score Meaning:** The internal score of `89 / 100 (P0)` represents a *technical problem and initiative ranking* based exclusively on publicly verified research disclosures on `jpmorganchase.com` (Global Technology Applied Research, Networking and Security R&D, and Blockchain & Privacy research).
 > - **Commercial Readiness:** Commercial readiness is strictly **`NOT_ASSESSED (50/100)`**.
 > - **Zero Fabricated Intent:** There is **no active purchasing dialogue**, **no confirmed procurement budget**, and **no active vendor tender** at JPMorgan Chase for Q-Core.
@@ -33,34 +38,35 @@ Distributed ledger networks (such as Onyx / Kinexys) rely fundamentally on class
 3. **Key Rotation Without Network Forks:** Migrating cryptographic key pairs across distributed participants without causing network desynchronization or hard-forks requires formal epoch-based key lifecycle state machines.
 
 ### The Objective
-A bounded, 2-week technical benchmarking study to measure the exact performance, payload expansion, and verification latency of Q-Core’s **ML-DSA-87 dual-signing** and **AER-KEP-Q epoch key management** against synthetic distributed ledger transaction envelopes. The outcome is an empirical research report and decision matrix: **Proceed to £65K Bounded PoV / Proceed after prerequisites / Stop**.
+A rapid, 48-hour scoping and feasibility engagement to evaluate the problem context of quantum-resistant blockchain adaptations, map transaction envelope architectures, assess integration constraints, and define the exact scope and success metrics for a 10-day **Stage 2 Proof of Product (PoP, £60,000)** benchmarking study. The outcome is a decision-ready roadmap: **Proceed to £60K PoP / Proceed after prerequisites / Stop**.
 
 ---
 
-## 3. Scope of Work (Two-Week Timeline)
+## 3. Scope of Work (48-Hour Rapid Discovery)
 
 ```
 +-----------------------------------------------------------------------------------+
-| WEEK 1: ARCHITECTURE ANALYSIS & SYNTHETIC CORPUS INGESTION                        |
-| - Review EVM/Onyx-style transaction envelope structures & receipt schemas.        |
-| - Generate synthetic 500-receipt corpus mirroring real digital asset transfers.    |
-| - Establish classical secp256k1 baseline: signing time, payload, verification CPU.|
+| DAY 1 (HOURS 1–24): ARCHITECTURE SCOPING & DLT ENVELOPE ANALYSIS                  |
+| - Applied Research kickoff: review EVM/DLT transaction envelope schemas.          |
+| - Scope dual-signing model: classical secp256k1 vs. ML-DSA-87 containerization.  |
+| - Identify trust boundaries, node verification pipeline, and KMS custody hooks.   |
 +-----------------------------------------------------------------------------------+
                                          |
                                          v
 +-----------------------------------------------------------------------------------+
-| WEEK 2: ML-DSA-87 DUAL-SIGNING BENCHMARKING & EMPIRICAL REPORT                    |
-| - Benchmark Q-Core ML-DSA-87 + secp256k1 dual-signing across synthetic corpus.   |
-| - Quantify exact TPS impact, block overhead, and signature verification latency.  |
-| - Test AER-KEP-Q node epoch key rotation and deliver final Benchmarking Dossier.  |
+| DAY 2 (HOURS 25–48): FEASIBILITY MAPPING, GAP REGISTER & POP SPECIFICATION        |
+| - Assess preliminary latency budgets, block expansion risks, and network impact. |
+| - Formulate prioritized cryptographic agility gap register for blockchain rails.  |
+| - Deliver Stage 2 Proof of Product (PoP) Statement of Work (SOW) & KPIs.          |
+| - Final research readout & decision workshop: Proceed / Remediate / Stop.         |
 +-----------------------------------------------------------------------------------+
 ```
 
 ### Detailed Activities
-1. **Transaction Envelope Mapping:** Model dual-signature containerization where classical validator nodes verify `secp256k1` while post-quantum verification nodes simultaneously validate `ML-DSA-87` signatures.
-2. **Empirical Benchmarking Execution:** Run multi-iteration benchmarks measuring CPU cycle consumption, memory allocations, and latency distributions across signing and verification execution paths.
-3. **Key Lifecycle & Epoch Modeling:** Evaluate Q-Core’s `AER-KEP-Q` runtime for automated validator node key rotation across epochs without interrupting consensus.
-4. **Hardware-Backed Recovery Evaluation:** Review Q-Core’s fail-closed AWS KMS / HSM recovery mechanism, verifying that node restart does not persist plaintext key material.
+1. **DLT Transaction Envelope Scoping:** Review transaction and receipt envelope structures to evaluate where `ML-DSA-87` post-quantum proofs can be placed alongside `secp256k1` signatures without breaking classical consensus nodes.
+2. **Current-State & Trust-Boundary Mapping:** Map validator node ingestion, transaction signing, and verification paths across distributed peers.
+3. **Feasibility & Trade-Off Analysis:** Evaluate preliminary constraints regarding block propagation delays, memory footprints, and KMS-backed hardware isolation.
+4. **PoP SOW Formulation:** Establish the agreed synthetic transaction corpus (500 receipts) and measurable benchmarking KPIs governing Stage 2.
 
 ---
 
@@ -108,7 +114,7 @@ At the conclusion of the 10-day research engagement, Vardhan Technologies delive
 1. **Quantum-Resistant Blockchain Benchmarking Report:** Complete empirical dataset covering latency, memory, block expansion, and verification throughput.
 2. **Dual-Signing Integration Blueprint:** Architectural specification for embedding `ML-DSA-87` signatures into EVM/DLT transaction envelopes without breaking classical nodes.
 3. **Cryptographic Agility Gap Register:** Comprehensive assessment of migration barriers, HSM/KMS dependencies, and NIST FIPS 204 implementation considerations.
-4. **Stage 2 Bounded PoV Plan:** Proposed test environment, measurable KPIs, and workload profile for a £65K sandbox PoV.
+4. **Stage 2 PoP Plan:** Proposed test environment, measurable KPIs, and workload profile for a 10-day £60K sandbox PoP.
 5. **Research Readout & Decision Workshop:** Presentation of findings to Applied Research leads with an actionable recommendation: **Proceed / Proceed after prerequisites / Stop**.
 
 ---
@@ -117,6 +123,7 @@ At the conclusion of the 10-day research engagement, Vardhan Technologies delive
 
 ### Commercial Pricing
 - **Fixed Fee:** **£15,000 GBP** (Exclusive of applicable VAT).
+- **Duration:** **48 Hours** (Rapid research scoping and feasibility mapping).
 - **Invoice Schedule:** 100% upon SOW execution; 30-day payment terms.
 - **Prerequisites:** Named research sponsor, confirmed access to authorized sandbox/compute environment, agreed data-handling rules.
 
@@ -125,7 +132,7 @@ At the conclusion of the 10-day research engagement, Vardhan Technologies delive
 - **OUT OF SCOPE:** Institutional PKI federation or cross-bank certificate exchange.
 - **OUT OF SCOPE:** Formal CMVP/FIPS lab certification, penetration testing, or regulatory filings.
 - **OUT OF SCOPE:** Proprietary JPMC blockchain source code or internal network access.
-- **STOP IS A VALID OUTCOME:** If the benchmark reveals that ML-DSA signature size creates prohibitive block propagation delays that outweigh quantum security benefits, this will be documented transparently as an empirical stop decision.
+- **STOP IS A VALID OUTCOME:** If the benchmark reveals that ML-DSA signature size creates prohibitive block propagation delays that outweigh quantum security benefits, this will be documented transparently as an empirical stop decision. The £15K fee entails no obligation to purchase the £60K PoP or production software.
 
 ---
 
@@ -146,9 +153,9 @@ At the conclusion of the 10-day research engagement, Vardhan Technologies delive
 >
 > Has empirically benchmarking post-quantum dual-signing (ML-DSA-87 alongside secp256k1) and epoch-based key lifecycle management become an active testing priority for your team—or is this currently remaining at the theoretical evaluation stage?
 >
-> We are developing VARDHAN Q-CORE, an isolated cryptographic agility platform implementing ML-DSA-87 dual-signing, epoch key rotation (AER-KEP-Q), and hardware-backed KMS recovery. We offer a bounded, 2-week research benchmarking study (£15k fixed fee) using strictly synthetic transaction envelopes to produce reproducible latency, throughput, and block expansion metrics.
+> We are developing VARDHAN Q-CORE, an isolated cryptographic agility platform implementing ML-DSA-87 dual-signing, epoch key rotation (AER-KEP-Q), and hardware-backed KMS recovery. We offer a rapid 48-hour Discovery (£15k fixed fee) using strictly synthetic transaction envelopes to map feasibility and define a bounded 10-day Proof of Product benchmarking study.
 >
-> Would a brief technical conversation be worthwhile to share our initial lab benchmarks and determine if a synthetic research study would support your ongoing explorations?
+> Would a brief technical conversation be worthwhile to share our initial lab benchmarks and determine if a 48-hour discovery study would support your ongoing explorations?
 >
 > Regards,  
 > **Vardhan Technologies**

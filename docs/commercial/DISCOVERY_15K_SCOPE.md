@@ -8,8 +8,8 @@ Establish whether the buyer has a material problem VARDHAN Q-CORE should solve, 
 
 ## Proposed duration and fee
 
-- **Fee:** £15,000 GBP. Explicitly state VAT treatment, expenses, invoice schedule, and payment terms in the final proposal.
-- **Planning duration:** approximately 10 working days after kickoff, subject to access and stakeholder availability. Confirm the actual schedule in the signed statement of work.
+- **Fee:** £15,000 GBP fixed fee. Explicitly state VAT treatment, expenses, invoice schedule, and payment terms in the final proposal.
+- **Duration:** 48 hours (rapid, decision-oriented discovery; not a prolonged multi-week implementation).
 - **Start condition:** signed agreement, named sponsor, confirmed scope, and agreed access/data-handling rules.
 
 ## Scope
@@ -47,10 +47,10 @@ Provide sponsor, technical/security representatives, current process and archite
 - Penetration test, red-team, independent cryptographic review, certification, or audit attestation.
 - Custom integrations not listed in the signed scope.
 - Sensitive live data unless separately assessed, authorized, and explicitly agreed.
-- The £60K PoV, ongoing support, or any commitment to buy production.
+- The £60K PoP (Proof of Product), ongoing support, or any commitment to buy production.
 
-## Gate to £60K PoV
+## Gate to £60K PoP (Proof of Product)
 
-Proceed only if both parties confirm in writing that the problem is worthwhile; the sponsor accepts the desired outcome; feasibility and access/data/environment owners are identified; baseline and measurable success thresholds are agreed before testing; security/procurement/legal/commercial routes are understood; and the PoV SOW, price, exclusions, responsibilities, and acceptance procedure are signed.
+Proceed only if both parties confirm in writing that the problem is worthwhile; the sponsor accepts the desired outcome; feasibility and access/data/environment owners are identified; baseline and measurable success thresholds are agreed before testing; security/procurement/legal/commercial routes are understood; and the PoP SOW, price, exclusions, responsibilities, and acceptance procedure are signed.
 
-A stop recommendation is a valid outcome; there is no obligation to buy the PoV.
+A stop recommendation is a valid outcome; there is no obligation to buy the PoP.

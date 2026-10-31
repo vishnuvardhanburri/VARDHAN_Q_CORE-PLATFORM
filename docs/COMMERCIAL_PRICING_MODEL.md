@@ -8,11 +8,13 @@ Vardhan Q-Core uses a **structured enterprise engagement and licensing model**, 
 
 All pricing is in GBP.
 
-### A. Commercial Entry Stages (Fixed-Fee Bounded Engagements)
-- **Discovery (`qcore_architecture_evaluation`): £15,000 fixed fee**  
-  Fixed-scope architecture and cryptographic readiness evaluation. Assesses one specific customer workflow for submission integrity, policy enforcement, replay protection, or independently verifiable trust receipts. Delivery target: 48 hours after prerequisites, access, and agreement are established.
-- **Proof of Value (`qcore_proof_of_value`): £65,000 fixed fee**  
-  Time-boxed 10-day evaluation run in a bounded, authorized environment evaluating dual-signature verification against agreed criteria. Deliverable: recorded test evidence, measured criteria results, and formal go/no-go recommendation.
+### A. Commercial Evaluation & Implementation Stages
+1. **Discovery / Workflow Identification (`qcore_architecture_evaluation`): £15,000 fixed fee (48 Hours)**  
+   Rapid, decision-oriented architecture and cryptographic workflow identification. Assesses the institution's specific problem, maps current architecture and trust boundaries, determines feasibility, and establishes bounded PoP scope and success criteria. Delivery target: 48 hours after kickoff. A rapid decision-oriented engagement, not a prolonged implementation.
+2. **Proof of Product (PoP) (`qcore_proof_of_value`): £60,000 fixed fee (10 Working Days)**  
+   Controlled technical validation running the selected Q-Core workflow in an authorized sandbox or customer VPC. Measures dual-signature latency, key epoch management, fail-closed recovery, and security controls. Deliverable: recorded test evidence, empirical benchmark dossier, and formal decision recommendation.
+3. **Implementation / Deployment: 10–15 Working Days (Scoped Fee)**  
+   Implement agreed production-scope components, configure integrations and deployment environment (KMS/HSM, reverse proxy, audit sinks), and complete operational validation and handover. Duration depends on integration complexity and institutional requirements.
 
 ### B. Annual Q-Core Licences (Annual Recurring Subscriptions)
 - **Foundation (`foundation`): £360,000 / year**  
@@ -44,7 +46,7 @@ All pricing is in GBP.
 
 The catalogue enforces three distinct billing classifications. Entries are not equivalent subscription plans:
 
-1. **Fixed Fee (`fixed_fee` / `one_off`):** One-time bounded professional service engagements (Discovery £15K, PoV £65K). Not recurring.
+1. **Fixed Fee (`fixed_fee` / `one_off`):** One-time bounded evaluation engagements (Discovery £15K, PoP £60K). Not recurring.
 2. **Annual Licence (`annual_license` / `annual`):** Annual recurring software licences (Foundation £360K/yr, Enterprise £720K/yr, Advanced Resilience £1.2M/yr).
 3. **Scoped Engagement (`scoped` / `custom`):** Individually scoped contract terms (Strategic bespoke / £12M target).
 

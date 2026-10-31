@@ -14,27 +14,38 @@ Vardhan Technologies provides a **bounded, two-stage technical evaluation pathwa
 
 ```
 +-----------------------------------------------------------------------------------+
-| STAGE 1: ARCHITECTURE & SECURITY DISCOVERY                                        |
+| STAGE 1: DISCOVERY / WORKFLOW IDENTIFICATION                                      |
 | ID: qcore_architecture_evaluation                                                 |
 | Fee: £15,000 fixed fee                                                            |
-| Duration: 2 weeks (Kickoff within 48 hours of access)                             |
-| Objective: Scope institutional cryptographic posture, inventory algorithms,        |
-|            map ISO 20022 message flows, and define measurable PoV criteria.       |
+| Duration: 48 hours                                                                |
+| Objective: Identify the institution's specific problem, understand target        |
+|            workflow and architecture, establish feasibility and security rules,   |
+|            and define the appropriate PoP scope and success criteria.             |
+|            A rapid, decision-oriented engagement (not a multi-week project).     |
 +-----------------------------------------------------------------------------------+
                                          |
                                          v
 +-----------------------------------------------------------------------------------+
-| STAGE 2: BOUNDED TECHNICAL PROOF OF VALUE (PoV)                                   |
+| STAGE 2: PROOF OF PRODUCT (PoP)                                                   |
 | ID: qcore_proof_of_value                                                          |
-| Fee: £65,000 fixed fee                                                            |
-| Duration: 4 to 6 weeks (10-day active execution window)                           |
-| Objective: Deploy Q-Core in customer VPC/sandbox, connect to AWS KMS / CloudHSM,  |
-|            run simulated ISO 20022 dual-signing, verify recovery & performance.   |
+| Fee: £60,000 fixed fee                                                            |
+| Duration: 10 days (active controlled execution window)                            |
+| Objective: Demonstrate selected Q-Core workflow in authorized sandbox or VPC,     |
+|            execute controlled technical validation, connect to AWS KMS / HSM,     |
+|            measure performance and security controls, deliver evidence & results. |
 +-----------------------------------------------------------------------------------+
                                          |
                                          v
 +-----------------------------------------------------------------------------------+
-| STAGE 3: ENTERPRISE SOFTWARE SUBSCRIPTION / SOVEREIGN LICENSING                   |
+| STAGE 3: IMPLEMENTATION / DEPLOYMENT                                              |
+| Duration: 10–15 working days (subject to integration complexity)                  |
+| Objective: Implement agreed production-scope components, configure integrations   |
+|            and deployment environment, complete operational validation & handover.|
++-----------------------------------------------------------------------------------+
+                                         |
+                                         v
++-----------------------------------------------------------------------------------+
+| STAGE 4: ANNUAL ENTERPRISE PLATFORM AGREEMENT                                     |
 | Foundation (£360,000/yr) | Enterprise (£720,000/yr) | Advanced Resilience (£1.2M/yr) |
 | Strategic / Sovereign Enclave: Bespoke Air-Gapped (£12,000,000 baseline target)   |
 +-----------------------------------------------------------------------------------+
@@ -42,32 +53,32 @@ Vardhan Technologies provides a **bounded, two-stage technical evaluation pathwa
 
 ---
 
-## 2. Stage 1: Architecture & Security Discovery
+## 2. Stage 1: Discovery / Workflow Identification
 
 ### Commercial Terms
 * **Engagement Identifier:** `qcore_architecture_evaluation`
 * **Commercial Fee:** **£15,000 fixed fee** (Invoiced 100% upon agreement execution)
-* **Delivery Timeline:** 2 weeks total; formal kickoff within 48 hours of prerequisite access.
+* **Delivery Timeline:** **48 hours** — rapid, decision-oriented engagement.
 
 ### Scope of Work
-1. **Cryptographic Algorithm Audit:** Catalog classical algorithms (RSA 2048/4096, ECDSA P-256/P-384) in current payment settlement and messaging pipelines vulnerable to future quantum cryptanalysis (Shor's algorithm).
-2. **ISO 20022 Hybrid Architecture Mapping:** Model dual-signature envelope placement (`ML-DSA-87` + classical `Ed25519`) inside `pacs.008` (Customer Credit Transfer) and `pacs.009` (Financial Institution Transfer) supplementary data blocks without breaking legacy downstream parsing.
-3. **Hardware Key Custody Integration:** Map existing institutional hardware security modules (AWS KMS / CloudHSM, Google Cloud KMS, Azure Key Vault, or on-prem Thales/Utimaco via PKCS#11) to Q-Core’s envelope protection substrate.
-4. **PoV Success Criteria Formulation:** Establish the mutually agreed mathematical, operational, and latency targets that will govern Stage 2 PoV acceptance.
+1. **Problem & Workflow Identification:** Identify the institution's specific cryptographic or resilience problem; catalog current messaging and settlement workflows.
+2. **Architecture & Trust-Boundary Scoping:** Model target trust boundaries, KMS/HSM custody dependencies, and dual-signature requirements without disrupting legacy verification.
+3. **Feasibility & Security Requirements:** Establish technical constraints, regulatory drivers (NIST FIPS 203/204, PRA SS1/21), and data handling boundaries.
+4. **PoP Success Criteria & Scope Formulation:** Define the specific workflow, test datasets, and measurable criteria that will govern the Stage 2 Proof of Product.
 
 ### Tangible Deliverables
-* **Quantum Threat Impact Matrix:** System-by-system vulnerability classification and regulatory compliance roadmap.
-* **Q-Core Integration Blueprint:** Architectural topology diagram, network port isolation boundaries, and KMS key policy definitions.
-* **Formal PoV Statement of Work (SOW):** Fully scoped criteria for Stage 2.
+* **Executive Problem Statement & Workflow Blueprint:** Documented current-state architecture and trust boundaries.
+* **Quantum Threat & Regulatory Impact Summary:** Vulnerability classification and regulatory compliance roadmap.
+* **Formal PoP Statement of Work (SOW):** Mutually agreed scope, test datasets, and acceptance criteria for Stage 2.
 
 ---
 
-## 3. Stage 2: Bounded Technical Proof of Value (PoV)
+## 3. Stage 2: Proof of Product (PoP)
 
 ### Commercial Terms
 * **Engagement Identifier:** `qcore_proof_of_value`
-* **Commercial Fee:** **£65,000 fixed fee** (Invoiced 50% upon SOW execution, 50% upon final acceptance report delivery)
-* **Duration:** 4 to 6 weeks overall (including 10 active test execution days in sandbox)
+* **Commercial Fee:** **£60,000 fixed fee** (Invoiced 50% upon SOW execution, 50% upon final acceptance report delivery)
+* **Duration:** **10 days** (controlled technical validation window)
 
 ### Scope of Work
 1. **Isolated Sandbox / VPC Deployment:** Deploy Q-Core within the institution’s private cloud VPC (AWS, Azure, GCP) or air-gapped on-premise test lab.
@@ -91,7 +102,7 @@ Vardhan Technologies provides a **bounded, two-stage technical evaluation pathwa
 
 1. **Regulatory Mandates:** Global central banks (Bank of England RTGS PQC Renewal, Federal Reserve, ECB) have initiated the transition to quantum-safe standards. Financial institutions that defer architectural validation risk forced, rushed migrations under regulatory enforcement.
 2. **Zero Live Rail Risk:** The Discovery and PoV are strictly sandboxed. Production rails remain explicitly blocked (`PRODUCTION BLOCKED`) until external counterparty federation and formal regulatory non-objection are achieved.
-3. **Fixed-Price Predictability:** The £15,000 Discovery and £65,000 PoV provide institutional buyers with total cost certainty, eliminating unpredictable consulting billable hours.
+3. **Fixed-Price Predictability:** The £15,000 Discovery and £60,000 PoP provide institutional buyers with total cost certainty, eliminating unpredictable consulting billable hours.
 
 ---
 

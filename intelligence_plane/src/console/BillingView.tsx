@@ -584,7 +584,7 @@ export default function BillingView(): React.ReactElement {
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 text-[11px] text-slate-400">
             <div>
               <p>
-                <strong className="text-slate-300">Contractual Independence:</strong> Discovery (£15,000) and Proof of Value (£65,000) are bounded fixed-fee evaluation engagements. Annual licences (Foundation £360K/yr, Enterprise £720K/yr, Advanced Resilience £1.2M/yr) are recurring subscription terms. Strategic/Sovereign (£5M–£50M) is individually scoped.
+                <strong className="text-slate-300">Contractual Independence:</strong> Discovery (£15,000 / 48 hrs) and Proof of Product (£60,000 / 10 days) are bounded fixed-fee evaluation engagements. Annual licences (Foundation £360K/yr, Enterprise £720K/yr, Advanced Resilience £1.2M/yr) are recurring subscription terms. Strategic/Sovereign (£5M–£50M) is individually scoped.
               </p>
             </div>
             <div>
@@ -645,8 +645,8 @@ export default function BillingView(): React.ReactElement {
                     <ShieldCheck className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white text-sm">Proof of Value (PoV)</h4>
-                    <p className="font-mono text-xs font-bold text-blue-400">£65,000</p>
+                    <h4 className="font-bold text-white text-sm">Proof of Product (PoP)</h4>
+                    <p className="font-mono text-xs font-bold text-blue-400">£60,000</p>
                   </div>
                 </div>
 

@@ -941,7 +941,9 @@ mod aws_kms_tests {
         );
 
         // Audit trail should show one wrap + one unwrap, both SUCCESS
-        let audits = protector.audit_records().expect("audit records should succeed");
+        let audits = protector
+            .audit_records()
+            .expect("audit records should succeed");
         assert_eq!(audits.len(), 2);
         assert_eq!(audits[0].status, "SUCCESS");
         assert_eq!(audits[1].status, "SUCCESS");

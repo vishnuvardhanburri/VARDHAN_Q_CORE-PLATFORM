@@ -460,7 +460,7 @@ mod tests {
             priced("qcore_architecture_evaluation").price_gbp,
             Some(15_000)
         );
-        assert_eq!(priced("qcore_proof_of_value").price_gbp, Some(65_000));
+        assert_eq!(priced("qcore_proof_of_value").price_gbp, Some(60_000));
         assert_eq!(priced("foundation").price_gbp, Some(360_000));
         assert_eq!(priced("enterprise").price_gbp, Some(720_000));
         assert_eq!(priced("advanced_resilience").price_gbp, Some(1_200_000));

@@ -85,7 +85,10 @@ fn test_live_aws_kms_daemon_recovery_and_signing_lifecycle() {
     // STEP 2: Verify Disk State (Zero Plaintext Persistence)
     // ─────────────────────────────────────────────────────────────────────────────
     println!("\n[STEP 2] Verifying On-Disk Storage Boundary (Zero Plaintext Leakage)...");
-    assert!(vault_path.exists(), "Vault envelope file must exist on disk");
+    assert!(
+        vault_path.exists(),
+        "Vault envelope file must exist on disk"
+    );
     let raw_envelope_content =
         fs::read_to_string(&vault_path).expect("Failed to read vault envelope file");
 
@@ -116,7 +119,9 @@ fn test_live_aws_kms_daemon_recovery_and_signing_lifecycle() {
     // ─────────────────────────────────────────────────────────────────────────────
     // STEP 3: Operational Signing in Boot #1
     // ─────────────────────────────────────────────────────────────────────────────
-    println!("\n[STEP 3] Executing Operational ML-DSA-87 Financial Settlement Signing (Boot #1)...");
+    println!(
+        "\n[STEP 3] Executing Operational ML-DSA-87 Financial Settlement Signing (Boot #1)..."
+    );
     let tx1_payload = b"{\"tx_id\": \"TX-AWS-KMS-001\", \"amount_minor\": 75000000, \"currency\": \"GBP\", \"rail\": \"CHAPS\"}";
     let sig1 = identity_boot1
         .sign_payload(tx1_payload)
@@ -127,8 +132,7 @@ fn test_live_aws_kms_daemon_recovery_and_signing_lifecycle() {
         4627,
         "ML-DSA-87 signature must be exactly 4627 bytes (NIST FIPS 204)"
     );
-    let verified1 =
-        QuantumNodeIdentity::verify_signature(&original_pk_bytes, tx1_payload, &sig1);
+    let verified1 = QuantumNodeIdentity::verify_signature(&original_pk_bytes, tx1_payload, &sig1);
     assert!(verified1, "ML-DSA-87 signature must verify successfully");
     println!(
         "  [PASS] Signature verified against ML-DSA-87 public key ({} bytes)",
@@ -149,8 +153,7 @@ fn test_live_aws_kms_daemon_recovery_and_signing_lifecycle() {
     // ─────────────────────────────────────────────────────────────────────────────
     println!("\n[STEP 5] Simulating Daemon Restart #1: Cold Start Recovery via AWS KMS Decrypt...");
     let client2 = Arc::new(
-        AwsSdkKmsClient::new(&key_id)
-            .expect("Failed to re-initialize AWS KMS client on restart"),
+        AwsSdkKmsClient::new(&key_id).expect("Failed to re-initialize AWS KMS client on restart"),
     );
     let protector2 = KmsKeyProtector::new(key_id.clone(), client2.clone());
 
@@ -177,8 +180,7 @@ fn test_live_aws_kms_daemon_recovery_and_signing_lifecycle() {
     let sig2 = identity_boot2
         .sign_payload(tx2_payload)
         .expect("Failed to sign transaction #2 with restored key");
-    let verified2 =
-        QuantumNodeIdentity::verify_signature(&restored_pk2, tx2_payload, &sig2);
+    let verified2 = QuantumNodeIdentity::verify_signature(&restored_pk2, tx2_payload, &sig2);
     assert!(
         verified2,
         "Signature #2 must verify against restored public key"
