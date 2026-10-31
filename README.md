@@ -46,6 +46,16 @@ Vardhan Q-Core is engineered to eliminate cloud vendor lock-in. Tier-1 financial
 
 ---
 
+## Interoperability & Post-Quantum Validation Evidence
+
+Q-Core maintains reproducible, timestamped evidence validating compliance with NIST standards and open interoperability specifications:
+
+- **IETF PQC X.509 Interoperability (12/12 Passed):** Verified against `IETF-Hackathon/pqc-certificates` Round 5 artifacts across BouncyCastle, Botan/OpenSSL 3.6, and Entrust PKI Hub (`ML-DSA-87` FIPS 204).
+- **Public Hybrid TLS 1.3 Readiness:** Verified live negotiation of `X25519MLKEM768` (NIST FIPS 203) using the CertKit PQC TLS audit engine on active demo endpoints.
+- **Detailed Dossier:** Full evidence breakdown, latency metrics, and tamper controls documented in [docs/PQC_VALIDATION_REPORT.md](docs/PQC_VALIDATION_REPORT.md).
+
+---
+
 ## Bank Deployment Readiness Level
 
 Vardhan Q Core maintains an evidence-backed, 3-tier operational deployment boundary:

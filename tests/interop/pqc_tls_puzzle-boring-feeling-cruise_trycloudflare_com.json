@@ -1,0 +1,124 @@
+{
+  "host": "puzzle-boring-feeling-cruise.trycloudflare.com",
+  "port": 443,
+  "target": "puzzle-boring-feeling-cruise.trycloudflare.com",
+  "ipAddress": "104.16.230.132",
+  "connected": true,
+  "connectionError": "",
+  "status": "Warnings",
+  "postQuantumKeyExchange": true,
+  "postQuantumKeyExchangePreferred": true,
+  "keyExchange": "X25519MLKEM768",
+  "keyExchangeIsPostQuantum": true,
+  "keyExchangeDescription": "Hybrid post-quantum key exchange (X25519 + ML-KEM-768)",
+  "supportedPostQuantumGroups": [
+    "X25519MLKEM768"
+  ],
+  "protocol": "TLS 1.3",
+  "cipherSuite": "TLS_AES_256_GCM_SHA384",
+  "symmetricCipher": "AES-256-GCM (256-bit)",
+  "tls13Supported": true,
+  "tls12Offered": true,
+  "tls12KeyExchange": "ECDHE",
+  "tls12CipherSuite": "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+  "legacyTlsOffered": true,
+  "legacyProtocol": "TLS 1.1",
+  "certificateKeyAlgorithm": "ECDSA P-256",
+  "certificateSignatureAlgorithm": "SHA-256 with ECDSA",
+  "certificateIsPostQuantum": false,
+  "chainIsPostQuantum": false,
+  "authenticationDescription": "Classical (ECDSA P-256 certificate)",
+  "probes": [
+    {
+      "name": "Modern browser",
+      "description": "TLS 1.3 and 1.2; X25519MLKEM768, SecP256r1MLKEM768, X25519, P-256, P-384 offered with key shares for X25519MLKEM768 and X25519",
+      "succeeded": true,
+      "protocol": "TLS 1.3",
+      "cipherSuite": "TLS_AES_256_GCM_SHA384",
+      "keyExchange": "X25519MLKEM768",
+      "keyExchangeIsPostQuantum": true,
+      "error": ""
+    },
+    {
+      "name": "X25519MLKEM768",
+      "description": "TLS 1.3 only; X25519MLKEM768 is the only key exchange group offered",
+      "succeeded": true,
+      "protocol": "TLS 1.3",
+      "cipherSuite": "TLS_AES_256_GCM_SHA384",
+      "keyExchange": "X25519MLKEM768",
+      "keyExchangeIsPostQuantum": true,
+      "error": ""
+    },
+    {
+      "name": "SecP256r1MLKEM768",
+      "description": "TLS 1.3 only; SecP256r1MLKEM768 is the only key exchange group offered",
+      "succeeded": false,
+      "protocol": "",
+      "cipherSuite": "",
+      "keyExchange": "",
+      "keyExchangeIsPostQuantum": false,
+      "error": "Server rejected the handshake (handshake_failure(40))."
+    },
+    {
+      "name": "SecP384r1MLKEM1024",
+      "description": "TLS 1.3 only; SecP384r1MLKEM1024 is the only key exchange group offered",
+      "succeeded": false,
+      "protocol": "",
+      "cipherSuite": "",
+      "keyExchange": "",
+      "keyExchangeIsPostQuantum": false,
+      "error": "Server rejected the handshake (handshake_failure(40))."
+    },
+    {
+      "name": "ML-KEM-768",
+      "description": "TLS 1.3 only; ML-KEM-768 is the only key exchange group offered",
+      "succeeded": false,
+      "protocol": "",
+      "cipherSuite": "",
+      "keyExchange": "",
+      "keyExchangeIsPostQuantum": false,
+      "error": "Server rejected the handshake (handshake_failure(40))."
+    },
+    {
+      "name": "TLS 1.2 only",
+      "description": "TLS 1.2 only; ECDHE and DHE suites first, static RSA key exchange last",
+      "succeeded": true,
+      "protocol": "TLS 1.2",
+      "cipherSuite": "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+      "keyExchange": "ECDHE",
+      "keyExchangeIsPostQuantum": false,
+      "error": ""
+    },
+    {
+      "name": "TLS 1.0 / 1.1",
+      "description": "TLS 1.1 and 1.0 only; CBC suites",
+      "succeeded": true,
+      "protocol": "TLS 1.1",
+      "cipherSuite": "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+      "keyExchange": "ECDHE",
+      "keyExchangeIsPostQuantum": false,
+      "error": ""
+    }
+  ],
+  "issues": [
+    {
+      "severity": "Error",
+      "code": "LegacyTlsOffered",
+      "title": "TLS 1.1 is still offered",
+      "detail": "The server accepted a TLS 1.1 handshake (TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA). TLS 1.0 and 1.1 were deprecated in 2021 and have no post-quantum path. Disable them."
+    },
+    {
+      "severity": "Warning",
+      "code": "Tls12Offered",
+      "title": "TLS 1.2 is still offered",
+      "detail": "The server accepted a TLS 1.2-only handshake (TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256). TLS 1.2 has no post-quantum key exchange, so any session that lands on it has no quantum protection. Disable it once your clients allow."
+    },
+    {
+      "severity": "Info",
+      "code": "ClassicalCertificate",
+      "title": "Certificate authentication is classical (ECDSA P-256)",
+      "detail": "The certificate and its chain use classical signatures. That is expected: browsers don't yet trust post-quantum certificates from public CAs, and signatures can't be broken retroactively, so there is nothing to do yet."
+    }
+  ],
+  "observedBy": ""
+}
