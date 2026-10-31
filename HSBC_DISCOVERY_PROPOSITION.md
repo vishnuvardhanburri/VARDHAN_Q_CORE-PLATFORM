@@ -1,0 +1,1 @@
+docs/commercial/HSBC_DISCOVERY_PROPOSITION.md
