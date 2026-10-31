@@ -1,0 +1,33 @@
+{
+  "suite": "Vardhan Q-Core IETF PQC X.509 Interoperability Suite",
+  "timestamp_utc": "2026-10-31T05:49:27.421870+00:00",
+  "disclaimer": "Test/interoperability evaluation artifacts only. Not formal banking or FIPS certification.",
+  "results": [
+    {
+      "provider": "BouncyCastle (IETF Round 5)",
+      "artifact_file": "ml-dsa-87-2.16.840.1.101.3.4.3.19_ta.der",
+      "algorithm": "ML-DSA-87",
+      "oid": "2.16.840.1.101.3.4.3.19",
+      "subject": "BC ml-dsa-87 Test TA",
+      "serial": "467057038297312393222845187213412673583971661372",
+      "certificate_sha256": "6cc9a58b1d73c15cd287a750000827d7ecf2479abb709804199acd0ad6c09368",
+      "raw_public_key_len": 2592,
+      "public_key_sha256": "232aaf9e229eb32ee96a681ed9f1983ccfb4d1b7a220151fcecb553e78c8e5bb",
+      "signature_len": 4627,
+      "all_tests_passed": true
+    },
+    {
+      "provider": "Botan / OpenSSL 3.6 (IETF Round 5)",
+      "artifact_file": "ml-dsa-87-2.16.840.1.101.3.4.3.19_ta.der",
+      "algorithm": "ML-DSA-87",
+      "oid": "2.16.840.1.101.3.4.3.19",
+      "subject": "OpenSSL 3.6 ml-dsa-87 Root",
+      "serial": "194758187754640692336625274444169759853",
+      "certificate_sha256": "15abe7ba296d6b11cc6f5edc3373e91f2dfb282dc0d37bcc4844475b3d4db048",
+      "raw_public_key_len": 2592,
+      "public_key_sha256": "3cad7b6c9107eef0577ebc76084ac61c730695015587399287cb3774b6522a4d",
+      "signature_len": 4627,
+      "all_tests_passed": true
+    }
+  ]
+}

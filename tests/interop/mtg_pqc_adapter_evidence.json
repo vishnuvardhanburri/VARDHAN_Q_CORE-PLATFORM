@@ -1,0 +1,22 @@
+{
+  "suite": "Vardhan Q-Core MTG PQC PKI Test Adapter",
+  "timestamp_utc": "2026-10-31T05:56:52.814268+00:00",
+  "disclaimer": "Test PKI artifacts for interoperability validation only. Not formal banking/FIPS certification.",
+  "tests": [
+    {
+      "name": "MTG_PQC_PKI_Adapter_Drill",
+      "algorithm": "ML-DSA-87",
+      "fips_standard": "FIPS 204",
+      "certificate_subject": "CN=MTG ML-DSA-87 Interop Root CA,O=MTG PQC Demo Interop Target,C=DE",
+      "certificate_serial": "373796505716046496669143349891080759900831958857",
+      "certificate_sha256": "3f3a3f7b344bcbc2b182190055529bc486bdfd700bd0ab3dce870f8e759a68be",
+      "raw_public_key_len": 2592,
+      "public_key_sha256": "45f18ad96e5827d300f39a00184239715ceb896885908e2cb3ecbd9bc6b005d0",
+      "signature_len": 4627,
+      "receipt_verification_latency_ms": 0.106,
+      "tampered_signature_rejected": true,
+      "tampered_certificate_rejected": true,
+      "status": "PASS"
+    }
+  ]
+}
