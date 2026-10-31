@@ -198,15 +198,40 @@ const server = http.createServer((req, res) => {
         'Content-Type': contentType
       });
       if (req.method === 'HEAD') return res.end();
-      fs.createReadStream(filePath).pipe(res);
+      const stream = fs.createReadStream(filePath);
+      stream.on('error', (streamErr) => {
+        console.error(`[ERROR] Failed to read static file ${filePath}:`, streamErr.message);
+        if (!res.headersSent) {
+          res.writeHead(500, { ...SECURITY_HEADERS, 'Content-Type': 'application/json' });
+        }
+        res.end(JSON.stringify({ error: 'Internal Server Error' }));
+      });
+      stream.pipe(res);
     } else {
+      // Check if INDEX_HTML exists before serving
+      if (!fs.existsSync(INDEX_HTML)) {
+        console.error(`[ERROR] Static index file not found at ${INDEX_HTML}`);
+        res.writeHead(404, {
+          ...SECURITY_HEADERS,
+          'Content-Type': 'text/plain; charset=utf-8'
+        });
+        return res.end('Vardhan Q-Core Intelligence Plane: Frontend assets not found.');
+      }
       // SPA Fallback: serve index.html for GET/HEAD navigation routes
       res.writeHead(200, {
         ...SECURITY_HEADERS,
         'Content-Type': 'text/html; charset=utf-8'
       });
       if (req.method === 'HEAD') return res.end();
-      fs.createReadStream(INDEX_HTML).pipe(res);
+      const indexStream = fs.createReadStream(INDEX_HTML);
+      indexStream.on('error', (streamErr) => {
+        console.error(`[ERROR] Failed to read ${INDEX_HTML}:`, streamErr.message);
+        if (!res.headersSent) {
+          res.writeHead(500, { ...SECURITY_HEADERS, 'Content-Type': 'application/json' });
+        }
+        res.end(JSON.stringify({ error: 'Internal Server Error' }));
+      });
+      indexStream.pipe(res);
     }
   });
 });
