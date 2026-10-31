@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "generated_at": "2026-10-31T21:58:45Z",
+  "git_commit": "32807f6",
+  "validation_scope": "Q-Core Top Two Bank Opportunity Validation",
+  "classification": "UNCLASSIFIED / PUBLIC TECHNICAL EVIDENCE AUDIT",
+  "methodology": {
+    "source_verification": "Direct HTTP/2 GET with standard desktop browser headers against first-party bank corporate portals and published transcripts",
+    "score_trace": "BankQualificationEngine 7-factor quantitative scoring model",
+    "commercial_discipline": "Strict separation between documented technical evidence and commercial procurement intent; zero fabricated buying signals",
+    "crypto_integrity": "Zero modifications to core_crypto or production trust boundaries"
+  },
+  "opportunities": [
+    {
+      "id": "OPP-HSBC-CRYPTOGRAPHIC_AGILITY",
+      "target_institution": "HSBC Holdings plc",
+      "jurisdiction": "UK / Global",
+      "opportunity_name": "Cryptographic Agility & Quantum Defense Infrastructure",
+      "problem_type": "CRYPTOGRAPHIC_AGILITY",
+      "score": {
+        "total": 96,
+        "max": 100,
+        "priority": "P0",
+        "commercial_readiness": "NOT_ASSESSED",
+        "commercial_readiness_score": 50,
+        "breakdown": {
+          "evidence_quality": {
+            "score": 20,
+            "max": 20,
+            "rationale": "3 authoritative, first-party public sources: corporate digital strategy page, official media transcript PDF, and technical leadership publication."
+          },
+          "capability_relevance": {
+            "score": 20,
+            "max": 20,
+            "rationale": "Direct alignment with Q-Core AER-KEP-Q epoch management, pq_shield quantum-safe proxy, and ML-DSA-87 dual-signing."
+          },
+          "disclosed_initiative": {
+            "score": 6,
+            "max": 10,
+            "rationale": "Publicly disclosed Quantum Technologies team within Emerging Technology, Innovation and Ventures, plus Quantinuum and IBM pilots."
+          },
+          "unmet_problem_evidence": {
+            "score": 10,
+            "max": 10,
+            "rationale": "Leadership explicitly cites that quantum computers will break current encryption standards and warns that 'the time to act is now'."
+          },
+          "technical_sponsor": {
+            "score": 15,
+            "max": 15,
+            "rationale": "Publicly named roles: Group Head of Quantum Technologies (Philip Intallura) and Quantum Innovation Manager (William Shoosmith)."
+          },
+          "evaluation_feasibility": {
+            "score": 15,
+            "max": 15,
+            "rationale": "Feasible to evaluate using synthetic cryptographic asset metadata and simulated dual-signed payment/token transfer messages."
+          },
+          "measurable_criteria": {
+            "score": 10,
+            "max": 10,
+            "rationale": "Explicit acceptance thresholds (>80% vulnerability identification on synthetic inventory, >60% AER-KEP-Q match)."
+          }
+        }
+      },
+      "source_urls": [
+        {
+          "url": "https://www.hsbc.com/who-we-are/hsbc-and-digital/hsbc-and-quantum",
+          "http_status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "source_type": "CORPORATE_WEBSITE",
+          "verified_at": "2026-10-31T16:27:26Z",
+          "title": "HSBC and Quantum | HSBC and Digital | HSBC Holdings plc",
+          "exact_excerpts": [
+            "We believe that quantum technology is going to have a very significant impact on the financial services industry. ... Building quantum defences. Protecting against future cyber threats.",
+            "We’re working with Quantinuum to apply quantum technologies and post-quantum cryptography to financial innovation, including the first application for tokenised physical gold.",
+            "Our in-house quantum experts are leading the industry with groundbreaking developments to enhance computational capabilities and cyber resilience, all whilst increasing quantum literacy across our workforce."
+          ]
+        },
+        {
+          "url": "https://www.hsbc.com/-/files/hsbc/who-we-are/pdf/250923-hsbc-x-ibm-quantum-algo-trading-transcript.pdf",
+          "http_status": 200,
+          "content_type": "application/pdf",
+          "size_bytes": 71827,
+          "source_type": "PUBLIC_PDF",
+          "verified_at": "2026-10-31T16:27:34Z",
+          "title": "HSBC x IBM - Quantum Algo Trading (Transcript)",
+          "exact_excerpts": [
+            "What we’ve demonstrated here is the ability to do something with a quantum computer in a hybrid workflow that we just cannot replicate using classical computing alone.",
+            "Philip Intallura, Group Head of Quantum Technologies, HSBC: This achievement is important because it’s the first example of using quantum on real industry data."
+          ]
+        },
+        {
+          "url": "https://www.hsbc.com/news-and-views/views/hsbc-views/upskilling-everyone-is-vital-for-the-quantum-era",
+          "http_status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "size_bytes": 161063,
+          "source_type": "TECHNICAL_BLOG",
+          "verified_at": "2026-10-31T16:27:35Z",
+          "title": "Upskilling everyone is vital for the quantum era",
+          "exact_excerpts": [
+            "Quantum computers will be capable of breaking the encryption standards underpinning our digital world – the time to act is now, says Philip Intallura.",
+            "With nearly 80 per cent of major global banks already engaging with quantum technologies, cultivating enterprise-wide quantum literacy is fast becoming a competitive necessity."
+          ]
+        }
+      ],
+      "confirmed_facts": [
+        "HSBC maintains an active Quantum Technologies team within Emerging Technology, Innovation and Ventures.",
+        "HSBC is running a post-quantum cryptography pilot with Quantinuum applied to tokenized physical gold.",
+        "HSBC collaborated with IBM Quantum on real financial data, proving hybrid classical/quantum workflows.",
+        "HSBC quantum leadership (Philip Intallura) publicizes that current encryption will be broken by quantum computers and urges immediate defense.",
+        "HSBC is executing an internal technical upskilling program on quantum resilience."
+      ],
+      "inferred_risks": [
+        "INFERRED: HSBC has not publicly named the exact PQC algorithms (e.g. ML-KEM-768/1024 or ML-DSA-65/87) utilized in the Quantinuum pilot.",
+        "INFERRED: Core transaction banking and high-value payments (CHAPS, SWIFT) remain on classical encryption (RSA/ECDSA) without a published cutover date.",
+        "INFERRED: Long-dated OTC derivatives, trade finance records, and custody records held by HSBC are exposed to Harvest-Now-Decrypt-Later (HNDL) risk.",
+        "INFERRED: HSBC's innovation pilot with Quantinuum does not equate to an enterprise-wide production deployment across core clearing systems."
+      ],
+      "active_migration_requirement_assessment": {
+        "status": "CONFIRMED_IN_EXPLORATORY_PILOT_PHASE",
+        "has_active_r_and_d": true,
+        "has_published_migration_deadline": false,
+        "has_formal_commercial_rfp": false,
+        "analysis": "HSBC has an active institutional initiative exploring quantum-safe cryptography and defensive architectures, but it is currently scoped within Emerging Technology R&D and pilot programs (Quantinuum, IBM). There is no active commercial RFP or public regulatory mandate requiring immediate production rail cutover."
+      },
+      "buyer_functions": {
+        "technical_sponsors": [
+          {
+            "role": "Group Head of Quantum Technologies",
+            "department": "Emerging Technology, Innovation and Ventures",
+            "named_holder": "Philip Intallura (publicly documented)",
+            "focus": "Quantum defense strategy, PQC algorithm evaluation, hybrid workflow architecture"
+          },
+          {
+            "role": "Chief Information Security Officer (CISO) / Head of Cryptographic Architecture",
+            "department": "Risk & Cyber Security",
+            "named_holder": "Unspecified (role function)",
+            "focus": "Enterprise trust boundaries, HSM/KMS infrastructure, post-quantum PKI compliance"
+          },
+          {
+            "role": "Quantum Innovation Manager",
+            "department": "Emerging Technology, Innovation and Ventures",
+            "named_holder": "William Shoosmith (publicly documented)",
+            "focus": "Technical workforce upskilling, quantum literacy, architecture masterclasses"
+          }
+        ],
+        "economic_buyers": [
+          {
+            "role": "Head of Emerging Technology, Innovation and Ventures",
+            "department": "Group Technology",
+            "focus": "Discretionary budget for innovation proofs-of-concept and technical discovery engagements"
+          },
+          {
+            "role": "Global Head of Cyber Security & Resilience",
+            "department": "Group Risk",
+            "focus": "Enterprise security budget for cryptographic transition and regulatory compliance"
+          }
+        ]
+      },
+      "qcore_discovery_use_case": {
+        "use_case_id": "UC-HSBC-01",
+        "title": "Quantum-Resilient Hybrid Signing & Tokenized Asset Message Verification",
+        "description": "Evaluate Q-Core ML-DSA-87 + Ed25519 dual-signature envelopes and AER-KEP-Q epoch key rotation on simulated tokenized asset transfers and high-value payment instructions, providing cryptographic agility without altering legacy verification pipelines.",
+        "alignment_with_finding": "Directly bridges HSBC's Quantinuum tokenized gold pilot and stated need for 'quantum defences' into a measurable architectural blueprint."
+      },
+      "discovery_15k_relevance": {
+        "is_relevant": true,
+        "rating": "HIGH_RELEVANCE",
+        "justification": "The £15,000 Architecture & Security Discovery requires no production integration, operates within a 2-week timeframe, uses synthetic/sandbox data, and fits within discretionary innovation/architecture budgets. It directly addresses the gap between isolated quantum pilots and structured financial messaging key lifecycle."
+      }
+    },
+    {
+      "id": "OPP-JPM-CRYPTOGRAPHIC_AGILITY",
+      "target_institution": "JPMorgan Chase & Co.",
+      "jurisdiction": "USA / Global",
+      "opportunity_name": "Post-Quantum Cryptographic Agility & Quantum-Resistant Blockchain Infrastructure",
+      "problem_type": "CRYPTOGRAPHIC_AGILITY",
+      "score": {
+        "total": 89,
+        "max": 100,
+        "priority": "P0",
+        "commercial_readiness": "NOT_ASSESSED",
+        "commercial_readiness_score": 50,
+        "breakdown": {
+          "evidence_quality": {
+            "score": 20,
+            "max": 20,
+            "rationale": "Authoritative first-party portal (jpmorganchase.com Applied Research) and Global Technology Leadership executive publications."
+          },
+          "capability_relevance": {
+            "score": 20,
+            "max": 20,
+            "rationale": "Direct alignment with Q-Core AER-KEP-Q epoch key establishment, pq_shield reverse proxy, and dual-signing ledger verification."
+          },
+          "disclosed_initiative": {
+            "score": 5,
+            "max": 10,
+            "rationale": "Disclosed Global Technology Applied Research program, Networking and Security R&D Team, and Blockchain and Privacy Team."
+          },
+          "unmet_problem_evidence": {
+            "score": 4,
+            "max": 10,
+            "rationale": "Explicitly cites quantum computing's 'inevitable disruption to today's cryptography' and active research to adapt blockchain technologies to be quantum resistant."
+          },
+          "technical_sponsor": {
+            "score": 15,
+            "max": 15,
+            "rationale": "Identifiable technical divisions: Networking and Security R&D Team, Blockchain and Privacy Team, and Technology Security Leadership."
+          },
+          "evaluation_feasibility": {
+            "score": 15,
+            "max": 15,
+            "rationale": "High feasibility: synthetic blockchain transaction sets and cryptographic asset inventories can be benchmarked against Q-Core dual-signing."
+          },
+          "measurable_criteria": {
+            "score": 10,
+            "max": 10,
+            "rationale": "Concrete acceptance thresholds (>80% vulnerability identification, >60% AER-KEP-Q handshake match)."
+          }
+        }
+      },
+      "source_urls": [
+        {
+          "url": "https://www.jpmorganchase.com/about/technology/research/applied-research",
+          "http_status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "size_bytes": 118965,
+          "source_type": "CORPORATE_WEBSITE",
+          "verified_at": "2026-10-31T16:27:18Z",
+          "title": "Applied Research — J.P. Morgan",
+          "exact_excerpts": [
+            "Exploring the frontiers of Quantum Technologies as they are applied to the business, covering Quantum Computing and Quantum-Secured Communications, to address Quantum Computing’s inevitable disruption to today's cryptography.",
+            "We research and develop new solutions in emerging technologies like quantum networking, quantum-safe cryptography, silicon photonics, and decentralized systems to ensure JPMorganChase stays ahead of the curve in technology.",
+            "For example, the Networking and Security R&D Team at Global Technology Applied Research is leading research efforts in quantum networking and quantum-safe cryptography, which aim to address future risks of quantum computing attacks.",
+            "Also, in preparation for the arrival of cryptographically relevant quantum computers, the team is conducting research into methods to adapt blockchain technologies to be quantum resistant."
+          ]
+        },
+        {
+          "url": "https://www.jpmorganchase.com/about/technology/blog/fortifying-the-enterprise-10-actions-to-take-now-for-ai-ready-cyber-resilience",
+          "http_status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "size_bytes": 113425,
+          "source_type": "TECHNICAL_BLOG",
+          "verified_at": "2026-10-31T16:27:18Z",
+          "title": "Fortifying the enterprise: 10 actions to take now for AI-ready cyber resilience",
+          "exact_excerpts": [
+            "Contractual requirements for timely security notifications, right-to-audit provisions, and adherence to specific security frameworks provide a layer of legal protection and accountability.",
+            "Organizations must implement robust verification infrastructure and continuous security testing across all mission-critical digital supply chains."
+          ]
+        },
+        {
+          "url": "https://www.jpmorganchase.com/technology",
+          "http_status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "size_bytes": 120726,
+          "source_type": "CORPORATE_WEBSITE",
+          "verified_at": "2026-10-31T16:27:18Z",
+          "title": "Technology | JPMorgan Chase & Co.",
+          "exact_excerpts": [
+            "With over 60,000 technologists and an annual technology investment exceeding $17 billion, JPMorganChase builds and deploys resilient, mission-critical infrastructure."
+          ]
+        }
+      ],
+      "confirmed_facts": [
+        "JPMorgan Chase has an active Global Technology Applied Research organization with an internal team of scientists.",
+        "The Networking and Security R&D Team is conducting research into quantum-safe cryptography and quantum networking.",
+        "The Blockchain and Privacy Team is actively conducting research into methods to adapt blockchain technologies to be quantum resistant.",
+        "JPMorgan Chase leadership explicitly recognizes quantum computing as an 'inevitable disruption to today's cryptography'.",
+        "JPMorgan Chase emphasizes formal auditability, contractual verification, and resilient software supply chains in enterprise publications."
+      ],
+      "inferred_risks": [
+        "INFERRED: JPMC's blockchain networks (Onyx / Kinexys) rely on classical elliptic curve cryptography (secp256k1) vulnerable to Shor's algorithm.",
+        "INFERRED: JPMC has not disclosed a specific quantum-resistant algorithm stack (e.g. ML-DSA vs stateful hash signatures) or migration cutover timeline for digital assets.",
+        "INFERRED: JPMC's Applied Research initiatives represent internal exploratory scientific investigations, not active vendor procurement requests.",
+        "INFERRED: Core wholesale payments (Fedwire, CHIPS, Clearing House) remain on classical cryptographic rails without published migration milestones."
+      ],
+      "active_migration_requirement_assessment": {
+        "status": "CONFIRMED_IN_RESEARCH_AND_PROTOTYPING_PHASE",
+        "has_active_r_and_d": true,
+        "has_published_migration_deadline": false,
+        "has_formal_commercial_rfp": false,
+        "analysis": "JPMorgan Chase demonstrates clear institutional R&D focus on quantum-safe cryptography and quantum-resistant blockchain adaptations. However, this is an internal scientific research initiative rather than a formal enterprise purchasing cycle. The need is real at the architectural evaluation and prototyping level, not at the immediate production cutover level."
+      },
+      "buyer_functions": {
+        "technical_sponsors": [
+          {
+            "role": "Lead Scientist / Head of Quantum-Safe Cryptography",
+            "department": "Global Technology Applied Research (Networking and Security R&D Team)",
+            "named_holder": "Unspecified (role function)",
+            "focus": "Post-quantum key exchange algorithms, hybrid network proxies, quantum security evaluations"
+          },
+          {
+            "role": "Lead Cryptography Architect / Head of Blockchain Privacy",
+            "department": "Global Technology Applied Research (Blockchain and Privacy Team)",
+            "named_holder": "Unspecified (role function)",
+            "focus": "Quantum-resistant digital asset protocols, consensus and signature migration on DLT"
+          },
+          {
+            "role": "Managing Director, Technology Security & Resilience",
+            "department": "Global Technology Leadership",
+            "named_holder": "Unspecified (role function)",
+            "focus": "Enterprise cryptographic inventory, NIST PQC transition governance"
+          }
+        ],
+        "economic_buyers": [
+          {
+            "role": "Managing Director, Head of Global Technology Applied Research",
+            "department": "Global Technology",
+            "focus": "Applied technology R&D budget and external exploratory partnership funding"
+          },
+          {
+            "role": "Global Chief Information Security Officer (CISO)",
+            "department": "Global Technology Controls",
+            "focus": "Cybersecurity resilience capital expenditure"
+          }
+        ]
+      },
+      "qcore_discovery_use_case": {
+        "use_case_id": "UC-JPM-01",
+        "title": "Quantum-Resilient Blockchain Transaction Verification & Dual-Signature Adaptation",
+        "description": "Benchmark Q-Core ML-DSA-87 dual-signing alongside secp256k1 for transaction receipts and distributed ledger blocks, evaluating latency, payload overhead, and key lifecycle rotation in a controlled synthetic environment.",
+        "alignment_with_finding": "Directly matches JPMC Applied Research's explicit mandate: 'conducting research into methods to adapt blockchain technologies to be quantum resistant'."
+      },
+      "discovery_15k_relevance": {
+        "is_relevant": true,
+        "rating": "HIGH_RELEVANCE",
+        "justification": "The £15,000 Architecture & Security Discovery provides an ideal low-friction vehicle for JPMC's Applied Research team to evaluate a working ML-DSA-87 implementation against blockchain message formats without committing to enterprise procurement or modifying core production systems."
+      }
+    }
+  ]
+}
