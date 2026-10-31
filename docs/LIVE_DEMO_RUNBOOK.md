@@ -29,6 +29,10 @@ python3 scripts/validate_public_pqc_tls.py https://<your-tunnel-url>.trycloudfla
 ```
 *Expected Output:* Confirmed TLS 1.3 negotiation using `X25519MLKEM768`.
 
+> [!IMPORTANT]
+> **Presenter Claim Boundary on TLS:**  
+> Explain to the buyer that in this temporary evaluation tunnel (`./qcore share`), client TLS 1.3 terminates at Cloudflare's edge network using `X25519MLKEM768` before routing over an encrypted tunnel to origin. In a private customer deployment, `pq_shield` terminates hybrid TLS directly within the customer's private VPC. Do **not** claim Q-Core issues or controls the public `trycloudflare.com` certificate.
+
 ---
 
 ## 2. Live Meeting Walkthrough Script (15–20 Minutes)

@@ -24,18 +24,18 @@ This report provides reproducible, timestamped evidence across three core dimens
 
 ## 2. Authoritative Evidence Classification Matrix
 
-| Dimension | Specific Capability | Status | Evidence Source |
+| Dimension | Specific Capability | Category | Evidence Source |
 | :--- | :--- | :--- | :--- |
-| **PQC Signatures** | NIST FIPS 204 ML-DSA-87 Dual Signing on Finding Receipts | **VERIFIED** | 77/77 `core_crypto` tests passed; `POST /api/v1/receipts/seal` verified |
-| **PQC Transport** | Public TLS 1.3 Hybrid Key Exchange (`X25519MLKEM768`) | **VERIFIED** | Live CertKit audit on active Cloudflare demo tunnel |
-| **X.509 Interop** | ASN.1 DER Certificate Parsing & Subject Validation | **VERIFIED** | BouncyCastle, Botan/OpenSSL 3.6, Entrust Round 5 artifacts (12/12 passed) |
-| **Key Extraction** | Raw FIPS 204 Public Key Extraction (2,592 bytes) | **VERIFIED** | Extracted from BouncyCastle & Botan X.509 TBS structures |
-| **Tamper Defense** | Mutation Detection (Bit-flip in 4,627-byte signature) | **VERIFIED** | Negative controls A, B, and C strictly rejected in <1 ms |
-| **Hardware Custody** | AWS KMS Hardware Module (FIPS 140-2 Level 3) Key Envelope | **VERIFIED** | Active KMS Key in `eu-north-1` (Stockholm, 6/6 drills passed) |
-| **Direct Daemon KMS** | Direct Rust Control-Plane Startup Decrypt via AWS KMS | **IN PROGRESS** | Phase 3 objective; currently verified at script/container boundary |
-| **PQC PKI CA Hierarchy** | Full X.509 Certificate Chain Validation & CRL/OCSP Revocation | **IN PROGRESS** | Phase 2 objective; currently parsing single-tier CA/EE structures |
-| **Formal Certification** | NIST CMVP / FIPS 140-3 Laboratory Certification | **EXTERNAL BLOCKER** | Requires NVLAP accredited cryptographic laboratory (`BLK-002`) |
-| **Live Rails Clearance** | Real-money interbank settlement clearance (BoE RTGS / Fedwire) | **EXTERNAL BLOCKER** | Requires regulatory non-objection and counterparty pilots (`BLK-004`/`005`) |
+| **PQC Signatures** | NIST FIPS 204 ML-DSA-87 Dual Signing on Finding Receipts | **Tested and reproducibly validated** | 83/83 `core_crypto` and FIPS POST KATs passed; `POST /api/v1/receipts/seal` verified |
+| **PQC Transport** | Public TLS 1.3 Hybrid Key Exchange (`X25519MLKEM768`) | **Tested and reproducibly validated (Edge-Terminated)** | Live CertKit audit on active Cloudflare demo tunnel (client-to-edge); origin TLS available for controlled customer evaluation |
+| **X.509 Interop** | ASN.1 DER Certificate Parsing & Subject Validation | **Tested and reproducibly validated** | BouncyCastle, Botan/OpenSSL 3.6, Entrust Round 5 artifacts (12/12 passed) |
+| **Key Extraction** | Raw FIPS 204 Public Key Extraction (2,592 bytes) | **Tested and reproducibly validated** | Extracted from BouncyCastle & Botan X.509 TBS structures |
+| **Tamper Defense** | Mutation Detection (Bit-flip in 4,627-byte signature) | **Tested and reproducibly validated** | Negative controls strictly rejected in <1 ms fail-closed |
+| **Hardware Custody** | AWS KMS Hardware Module (FIPS 140-2 Level 3) Key Envelope | **Tested and reproducibly validated** | Active KMS Key in `eu-north-1` (Stockholm, 6/6 drills passed) |
+| **Direct Daemon KMS** | Direct Rust Control-Plane Startup Decrypt via AWS KMS | **Tested and reproducibly validated** | Verified in Phase 3 (`live_aws_kms_daemon_recovery_test.rs`); cold restart recovery confirmed |
+| **PQC PKI CA Hierarchy** | Full X.509 Certificate Chain Validation & CRL/OCSP Revocation | **Available for controlled customer evaluation** | Verified in Phase 2 (`test_pqc_pki_chain_rotation.py`); isolated 3-tier test harness |
+| **Formal Certification** | NIST CMVP / FIPS 140-3 Laboratory Certification | **Requires independent/counterparty validation** | Requires NVLAP accredited cryptographic laboratory (`BLK-002`) |
+| **Live Rails Clearance** | Real-money interbank settlement clearance (BoE RTGS / Fedwire) | **Requires independent/counterparty validation** | Requires regulatory non-objection and counterparty pilots (`BLK-004`/`005`) |
 
 ---
 

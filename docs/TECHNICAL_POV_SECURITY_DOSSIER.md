@@ -90,20 +90,29 @@ Q-Core maintains sanitized, timestamped, and machine-verifiable evidence files f
 
 ## 3. Strict Institutional Governance Matrix
 
-To maintain compliance with banking audit standards, Q-Core strictly separates verified technical capabilities from external dependencies:
+To maintain compliance with banking audit standards, Q-Core classifies every capability using strict commercial categories:
 
-| Dimension | Classification | Status & Evidence |
+| Governance Category | Authoritative Safe Meaning | Operational Scope |
 | :--- | :--- | :--- |
-| **Dual Post-Quantum Signing (ML-DSA-87 + Ed25519)** | **VERIFIED** | 83/83 unit/FIPS KATs passed; canonical ISO 20022 dual receipts verified. |
-| **Post-Quantum Key Exchange (ML-KEM-1024)** | **VERIFIED** | FIPS 203 KAT passed; live public hybrid TLS `X25519MLKEM768` verified. |
-| **Hardware Envelope Custody (AWS KMS)** | **VERIFIED** | Live `eu-north-1` hardware CMK round-trip and daemon cold restarts verified. |
-| **Cloud & HSM Agnosticism** | **VERIFIED** | Abstract `KeyProtector` SPI supporting AWS KMS, GCP KMS, Vault Transit, PKCS#11. |
-| **Isolated PQC PKI Test Hierarchy** | **VERIFIED** | 3-tier ML-DSA-87 path validation, negative tamper tests, and rotation verified. |
-| **Counterparty Banking PKI Federation (`BLK-001`)** | **EXTERNAL BLOCKER** | Requires counterparty central bank / Tier-1 commercial bank production root CA exchange. |
-| **Cryptographic Laboratory CMVP (`BLK-002`)** | **EXTERNAL BLOCKER** | Requires formal testing by an accredited NVLAP laboratory for NIST CMVP certificate. |
-| **Independent Cryptographic Audit (`BLK-003`)** | **EXTERNAL BLOCKER** | Requires third-party specialist peer review of the AER-KEP-Q epoch protocol. |
-| **Clearing Network Sandbox (`BLK-004`)** | **EXTERNAL BLOCKER** | Requires counterparty interbank testing on SWIFT / Fedwire / CHAPS sandboxes. |
-| **Regulatory Non-Objection (`BLK-005`)** | **EXTERNAL BLOCKER** | Requires supervisory non-objection under PRA/FCA SS1/21, NYDFS, or EU DORA. |
+| **Tested and reproducibly validated** | Verified with reproducible cryptographic test evidence | Core primitives, local consensus, in-memory recovery, and automated negative controls |
+| **Available for controlled customer evaluation** | Implemented and deployable in customer private VPC/sandbox | Multi-node Raft clustering, customer KMS/HSM integration, and isolated PQC PKI test harness |
+| **Requires independent/counterparty validation** | Formal institutional external dependency (Blocked from live rails) | Banking PKI federation (`BLK-001`), accredited CMVP lab certification (`BLK-002`), regulator non-objection (`BLK-005`) |
+
+### Detailed Capability Audit
+
+| Dimension | Governance Category | Status & Evidence |
+| :--- | :--- | :--- |
+| **Dual Post-Quantum Signing (ML-DSA-87 + Ed25519)** | **Tested and reproducibly validated** | 83/83 unit/FIPS KATs passed; canonical ISO 20022 dual receipts verified. |
+| **Post-Quantum Key Exchange Primitives (ML-KEM-1024)** | **Tested and reproducibly validated** | FIPS 203 Known Answer Tests passed; `core_crypto` pairwise consistency verified. |
+| **Public Demo PQC TLS 1.3 Key Exchange** | **Tested and reproducibly validated (Edge-Terminated)** | Live CertKit audit verified client-to-Cloudflare-edge `X25519MLKEM768` hybrid key exchange. *Note: In the on-demand demo (`./qcore share`), TLS terminates at the Cloudflare edge and routes over an encrypted tunnel to origin; dedicated end-to-end VPC TLS termination via `pq_shield` is available for controlled customer evaluation.* |
+| **Hardware Envelope Custody (AWS KMS)** | **Tested and reproducibly validated** | Live `eu-north-1` hardware CMK round-trip and daemon cold restarts verified. |
+| **Cloud & HSM Agnosticism** | **Available for controlled customer evaluation** | Abstract `KeyProtector` SPI supporting AWS KMS, GCP KMS, Vault Transit, PKCS#11. |
+| **Isolated PQC PKI Test Hierarchy & Rotation** | **Available for controlled customer evaluation** | 3-tier ML-DSA-87 path validation, negative tamper tests, and rotation verified in test harness. |
+| **Counterparty Banking PKI Federation (`BLK-001`)** | **Requires independent/counterparty validation** | Requires counterparty central bank / Tier-1 commercial bank production root CA exchange. |
+| **Cryptographic Laboratory CMVP (`BLK-002`)** | **Requires independent/counterparty validation** | Requires formal testing by an accredited NVLAP laboratory for NIST CMVP certificate. |
+| **Independent Cryptographic Audit (`BLK-003`)** | **Requires independent/counterparty validation** | Requires third-party specialist peer review of the AER-KEP-Q epoch protocol. |
+| **Clearing Network Sandbox (`BLK-004`)** | **Requires independent/counterparty validation** | Requires counterparty interbank testing on SWIFT / Fedwire / CHAPS sandboxes. |
+| **Regulatory Non-Objection (`BLK-005`)** | **Requires independent/counterparty validation** | Requires supervisory non-objection under PRA/FCA SS1/21, NYDFS, or EU DORA. |
 
 ---
 
