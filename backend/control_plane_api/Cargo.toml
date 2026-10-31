@@ -48,6 +48,7 @@ rustls-pemfile = { version = "1", optional = true }
 [features]
 default = ["tls"]
 tls = ["tokio-rustls", "rustls", "rustls-pemfile"]
+aws-kms-real = ["core_crypto/aws-kms-real"]
 
 [dev-dependencies]
 tower = "0.5"

@@ -1,0 +1,70 @@
+{
+  "timestamp_utc": "2026-10-31T06:31:19.173720+00:00",
+  "elapsed_seconds": 3.759128,
+  "aws_kms": {
+    "key_arn": "arn:aws:kms:eu-north-1:755376534413:key/86a104c0-0561-4746-883e-960950cf61f9",
+    "key_id": "86a104c0-0561-4746-883e-960950cf61f9",
+    "key_state": "Enabled",
+    "key_spec": "SYMMETRIC_DEFAULT",
+    "key_usage": "ENCRYPT_DECRYPT",
+    "origin": "AWS_KMS",
+    "region": "eu-north-1",
+    "fips_compliance": "FIPS 140-2 Level 3 Hardware Security Module"
+  },
+  "lifecycle_steps": [
+    {
+      "step": 1,
+      "name": "daemon_first_boot_provisioning",
+      "status": "PASS",
+      "details": "Generated fresh QuantumNodeIdentity (ML-DSA-87 + ML-KEM-1024), requested 256-bit DEK wrap from live AWS KMS, saved envelope to disk."
+    },
+    {
+      "step": 2,
+      "name": "disk_state_zero_plaintext_leakage",
+      "status": "PASS",
+      "details": "Verified on-disk envelope file contains only ciphertext and wrapped DEK (184 bytes). Zero occurrences of private keys in storage."
+    },
+    {
+      "step": 3,
+      "name": "operational_ml_dsa_87_signing_boot1",
+      "status": "PASS",
+      "details": "Signed financial settlement payload (REC-AWS-KMS-001). Generated valid 4,627-byte signature verified against public key."
+    },
+    {
+      "step": 4,
+      "name": "daemon_shutdown_memory_zeroization",
+      "status": "PASS",
+      "details": "Dropped in-memory handles. Memory buffers zeroized on drop."
+    },
+    {
+      "step": 5,
+      "name": "daemon_restart_cold_recovery_via_aws_kms",
+      "status": "PASS",
+      "details": "Daemon restarted cold from disk. Sent wrapped DEK to AWS KMS Decrypt API in eu-north-1. Recovered keys in memory. Fingerprint matched original exactly."
+    },
+    {
+      "step": 6,
+      "name": "operational_ml_dsa_87_signing_boot2",
+      "status": "PASS",
+      "details": "Signed subsequent financial settlement payload (REC-AWS-KMS-002) with restored in-memory key. 4,627-byte signature verified."
+    },
+    {
+      "step": 7,
+      "name": "negative_tampered_ciphertext_fail_closed",
+      "status": "PASS",
+      "details": "Mutated 1 byte in envelope ciphertext. Daemon boot failed closed and refused to start."
+    }
+  ],
+  "classifications": {
+    "LIVE_AWS_KMS_HARDWARE_CUSTODY": "VERIFIED",
+    "IN_MEMORY_ZEROIZING_KEY_RESTORATION": "VERIFIED",
+    "OPERATIONAL_ML_DSA_87_SIGNING": "VERIFIED",
+    "FAIL_CLOSED_CORRUPTED_ENVELOPE": "VERIFIED",
+    "INSTITUTIONAL_BANKING_PKI_FEDERATION": "EXTERNAL BLOCKER (BLK-001)"
+  },
+  "summary": {
+    "total_steps": 7,
+    "passed_steps": 7,
+    "all_passed": true
+  }
+}

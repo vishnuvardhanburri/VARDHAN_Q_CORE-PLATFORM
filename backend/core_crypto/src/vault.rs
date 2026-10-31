@@ -465,7 +465,7 @@ pub struct AwsSdkKmsClient {
 #[cfg(feature = "aws-kms-real")]
 impl AwsSdkKmsClient {
     /// Build a client using the default AWS credential chain and the given KMS key ID.
-    pub fn new(key_id: &str) -> Result<Self, VaultError> {
+    pub fn new(_key_id: &str) -> Result<Self, VaultError> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
@@ -941,7 +941,7 @@ mod aws_kms_tests {
         );
 
         // Audit trail should show one wrap + one unwrap, both SUCCESS
-        let audits = protector.audit_records();
+        let audits = protector.audit_records().expect("audit records should succeed");
         assert_eq!(audits.len(), 2);
         assert_eq!(audits[0].status, "SUCCESS");
         assert_eq!(audits[1].status, "SUCCESS");

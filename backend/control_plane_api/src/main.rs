@@ -183,6 +183,46 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap_or_else(|_| env::var("VARDHAN_ENV").unwrap_or_default() == "production"),
     ));
 
+    #[cfg(feature = "aws-kms-real")]
+    let aws_kms_identity = if env::var("VARDHAN_KEY_PROTECTOR").as_deref() == Ok("aws-kms-real")
+        || env::var("VARDHAN_KMS_PROVIDER").as_deref() == Ok("aws")
+        || env::var("KMS_KEY_ID").is_ok()
+    {
+        let key_id = env::var("KMS_KEY_ID")
+            .or_else(|_| env::var("VARDHAN_AWS_KMS_KEY_ID"))
+            .unwrap_or_else(|_| "86a104c0-0561-4746-883e-960950cf61f9".to_string());
+        match core_crypto::vault::AwsSdkKmsClient::new(&key_id) {
+            Ok(client) => {
+                let protector =
+                    core_crypto::vault::KmsKeyProtector::new(key_id.clone(), Arc::new(client));
+                let identity_path = data_dir.join("control_plane_node.envelope");
+                match QuantumNodeIdentity::load_or_generate(&identity_path, &protector) {
+                    Ok(id) => {
+                        tracing::info!(
+                            provider = "aws-kms",
+                            key_id = %key_id,
+                            fingerprint = %hex::encode(id.signer_pub_fingerprint()),
+                            "Control plane node identity loaded under AWS KMS hardware custody"
+                        );
+                        Some(Arc::new(id))
+                    }
+                    Err(e) => {
+                        tracing::error!(error = %e, "Failed to load/generate identity via AWS KMS");
+                        None
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::error!(error = %e, "Failed to build AWS KMS client");
+                None
+            }
+        }
+    } else {
+        None
+    };
+    #[cfg(not(feature = "aws-kms-real"))]
+    let aws_kms_identity: Option<Arc<QuantumNodeIdentity>> = None;
+
     let auth = AuthState {
         credentials: Arc::new(credential_store),
         sessions,
@@ -190,7 +230,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         mfa,
         mfa_policy,
         ledger: None,
-        identity: None,
+        identity: aws_kms_identity.clone(),
         node_id: Some(env::var("VARDHAN_NODE_ID").unwrap_or_else(|_| "control-plane".to_string())),
         admin_token: None,
     };
