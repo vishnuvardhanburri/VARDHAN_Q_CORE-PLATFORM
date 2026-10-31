@@ -1,0 +1,93 @@
+{
+  "timestamp_utc": "2026-10-31T06:18:37.980150+00:00",
+  "cryptography_version": "50.0.2",
+  "algorithm": "ML-DSA-87 (NIST FIPS 204)",
+  "algorithm_oid": "2.16.840.1.101.3.4.3.19",
+  "external_artifacts_imported": [
+    {
+      "provider": "IETF-Hackathon (Botan/OpenSSL 3.6)",
+      "subject": "CN=OpenSSL 3.6 ml-dsa-87 Root",
+      "serial": "194758187754640692336625274444169759853",
+      "sha256_fingerprint": "15abe7ba296d6b11cc6f5edc3373e91f2dfb282dc0d37bcc4844475b3d4db048",
+      "status": "IMPORTED_INTO_TEST_TRUST_STORE"
+    }
+  ],
+  "tests": [
+    {
+      "test_name": "test_positive_3_tier_chain_validation",
+      "expected": "PASS",
+      "result": "PASS",
+      "details": "Chain validated: Leaf -> Intermediate CA -> Trusted Root CA",
+      "chain": [
+        "CN=Q-Core Settlement Signer v1,O=Vardhan Technologies Q-Core Test Lab",
+        "CN=Q-Core Banking Intermediary CA,O=Vardhan Technologies Q-Core Test Lab",
+        "CN=Q-Core PQC Test Root CA,O=Vardhan Technologies Q-Core Test Lab"
+      ]
+    },
+    {
+      "test_name": "test_receipt_signing_and_verification_anchored_to_cert",
+      "expected": "PASS",
+      "result": "PASS",
+      "signature_bytes": 4627,
+      "receipt_id": "REC-TEST-PKI-001"
+    },
+    {
+      "test_name": "test_negative_untrusted_issuer_rejection",
+      "expected": "REJECT",
+      "result": "REJECT",
+      "rejection_reason": "Untrusted issuer: CN=Rogue Untrusted CA"
+    },
+    {
+      "test_name": "test_negative_expired_certificate_rejection",
+      "expected": "REJECT",
+      "result": "REJECT",
+      "rejection_reason": "Certificate validity window expired or not yet valid: 2026-09-01 06:18:37+00:00 to 2026-10-30 06:18:37+00:00"
+    },
+    {
+      "test_name": "test_negative_tampered_certificate_rejection",
+      "expected": "REJECT",
+      "result": "REJECT",
+      "rejection_reason": "ASN.1 / Cryptographic parse exception: error parsing asn1 value: ParseError { kind: InvalidValue, location: [\"issuer\"] }"
+    },
+    {
+      "test_name": "test_negative_tampered_signature_rejection",
+      "expected": "REJECT",
+      "result": "REJECT",
+      "rejection_reason": "InvalidSignature"
+    },
+    {
+      "test_name": "test_negative_revoked_certificate_rejection",
+      "expected": "REJECT",
+      "result": "REJECT",
+      "rejection_reason": "Certificate revoked: UNSCHEDULED_HSM_KEY_ROTATION"
+    }
+  ],
+  "rotation_lifecycle": {
+    "status": "VERIFIED",
+    "pre_rotation_cert": {
+      "serial": 3001,
+      "subject": "CN=Q-Core Settlement Signer v1,O=Vardhan Technologies Q-Core Test Lab",
+      "status_pre": "ACTIVE_ACCEPTED",
+      "status_post": "SUPERSEDED_REJECTED"
+    },
+    "post_rotation_cert": {
+      "serial": 3002,
+      "subject": "CN=Q-Core Settlement Signer v2,O=Vardhan Technologies Q-Core Test Lab",
+      "status": "ACTIVE_ACCEPTED"
+    },
+    "rotation_policy_rejection_reason": "Certificate revoked: SUPERSEDED_BY_ROTATION_POLICY_EPOCH_2"
+  },
+  "summary": {
+    "total_checks": 7,
+    "passed_checks": 7,
+    "all_passed": true,
+    "classifications": {
+      "X509_PQC_CHAIN_VALIDATION": "VERIFIED",
+      "ML_DSA_87_RECEIPT_VERIFICATION": "VERIFIED",
+      "NEGATIVE_CONTROLS_TAMPER_REVOCATION": "VERIFIED",
+      "CERTIFICATE_ROTATION_POLICY": "VERIFIED",
+      "CONTROL_PLANE_LIVE_DAEMON_BINDING": "IN PROGRESS (Phase 3)",
+      "INSTITUTIONAL_BANKING_PKI_FEDERATION": "EXTERNAL BLOCKER (BLK-001)"
+    }
+  }
+}
