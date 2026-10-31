@@ -48,8 +48,9 @@ Vardhan Q-Core is engineered to eliminate cloud vendor lock-in. Tier-1 financial
 
 ## Interoperability & Post-Quantum Validation Evidence
 
-Q-Core maintains reproducible, timestamped evidence validating compliance with NIST standards and open interoperability specifications:
+Q-Core maintains reproducible, timestamped evidence validating compliance with NIST standards and open interoperability specifications. For prospective banking clients and institutional evaluators, review the comprehensive [Technical PoV Security Dossier](docs/TECHNICAL_POV_SECURITY_DOSSIER.md).
 
+- **Technical PoV Security Dossier:** Authoritative technical and commercial evaluation pack synthesizing all cryptographic, custody, and high-availability evidence into a single customer-ready document: [docs/TECHNICAL_POV_SECURITY_DOSSIER.md](docs/TECHNICAL_POV_SECURITY_DOSSIER.md).
 - **Live AWS KMS Custody & Daemon Recovery (Phase 3):** Full daemon lifecycle verified against live AWS KMS hardware modules (`eu-north-1`). Proves cold start provisioning, zero-plaintext disk storage, AWS KMS hardware decryption, in-memory zeroizing key restoration, and operational ML-DSA-87 transaction signing across genuine process restarts. Detailed in [docs/AWS_KMS_DAEMON_RECOVERY_REPORT.md](docs/AWS_KMS_DAEMON_RECOVERY_REPORT.md).
 - **External X.509 PQC PKI & Rotation (Phase 2):** 3-tier ML-DSA-87 hierarchy (Root → Intermediate → Leaf) verified with full path validation, negative tamper/expiry/revocation controls, and seamless certificate rotation. Detailed in [docs/PKI_INTEROP_VALIDATION_REPORT.md](docs/PKI_INTEROP_VALIDATION_REPORT.md).
 - **IETF PQC X.509 Interoperability (12/12 Passed):** Verified against `IETF-Hackathon/pqc-certificates` Round 5 artifacts across BouncyCastle, Botan/OpenSSL 3.6, and Entrust PKI Hub (`ML-DSA-87` FIPS 204).
