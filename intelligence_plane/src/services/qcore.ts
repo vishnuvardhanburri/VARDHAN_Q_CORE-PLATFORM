@@ -761,7 +761,11 @@ export interface BriefSummary {
 }
 
 export function listBriefs(): Promise<BriefSummary[]> {
-  return request<BriefSummary[]>('/v1/intelligence/briefs');
+  return request<BriefSummary[]>('/api/v1/intelligence/briefs');
+}
+
+export function getBrief(company: string): Promise<BriefSummary> {
+  return request<BriefSummary>(`/api/v1/intelligence/briefs/${encodeURIComponent(company)}`);
 }
 
 // ── Sessions (admin visibility) ──────────────────────────────────────────────

@@ -593,7 +593,7 @@ export class DeepProspectBuilder {
 
     // Deep finding discovery: map structured signals + public observations into a
     // defensible DeepFinding. Never collapses every signal to NONE; never invents.
-    const deepFinding = this.detectDeepFinding(signals, caseRef.evidence);
+    let deepFinding = this.detectDeepFinding(signals, caseRef.evidence);
     if (deepFinding) {
       this.onProgress?.('findings', `deep finding: ${deepFinding.finding_type} (${deepFinding.confidence}) — ${deepFinding.explanation.slice(0, 90)}`);
     } else {
@@ -709,7 +709,7 @@ export class DeepProspectBuilder {
       );
 
     // Diagnostic opportunity generation (company → problem, NOT person-first)
-    const diagnosticOpportunity = claimQAPassed
+    let diagnosticOpportunity = claimQAPassed
       ? buildOpportunity(
           surface.company, parsed.hostname, deepFinding, caseRef.evidence,
           signals, surface.homepage || surface.company_homepage || ""
@@ -939,6 +939,42 @@ export class DeepProspectBuilder {
       );
       technicalFindings = detectionResult.findings;
       this.onProgress?.('verification', `TechnicalProblemDetector: ${technicalFindings.length} problem finding(s) (${detectionResult.stats.verified_findings} verified).`);
+
+      // If no deep finding was assembled from heuristic signals, promote the
+      // authoritative verified finding from TechnicalProblemDetector.
+      if (!deepFinding && technicalFindings.length > 0) {
+        const tf = technicalFindings[0];
+        const qf = tf.qcore_verified_finding;
+        const theme = tf.hypothesis?.theme || 'CONFIGURATION_DRIFT';
+        let findingType: FindingType = 'POSSIBLE_INFORMATION_DISCLOSURE';
+        if (theme === 'ACCESS_CONTROL_GAP') findingType = 'POSSIBLE_ACCESS_ISSUE';
+        else if (theme === 'SURFACE_OVEREXPOSURE') findingType = 'POSSIBLE_PUBLIC_EXPOSURE';
+        else if (theme === 'INCIDENT_PATTERN') findingType = 'DOCUMENTED_INCIDENT';
+        else if (theme === 'DEPRECATION_RISK' || theme === 'VERSION_INCONSISTENCY') findingType = 'DOCUMENTED_SCALING_CONSTRAINT';
+        else if (theme === 'CONFIGURATION_DRIFT') findingType = 'POSSIBLE_INFORMATION_DISCLOSURE';
+
+        const relatedEv = caseRef.evidence.filter(e => tf.evidence_ids?.includes(e.id));
+        const conf: 'LOW' | 'MEDIUM' | 'HIGH' = tf.confidence >= 0.7 ? 'HIGH' : tf.confidence >= 0.4 ? 'MEDIUM' : 'LOW';
+        deepFinding = this.deepFinding(
+          findingType,
+          qf?.technical_area === 'SECURITY' ? 'MEDIUM' : 'LOW',
+          qf?.excerpt || `Verified technical finding on ${tf.surface}`,
+          relatedEv.length ? relatedEv : caseRef.evidence.slice(0, 3),
+          [tf.surface || tf.canonical_url].filter(Boolean),
+          tf.technical_context || qf?.relevance || 'Verified finding discovered on public surface.',
+          'Review configuration and public boundary posture.',
+          conf,
+          'HIGH', 'MEDIUM', 'HIGH', 'HIGH', 'LOW'
+        );
+        this.onProgress?.('findings', `Promoted verified technical problem: ${deepFinding.finding_type} (${deepFinding.confidence})`);
+
+        if (!diagnosticOpportunity) {
+          diagnosticOpportunity = buildOpportunity(
+            surface.company, parsed.hostname, deepFinding, caseRef.evidence,
+            signals, surface.homepage || surface.company_homepage || ""
+          );
+        }
+      }
     } catch (e: any) {
       this.onProgress?.('verification', `Expected-behavior pipeline error: ${e?.message || String(e)}`);
     }
@@ -961,7 +997,9 @@ export class DeepProspectBuilder {
       owner_evidence: selectedOwner?.owner_evidence || [],
       contactability: contacts,
       contact_status: contactStatus,
-      findings: caseRef.finding_classification || null,
+      findings: (caseRef.finding_classification && caseRef.finding_classification.finding_type !== 'GENERIC_ENGINEERING_ARTICLE')
+        ? caseRef.finding_classification
+        : (deepFinding ? { finding_type: deepFinding.finding_type, impact_severity: deepFinding.impact_severity, severity_basis: deepFinding.severity_basis } : (caseRef.finding_classification || null)),
       deep_finding: deepFinding,
       evidence: caseRef.evidence,
       primary_angle: primaryAngle,

@@ -3,13 +3,15 @@ import { Download } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import {
   getCryptoPosture,
+  listBriefs,
   listFindings,
   listTransactions,
+  type BriefSummary,
   type CryptoPosture,
   type FindingList,
   type TransactionList,
 } from '../services/qcore';
-import { Empty, Panel, QueryStateView, bandColor, formatTime, statusColor, useOrgQuery } from './shared';
+import { Empty, Panel, QueryStateView, bandColor, formatTime, statusColor, useOrgQuery, useQuery } from './shared';
 
 /** Map a live finding onto a pseudo asset row: severity+status become crypto-object state. */
 function findingRow(f: FindingList['items'][number]): { object: string; owner: string; state: string; band: string } {
@@ -23,6 +25,7 @@ function findingRow(f: FindingList['items'][number]): { object: string; owner: s
 
 export default function ReconView(): React.ReactElement {
   const { orgId } = useAuth();
+  const briefs = useQuery<BriefSummary[]>(listBriefs);
   const findings = useOrgQuery<FindingList>(orgId, listFindings);
   const crypto = useOrgQuery<CryptoPosture>(orgId, getCryptoPosture);
   const tx = useOrgQuery<TransactionList>(orgId, listTransactions);
@@ -91,6 +94,64 @@ export default function ReconView(): React.ReactElement {
 
   return (
     <div className="space-y-5">
+      <Panel
+        title="Vardhan Intelligence — Target Bank Opportunity Briefs"
+        hint="Stage 5 operator-reviewed institutional briefs • Evidence-backed problem hypotheses & buyer roles"
+        right={
+          <button
+            type="button"
+            onClick={() => briefs.reload()}
+            className="cursor-pointer rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-[10px] font-bold uppercase text-zinc-300 hover:text-white"
+          >
+            Refresh Briefs
+          </button>
+        }
+      >
+        {briefs.loading && <p className="p-4 text-center font-mono text-xs text-slate-400">Loading intelligence briefs…</p>}
+        {briefs.error && <QueryStateView loading={false} error={briefs.error} onRetry={briefs.reload} />}
+        {briefs.data && briefs.data.length === 0 && (
+          <Empty message="No intelligence briefs available in store." />
+        )}
+        {briefs.data && briefs.data.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-zinc-800 text-[10px] uppercase tracking-wider text-zinc-500">
+                  <th className="px-3 py-2">Institution</th>
+                  <th className="px-3 py-2">Verdict</th>
+                  <th className="px-3 py-2">Score</th>
+                  <th className="px-3 py-2">Target Buyer Function</th>
+                  <th className="px-3 py-2">Public Trigger / Signal Source</th>
+                </tr>
+              </thead>
+              <tbody>
+                {briefs.data.map((b) => (
+                  <tr key={b.company} className="border-b border-zinc-900/60 hover:bg-zinc-950/60">
+                    <td className="px-3 py-2 font-bold text-white">{b.company}</td>
+                    <td className="px-3 py-2">
+                      <span className={`rounded border px-2 py-0.5 text-[10px] font-bold uppercase ${b.verdict === 'GO' ? 'text-emerald-400 border-emerald-500/25 bg-emerald-500/10' : 'text-amber-400 border-amber-500/25 bg-amber-500/10'}`}>
+                        {b.verdict}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 font-mono text-slate-200">{b.score}/100</td>
+                    <td className="px-3 py-2 text-zinc-300">{b.buyer_role || 'Payments Operations'}</td>
+                    <td className="px-3 py-2 text-zinc-400 max-w-xs truncate">
+                      {b.signal_url ? (
+                        <a href={b.signal_url} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
+                          {b.signal_url}
+                        </a>
+                      ) : (
+                        <span className="text-zinc-600">Pending dated trigger re-sweep</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
+
       <Panel
         title="Recon — asset & exposure inventory"
         hint={`Organization ${orgId} • findings ${findings.data?.data_state ?? '…'} • telemetry ${tx.data?.data_state ?? '…'}`}

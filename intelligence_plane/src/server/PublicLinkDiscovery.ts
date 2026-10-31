@@ -98,12 +98,13 @@ export class PublicLinkDiscovery {
     interface QueueItem { url: string; categoryHint?: ProfessionalPageCategory; priority: number; }
     const queue: QueueItem[] = [];
     queue.push({ url: baseUrl.href, categoryHint: 'homepage', priority: 0 });
-    // Seed only the first few high-signal paths up-front; the rest are added
-    // dynamically when budget remains (so discovered links always win).
+    // Seed only the first few high-signal paths up-front; high-signal technical
+    // paths have high priority (priority 2) while generic seeds have lower priority (priority 7).
     const initialSeedBudget = Math.min(6, seedPaths.length);
     let nextSeedIdx = initialSeedBudget;
     for (const p of seedPaths.slice(0, initialSeedBudget)) {
-      queue.push({ url: p.url, categoryHint: p.category, priority: 10 });
+      const isHighSignal = p.category === 'security' || p.category === 'engineering' || p.category === 'docs' || p.category === 'status_ops' || p.category === 'team_people';
+      queue.push({ url: p.url, categoryHint: p.category, priority: isHighSignal ? 2 : 7 });
     }
 
     let requests = 0;
@@ -154,9 +155,9 @@ export class PublicLinkDiscovery {
         const discovered = this.extractSameOriginLinks(html, targetUrl, origin);
         for (const link of discovered) {
           if (!visited.has(link) && queue.length < maxPages * 5) {
-            // Discovered links get high priority (priority=1) so they are
-            // processed BEFORE the remaining guessed seed paths (priority=10).
-            queue.push({ url: link, categoryHint: this.categorizePath(new URL(link).pathname), priority: 1 });
+            const cat = this.categorizePath(new URL(link).pathname);
+            const isHighSignal = cat === 'security' || cat === 'engineering' || cat === 'docs' || cat === 'status_ops' || cat === 'team_people';
+            queue.push({ url: link, categoryHint: cat, priority: isHighSignal ? 1 : 6 });
           }
         }
       }

@@ -44,6 +44,7 @@ services:
       - keystore-data:/var/lib/vardhan/keystore
       - idempotency-data:/var/lib/vardhan/idempotency
       - auth-config-data:/var/lib/vardhan/auth_config
+      - ./intelligence_plane/.research:/app/intelligence_plane/.research:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/api/v1/platform/health | grep -q operational"]
       interval: 5s

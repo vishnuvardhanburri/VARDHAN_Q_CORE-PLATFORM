@@ -1160,8 +1160,9 @@ export class VardhanOperator {
     this.println(`People:          ${prospect.people.length}`);
     this.println(`Owner:           ${prospect.selected_owner ? `${prospect.selected_owner.name} (${prospect.selected_owner.role}) — ${prospect.selected_owner.confidence}` : '(none)'}`);
     this.println(`Contacts:        ${prospect.contactability.length}`);
-    this.println(`Finding:         ${prospect.findings ? prospect.findings.finding_type : 'NONE'}`);
-    this.println(`Email draft:     ${prospect.email_draft.generated ? 'YES' : 'NO — ' + (prospect.email_draft.blocked_reason || '')}`);
+    const findingSummary = prospect.findings?.finding_type || prospect.deep_finding?.finding_type || (prospect.technical_findings?.length ? (prospect.technical_findings[0].qcore_verified_finding?.technical_mechanism || prospect.technical_findings[0].finding_id) : 'NONE');
+    this.println(`Finding:         ${findingSummary}`);
+    this.println(`Email draft:     ${prospect.email_draft?.generated ? 'YES' : 'NO — ' + (prospect.email_draft?.blocked_reason || 'Outreach not ready')}`);
     this.println(`Artifact:        ${prospect.artifact_path}`);
     this.println(`Stages: status | show findings | show opportunity | show evidence | show people | show all | why owner | draft email | deep prospects | help | exit\n`);
   }

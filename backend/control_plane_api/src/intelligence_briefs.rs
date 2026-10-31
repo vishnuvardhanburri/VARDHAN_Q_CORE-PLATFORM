@@ -173,4 +173,6 @@ pub fn routes() -> Router<ControlPlaneState> {
     Router::new()
         .route("/v1/intelligence/briefs", get(list_briefs))
         .route("/v1/intelligence/briefs/{company}", get(get_brief))
+        .route("/api/v1/intelligence/briefs", get(list_briefs))
+        .route("/api/v1/intelligence/briefs/{company}", get(get_brief))
 }

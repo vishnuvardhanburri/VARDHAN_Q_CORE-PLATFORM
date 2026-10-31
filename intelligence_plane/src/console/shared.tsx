@@ -49,6 +49,38 @@ export function useOrgQuery<T>(orgId: string | null, fetcher: (org: string) => P
   return { data, loading, error, reload: () => setNonce((n) => n + 1) };
 }
 
+export function useQuery<T>(fetcher: () => Promise<T>): QueryState<T> {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [nonce, setNonce] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    fetcher()
+      .then((value) => {
+        if (!cancelled) {
+          setData(value);
+          setLoading(false);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setData(null);
+          setLoading(false);
+          setError(err instanceof Error ? err.message : 'Request failed.');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [nonce]);
+
+  return { data, loading, error, reload: () => setNonce((n) => n + 1) };
+}
+
 export function formatTime(ms: number | null | undefined): string {
   if (ms === null || ms === undefined || ms <= 0) return '—';
   try {

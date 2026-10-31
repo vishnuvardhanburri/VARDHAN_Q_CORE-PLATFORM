@@ -19,6 +19,7 @@ import { PublicLinkDiscovery } from './PublicLinkDiscovery.ts';
 import { PeopleExtractor } from './PeopleExtractor.ts';
 import type { OwnerCandidate, DiscoveredPage, CompanySurface } from './IntelligenceCase.ts';
 import { SerperWebSearchProvider } from './providers/SerperWebSearchProvider.ts';
+import { GitHubDiscovery } from './GitHubDiscovery.ts';
 import type { GithubRepoMeta } from './DeepTypes.ts';
 import { randomBytes } from 'crypto';
 

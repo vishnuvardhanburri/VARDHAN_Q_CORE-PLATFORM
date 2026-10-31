@@ -93,9 +93,9 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ error: 'Bad Request: Path traversal rejected' }));
   }
 
-  // 3. API proxy: forward /api/ to the control plane backend
+  // 3. API proxy: forward /api/ and /v1/ to the control plane backend
   const urlPath = decodedUrl.split('?')[0];
-  if (urlPath.startsWith('/api/') || urlPath === '/api') {
+  if (urlPath.startsWith('/api/') || urlPath === '/api' || urlPath.startsWith('/v1/')) {
     // Parse the control plane URL
     let cpHost, cpPort, cpBase;
     try {

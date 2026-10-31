@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-13T19:59:42.660Z",
+  "generatedAt": "2026-10-31T16:19:02.958Z",
   "gitHead": "unknown",
   "summary": {
     "total": 5,
@@ -9,7 +9,7 @@
     "p1": 2,
     "p2": 1,
     "p3": 0,
-    "avgScore": 76,
+    "avgScore": 75,
     "avgCommercialReadiness": 42
   },
   "shortlist": [
@@ -62,7 +62,7 @@
       "businessArea": "USA (Global) banking operations",
       "problemType": "THIRD_PARTY_RISK",
       "hypothesis": "JPMorganChase requires independently-verifiable third-party security audit commitments and real-time verification, not just documented compliance.",
-      "score": 70,
+      "score": 68,
       "priority": "P1",
       "confidence": "HIGH",
       "sourceUrls": [
@@ -82,7 +82,7 @@
       "businessArea": "USA (Global) banking operations",
       "problemType": "AUDIT_LIFECYCLE",
       "hypothesis": "JPMorganChase requires end-to-end auditability of security-patch deployment pipelines, with every handoff and approval gate recorded and verifiable.",
-      "score": 67,
+      "score": 65,
       "priority": "P1",
       "confidence": "HIGH",
       "sourceUrls": [
@@ -175,7 +175,7 @@
       "institution": "JPMorgan Chase",
       "businessArea": "USA (Global) banking operations",
       "problemType": "THIRD_PARTY_RISK",
-      "score": 70,
+      "score": 68,
       "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
       "priority": "P1",
       "confidence": "HIGH",
@@ -191,21 +191,21 @@
         "No information on specific third-party vendors or procurement processes"
       ],
       "scoreBreakdown": {
-        "evidenceQuality": 9,
+        "evidenceQuality": 7,
         "capabilityRelevance": 20,
         "disclosedInitiative": 0,
         "unmetProblemEvidence": 4,
         "technicalSponsor": 15,
         "evaluationFeasibility": 12,
         "measurableCriteria": 10,
-        "total": 70
+        "total": 68
       }
     },
     {
       "institution": "JPMorgan Chase",
       "businessArea": "USA (Global) banking operations",
       "problemType": "AUDIT_LIFECYCLE",
-      "score": 67,
+      "score": 65,
       "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
       "priority": "P1",
       "confidence": "HIGH",
@@ -221,14 +221,14 @@
         "No information on current audit-logging coverage or toolchain"
       ],
       "scoreBreakdown": {
-        "evidenceQuality": 9,
+        "evidenceQuality": 7,
         "capabilityRelevance": 20,
         "disclosedInitiative": 0,
         "unmetProblemEvidence": 1,
         "technicalSponsor": 15,
         "evaluationFeasibility": 12,
         "measurableCriteria": 10,
-        "total": 67
+        "total": 65
       }
     },
     {

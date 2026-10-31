@@ -3,7 +3,7 @@
   "institution": "JPMorgan Chase",
   "businessArea": "USA (Global) banking operations",
   "problemType": "AUDIT_LIFECYCLE",
-  "generatedAt": "2026-10-13T19:59:42.659Z",
+  "generatedAt": "2026-10-31T16:19:02.957Z",
   "gitHead": "unknown",
   "classification": "AUTHORIZATION_REQUIRED — Internal Vardhan Intelligence Use Only",
   "section1_institution": {
@@ -38,7 +38,7 @@
   },
   "section4_confidence": {
     "level": "HIGH",
-    "rationale": "Signals from the bank's own technical/engineering blog (authoritative source). Evidence gaps remain: No information on current audit-logging coverage or toolchain. Internal prioritization score: 67/100 (P1 tier). Commercial readiness: NOT_ASSESSED (40/100) — NOT ASSESSED unless buying-process evidence exists.",
+    "rationale": "Signals from the bank's own technical/engineering blog (authoritative source). Evidence gaps remain: No information on current audit-logging coverage or toolchain. Internal prioritization score: 65/100 (P1 tier). Commercial readiness: NOT_ASSESSED (40/100) — NOT ASSESSED unless buying-process evidence exists.",
     "unresolvedQuestions": [
       "What audit trail requirements exist for security-patch deployment pipelines?"
     ],
@@ -46,16 +46,16 @@
       "No information on current audit-logging coverage or toolchain"
     ],
     "scoreBreakdown": {
-      "evidenceQuality": 9,
+      "evidenceQuality": 7,
       "capabilityRelevance": 20,
       "disclosedInitiative": 0,
       "unmetProblemEvidence": 1,
       "technicalSponsor": 15,
       "evaluationFeasibility": 12,
       "measurableCriteria": 10,
-      "total": 67
+      "total": 65
     },
-    "totalScore": 67,
+    "totalScore": 65,
     "scoreLabel": "INTERNAL PRIORITIZATION SCORE",
     "scoreNote": "This score measures evidence of a disclosed initiative with a technically-addressable problem. It does NOT indicate commercial readiness or buying intent. See commercialReadiness below.",
     "commercialReadiness": {
@@ -170,7 +170,7 @@
   ],
   "section10_nextAction": {
     "action": "Hold for human approval — do not initiate outbound contact.",
-    "rationale": "Opportunity scored 67/100 (P1). Meets qualification threshold but requires human review before any external outreach.",
+    "rationale": "Opportunity scored 65/100 (P1). Meets qualification threshold but requires human review before any external outreach.",
     "gate": "HUMAN_APPROVAL_REQUIRED",
     "estimatedTimeline": "Within 2 business days of human approval"
   }

@@ -1,6 +1,6 @@
 # VARDHAN — Bank Problem Discovery: Shortlist Report
 
-**Generated:** 2026-10-13
+**Generated:** 2026-10-31
 **Git HEAD:** `unknown`
 **Classification:** INTERNAL — Human Approval Required Before Outreach
 
@@ -40,7 +40,7 @@ This report identifies evidence-backed bank problem opportunities from publicly 
 
 ### JPMorgan Chase — THIRD_PARTY_RISK
 
-- **Score:** 70/100 (P1) — INTERNAL PRIORITIZATION SCORE
+- **Score:** 68/100 (P1) — INTERNAL PRIORITIZATION SCORE
 - **Commercial readiness:** NOT_ASSESSED (40/100)
 - **Confidence:** HIGH
 - **Sources:** https://www.jpmorganchase.com/about/technology/blog/fortifying-the-enterprise-10-actions-to-take-now-for-ai-ready-cyber-resilience
@@ -53,7 +53,7 @@ This report identifies evidence-backed bank problem opportunities from publicly 
 
 ### JPMorgan Chase — AUDIT_LIFECYCLE
 
-- **Score:** 67/100 (P1) — INTERNAL PRIORITIZATION SCORE
+- **Score:** 65/100 (P1) — INTERNAL PRIORITIZATION SCORE
 - **Commercial readiness:** NOT_ASSESSED (40/100)
 - **Confidence:** HIGH
 - **Sources:** https://www.jpmorganchase.com/about/technology/blog/fortifying-the-enterprise-10-actions-to-take-now-for-ai-ready-cyber-resilience
