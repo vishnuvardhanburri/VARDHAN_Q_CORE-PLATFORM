@@ -285,7 +285,7 @@ ${activePack.licenseJson}`;
                   className="w-full rounded-lg border border-slate-800 bg-[#14161f] px-3 py-2 text-xs text-slate-100 focus:border-blue-500 focus:outline-none"
                 >
                   <option value="qcore_architecture_evaluation">Architecture & Security Evaluation (£15,000 fixed fee)</option>
-                  <option value="qcore_proof_of_value">Bounded Proof of Value (£60,000 fixed fee)</option>
+                  <option value="qcore_proof_of_value">Bounded Proof of Value (£65,000 fixed fee)</option>
                   <option value="foundation">Foundation (£360,000 / year)</option>
                   <option value="enterprise">Enterprise (£720,000 / year)</option>
                   <option value="advanced_resilience">Advanced Resilience (£1,200,000 / year)</option>

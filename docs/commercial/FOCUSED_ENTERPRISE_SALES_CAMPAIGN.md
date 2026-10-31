@@ -25,7 +25,7 @@ This strategy explicitly rejects broad marketing and speculative outreach in fav
 |           Map trust boundaries, failure modes, data dependencies, and PoV baseline      |
 |                                          |                                              |
 |                                          v                                              |
-|  Stage 3: Bounded Proof of Value (£60,000 fixed fee, 10-day evaluation)                |
+|  Stage 3: Bounded Proof of Value (£65,000 fixed fee, 10-day evaluation)                |
 |           Dual-signature verification, adversarial replay/tamper rejection, test pack    |
 |                                          |                                              |
 |                                          v                                              |
@@ -424,7 +424,7 @@ Swift must **not** be counted as one of the 5 targeted bank licenses. Instead, S
 - **Days 12–14: Discovery Scoping & Closing**
   - Present the £15,000 Architecture Discovery SOW (`docs/commercial/DISCOVERY_15K_SCOPE.md`).
   - Align on prerequisite access, synthetic data requirements, and the 48-hour to 10-day timeline.
-  - Establish the written success criteria that will govern transition to the £60,000 PoV.
+  - Establish the written success criteria that will govern transition to the £65,000 PoV.
   - Deliverable: Executed Discovery Statement of Work with at least one target bank.
 
 ---

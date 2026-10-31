@@ -116,8 +116,8 @@ Financial institutions and clearing counterparties do not purchase unvetted cryp
 * **Objective:** Review institutional cryptographic posture, catalog algorithm migration timelines, assess ISO 20022 message flows, and map HSM key custody requirements.
 * **Deliverable:** Bespoke Quantum Threat Impact Assessment & System Integration Specification.
 
-### Step 2: Technical Problem Validation PoV (`qcore_technical_pov`)
-* **Fixed Fee:** £45,000 (4 to 6 weeks)
+### Step 2: Technical Problem Validation PoV (`qcore_proof_of_value`)
+* **Fixed Fee:** £65,000 fixed fee
 * **Objective:** Deploy Q-Core in the customer's isolated sandbox or private cloud VPC. Run custom transaction workloads, test AWS/GCP KMS or on-prem HSM custody integration, and simulate counterparty PQC dual-signed settlements.
 * **Deliverable:** Customer-Specific Acceptance Dossier with benchmarked throughput and latency metrics under simulated quantum attack scenarios.
 

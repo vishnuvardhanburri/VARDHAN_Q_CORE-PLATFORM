@@ -11,7 +11,7 @@ All pricing is in GBP.
 ### A. Commercial Entry Stages (Fixed-Fee Bounded Engagements)
 - **Discovery (`qcore_architecture_evaluation`): £15,000 fixed fee**  
   Fixed-scope architecture and cryptographic readiness evaluation. Assesses one specific customer workflow for submission integrity, policy enforcement, replay protection, or independently verifiable trust receipts. Delivery target: 48 hours after prerequisites, access, and agreement are established.
-- **Proof of Value (`qcore_proof_of_value`): £60,000 fixed fee**  
+- **Proof of Value (`qcore_proof_of_value`): £65,000 fixed fee**  
   Time-boxed 10-day evaluation run in a bounded, authorized environment evaluating dual-signature verification against agreed criteria. Deliverable: recorded test evidence, measured criteria results, and formal go/no-go recommendation.
 
 ### B. Annual Q-Core Licences (Annual Recurring Subscriptions)
@@ -44,7 +44,7 @@ All pricing is in GBP.
 
 The catalogue enforces three distinct billing classifications. Entries are not equivalent subscription plans:
 
-1. **Fixed Fee (`fixed_fee` / `one_off`):** One-time bounded professional service engagements (Discovery £15K, PoV £60K). Not recurring.
+1. **Fixed Fee (`fixed_fee` / `one_off`):** One-time bounded professional service engagements (Discovery £15K, PoV £65K). Not recurring.
 2. **Annual Licence (`annual_license` / `annual`):** Annual recurring software licences (Foundation £360K/yr, Enterprise £720K/yr, Advanced Resilience £1.2M/yr).
 3. **Scoped Engagement (`scoped` / `custom`):** Individually scoped contract terms (Strategic bespoke / £12M target).
 
@@ -99,6 +99,6 @@ The intelligence plane and autonomous opportunity discovery agents must adhere t
 - Authoritative Plan Catalog: `GET /api/v1/catalog/plans`
 - Billing Architecture: [`docs/mission-j/BILLING_AND_ENTITLEMENTS.md`](file:///Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main/docs/mission-j/BILLING_AND_ENTITLEMENTS.md)
 - Discovery Scope & Deliverables: [`docs/commercial/DISCOVERY_15K_SCOPE.md`](file:///Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main/docs/commercial/DISCOVERY_15K_SCOPE.md)
-- Proof of Value Scope & Acceptance: [`docs/commercial/POV_60K_SCOPE.md`](file:///Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main/docs/commercial/POV_60K_SCOPE.md)
+- Proof of Value Scope & Acceptance: [`docs/commercial/POV_65K_SCOPE.md`](file:///Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main/docs/commercial/POV_65K_SCOPE.md)
 - Production Engagement Planning: [`docs/commercial/PRODUCTION_500K_SCOPE.md`](file:///Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main/docs/commercial/PRODUCTION_500K_SCOPE.md)
 - Commercial Path Overview: [`docs/commercial/README.md`](file:///Users/vishnuvardhanburri/antigravity/VARDHAN_Q_CORE-PLATFORM-main/docs/commercial/README.md)

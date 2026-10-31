@@ -356,7 +356,7 @@ When a contact replies with interest or requests more detail, execute this three
    framework (fixed fee: GBP 15,000) designed to benchmark these questions against your
    synthetic test data."
 3. **Lock the Discovery kickoff:** Agree on the statement of work and measurable acceptance
-   criteria needed to justify the GBP 60,000 Proof of Value engagement.
+   criteria needed to justify the GBP 65,000 Proof of Value engagement.
 
 ---
 

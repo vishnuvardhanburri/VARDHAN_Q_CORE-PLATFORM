@@ -41,7 +41,7 @@ The "Vardhan Intelligence" product is now strictly decoupled from the "Q Core" i
 - **Legacy Claims:** All references to "£50m" or misleading automation claims have been purged.
 - **Engagement Model:** The professional services model is now authoritative:
     - **Stage 1 (Evaluation):** £15,000 (Architecture & Security Evaluation)
-    - **Stage 2 (PoV):** £60,000 (Bounded Proof of Value)
+    - **Stage 2 (PoV):** £65,000 (Bounded Proof of Value)
 
 ---
 

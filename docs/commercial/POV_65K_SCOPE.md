@@ -8,7 +8,7 @@ Demonstrate against a buyer-approved baseline whether one selected VARDHAN Q-COR
 
 ## Proposed duration and fee
 
-- **Fee:** £60,000 GBP. State VAT treatment, expenses, invoice milestones, and payment terms in the final SOW.
+- **Fee:** £65,000 GBP. State VAT treatment, expenses, invoice milestones, and payment terms in the final SOW.
 - **Planning duration:** approximately 6–8 weeks after prerequisites are met; finalize based on access, integrations, and test volume.
 - **Start conditions:** accepted discovery, signed PoV SOW, named sponsor and technical owner, approved data handling, environment access, baseline, and signed acceptance criteria.
 

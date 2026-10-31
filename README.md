@@ -51,6 +51,8 @@ Vardhan Q-Core is engineered to eliminate cloud vendor lock-in. Tier-1 financial
 Q-Core maintains reproducible, timestamped evidence validating compliance with NIST standards and open interoperability specifications. For prospective banking clients and institutional evaluators, review the comprehensive [Technical PoV Security Dossier](docs/TECHNICAL_POV_SECURITY_DOSSIER.md).
 
 - **Technical PoV Security Dossier:** Authoritative technical and commercial evaluation pack synthesizing all cryptographic, custody, and high-availability evidence into a single customer-ready document: [docs/TECHNICAL_POV_SECURITY_DOSSIER.md](docs/TECHNICAL_POV_SECURITY_DOSSIER.md).
+- **Discovery & PoV Engagement Package:** Commercial overview of the 2-stage institutional evaluation path (Stage 1 Discovery £15K, Stage 2 Bounded PoV £65K): [docs/DISCOVERY_AND_POV_ENGAGEMENT_PACKAGE.md](docs/DISCOVERY_AND_POV_ENGAGEMENT_PACKAGE.md).
+- **Live Demo Runbook:** Step-by-step meeting guide for running `./qcore share` on-demand Cloudflare demo endpoints: [docs/LIVE_DEMO_RUNBOOK.md](docs/LIVE_DEMO_RUNBOOK.md).
 - **Live AWS KMS Custody & Daemon Recovery (Phase 3):** Full daemon lifecycle verified against live AWS KMS hardware modules (`eu-north-1`). Proves cold start provisioning, zero-plaintext disk storage, AWS KMS hardware decryption, in-memory zeroizing key restoration, and operational ML-DSA-87 transaction signing across genuine process restarts. Detailed in [docs/AWS_KMS_DAEMON_RECOVERY_REPORT.md](docs/AWS_KMS_DAEMON_RECOVERY_REPORT.md).
 - **External X.509 PQC PKI & Rotation (Phase 2):** 3-tier ML-DSA-87 hierarchy (Root → Intermediate → Leaf) verified with full path validation, negative tamper/expiry/revocation controls, and seamless certificate rotation. Detailed in [docs/PKI_INTEROP_VALIDATION_REPORT.md](docs/PKI_INTEROP_VALIDATION_REPORT.md).
 - **IETF PQC X.509 Interoperability (12/12 Passed):** Verified against `IETF-Hackathon/pqc-certificates` Round 5 artifacts across BouncyCastle, Botan/OpenSSL 3.6, and Entrust PKI Hub (`ML-DSA-87` FIPS 204).
@@ -112,7 +114,7 @@ The commercial model progresses from bounded technical problem validation to ent
 
 - **Architecture & Security Discovery (`qcore_architecture_evaluation`): £15,000 fixed fee**  
   Fixed-scope evaluation assessing one specific customer workflow for submission integrity, policy enforcement, replay protection, and verifiable trust receipts. Delivery target: 48 hours after prerequisites and access are established.
-- **Proof of Value (`qcore_proof_of_value`): £60,000 fixed fee**  
+- **Proof of Value (`qcore_proof_of_value`): £65,000 fixed fee**  
   Time-boxed 10-day evaluation executed in a bounded, authorized environment evaluating dual-signature verification against pre-agreed criteria. Delivers recorded test evidence, measured criteria results, and a formal go/no-go recommendation.
 
 ### 2. Annual Production Licences (Recurring Subscriptions)

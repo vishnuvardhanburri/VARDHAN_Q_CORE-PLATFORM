@@ -2,7 +2,7 @@
 
 > Campaign Status: FROZEN TARGET UNIVERSE (29 FSB G-SIBs + LGT Private Banking)
 > Platform Verification Verdict: RELEASE CANDIDATE (Single-Node Verified)
-> Commercial Value Path: GBP 15,000 Discovery -> GBP 60,000 Proof of Value -> GBP 12M+ Annual Strategic Agreement
+> Commercial Value Path: GBP 15,000 Discovery -> GBP 65,000 Proof of Value -> GBP 12M+ Annual Strategic Agreement
 > Communication Policy: Zero emojis, public-source grounded, zero speculative claims, 10-minute demonstration offer
 
 ---

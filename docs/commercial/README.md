@@ -3,7 +3,7 @@
 **Purpose:** turn the £15K discovery → £60K proof of value → £500K production sequence into a buyer-evidence-led sales process.
 
 > [!NOTE]
-> **Authoritative Production Catalogue Reference:** The £15K → £60K → £500K progression serves as a historical baseline for engagement staging. The authoritative production licensing catalogue is codified in [`docs/COMMERCIAL_PRICING_MODEL.md`](../COMMERCIAL_PRICING_MODEL.md) and exposed via `GET /api/v1/catalog/plans`: Foundation (£360,000/yr), Enterprise (£720,000/yr), Advanced Resilience (£1,200,000/yr), and Strategic / Sovereign (Bespoke / £12M target).
+> **Authoritative Production Catalogue Reference:** The £15K → £65K → £500K progression serves as a historical baseline for engagement staging. The authoritative production licensing catalogue is codified in [`docs/COMMERCIAL_PRICING_MODEL.md`](../COMMERCIAL_PRICING_MODEL.md) and exposed via `GET /api/v1/catalog/plans`: Foundation (£360,000/yr), Enterprise (£720,000/yr), Advanced Resilience (£1,200,000/yr), and Strategic / Sovereign (Bespoke / £12M target).
 
 ## Commercial principle
 
@@ -18,7 +18,7 @@ The product proposition to test with buyers is narrow: VARDHAN Q-CORE is intende
 | Stage | Value | Entry evidence | Exit evidence required before advancing |
 |---|---:|---|---|
 | Discovery | £15,000 | A relevant buyer acknowledges the problem question; a plausible use case and sponsor emerge | Signed scope and terms; agreed deliverables; problem confirmed as worthwhile; feasibility/access assessed; PoV acceptance criteria agreed |
-| Proof of value | £60,000 | Discovery accepted; buyer agrees the problem is worth solving; technical feasibility and access confirmed | Pre-agreed tests and business metrics executed; baseline comparison; security findings disclosed; sponsor accepts results; production requirements documented |
+| Proof of value | £65,000 | Discovery accepted; buyer agrees the problem is worth solving; technical feasibility and access confirmed | Pre-agreed tests and business metrics executed; baseline comparison; security findings disclosed; sponsor accepts results; production requirements documented |
 | Production | £500,000 | PoV passes agreed acceptance criteria and sponsor supports production | Signed production contract/order; commercial basis and term confirmed; deployment/security scope, support/SLA, procurement, and acceptance agreed |
 
 **No automatic progression.** Discovery can recommend stop; a PoV can be failed or inconclusive. Those are valid evidence-led outcomes.
@@ -29,7 +29,7 @@ See [Discovery scope](DISCOVERY_15K_SCOPE.md). Sell an actionable decision, not 
 
 ## Stage 2 — £60K proof of value
 
-See [PoV scope](POV_60K_SCOPE.md). Prove one workflow in a bounded environment. Agree the baseline, data, workload, success thresholds, security boundary, and test owners before execution. Do not promise a production SLA, certification, or broad rollout as part of the PoV.
+See [PoV scope](POV_65K_SCOPE.md). Prove one workflow in a bounded environment. Agree the baseline, data, workload, success thresholds, security boundary, and test owners before execution. Do not promise a production SLA, certification, or broad rollout as part of the PoV.
 
 ## Stage 3 — £500K production
 

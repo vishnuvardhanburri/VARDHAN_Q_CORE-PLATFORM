@@ -132,7 +132,7 @@ To navigate institutional governance and procurement cycles, Vardhan Technologie
 * **Stage 1: Discovery (£15,000 / 48-Hour Target)**
   * Technical assessment of one specific customer workflow (e.g., SWIFT payment submission integrity, ISO 20022 message validation, or replay protection).
   * Delivery: Formal workflow mapping, risk analysis, and bounded PoV specification.
-* **Stage 2: Proof of Value (£60,000 / 10-Day Evaluation)**
+* **Stage 2: Proof of Value (£65,000 / 10-Day Evaluation)**
   * Bounded sandbox deployment with synthetic or testnet bank traffic.
   * Live verification of dual-signature ML-DSA-87 receipts, replay rejection, and latency benchmarks.
   * Delivery: Measured evidence pack, performance report, and executive go/no-go recommendation.

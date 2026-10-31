@@ -15,14 +15,14 @@ The Vardhan Q-Core platform enforces an authoritative backend catalog exposed vi
 | # | Plan Identifier | Plan Name | Price | Billing Model | Tier Category | Contact Sales | Authoritative Entitlements Granted | Commercial Profile |
 |---|---|---|---|---|---|---|---|---|
 | 1 | `qcore_architecture_evaluation` | Architecture & Security Evaluation | £15,000 fixed fee | `fixed_fee` | `professional_service` | `true` | `q_core_evaluation` | Fixed-scope architecture review, cryptographic readiness audit. |
-| 2 | `qcore_proof_of_value` | Bounded Proof of Value | £60,000 fixed fee | `fixed_fee` | `professional_service` | `true` | `q_core_pov` | Time-boxed 30-day PoV deployment, dual-signature evaluation. |
+| 2 | `qcore_proof_of_value` | Bounded Proof of Value | £65,000 fixed fee | `fixed_fee` | `professional_service` | `true` | `q_core_pov` | Time-boxed 30-day PoV deployment, dual-signature evaluation. |
 | 3 | `foundation` | Foundation | £360,000 / year | `annual_license` | `enterprise` | `true` | `q_core`, `audit`, `api` | Production single-tenant receipt signing and local verification. |
 | 4 | `enterprise` | Enterprise | £720,000 / year | `annual_license` | `enterprise_plus` | `true` | `q_core`, `audit`, `api`, `rbac`, `integrations`, `compliance`, `usage` | Multi-user enterprise control plane with SCIM, WebAuthn MFA, and usage telemetry. |
 | 5 | `advanced_resilience` | Advanced Resilience | £1,200,000 / year | `annual_license` | `advanced_resilience` | `true` | `q_core`, `audit`, `api`, `rbac`, `integrations`, `compliance`, `usage`, `aer_kep_q`, `ha`, `dr`, `hsm_kms` | Adds key epoch transitions (`aer_kep_q`), HA clustering (experimental Raft), and HSM key custody hooks. |
 | 6 | `strategic` | Strategic / Sovereign | Bespoke (£12,000,000 baseline target, £5M–£50M scoped) | `scoped` | `strategic` | `true` | `q_core`, `audit`, `api`, `rbac`, `integrations`, `compliance`, `usage`, `aer_kep_q`, `ha`, `dr`, `hsm_kms`, `sovereign_deployment`, `air_gapped`, `dedicated_assurance` | Defense-grade air-gapped and sovereign enclave deployments with offline verifier and dedicated assurance. |
 
 *Pricing Structure & Billing Classification:*
-- Fixed fees: Discovery (£15,000) and PoV (£60,000) are one-off evaluation engagements (`one_off`).
+- Fixed fees: Discovery (£15,000) and PoV (£65,000) are one-off evaluation engagements (`one_off`).
 - Annual licences: Foundation (£360,000/yr), Enterprise (£720,000/yr), and Advanced Resilience (£1,200,000/yr) are recurring annual subscriptions (`annual`).
 - Scoped engagement: Strategic / Sovereign (Bespoke / £12M target) is individually scoped for sovereign/air-gapped environments (`custom`).
 
